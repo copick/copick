@@ -1,7 +1,7 @@
 from qtpy.QtCore import QAbstractItemModel
 
 
-class QCoPickModel(QAbstractItemModel):
+class QCoPickTreeModel(QAbstractItemModel):
     pass
     # def __init__(
     #     self,
