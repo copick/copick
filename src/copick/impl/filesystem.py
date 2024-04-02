@@ -1,5 +1,4 @@
 import json
-from collections import namedtuple
 from typing import Any, Dict, List, Optional, Tuple, Type
 
 import fsspec
@@ -39,10 +38,6 @@ class CopickConfigFSSpec(CopickConfig):
 
     overlay_fs_args: Optional[Dict[str, Any]] = {}
     static_fs_args: Optional[Dict[str, Any]] = {}
-
-
-FSArgs = namedtuple("FSArgs", ["fs"])
-FSOArgs = namedtuple("FSOArgs", ["fs_overlay", "fs_static"])
 
 
 class CopickPicksFSSpec(CopickPicksOverlay):
@@ -345,11 +340,13 @@ class CopickRunFSSpec(CopickRunOverlay):
 
     def query_voxelspacings(self) -> List[CopickVoxelSpacingFSSpec]:
         static_vs_loc = f"{self.static_path}/VoxelSpacing"
-        spaths = self.fs_static.glob(static_vs_loc + "*")
+        spaths = self.fs_static.glob(static_vs_loc + "*") + self.fs_static.glob(static_vs_loc + "*/")
+        spaths = [p.rstrip("/") for p in spaths]
         sspacings = [float(p.replace(f"{static_vs_loc}", "")) for p in spaths]
 
         overlay_vs_loc = f"{self.overlay_path}/VoxelSpacing"
-        opaths = self.fs_overlay.glob(overlay_vs_loc + "*")
+        opaths = self.fs_overlay.glob(overlay_vs_loc + "*") + self.fs_overlay.glob(overlay_vs_loc + "*/")
+        opaths = [p.rstrip("/") for p in opaths]
         ospacings = [float(p.replace(f"{overlay_vs_loc}", "")) for p in opaths]
 
         paths = spaths + opaths
@@ -534,8 +531,8 @@ class CopickRootFSSpec(CopickRoot):
 
     def query(self) -> List[CopickRunFSSpec]:
         static_run_dir = f"{self.root_static}/ExperimentRuns/"
-        paths = self.fs_static.glob(static_run_dir + "*")
-        paths = [p for p in paths if self.fs_static.isdir(p)]
+        paths = self.fs_static.glob(static_run_dir + "*") + self.fs_static.glob(static_run_dir + "*/")
+        paths = [p.rstrip("/") for p in paths if self.fs_static.isdir(p)]
         names = [n.replace(static_run_dir, "") for n in paths]
 
         runs = []
@@ -547,46 +544,47 @@ class CopickRootFSSpec(CopickRoot):
 
 
 if __name__ == "__main__":
-    root = CopickRootFSSpec.from_file("/Users/utz.ermel/Documents/copick/sample_project/copick_config_filesystem.json")
+    root = CopickRootFSSpec.from_file("/Users/utz.ermel/Documents/copick/copick_config_samba.json")
+    # root = CopickRootFSSpec.from_file("/Users/utz.ermel/Documents/copick/sample_project/copick_config_filesystem.json")
     # List of runs
     print(root.runs)
 
-    # Points
-    print(root.runs[0].picks)
-    print(root.runs[0].picks[0].points)
-
-    # List of meshes
-    print(root.runs[0].meshes)
-
-    # List of segmentations
-    print(root.runs[0].segmentations)
-
-    # List of voxel spacings
-    print(root.runs[0].voxel_spacings)
-
-    # List of tomograms
-    print(root.runs[0].voxel_spacings[0].tomograms)
-
-    # Get Zarr store for a tomogram
-    print(zarr.open_group(root.runs[0].voxel_spacings[0].tomograms[0].zarr()).info)
-
-    # Get Zarr store for a tomogram feature
-    print(root.runs[0].voxel_spacings[0].tomograms[1].features)
-    print(zarr.open_group(root.runs[0].voxel_spacings[0].tomograms[1].features[0].zarr()).info)
-
-    # Get a pick file's contents
-    print(root.runs[0].picks[0].load())
-
-    # Get a mesh file's contents
-    print(root.runs[0].meshes[0].mesh)
-
-    # Get a Zarr store for a segmentation
-    print(root.runs[0].segmentations[0].path)
-    print(zarr.open_group(root.runs[0].segmentations[0].zarr()).info)
-
-    # %%
-    a = root.runs[0].new_mesh("ribosome", "0", "cooltool")
-    a.store()
-
-    b = root.new_run("TS_004")
-    c = b.new_voxel_spacing(10)
+    # # Points
+    # print(root.runs[0].picks)
+    # print(root.runs[0].picks[0].points)
+    #
+    # # List of meshes
+    # print(root.runs[0].meshes)
+    #
+    # # List of segmentations
+    # print(root.runs[0].segmentations)
+    #
+    # # List of voxel spacings
+    # print(root.runs[0].voxel_spacings)
+    #
+    # # List of tomograms
+    # print(root.runs[0].voxel_spacings[0].tomograms)
+    #
+    # # Get Zarr store for a tomogram
+    # print(zarr.open_group(root.runs[0].voxel_spacings[0].tomograms[0].zarr()).info)
+    #
+    # # Get Zarr store for a tomogram feature
+    # print(root.runs[0].voxel_spacings[0].tomograms[1].features)
+    # print(zarr.open_group(root.runs[0].voxel_spacings[0].tomograms[1].features[0].zarr()).info)
+    #
+    # # Get a pick file's contents
+    # print(root.runs[0].picks[0].load())
+    #
+    # # Get a mesh file's contents
+    # print(root.runs[0].meshes[0].mesh)
+    #
+    # # Get a Zarr store for a segmentation
+    # print(root.runs[0].segmentations[0].path)
+    # print(zarr.open_group(root.runs[0].segmentations[0].zarr()).info)
+    #
+    # # %%
+    # a = root.runs[0].new_mesh("ribosome", "0", "cooltool")
+    # a.store()
+    #
+    # b = root.new_run("TS_004")
+    # c = b.new_voxel_spacing(10)
