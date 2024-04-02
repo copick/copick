@@ -1,27 +1,54 @@
 import json
-from typing import Dict, ForwardRef, List, Literal, Optional, Tuple, Union
+from typing import Dict, List, Literal, MutableMapping, Optional, Tuple, TypeVar, Union
 
 import numpy as np
-from pydantic import BaseModel, Field, validator
 
-PickableObject = ForwardRef("PickableObject")
-CopickConfig = ForwardRef("CopickConfig")
-CopickLocation = ForwardRef("CopickLocation")
-CopickPoint = ForwardRef("CopickPoint")
-CopickPicks = ForwardRef("CopickPicks")
-CopickTomogram = ForwardRef("CopickTomogram")
-CopickVoxelSpacing = ForwardRef("CopickVoxelSpacing")
-CopickRun = ForwardRef("CopickRun")
-CopickRoot = ForwardRef("CopickRoot")
+# Should work with pydantic 1 and 2
+import pydantic
+
+if pydantic.VERSION.startswith("1"):
+    from pydantic import BaseModel, validator
+elif pydantic.VERSION.startswith("2"):
+    from pydantic.v1 import BaseModel, validator
+else:
+    raise ImportError(f"Unsupported pydantic version {pydantic.VERSION}.")
+
+from trimesh.parent import Geometry
+
+TPickableObject = TypeVar("TPickableObject", bound="PickableObject")
+TCopickConfig = TypeVar("TCopickConfig", bound="CopickConfig")
+TCopickLocation = TypeVar("TCopickLocation", bound="CopickLocation")
+TCopickPoint = TypeVar("TCopickPoint", bound="CopickPoint")
+TCopickPicks = TypeVar("TCopickPicks", bound="CopickPicks")
+TCopickMesh = TypeVar("TCopickMesh", bound="CopickMesh")
+TCopickSegmentation = TypeVar("TCopickSegmentation", bound="CopickSegmentation")
+TCopickTomogram = TypeVar("TCopickTomogram", bound="CopickTomogram")
+TCopickFeatures = TypeVar("TCopickFeatures", bound="CopickFeatures")
+TCopickVoxelSpacing = TypeVar("TCopickVoxelSpacing", bound="CopickVoxelSpacing")
+TCopickRun = TypeVar("TCopickRun", bound="CopickRun")
+TCopickRoot = TypeVar("TCopickRoot", bound="CopickRoot")
 
 
 class PickableObject(BaseModel):
     name: str
+    is_particle: bool
+    label: Optional[int]
+    color: Optional[Tuple[int, int, int, int]]
     emdb_id: Optional[str] = None
     pdb_id: Optional[str] = None
 
+    @validator("label")
+    def validate_label(cls, v) -> int:
+        """Validate the label."""
+        assert v != 0, "Label 0 is reserved for background."
+        return v
 
-PickableObject.update_forward_refs()
+    @validator("color")
+    def validate_color(cls, v) -> Tuple[int, int, int, int]:
+        """Validate the color."""
+        assert len(v) == 4, "Color must be a 4-tuple (RGBA)."
+        assert all(0 <= c <= 255 for c in v), "Color values must be in the range [0, 255]."
+        return v
 
 
 class CopickConfig(BaseModel):
@@ -29,12 +56,15 @@ class CopickConfig(BaseModel):
     """Name of the CoPick project."""
     description: Optional[str] = "Let's CoPick!"
     """Description of the CoPick project."""
-    version: Optional[str] = "1.0.0"
+    version: Optional[str] = "0.1.0"
     """Version of the CoPick API."""
 
-    # Dict[object_name: PickableObject]
-    pickable_objects: List[PickableObject]
+    # List[PickableObject]
+    pickable_objects: List[TPickableObject]
     """Index for available pickable objects."""
+
+    user_id: Optional[str] = None
+    """Unique identifier for the user (e.g. when distributing the config file to users)."""
 
     voxel_spacings: Optional[List[float]] = None
     """Index for available voxel spacings."""
@@ -43,15 +73,31 @@ class CopickConfig(BaseModel):
     """Index for run names."""
 
     # Dict[voxel_spacing: List of tomogram types]
-    tomograms: Optional[Dict[float, List[str]]] = None
+    tomograms: Optional[Dict[float, List[str]]] = {}
     """Index for available voxel spacings and tomogram types."""
 
+    # Dict[voxel_spacing: List of tomogram types]
+    features: Optional[Dict[float, List[str]]] = {}
+    """Index for available features. Must be computed on the tomogram types."""
+
+    # List[feature type]
+    feature_types: Optional[List[str]] = []
+    """Index for available feature types."""
+
     # Dict[object_name: List[pre-pick tool names]]
-    available_pre_picks: Optional[Dict[str, List[str]]]
+    available_pre_picks: Optional[Dict[str, List[str]]] = {}
     """Index for available pre-pick tools."""
 
+    # List[seg tool names]
+    available_pre_segmentations: Optional[List[str]] = []
+    """Index for available pre-segmentations."""
+
+    # Dict[object_name: List[pre-pick tool names]]
+    available_pre_meshes: Optional[Dict[str, List[str]]] = []
+    """Index for available pre-meshes."""
+
     @classmethod
-    def from_file(cls, filename: str) -> CopickConfig:
+    def from_file(cls, filename: str) -> TCopickConfig:
         with open(filename) as f:
             return cls(**json.load(f))
 
@@ -63,8 +109,8 @@ class CopickLocation(BaseModel):
 
 
 class CopickPoint(BaseModel):
-    location: CopickLocation
-    orientation: Optional[np.ndarray] = np.array(
+    location: TCopickLocation
+    transformation_: Optional[List[List[float]]] = (
         [[1.0, 0.0, 0.0, 0.0], [0.0, 1.0, 0.0, 0.0], [0.0, 0.0, 1.0, 0.0], [0.0, 0.0, 0.0, 1.0]],
     )
     instance_id: Optional[int] = 0
@@ -73,297 +119,394 @@ class CopickPoint(BaseModel):
     class Config:
         arbitrary_types_allowed = True
 
-    @validator("orientation")
-    def validate_orientation(self, v):
-        """Validate the orientation matrix."""
-        assert v.shape == (4, 4), "Orientation must be a 4x4 matrix."
-        assert v[3, 3] == 1.0, "Last element of orientation matrix must be 1.0."
-        assert np.allclose(v[3, :], [0.0, 0.0, 0.0, 1.0]), "Last row of orientation matrix must be [0, 0, 0, 1]."
+    @validator("transformation_")
+    def validate_transformation(cls, v) -> List[List[float]]:
+        """Validate the transformation matrix."""
+        arr = np.array(v)
+        assert arr.shape == (4, 4), "transformation must be a 4x4 matrix."
+        assert arr[3, 3] == 1.0, "Last element of transformation matrix must be 1.0."
+        assert np.allclose(arr[3, :], [0.0, 0.0, 0.0, 1.0]), "Last row of transformation matrix must be [0, 0, 0, 1]."
         return v
 
+    @property
+    def transformation(self) -> np.ndarray:
+        return np.array(self.transformation_)
 
-class CopickRoot(BaseModel):
-    config: Optional[CopickConfig] = None
-    """Reference to the configuration for this root. This will only be populated at runtime."""
-    runs_: Optional[List[CopickRun]] = None
-    """References to the runs for this project. Either populated from config or lazily loaded when CopickRoot.runs is
-    accessed."""
+    @transformation.setter
+    def transformation(self, value: np.ndarray) -> None:
+        assert value.shape == (4, 4), "Transformation must be a 4x4 matrix."
+        assert value[3, 3] == 1.0, "Last element of transformation matrix must be 1.0."
+        assert np.allclose(value[3, :], [0.0, 0.0, 0.0, 1.0]), "Last row of transformation matrix must be [0, 0, 0, 1]."
+        self.transformation_ = value.tolist()
 
-    @classmethod
-    def from_config(cls, config: CopickConfig) -> CopickRoot:
-        clazz = cls(config=config)
-        runs = [CopickRun.from_config(config, run_name, clazz) for run_name in config.runs]
-        clazz.runs_ = runs
-        return clazz
 
-    def query(self) -> List[CopickRun]:
+class CopickRoot:
+    def __init__(self, config: TCopickConfig):
+        self.config = config
+        """Reference to the configuration for this root. This will only be populated at runtime."""
+
+        self._runs: Optional[List[TCopickRun]] = None
+        """References to the runs for this project. Either populated from config or lazily loaded when CopickRoot.runs
+        is accessed."""
+
+        # If runs are specified in the config, create them
+        if config.runs is not None:
+            self._runs = {run_name: CopickRun(self, CopickRunMeta(name=run_name)) for run_name in config.runs}
+
+    @property
+    def user_id(self) -> str:
+        """Unique identifier for the user."""
+        return self.config.user_id
+
+    @user_id.setter
+    def user_id(self, value: str) -> None:
+        self.config.user_id = value
+
+    @property
+    def session_id(self) -> str:
+        """Unique identifier for the session."""
+        return self.config.user_id
+
+    @session_id.setter
+    def session_id(self, value: str) -> None:
+        self.config.user_id = value
+
+    def query(self) -> List[TCopickRun]:
         """Override this method to query for runs."""
         pass
 
     @property
-    def runs(self) -> List[CopickRun]:
-        """Retrieve runs via a RESTful interface or filesystem"""
-        if self.runs_ is None:
-            self.runs_ = self.query()
+    def runs(self) -> List[TCopickRun]:
+        """Lazy load runs via a RESTful interface or filesystem"""
+        if self._runs is None:
+            self._runs = self.query()
 
-        return self.runs_
+        return self._runs
 
-    def materialize(self):
-        """Materialize the self-referential tree structure."""
-        for run in self.runs:
-            run.root = self
-            for vs in run.voxel_spacings:
-                vs.run = run
-                for tom in vs.tomograms:
-                    tom.voxel_spacing = vs
-            for pick in run.picks:
-                pick.run = run
-
-    def refresh(self):
+    def refresh(self) -> None:
         """Refresh the self-referential tree structure."""
-        self.runs_ = self.query()
-
-    #######################
-    # Tree Item interface #
-    #######################
-    def child(self, row) -> CopickRun:
-        return self.runs[row]
-
-    def childCount(self) -> int:
-        return len(self.runs)
-
-    def childIndex(self) -> Union[int, None]:
-        return None
-
-    def data(self, column: int) -> str:
-        if column == 0:
-            return self.config.name
-        elif column == 1:
-            return ""
-
-    def columnCount(self) -> int:
-        return 2
+        self._runs = self.query()
 
 
-class CopickRun(BaseModel):
+class CopickRunMeta(BaseModel):
     name: str
     """Name of the run."""
-    root: Optional[CopickRoot] = Field(None, exclude=True)
-    """Reference to the root this run belongs to. This will only be populated at runtime and is excluded from
-    serialization."""
-    voxel_spacings_: Optional[List[CopickVoxelSpacing]] = None
-    """References to the voxel spacings for this run. Either populated from config or lazily loaded when
-    CopickRun.voxel_spacings is accessed."""
-    picks_: Optional[List[CopickPicks]] = None
-    """References to the picks for this run. Either populated from config or lazily loaded when CopickRun.picks is
-    accessed."""
 
-    @classmethod
-    def from_config(
-        cls,
-        config: CopickConfig,
-        run_name: str,
-        root: CopickRoot,
-        user_session_ids: Optional[List[Tuple[str, str]]] = None,
-    ) -> CopickRun:
-        root.update_forward_refs()
-        clazz = cls(name=run_name, root=root)
-        voxel_spacings = [CopickVoxelSpacing.from_config(config, run=clazz, voxel_size=vs) for vs in config.tomograms]
-        clazz.voxel_spacings_ = voxel_spacings
 
-        picks = []
+class CopickRun:
+    def __init__(self, root: TCopickRoot, meta: CopickRunMeta, config: Optional[TCopickConfig] = None):
+        self.meta = meta
+        """Metadata for this run."""
+        self.root = root
+        """Reference to the root this run belongs to. This will only be populated at runtime and is excluded from
+        serialization."""
 
-        # Select all available pre-picks for this run
-        avail = config.available_pre_picks.keys()
-        avail = [a for a in avail if a[0] == run_name]
+        self._voxel_spacings: Optional[Dict[float, TCopickVoxelSpacing]] = None
+        """Voxel spacings for this run. Either populated from config or lazily loaded when CopickRun.voxel_spacings is
+        accessed."""
 
-        # Pre-defined picks
-        for av in avail:
-            object_name = av[1]
-            prepicks = config.available_pre_picks[av]
+        self._picks: Optional[List[TCopickPicks]] = None
+        """Picks for this run. Either populated from config or lazily loaded when CopickRun.picks is
+        accessed."""
 
-            for pp in prepicks:
-                cop = CopickPicks(
-                    pickable_object_name=object_name,
-                    run_name=run_name,
-                    user_id=pp,
-                    session_id="0",
-                )
-                picks.append(cop)
+        self._meshes: Optional[List[TCopickMesh]] = None
+        """Meshes for this run. Either populated from config or lazily loaded when CopickRun.picks is
+        accessed."""
 
-        # User picks
-        if user_session_ids is not None:
-            for user_id, session_id in user_session_ids:
-                for po in config.pickable_objects:
-                    cop = CopickPicks(
-                        pickable_object_name=po,
-                        run_name=run_name,
-                        user_id=user_id,
-                        session_id=session_id,
+        self._segmentations: Optional[List[TCopickSegmentation]] = None
+        """Segmentations for this run. Either populated from config or lazily loaded when
+        CopickRun.segmentations is accessed."""
+
+        if config is not None:
+            voxel_spacings_metas = [
+                CopickVoxelSpacingMeta(run=self, voxel_size=vs, config=config) for vs in config.tomograms
+            ]
+            self._voxel_spacings = [CopickVoxelSpacing(run=self, meta=vs) for vs in voxel_spacings_metas]
+
+            #####################
+            # Picks from config #
+            #####################
+            # Select all available pre-picks for this run
+            avail = config.available_pre_picks.keys()
+            avail = [a for a in avail if a[0] == self.name]
+
+            # Pre-defined picks
+            for av in avail:
+                object_name = av[1]
+                prepicks = config.available_pre_picks[av]
+
+                for pp in prepicks:
+                    pm = CopickPicksFile(
+                        pickable_object_name=object_name, user_id=pp, session_id="0", run_name=self.name,
                     )
-                    picks.append(cop)
+                    self._picks.append(CopickPicks(run=self, file=pm))
 
-        clazz.picks_ = picks
-        return clazz
+            ######################
+            # Meshes from config #
+            ######################
+            for object_name, tool_names in config.available_pre_meshes.items():
+                for mesh_tool in tool_names:
+                    mm = CopickMeshMeta(pickable_object_name=object_name, user_id=mesh_tool, session_id="0")
+                    com = CopickMesh(run=self, meta=mm)
+                    self._meshes.append(com)
 
-    def query_voxelspacings(self) -> List[CopickVoxelSpacing]:
+            #############################
+            # Segmentations from config #
+            #############################
+            for seg_tool in config.available_pre_segmentations:
+                sm = CopickSegmentationMeta(run=self, user_id=seg_tool, session_id="0")
+                cos = CopickSegmentation(run=self, meta=sm)
+                self._segmentations.append(cos)
+
+    @property
+    def name(self):
+        return self.meta.name
+
+    @name.setter
+    def name(self, value: str) -> None:
+        self.meta.name = value
+
+    def query_voxelspacings(self) -> List[TCopickVoxelSpacing]:
         """Override this method to query for voxel_spacings."""
         pass
 
-    def query_picks(self) -> List[CopickPicks]:
+    def query_picks(self) -> List[TCopickPicks]:
         """Override this method to query for picks."""
         pass
 
+    def query_meshes(self) -> List[TCopickMesh]:
+        """Override this method to query for meshes."""
+        pass
+
+    def query_segmentations(self) -> List[TCopickSegmentation]:
+        """Override this method to query for segmentations."""
+        pass
+
     @property
-    def voxel_spacings(self) -> List[CopickVoxelSpacing]:
-        """Future location for retrieving voxel spacings via a RESTful interface or filesystem."""
-        if self.voxel_spacings_ is None:
-            self.voxel_spacings_ = self.query_voxelspacings()
+    def voxel_spacings(self) -> List[TCopickVoxelSpacing]:
+        """Lazy load voxel spacings via a RESTful interface or filesystem."""
+        if self._voxel_spacings is None:
+            self._voxel_spacings = self.query_voxelspacings()
 
-        return self.voxel_spacings_
+        return self._voxel_spacings
 
     @property
-    def picks(self) -> List[CopickPicks]:
-        """Future location for retrieving picks via a RESTful interface or filesystem."""
-        if self.picks_ is None:
-            self.picks_ = self.query_picks()
+    def picks(self) -> List[TCopickPicks]:
+        """Lazy load picks via a RESTful interface or filesystem."""
+        if self._picks is None:
+            self._picks = self.query_picks()
 
-        return self.picks_
+        return self._picks
 
-    def refresh_picks(self) -> None:
-        """Refresh the picks."""
-        self.picks_ = self.query_picks()
+    @property
+    def meshes(self) -> List[TCopickMesh]:
+        """Lazy load meshes via a RESTful interface or filesystem."""
+        if self._meshes is None:
+            self._meshes = self.query_meshes()
+
+        return self._meshes
+
+    @property
+    def segmentations(self) -> List[TCopickSegmentation]:
+        """Lazy load segmentations via a RESTful interface or filesystem."""
+        if self._segmentations is None:
+            self._segmentations = self.query_segmentations()
+
+        return self._segmentations
+
+    def new_picks(self, object_name: str, session_id: str) -> TCopickPicks:
+        """Create a new picks object."""
+        if object_name not in [o.name for o in self.root.config.pickable_objects]:
+            raise ValueError(f"Object name {object_name} not found in pickable objects.")
+
+        pm = CopickPicksFile(
+            pickable_object_name=object_name,
+            user_id=self.root.config.user_id,
+            session_id=session_id,
+            run_name=self.name,
+        )
+        return CopickPicks(run=self, file=pm)
+
+    def new_mesh(self, object_name: str, session_id: str) -> TCopickMesh:
+        """Create a new mesh object."""
+        if object_name not in [o.name for o in self.root.config.pickable_objects]:
+            raise ValueError(f"Object name {object_name} not found in pickable objects.")
+
+        mm = CopickMeshMeta(
+            pickable_object_name=object_name,
+            user_id=self.root.config.user_id,
+            session_id=session_id,
+        )
+        return CopickMesh(run=self, meta=mm)
+
+    def new_segmentation(self, session_id: str) -> TCopickSegmentation:
+        """Create a new segmentation object."""
+        sm = CopickSegmentationMeta(
+            user_id=self.root.config.user_id,
+            session_id=session_id,
+        )
+        return CopickSegmentation(run=self, meta=sm)
 
     def refresh_voxel_spacings(self) -> None:
         """Refresh the voxel spacings."""
-        self.voxel_spacings_ = self.query_voxelspacings()
+        self._voxel_spacings = self.query_voxelspacings()
+
+    def refresh_picks(self) -> None:
+        """Refresh the picks."""
+        self._picks = self.query_picks()
+
+    def refresh_meshes(self) -> None:
+        """Refresh the meshes."""
+        self._meshes = self.query_meshes()
+
+    def refresh_segmentations(self) -> None:
+        """Refresh the segmentations."""
+        self._segmentations = self.query_segmentations()
 
     def refresh(self) -> None:
         """Refresh the children."""
-        self.refresh_picks()
         self.refresh_voxel_spacings()
-
-    #######################
-    # Tree Item interface #
-    #######################
-    def child(self, row) -> CopickVoxelSpacing:
-        return self.voxel_spacings[row]
-
-    def childCount(self) -> int:
-        return len(self.voxel_spacings)
-
-    def childIndex(self) -> Union[int, None]:
-        return self.root.runs.index(self)
-
-    def data(self, column: int) -> str:
-        if column == 0:
-            return self.name
-        elif column == 1:
-            return ""
-
-    def columnCount(self) -> int:
-        return 2
+        self.refresh_picks()
+        self.refresh_meshes()
+        self.refresh_segmentations()
 
 
-class CopickVoxelSpacing(BaseModel):
+class CopickVoxelSpacingMeta(BaseModel):
     voxel_size: float
-    """Voxel spacing for the tomograms."""
-    run: Optional[CopickRun] = Field(None, exclude=True)
-    """Reference to the run this voxel spacing belongs to. This will only be populated at runtime and is excluded from
-    serialization."""
-    tomograms_: Optional[List[CopickTomogram]] = None
-    """References to the tomograms for this voxel spacing."""
 
-    @classmethod
-    def from_config(cls, config: CopickConfig, run: CopickRun, voxel_size: float) -> CopickVoxelSpacing:
-        clazz = cls(voxel_size=voxel_size, run=run, _tomograms=[])
-        toms = [
-            CopickTomogram.from_config(config, voxel_spacing=clazz, tomotype=tt) for tt in config.tomograms[voxel_size]
-        ]
-        clazz.tomograms_ = toms
-        return clazz
 
-    def query(self) -> List[CopickTomogram]:
+class CopickVoxelSpacing:
+    def __init__(self, run: TCopickRun, meta: CopickVoxelSpacingMeta, config: Optional[TCopickConfig] = None):
+        self.run = run
+        self.meta = meta
+
+        self._tomograms: Optional[List[TCopickTomogram]] = None
+        """References to the tomograms for this voxel spacing."""
+
+        if config is not None:
+            tomo_metas = [CopickTomogramMeta(tomo_type=tt) for tt in config.tomograms[self.voxel_size]]
+            self._tomograms = {
+                tm.tomo_type: CopickTomogram(voxel_spacing=self, meta=tm, config=config) for tm in tomo_metas
+            }
+
+    @property
+    def voxel_size(self) -> float:
+        return self.meta.voxel_size
+
+    def query_tomograms(self) -> List[TCopickTomogram]:
         """Override this method to query for tomograms."""
         pass
 
     @property
-    def tomograms(self) -> List[CopickTomogram]:
-        """Future location for retrieving tomograms via a RESTful interface or filesystem."""
-        if self.tomograms_ is None:
-            self.tomograms_ = self.query()
+    def tomograms(self) -> List[TCopickTomogram]:
+        """Lazy load tomograms via a RESTful interface or filesystem."""
+        if self._tomograms is None:
+            self._tomograms = self.query_tomograms()
 
-        return self.tomograms_
+        return self._tomograms
+
+    def refresh_tomograms(self) -> None:
+        """Refresh the tomograms."""
+        self._tomograms = self.query_tomograms()
 
     def refresh(self) -> None:
         """Refresh the children."""
-        self.tomograms_ = self.query()
-
-    #######################
-    # Tree Item interface #
-    #######################
-    def child(self, row) -> CopickTomogram:
-        return self.tomograms[row]
-
-    def childCount(self) -> int:
-        return len(self.tomograms)
-
-    def childIndex(self) -> Union[int, None]:
-        return self.run.voxel_spacings.index(self)
-
-    def data(self, column: int) -> str:
-        if column == 0:
-            return f"VoxelSpacing{self.voxel_size:.3f}"
-        elif column == 1:
-            return ""
-
-    def columnCount(self) -> int:
-        return 2
+        self.refresh_tomograms()
 
 
-class CopickTomogram(BaseModel):
-    tomotype: str
+class CopickTomogramMeta(BaseModel):
+    tomo_type: str
     """Type of the tomogram."""
-    voxel_spacing: Optional[CopickVoxelSpacing] = Field(None, exclude=True)
-    """Reference to the voxel spacing this tomogram belongs to. This will only be populated at runtime."""
-
-    @classmethod
-    def from_config(
-        cls,
-        config: CopickConfig,
-        voxel_spacing: CopickVoxelSpacing,
-        tomotype: str,
-    ) -> CopickTomogram:
-        return cls(tomotype=tomotype, voxel_spacing=voxel_spacing)
-
-    #######################
-    # Tree Item interface #
-    #######################
-    def child(self, row) -> None:
-        return None
-
-    def childCount(self) -> int:
-        return 0
-
-    def childIndex(self) -> Union[int, None]:
-        return self.run.voxel_spacings.index(self)
-
-    def data(self, column: int) -> str:
-        if column == 0:
-            return self.tomotype
-        elif column == 1:
-            return ""
-
-    def columnCount(self) -> int:
-        return 2
 
 
-class CopickPicks(BaseModel):
+class CopickTomogram:
+    def __init__(
+        self, voxel_spacing: TCopickVoxelSpacing, meta: CopickTomogramMeta, config: Optional[TCopickConfig] = None,
+    ):
+        self.meta = meta
+        """Metadata for this tomogram."""
+        self.voxel_spacing = voxel_spacing
+        """Voxel spacing this tomogram belongs to."""
+
+        self._features: Optional[List[TCopickFeatures]] = None
+        """Features for this tomogram."""
+
+        if config is not None and self.tomo_type in config.features[self.voxel_spacing.voxel_size]:
+            feat_metas = [CopickFeaturesMeta(tomo_type=self.tomo_type, feature_type=ft) for ft in config.feature_types]
+            self._features = {fm.feature_type: CopickFeatures(tomogram=self, meta=fm) for fm in feat_metas}
+
+    @property
+    def tomo_type(self) -> str:
+        return self.meta.tomo_type
+
+    @property
+    def features(self) -> List[TCopickFeatures]:
+        """Lazy load features via a RESTful interface or filesystem."""
+        if self._features is None:
+            self._features = self.query_features()
+
+        return self._features
+
+    @features.setter
+    def features(self, value: List[TCopickFeatures]) -> None:
+        """Set the features."""
+        self._features = value
+
+    def new_features(self, feature_type: str) -> TCopickFeatures:
+        """Create a new features object."""
+        if feature_type not in self.voxel_spacing.root.config.feature_types:
+            self.voxel_spacing.root.config.feature_types.append(feature_type)
+
+        fm = CopickFeaturesMeta(tomo_type=self.tomo_type, feature_type=feature_type)
+        return CopickFeatures(tomogram=self, meta=fm)
+
+    def query_features(self) -> List[TCopickFeatures]:
+        """Override this method to query for features."""
+        pass
+
+    def refresh_features(self) -> None:
+        """Refresh the features."""
+        self._features = self.query_features()
+
+    def refresh(self) -> None:
+        """Refresh the children."""
+        self.refresh_features()
+
+    def zarr(self) -> MutableMapping:
+        """Override to return the Zarr store for this tomogram."""
+        pass
+
+
+class CopickFeaturesMeta(BaseModel):
+    tomo_type: str
+    """Type of the tomogram that the features were computed on."""
+    feature_type: str
+    """Type of the features contained."""
+
+
+class CopickFeatures:
+    def __init__(self, tomogram: TCopickTomogram, meta: CopickFeaturesMeta):
+        self.meta: CopickFeaturesMeta = meta
+        """Metadata for this tomogram."""
+        self.tomogram: TCopickTomogram = tomogram
+        """Tomogram these features belong to."""
+
+    @property
+    def tomo_type(self) -> str:
+        return self.meta.tomo_type
+
+    @property
+    def feature_type(self) -> str:
+        return self.meta.feature_type
+
+    def zarr(self) -> MutableMapping:
+        """Override to return the Zarr store for this feature set."""
+        pass
+
+
+class CopickPicksFile(BaseModel):
     pickable_object_name: str
     """Pickable object name from CopickConfig.pickable_objects[X].name"""
-
-    run: Optional[CopickRun] = Field(None, exclude=True)
-    """Reference to the run this pick belongs to. This will only be populated at runtime."""
 
     user_id: str
     """Unique identifier for the user or tool name."""
@@ -372,40 +515,170 @@ class CopickPicks(BaseModel):
     """Unique identifier for the pick session (prevent race if they run multiple instances of napari, ChimeraX, etc)
        If it is 0, this pick was generated by a tool."""
 
-    run_name: str
+    run_name: Optional[str]
     """Name of the run this pick belongs to."""
     voxel_spacing: Optional[float]
     """Voxel spacing for the tomogram this pick belongs to."""
-    unit: Optional[str] = "angstrom"
+    unit: str = "angstrom"
     """Unit for the location of the pick."""
 
-    points_: Optional[List[CopickPoint]] = None
+    points: Optional[List[TCopickPoint]] = None
     """References to the points for this pick."""
 
-    def load(self) -> List[CopickPoint]:
+
+class CopickPicks:
+    def __init__(self, run: TCopickRun, file: CopickPicksFile):
+        self.meta: CopickPicksFile = file
+        """Metadata for this pick."""
+        self.run: TCopickRun = run
+        """Run this pick belongs to."""
+
+    def _load(self) -> CopickPicksFile:
         """Override this method to load points from a RESTful interface or filesystem."""
         pass
 
-    def store(self):
+    def _store(self):
         """Override this method to store points with a RESTful interface or filesystem."""
         pass
 
+    def load(self) -> CopickPicksFile:
+        """Load the points."""
+        self.meta = self._load()
+
+        return self.meta
+
+    def store(self):
+        """Store the points."""
+        self._store()
+
     @property
-    def points(self) -> List[CopickPoint]:
-        self.points_ = self.load()
+    def pickable_object_name(self) -> str:
+        """Pickable object name from CopickConfig.pickable_objects[X].name"""
+        return self.meta.pickable_object_name
 
-        return self.points_
+    @property
+    def user_id(self) -> str:
+        """Unique identifier for the user or tool name."""
+        return self.meta.user_id
+
+    @property
+    def session_id(self) -> Union[str, Literal["0"]]:
+        """Unique identifier for the pick session."""
+        return self.meta.session_id
+
+    @property
+    def points(self) -> List[TCopickPoint]:
+        """Lazy load points via a RESTful interface or filesystem."""
+        self.meta = self.load()
+
+        return self.meta.points
+
+    @points.setter
+    def points(self, value: List[TCopickPoint]) -> None:
+        """Set the points."""
+        self.meta.points = value
 
 
-CopickRoot.update_forward_refs(CopickRun=CopickRun)
-CopickRun.update_forward_refs(CopickVoxelSpacing=CopickVoxelSpacing, CopickPicks=CopickPicks)
-CopickVoxelSpacing.update_forward_refs(CopickTomogram=CopickTomogram)
+class CopickMeshMeta(BaseModel):
+    pickable_object_name: str
+    """Pickable object name from CopickConfig.pickable_objects[X].name"""
+
+    user_id: str
+    """Unique identifier for the user or tool name."""
+
+    session_id: Union[str, Literal["0"]]
+    """Unique identifier for the pick session (prevent race if they run multiple instances of napari, ChimeraX, etc)
+       If it is 0, this pick was generated by a tool."""
 
 
-if __name__ == "__main__":
-    conf = CopickConfig.from_file("/Users/utz.ermel/Documents/copick/sample_project/copick_config.json")
-    root = CopickRoot.from_config(conf)
+class CopickMesh:
+    def __init__(self, run: TCopickRun, meta: CopickMeshMeta):
+        self.meta: CopickMeshMeta = meta
+        """Metadata for this pick."""
+        self.run: TCopickRun = run
+        """Run this pick belongs to."""
 
-    rd = root.dict()
-    cr = CopickRoot(**rd)
-    cr.materialize()
+        self._mesh = None
+
+    @property
+    def pickable_object_name(self) -> str:
+        """Pickable object name from CopickConfig.pickable_objects[X].name"""
+        return self.meta.pickable_object_name
+
+    @property
+    def user_id(self) -> str:
+        """Unique identifier for the user or tool name."""
+        return self.meta.user_id
+
+    @property
+    def session_id(self) -> Union[str, Literal["0"]]:
+        """Unique identifier for the pick session."""
+        return self.meta.session_id
+
+    def _load(self) -> Geometry:
+        """Override this method to load mesh from a RESTful interface or filesystem."""
+        pass
+
+    def _store(self):
+        """Override this method to store mesh with a RESTful interface or filesystem."""
+        pass
+
+    def load(self) -> Geometry:
+        """Load the mesh."""
+        self._mesh = self._load()
+
+        return self._mesh
+
+    def store(self):
+        """Store the mesh."""
+        self._store()
+
+    @property
+    def mesh(self) -> Geometry:
+        """Lazy load mesh via a RESTful interface or filesystem."""
+        self._mesh = self.load()
+
+        return self._mesh
+
+    @mesh.setter
+    def mesh(self, value: Geometry) -> None:
+        """Set the mesh."""
+        self._mesh = value
+
+    @property
+    def from_tool(self) -> bool:
+        return self.session_id == "0"
+
+
+class CopickSegmentationMeta(BaseModel):
+    user_id: str
+    """Unique identifier for the user or tool name."""
+
+    session_id: Union[str, Literal["0"]]
+    """Unique identifier for the pick"""
+
+
+class CopickSegmentation:
+    def __init__(self, run: TCopickRun, meta: CopickSegmentationMeta):
+        self.meta: CopickSegmentationMeta = meta
+        """Metadata for this pick."""
+        self.run: TCopickRun = run
+        """Run this pick belongs to."""
+
+    @property
+    def user_id(self) -> str:
+        """Unique identifier for the user or tool name."""
+        return self.meta.user_id
+
+    @property
+    def session_id(self) -> Union[str, Literal["0"]]:
+        """Unique identifier for the pick session."""
+        return self.meta.session_id
+
+    @property
+    def from_tool(self) -> bool:
+        return self.session_id == "0"
+
+    def zarr(self) -> MutableMapping:
+        """Override to return the Zarr store for this segmentation."""
+        pass

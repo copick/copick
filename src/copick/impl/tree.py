@@ -1,9 +1,9 @@
 from typing import Union
 
-from copick.models import CopickRun, CopickTomogram, CopickVoxelSpacing
-
 
 class TreeRootMixin:
+    from copick.models import CopickRun
+
     def child(self, row) -> CopickRun:
         return self.runs[row]
 
@@ -24,6 +24,8 @@ class TreeRootMixin:
 
 
 class TreeRunMixin:
+    from copick.models import CopickVoxelSpacing
+
     def child(self, row) -> CopickVoxelSpacing:
         return self.voxel_spacings[row]
 
@@ -44,6 +46,8 @@ class TreeRunMixin:
 
 
 class TreeVoxelSpacingMixin:
+    from copick.models import CopickTomogram
+
     def child(self, row) -> CopickTomogram:
         return self.tomograms[row]
 
