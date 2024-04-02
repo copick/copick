@@ -152,7 +152,7 @@ class CopickRoot:
 
         # If runs are specified in the config, create them
         if config.runs is not None:
-            self._runs = {run_name: CopickRun(self, CopickRunMeta(name=run_name)) for run_name in config.runs}
+            self._runs = [CopickRun(self, CopickRunMeta(name=run_name)) for run_name in config.runs]
 
     @property
     def user_id(self) -> str:
@@ -184,6 +184,14 @@ class CopickRoot:
 
         return self._runs
 
+    def get_run(self, name: str) -> Union[TCopickRun, None]:
+        """Get run by name."""
+        for run in self.runs:
+            if run.name == name:
+                return run
+
+        return None
+
     def refresh(self) -> None:
         """Refresh the self-referential tree structure."""
         self._runs = self.query()
@@ -207,7 +215,7 @@ class CopickRoot:
         return run
 
     def _run_factory(self) -> Tuple[Type[TCopickRun], Type["CopickRunMeta"]]:
-        """Override this method to return the run class and run meta class."""
+        """Override this method to return the run class and run metadata class."""
         return CopickRun, CopickRunMeta
 
 
@@ -224,7 +232,7 @@ class CopickRun:
         """Reference to the root this run belongs to. This will only be populated at runtime and is excluded from
         serialization."""
 
-        self._voxel_spacings: Optional[Dict[float, TCopickVoxelSpacing]] = None
+        self._voxel_spacings: Optional[List[TCopickVoxelSpacing]] = None
         """Voxel spacings for this run. Either populated from config or lazily loaded when CopickRun.voxel_spacings is
         accessed."""
 
@@ -316,6 +324,13 @@ class CopickRun:
 
         return self._voxel_spacings
 
+    def get_voxel_spacing(self, voxel_size: float) -> Union[TCopickVoxelSpacing, None]:
+        """Get run by name."""
+        for vs in self.voxel_spacings:
+            if vs.voxel_size == voxel_size:
+                return vs
+        return None
+
     @property
     def picks(self) -> List[TCopickPicks]:
         """Lazy load picks via a RESTful interface or filesystem."""
@@ -323,6 +338,21 @@ class CopickRun:
             self._picks = self.query_picks()
 
         return self._picks
+
+    def get_picks(self, object_name: str = None, user_id: str = None, session_id: str = None) -> List[TCopickPicks]:
+        """Get picks by name, user_id or session_id (or combinations)."""
+        ret = self.picks
+
+        if object_name is not None:
+            ret = [p for p in ret if p.object_name == object_name]
+
+        if user_id is not None:
+            ret = [p for p in ret if p.user_id == user_id]
+
+        if session_id is not None:
+            ret = [p for p in ret if p.session_id == session_id]
+
+        return ret
 
     @property
     def meshes(self) -> List[TCopickMesh]:
@@ -332,6 +362,21 @@ class CopickRun:
 
         return self._meshes
 
+    def get_meshes(self, object_name: str = None, user_id: str = None, session_id: str = None) -> List[TCopickMesh]:
+        """Get meshes by name, user_id or session_id (or combinations)."""
+        ret = self.meshes
+
+        if object_name is not None:
+            ret = [m for m in ret if m.object_name == object_name]
+
+        if user_id is not None:
+            ret = [m for m in ret if m.user_id == user_id]
+
+        if session_id is not None:
+            ret = [m for m in ret if m.session_id == session_id]
+
+        return ret
+
     @property
     def segmentations(self) -> List[TCopickSegmentation]:
         """Lazy load segmentations via a RESTful interface or filesystem."""
@@ -339,6 +384,18 @@ class CopickRun:
             self._segmentations = self.query_segmentations()
 
         return self._segmentations
+
+    def get_segmentations(self, user_id: str = None, session_id: str = None) -> List[TCopickSegmentation]:
+        """Get segmentations by user_id or session_id (or combinations)."""
+        ret = self.segmentations
+
+        if user_id is not None:
+            ret = [s for s in ret if s.user_id == user_id]
+
+        if session_id is not None:
+            ret = [s for s in ret if s.session_id == session_id]
+
+        return ret
 
     def new_voxel_spacing(self, voxel_size: float, **kwargs) -> TCopickVoxelSpacing:
         """Create a new voxel spacing object."""
@@ -518,9 +575,7 @@ class CopickVoxelSpacing:
 
         if config is not None:
             tomo_metas = [CopickTomogramMeta(tomo_type=tt) for tt in config.tomograms[self.voxel_size]]
-            self._tomograms = {
-                tm.tomo_type: CopickTomogram(voxel_spacing=self, meta=tm, config=config) for tm in tomo_metas
-            }
+            self._tomograms = [CopickTomogram(voxel_spacing=self, meta=tm, config=config) for tm in tomo_metas]
 
     @property
     def voxel_size(self) -> float:
@@ -537,6 +592,13 @@ class CopickVoxelSpacing:
             self._tomograms = self.query_tomograms()
 
         return self._tomograms
+
+    def get_tomogram(self, tomo_type: str) -> Union[TCopickTomogram, None]:
+        """Get tomogram by type."""
+        for tomo in self.tomograms:
+            if tomo.tomo_type == tomo_type:
+                return tomo
+        return None
 
     def refresh_tomograms(self) -> None:
         """Refresh the tomograms."""
@@ -597,7 +659,7 @@ class CopickTomogram:
 
         if config is not None and self.tomo_type in config.features[self.voxel_spacing.voxel_size]:
             feat_metas = [CopickFeaturesMeta(tomo_type=self.tomo_type, feature_type=ft) for ft in config.feature_types]
-            self._features = {fm.feature_type: CopickFeatures(tomogram=self, meta=fm) for fm in feat_metas}
+            self._features = [CopickFeatures(tomogram=self, meta=fm) for fm in feat_metas]
 
     @property
     def tomo_type(self) -> str:
@@ -615,6 +677,13 @@ class CopickTomogram:
     def features(self, value: List[TCopickFeatures]) -> None:
         """Set the features."""
         self._features = value
+
+    def get_features(self, feature_type: str) -> Union[TCopickFeatures, None]:
+        """Get features by type."""
+        for feat in self.features:
+            if feat.feature_type == feature_type:
+                return feat
+        return None
 
     def new_features(self, feature_type: str, **kwargs) -> TCopickFeatures:
         """Create a new features object."""
