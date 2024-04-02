@@ -4,7 +4,7 @@ build-backend = "hatchling.build"
 
 [project]
 name = "copick"
-requires-python = ">=3.7"
+requires-python = ">=3.10"
 classifiers = [
     "Development Status :: 3 - Alpha",
     "License :: OSI Approved :: MIT License",

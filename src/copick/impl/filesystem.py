@@ -1,5 +1,4 @@
 import json
-from collections import namedtuple
 from typing import Any, Dict, List, Optional, Tuple, Type
 
 import fsspec
@@ -41,10 +40,6 @@ class CopickConfigFSSpec(CopickConfig):
     static_fs_args: Optional[Dict[str, Any]] = {}
 
 
-FSArgs = namedtuple("FSArgs", ["fs"])
-FSOArgs = namedtuple("FSOArgs", ["fs_overlay", "fs_static"])
-
-
 class CopickPicksFSSpec(CopickPicksOverlay):
     @property
     def path(self) -> str:
@@ -52,6 +47,13 @@ class CopickPicksFSSpec(CopickPicksOverlay):
             return f"{self.run.static_path}/Picks/{self.user_id}_{self.session_id}_{self.pickable_object_name}.json"
         else:
             return f"{self.run.overlay_path}/Picks/{self.user_id}_{self.session_id}_{self.pickable_object_name}.json"
+
+    @property
+    def directory(self) -> str:
+        if self.read_only:
+            return f"{self.run.static_path}/Picks/"
+        else:
+            return f"{self.run.overlay_path}/Picks/"
 
     @property
     def fs(self) -> AbstractFileSystem:
@@ -67,6 +69,9 @@ class CopickPicksFSSpec(CopickPicksOverlay):
         return CopickPicksFile(**data)
 
     def _store(self) -> None:
+        if not self.fs.exists(self.directory):
+            self.fs.makedirs(self.directory, exist_ok=True)
+
         with self.fs.open(self.path, "w") as f:
             json.dump(self.meta.dict(), f)
 
@@ -78,6 +83,13 @@ class CopickMeshFSSpec(CopickMeshOverlay):
             return f"{self.run.static_path}/Meshes/{self.user_id}_{self.session_id}_{self.pickable_object_name}.glb"
         else:
             return f"{self.run.overlay_path}/Meshes/{self.user_id}_{self.session_id}_{self.pickable_object_name}.glb"
+
+    @property
+    def directory(self) -> str:
+        if self.read_only:
+            return f"{self.run.static_path}/Meshes/"
+        else:
+            return f"{self.run.overlay_path}/Meshes/"
 
     @property
     def fs(self) -> AbstractFileSystem:
@@ -93,6 +105,9 @@ class CopickMeshFSSpec(CopickMeshOverlay):
         return scene
 
     def _store(self):
+        if not self.fs.exists(self.directory):
+            self.fs.makedirs(self.directory, exist_ok=True)
+
         with self.fs.open(self.path, "wb") as f:
             _ = self._mesh.export(f, file_type="glb")
 
@@ -194,7 +209,8 @@ class CopickTomogramFSSpec(CopickTomogramOverlay):
             return []
 
         feat_loc = self.static_path.replace(".zarr", "_")
-        paths = self.fs_static.glob(feat_loc + "*_features.zarr")
+        paths = self.fs_static.glob(feat_loc + "*_features.zarr") + self.fs_static.glob(feat_loc + "*_features.zarr/")
+        paths = [p.rstrip("/") for p in paths if self.fs_static.isdir(p)]
         feature_types = [n.replace(feat_loc, "").replace("_features.zarr", "") for n in paths]
 
         return [
@@ -211,7 +227,8 @@ class CopickTomogramFSSpec(CopickTomogramOverlay):
 
     def _query_overlay_features(self) -> List[CopickFeaturesFSSpec]:
         feat_loc = self.overlay_path.replace(".zarr", "_")
-        paths = self.fs_overlay.glob(feat_loc + "*_features.zarr")
+        paths = self.fs_overlay.glob(feat_loc + "*_features.zarr") + self.fs_overlay.glob(feat_loc + "*_features.zarr/")
+        paths = [p.rstrip("/") for p in paths if self.fs_overlay.isdir(p)]
         feature_types = [n.replace(feat_loc, "").replace("_features.zarr", "") for n in paths]
 
         return [
@@ -277,7 +294,8 @@ class CopickVoxelSpacingFSSpec(CopickVoxelSpacingOverlay):
             return []
 
         tomo_loc = f"{self.static_path}/"
-        paths = self.fs_static.glob(tomo_loc + "*.zarr")
+        paths = self.fs_static.glob(tomo_loc + "*.zarr") + self.fs_static.glob(tomo_loc + "*.zarr/")
+        paths = [p.rstrip("/") for p in paths if self.fs_static.isdir(p)]
         tomo_types = [n.replace(tomo_loc, "").replace(".zarr", "") for n in paths]
         tomo_types = [t for t in tomo_types if "features" not in t]
 
@@ -292,7 +310,8 @@ class CopickVoxelSpacingFSSpec(CopickVoxelSpacingOverlay):
 
     def _query_overlay_tomograms(self) -> List[CopickTomogramFSSpec]:
         tomo_loc = f"{self.overlay_path}/"
-        paths = self.fs_overlay.glob(tomo_loc + "*.zarr")
+        paths = self.fs_overlay.glob(tomo_loc + "*.zarr") + self.fs_overlay.glob(tomo_loc + "*.zarr/")
+        paths = [p.rstrip("/") for p in paths if self.fs_overlay.isdir(p)]
         tomo_types = [n.replace(tomo_loc, "").replace(".zarr", "") for n in paths]
         tomo_types = [t for t in tomo_types if "features" not in t]
 
@@ -307,7 +326,7 @@ class CopickVoxelSpacingFSSpec(CopickVoxelSpacingOverlay):
 
     def ensure(self) -> None:
         if not self.fs_overlay.exists(self.overlay_path):
-            self.fs_overlay.makedirs(self.overlay_path)
+            self.fs_overlay.makedirs(self.overlay_path, exist_ok=True)
 
 
 class CopickRunFSSpec(CopickRunOverlay):
@@ -345,11 +364,13 @@ class CopickRunFSSpec(CopickRunOverlay):
 
     def query_voxelspacings(self) -> List[CopickVoxelSpacingFSSpec]:
         static_vs_loc = f"{self.static_path}/VoxelSpacing"
-        spaths = self.fs_static.glob(static_vs_loc + "*")
+        spaths = self.fs_static.glob(static_vs_loc + "*") + self.fs_static.glob(static_vs_loc + "*/")
+        spaths = [p.rstrip("/") for p in spaths]
         sspacings = [float(p.replace(f"{static_vs_loc}", "")) for p in spaths]
 
         overlay_vs_loc = f"{self.overlay_path}/VoxelSpacing"
-        opaths = self.fs_overlay.glob(overlay_vs_loc + "*")
+        opaths = self.fs_overlay.glob(overlay_vs_loc + "*") + self.fs_overlay.glob(overlay_vs_loc + "*/")
+        opaths = [p.rstrip("/") for p in opaths]
         ospacings = [float(p.replace(f"{overlay_vs_loc}", "")) for p in opaths]
 
         paths = spaths + opaths
@@ -462,7 +483,8 @@ class CopickRunFSSpec(CopickRunOverlay):
             return []
 
         seg_loc = f"{self.static_path}/Segmentations/"
-        paths = self.fs_static.glob(seg_loc + "*.zarr")
+        paths = self.fs_static.glob(seg_loc + "*.zarr") + self.fs_static.glob(seg_loc + "*.zarr/")
+        paths = [p.rstrip("/") for p in paths if self.fs_static.isdir(p)]
         names = [n.replace(seg_loc, "").replace(".zarr", "") for n in paths]
 
         users = [n.split("_")[0] for n in names]
@@ -482,7 +504,8 @@ class CopickRunFSSpec(CopickRunOverlay):
 
     def _query_overlay_segmentations(self) -> List[CopickSegmentationFSSpec]:
         seg_loc = f"{self.overlay_path}/Segmentations/"
-        paths = self.fs_overlay.glob(seg_loc + "*.zarr")
+        paths = self.fs_overlay.glob(seg_loc + "*.zarr") + self.fs_overlay.glob(seg_loc + "*.zarr/")
+        paths = [p.rstrip("/") for p in paths if self.fs_overlay.isdir(p)]
         names = [n.replace(seg_loc, "").replace(".zarr", "") for n in paths]
 
         users = [n.split("_")[0] for n in names]
@@ -502,7 +525,7 @@ class CopickRunFSSpec(CopickRunOverlay):
 
     def ensure(self) -> None:
         if not self.fs_overlay.exists(self.overlay_path):
-            self.fs_overlay.makedirs(self.overlay_path)
+            self.fs_overlay.makedirs(self.overlay_path, exist_ok=True)
 
 
 class CopickRootFSSpec(CopickRoot):
@@ -534,8 +557,8 @@ class CopickRootFSSpec(CopickRoot):
 
     def query(self) -> List[CopickRunFSSpec]:
         static_run_dir = f"{self.root_static}/ExperimentRuns/"
-        paths = self.fs_static.glob(static_run_dir + "*")
-        paths = [p for p in paths if self.fs_static.isdir(p)]
+        paths = self.fs_static.glob(static_run_dir + "*") + self.fs_static.glob(static_run_dir + "*/")
+        paths = [p.rstrip("/") for p in paths if self.fs_static.isdir(p)]
         names = [n.replace(static_run_dir, "") for n in paths]
 
         runs = []
@@ -544,49 +567,3 @@ class CopickRootFSSpec(CopickRoot):
             runs.append(CopickRunFSSpec(root=self, meta=rm))
 
         return runs
-
-
-if __name__ == "__main__":
-    root = CopickRootFSSpec.from_file("/Users/utz.ermel/Documents/copick/sample_project/copick_config_filesystem.json")
-    # List of runs
-    print(root.runs)
-
-    # Points
-    print(root.runs[0].picks)
-    print(root.runs[0].picks[0].points)
-
-    # List of meshes
-    print(root.runs[0].meshes)
-
-    # List of segmentations
-    print(root.runs[0].segmentations)
-
-    # List of voxel spacings
-    print(root.runs[0].voxel_spacings)
-
-    # List of tomograms
-    print(root.runs[0].voxel_spacings[0].tomograms)
-
-    # Get Zarr store for a tomogram
-    print(zarr.open_group(root.runs[0].voxel_spacings[0].tomograms[0].zarr()).info)
-
-    # Get Zarr store for a tomogram feature
-    print(root.runs[0].voxel_spacings[0].tomograms[1].features)
-    print(zarr.open_group(root.runs[0].voxel_spacings[0].tomograms[1].features[0].zarr()).info)
-
-    # Get a pick file's contents
-    print(root.runs[0].picks[0].load())
-
-    # Get a mesh file's contents
-    print(root.runs[0].meshes[0].mesh)
-
-    # Get a Zarr store for a segmentation
-    print(root.runs[0].segmentations[0].path)
-    print(zarr.open_group(root.runs[0].segmentations[0].zarr()).info)
-
-    # %%
-    a = root.runs[0].new_mesh("ribosome", "0", "cooltool")
-    a.store()
-
-    b = root.new_run("TS_004")
-    c = b.new_voxel_spacing(10)
