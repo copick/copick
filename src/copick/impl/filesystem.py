@@ -1,6 +1,6 @@
 import json
 from collections import namedtuple
-from typing import Any, Dict, List, Optional, Union
+from typing import Any, Dict, List, Optional
 
 import fsspec
 import trimesh
@@ -55,6 +55,9 @@ class CopickPicksFSSpec(CopickPicksOverlay):
         return self.run.fs_static if self.read_only else self.run.fs_overlay
 
     def _load(self) -> CopickPicksFile:
+        if not self.fs.exists(self.path):
+            raise FileNotFoundError(f"File not found: {self.path}")
+
         with self.fs.open(self.path, "r") as f:
             data = json.load(f)
 
@@ -77,9 +80,9 @@ class CopickMeshFSSpec(CopickMeshOverlay):
     def fs(self) -> AbstractFileSystem:
         return self.run.fs_static if self.read_only else self.run.fs_overlay
 
-    def _load(self) -> Union[Geometry, None]:
+    def _load(self) -> Geometry:
         if not self.fs.exists(self.path):
-            return None
+            raise FileNotFoundError(f"File not found: {self.path}")
 
         with self.fs.open(self.path, "rb") as f:
             scene = trimesh.load(f, file_type="glb")
@@ -105,21 +108,20 @@ class CopickSegmentationFSSpec(CopickSegmentationOverlay):
 
     def zarr(self) -> zarr.storage.FSStore:
         if self.read_only:
-            return zarr.storage.FSStore(
-                self.path,
-                fs=self.fs,
-                mode="r",
-                key_separator="/",
-                dimension_separator="/",
-            )
+            mode = "r"
+            create = False
         else:
-            return zarr.storage.FSStore(
-                self.path,
-                fs=self.fs,
-                mode="w",
-                key_separator="/",
-                dimension_separator="/",
-            )
+            mode = "w"
+            create = not self.fs.exists(self.path)
+
+        return zarr.storage.FSStore(
+            self.path,
+            fs=self.fs,
+            mode=mode,
+            key_separator="/",
+            dimension_separator="/",
+            create=create,
+        )
 
 
 class CopickFeaturesFSSpec(CopickFeaturesOverlay):
@@ -136,21 +138,20 @@ class CopickFeaturesFSSpec(CopickFeaturesOverlay):
 
     def zarr(self) -> zarr.storage.FSStore:
         if self.read_only:
-            return zarr.storage.FSStore(
-                self.path,
-                fs=self.fs,
-                mode="r",
-                key_separator="/",
-                dimension_separator="/",
-            )
+            mode = "r"
+            create = False
         else:
-            return zarr.storage.FSStore(
-                self.path,
-                fs=self.fs,
-                mode="w",
-                key_separator="/",
-                dimension_separator="/",
-            )
+            mode = "w"
+            create = not self.fs.exists(self.path)
+
+        return zarr.storage.FSStore(
+            self.path,
+            fs=self.fs,
+            mode=mode,
+            key_separator="/",
+            dimension_separator="/",
+            create=create,
+        )
 
 
 class CopickTomogramFSSpec(CopickTomogramOverlay):
@@ -217,21 +218,24 @@ class CopickTomogramFSSpec(CopickTomogramOverlay):
 
     def zarr(self) -> zarr.storage.FSStore:
         if self.read_only:
-            return zarr.storage.FSStore(
-                self.static_path,
-                fs=self.fs_static,
-                mode="r",
-                key_separator="/",
-                dimension_separator="/",
-            )
+            fs = self.fs_static
+            path = self.static_path
+            mode = "r"
+            create = False
         else:
-            return zarr.storage.FSStore(
-                self.overlay_path,
-                fs=self.fs_overlay,
-                mode="w",
-                key_separator="/",
-                dimension_separator="/",
-            )
+            fs = self.fs_overlay
+            path = self.overlay_path
+            mode = "w"
+            create = not fs.exists(path)
+
+        return zarr.storage.FSStore(
+            path,
+            fs=fs,
+            mode=mode,
+            key_separator="/",
+            dimension_separator="/",
+            create=create,
+        )
 
 
 class CopickVoxelSpacingFSSpec(CopickVoxelSpacingOverlay):

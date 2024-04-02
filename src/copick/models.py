@@ -237,7 +237,10 @@ class CopickRun:
 
                 for pp in prepicks:
                     pm = CopickPicksFile(
-                        pickable_object_name=object_name, user_id=pp, session_id="0", run_name=self.name,
+                        pickable_object_name=object_name,
+                        user_id=pp,
+                        session_id="0",
+                        run_name=self.name,
                     )
                     self._picks.append(CopickPicks(run=self, file=pm))
 
@@ -314,33 +317,63 @@ class CopickRun:
 
         return self._segmentations
 
-    def new_picks(self, object_name: str, session_id: str) -> TCopickPicks:
+    def new_voxel_spacing(self, voxel_size: float) -> TCopickVoxelSpacing:
+        """Create a new voxel spacing object."""
+        vm = CopickVoxelSpacingMeta(voxel_size=voxel_size)
+        return CopickVoxelSpacing(run=self, meta=vm)
+
+    def new_picks(self, object_name: str, session_id: str, user_id: Optional[str] = None) -> TCopickPicks:
         """Create a new picks object."""
         if object_name not in [o.name for o in self.root.config.pickable_objects]:
             raise ValueError(f"Object name {object_name} not found in pickable objects.")
 
+        uid = self.root.config.user_id
+
+        if user_id is not None:
+            uid = user_id
+
+        if uid is None:
+            raise ValueError("User ID must be set in the root config or supplied to new_picks.")
+
         pm = CopickPicksFile(
             pickable_object_name=object_name,
-            user_id=self.root.config.user_id,
+            user_id=uid,
             session_id=session_id,
             run_name=self.name,
         )
         return CopickPicks(run=self, file=pm)
 
-    def new_mesh(self, object_name: str, session_id: str) -> TCopickMesh:
+    def new_mesh(self, object_name: str, session_id: str, user_id: Optional[str] = None) -> TCopickMesh:
         """Create a new mesh object."""
         if object_name not in [o.name for o in self.root.config.pickable_objects]:
             raise ValueError(f"Object name {object_name} not found in pickable objects.")
 
+        uid = self.root.config.user_id
+
+        if user_id is not None:
+            uid = user_id
+
+        if uid is None:
+            raise ValueError("User ID must be set in the root config or supplied to new_mesh.")
+
         mm = CopickMeshMeta(
             pickable_object_name=object_name,
-            user_id=self.root.config.user_id,
+            user_id=uid,
             session_id=session_id,
         )
         return CopickMesh(run=self, meta=mm)
 
-    def new_segmentation(self, session_id: str) -> TCopickSegmentation:
+    def new_segmentation(self, session_id: str, user_id: Optional[str] = None) -> TCopickSegmentation:
         """Create a new segmentation object."""
+
+        uid = self.root.config.user_id
+
+        if user_id is not None:
+            uid = user_id
+
+        if uid is None:
+            raise ValueError("User ID must be set in the root config or supplied to new_segmentation.")
+
         sm = CopickSegmentationMeta(
             user_id=self.root.config.user_id,
             session_id=session_id,
@@ -413,6 +446,14 @@ class CopickVoxelSpacing:
         """Refresh the children."""
         self.refresh_tomograms()
 
+    def new_tomogram(self, tomo_type: str) -> TCopickTomogram:
+        """Create a new tomogram object."""
+        if tomo_type in [tomo.tomo_type for tomo in self.tomograms]:
+            raise ValueError(f"Tomogram type {tomo_type} already exists for this voxel spacing.")
+
+        tm = CopickTomogramMeta(tomo_type=tomo_type)
+        return CopickTomogram(voxel_spacing=self, meta=tm)
+
 
 class CopickTomogramMeta(BaseModel):
     tomo_type: str
@@ -421,7 +462,10 @@ class CopickTomogramMeta(BaseModel):
 
 class CopickTomogram:
     def __init__(
-        self, voxel_spacing: TCopickVoxelSpacing, meta: CopickTomogramMeta, config: Optional[TCopickConfig] = None,
+        self,
+        voxel_spacing: TCopickVoxelSpacing,
+        meta: CopickTomogramMeta,
+        config: Optional[TCopickConfig] = None,
     ):
         self.meta = meta
         """Metadata for this tomogram."""
@@ -454,8 +498,8 @@ class CopickTomogram:
 
     def new_features(self, feature_type: str) -> TCopickFeatures:
         """Create a new features object."""
-        if feature_type not in self.voxel_spacing.root.config.feature_types:
-            self.voxel_spacing.root.config.feature_types.append(feature_type)
+        if feature_type in [f.feature_type for f in self.features]:
+            raise ValueError(f"Feature type {feature_type} already exists for this tomogram.")
 
         fm = CopickFeaturesMeta(tomo_type=self.tomo_type, feature_type=feature_type)
         return CopickFeatures(tomogram=self, meta=fm)
@@ -473,7 +517,8 @@ class CopickTomogram:
         self.refresh_features()
 
     def zarr(self) -> MutableMapping:
-        """Override to return the Zarr store for this tomogram."""
+        """Override to return the Zarr store for this tomogram. Also needs to handle creating the store if it
+        doesn't exist."""
         pass
 
 
@@ -500,7 +545,8 @@ class CopickFeatures:
         return self.meta.feature_type
 
     def zarr(self) -> MutableMapping:
-        """Override to return the Zarr store for this feature set."""
+        """Override to return the Zarr store for this feature set. Also needs to handle creating the store if it
+        doesn't exist."""
         pass
 
 
@@ -538,7 +584,8 @@ class CopickPicks:
         pass
 
     def _store(self):
-        """Override this method to store points with a RESTful interface or filesystem."""
+        """Override this method to store points with a RESTful interface or filesystem. Also needs to handle creating
+        the file if it doesn't exist."""
         pass
 
     def load(self) -> CopickPicksFile:
@@ -569,7 +616,8 @@ class CopickPicks:
     @property
     def points(self) -> List[TCopickPoint]:
         """Lazy load points via a RESTful interface or filesystem."""
-        self.meta = self.load()
+        if self.meta.points is None:
+            self.meta = self.load()
 
         return self.meta.points
 
@@ -577,6 +625,10 @@ class CopickPicks:
     def points(self, value: List[TCopickPoint]) -> None:
         """Set the points."""
         self.meta.points = value
+
+    def refresh(self) -> None:
+        """Refresh the children."""
+        self.meta = self.load()
 
 
 class CopickMeshMeta(BaseModel):
@@ -620,7 +672,8 @@ class CopickMesh:
         pass
 
     def _store(self):
-        """Override this method to store mesh with a RESTful interface or filesystem."""
+        """Override this method to store mesh with a RESTful interface or filesystem. Also needs to handle creating
+        the file if it doesn't exist."""
         pass
 
     def load(self) -> Geometry:
@@ -636,7 +689,8 @@ class CopickMesh:
     @property
     def mesh(self) -> Geometry:
         """Lazy load mesh via a RESTful interface or filesystem."""
-        self._mesh = self.load()
+        if self._mesh is None:
+            self._mesh = self.load()
 
         return self._mesh
 
@@ -648,6 +702,10 @@ class CopickMesh:
     @property
     def from_tool(self) -> bool:
         return self.session_id == "0"
+
+    def refresh(self) -> None:
+        """Refresh the children."""
+        self._mesh = self.load()
 
 
 class CopickSegmentationMeta(BaseModel):
@@ -680,5 +738,6 @@ class CopickSegmentation:
         return self.session_id == "0"
 
     def zarr(self) -> MutableMapping:
-        """Override to return the Zarr store for this segmentation."""
+        """Override to return the Zarr store for this segmentation. Also needs to handle creating the store if it
+        doesn't exist."""
         pass
