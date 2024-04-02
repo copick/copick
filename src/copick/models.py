@@ -513,7 +513,7 @@ class CopickRun:
         clz, meta_clz = self._segmentation_factory()
 
         sm = meta_clz(
-            user_id=self.root.config.user_id,
+            user_id=uid,
             session_id=session_id,
             **kwargs,
         )
