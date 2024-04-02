@@ -12,7 +12,7 @@ classifiers = [
 dynamic = ["version"]
 dependencies = [
     "fsspec",
-    "pydantic<2",
+    "pydantic",
     "numpy",
     "qtpy",
     "trimesh",
