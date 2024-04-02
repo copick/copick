@@ -1,4 +1,6 @@
-from typing import List
+from typing import List, Optional
+
+from trimesh.parent import Geometry
 
 from copick.models import (
     CopickFeatures,
@@ -29,8 +31,8 @@ class CopickPicksOverlay(CopickPicks):
 
 
 class CopickMeshOverlay(CopickMesh):
-    def __init__(self, run: CopickRun, meta: CopickMeshMeta, read_only: bool = False):
-        super().__init__(run, meta)
+    def __init__(self, run: CopickRun, meta: CopickMeshMeta, mesh: Optional[Geometry] = None, read_only: bool = False):
+        super().__init__(run, meta, mesh)
         self.read_only = read_only
 
     def store(self):

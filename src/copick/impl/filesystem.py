@@ -1,6 +1,6 @@
 import json
 from collections import namedtuple
-from typing import Any, Dict, List, Optional
+from typing import Any, Dict, List, Optional, Tuple, Type
 
 import fsspec
 import trimesh
@@ -27,6 +27,9 @@ from copick.models import (
     CopickSegmentationMeta,
     CopickTomogramMeta,
     CopickVoxelSpacingMeta,
+    TCopickFeatures,
+    TCopickRun,
+    TCopickVoxelSpacing,
 )
 
 
@@ -34,8 +37,8 @@ class CopickConfigFSSpec(CopickConfig):
     overlay_root: str
     static_root: Optional[str]
 
-    overlay_fs_args: Optional[Dict[str, Any]] = None
-    static_fs_args: Optional[Dict[str, Any]] = None
+    overlay_fs_args: Optional[Dict[str, Any]] = {}
+    static_fs_args: Optional[Dict[str, Any]] = {}
 
 
 FSArgs = namedtuple("FSArgs", ["fs"])
@@ -155,6 +158,9 @@ class CopickFeaturesFSSpec(CopickFeaturesOverlay):
 
 
 class CopickTomogramFSSpec(CopickTomogramOverlay):
+    def _feature_factory(self) -> Tuple[Type[TCopickFeatures], Type["CopickFeaturesMeta"]]:
+        return CopickFeaturesFSSpec, CopickFeaturesMeta
+
     @property
     def static_path(self) -> str:
         return f"{self.voxel_spacing.static_path}/{self.tomo_type}.zarr"
@@ -179,8 +185,12 @@ class CopickTomogramFSSpec(CopickTomogramOverlay):
     def fs_overlay(self) -> AbstractFileSystem:
         return self.voxel_spacing.fs_overlay
 
+    @property
+    def static_is_overlay(self) -> bool:
+        return self.fs_static == self.fs_overlay and self.static_path == self.overlay_path
+
     def _query_static_features(self) -> List[CopickFeaturesFSSpec]:
-        if self.fs_static == self.fs_overlay:
+        if self.static_is_overlay:
             return []
 
         feat_loc = self.static_path.replace(".zarr", "_")
@@ -239,13 +249,16 @@ class CopickTomogramFSSpec(CopickTomogramOverlay):
 
 
 class CopickVoxelSpacingFSSpec(CopickVoxelSpacingOverlay):
+    def _tomogram_factory(self) -> Tuple[Type[CopickTomogramFSSpec], Type[CopickTomogramMeta]]:
+        return CopickTomogramFSSpec, CopickTomogramMeta
+
     @property
     def static_path(self):
         return f"{self.run.static_path}/VoxelSpacing{self.voxel_size:.3f}"
 
     @property
     def overlay_path(self):
-        return f"{self.run.static_path}/VoxelSpacing{self.voxel_size:.3f}"
+        return f"{self.run.overlay_path}/VoxelSpacing{self.voxel_size:.3f}"
 
     @property
     def fs_static(self):
@@ -255,9 +268,14 @@ class CopickVoxelSpacingFSSpec(CopickVoxelSpacingOverlay):
     def fs_overlay(self):
         return self.run.fs_overlay
 
+    @property
+    def static_is_overlay(self):
+        return self.fs_static == self.fs_overlay and self.static_path == self.overlay_path
+
     def _query_static_tomograms(self) -> List[CopickTomogramFSSpec]:
-        if self.fs_static == self.fs_overlay:
+        if self.static_is_overlay:
             return []
+
         tomo_loc = f"{self.static_path}/"
         paths = self.fs_static.glob(tomo_loc + "*.zarr")
         tomo_types = [n.replace(tomo_loc, "").replace(".zarr", "") for n in paths]
@@ -287,8 +305,24 @@ class CopickVoxelSpacingFSSpec(CopickVoxelSpacingOverlay):
             for tt in tomo_types
         ]
 
+    def ensure(self) -> None:
+        if not self.fs_overlay.exists(self.overlay_path):
+            self.fs_overlay.makedirs(self.overlay_path)
+
 
 class CopickRunFSSpec(CopickRunOverlay):
+    def _voxel_spacing_factory(self) -> Tuple[Type[TCopickVoxelSpacing], Type["CopickVoxelSpacingMeta"]]:
+        return CopickVoxelSpacingFSSpec, CopickVoxelSpacingMeta
+
+    def _picks_factory(self) -> Type[CopickPicksFSSpec]:
+        return CopickPicksFSSpec
+
+    def _mesh_factory(self) -> Tuple[Type[CopickMeshFSSpec], Type[CopickMeshMeta]]:
+        return CopickMeshFSSpec, CopickMeshMeta
+
+    def _segmentation_factory(self) -> Tuple[Type[CopickSegmentationFSSpec], Type[CopickSegmentationMeta]]:
+        return CopickSegmentationFSSpec, CopickSegmentationMeta
+
     @property
     def static_path(self):
         return f"{self.root.root_static}/ExperimentRuns/{self.name}"
@@ -305,10 +339,21 @@ class CopickRunFSSpec(CopickRunOverlay):
     def fs_overlay(self):
         return self.root.fs_overlay
 
+    @property
+    def static_is_overlay(self):
+        return self.fs_static == self.fs_overlay and self.static_path == self.overlay_path
+
     def query_voxelspacings(self) -> List[CopickVoxelSpacingFSSpec]:
         static_vs_loc = f"{self.static_path}/VoxelSpacing"
-        paths = self.fs_static.glob(static_vs_loc + "*")
-        spacings = [float(p.replace(f"{static_vs_loc}", "")) for p in paths]
+        spaths = self.fs_static.glob(static_vs_loc + "*")
+        sspacings = [float(p.replace(f"{static_vs_loc}", "")) for p in spaths]
+
+        overlay_vs_loc = f"{self.overlay_path}/VoxelSpacing"
+        opaths = self.fs_overlay.glob(overlay_vs_loc + "*")
+        ospacings = [float(p.replace(f"{overlay_vs_loc}", "")) for p in opaths]
+
+        paths = spaths + opaths
+        spacings = sspacings + ospacings
 
         return [
             CopickVoxelSpacingFSSpec(
@@ -319,11 +364,11 @@ class CopickRunFSSpec(CopickRunOverlay):
         ]
 
     def _query_static_picks(self) -> List[CopickPicksFSSpec]:
-        if self.fs_overlay == self.fs_static:
+        if self.static_is_overlay:
             return []
 
         pick_loc = f"{self.static_path}/Picks/"
-        paths = self.fs_static.glob(pick_loc + "*")
+        paths = self.fs_static.glob(pick_loc + "*.json")
         names = [n.replace(pick_loc, "").replace(".json", "") for n in paths]
 
         users = [n.split("_")[0] for n in names]
@@ -366,7 +411,7 @@ class CopickRunFSSpec(CopickRunOverlay):
         ]
 
     def _query_static_meshes(self) -> List[CopickMeshFSSpec]:
-        if self.fs_overlay == self.fs_static:
+        if self.static_is_overlay:
             return []
 
         mesh_loc = f"{self.static_path}/Meshes/"
@@ -413,7 +458,7 @@ class CopickRunFSSpec(CopickRunOverlay):
         ]
 
     def _query_static_segmentations(self) -> List[CopickSegmentationFSSpec]:
-        if self.fs_overlay == self.fs_static:
+        if self.static_is_overlay:
             return []
 
         seg_loc = f"{self.static_path}/Segmentations/"
@@ -455,12 +500,16 @@ class CopickRunFSSpec(CopickRunOverlay):
             for u, s in zip(users, sessions, strict=True)
         ]
 
+    def ensure(self) -> None:
+        if not self.fs_overlay.exists(self.overlay_path):
+            self.fs_overlay.makedirs(self.overlay_path)
+
 
 class CopickRootFSSpec(CopickRoot):
     def __init__(self, config: CopickConfigFSSpec):
         super().__init__(config)
 
-        self.fs_overlay: AbstractFileSystem = fsspec.url_to_fs(config.overlay_root)[0]
+        self.fs_overlay: AbstractFileSystem = fsspec.url_to_fs(config.overlay_root, **config.overlay_fs_args)[0]
         self.fs_static: Optional[AbstractFileSystem] = None
 
         self.root_overlay: str = self.fs_overlay._strip_protocol(config.overlay_root)
@@ -468,10 +517,10 @@ class CopickRootFSSpec(CopickRoot):
 
         if config.static_root is None:
             self.fs_static = self.fs_overlay
-            self.root_static = self.fs_overlay._strip_protocol(config.overlay_root)
+            self.root_static = self.fs_static._strip_protocol(config.overlay_root)
         else:
-            self.fs_static = fsspec.url_to_fs(config.static_root)[0]
-            self.root_static = self.fs_overlay._strip_protocol(config.static_root)
+            self.fs_static = fsspec.url_to_fs(config.static_root, **config.static_fs_args)[0]
+            self.root_static = self.fs_static._strip_protocol(config.static_root)
 
     @classmethod
     def from_file(cls, path: str) -> "CopickRootFSSpec":
@@ -479,6 +528,9 @@ class CopickRootFSSpec(CopickRoot):
             data = json.load(f)
 
         return cls(CopickConfigFSSpec(**data))
+
+    def _run_factory(self) -> Tuple[Type[TCopickRun], Type["CopickRunMeta"]]:
+        return CopickRunFSSpec, CopickRunMeta
 
     def query(self) -> List[CopickRunFSSpec]:
         static_run_dir = f"{self.root_static}/ExperimentRuns/"
@@ -492,3 +544,49 @@ class CopickRootFSSpec(CopickRoot):
             runs.append(CopickRunFSSpec(root=self, meta=rm))
 
         return runs
+
+
+if __name__ == "__main__":
+    root = CopickRootFSSpec.from_file("/Users/utz.ermel/Documents/copick/sample_project/copick_config_filesystem.json")
+    # List of runs
+    print(root.runs)
+
+    # Points
+    print(root.runs[0].picks)
+    print(root.runs[0].picks[0].points)
+
+    # List of meshes
+    print(root.runs[0].meshes)
+
+    # List of segmentations
+    print(root.runs[0].segmentations)
+
+    # List of voxel spacings
+    print(root.runs[0].voxel_spacings)
+
+    # List of tomograms
+    print(root.runs[0].voxel_spacings[0].tomograms)
+
+    # Get Zarr store for a tomogram
+    print(zarr.open_group(root.runs[0].voxel_spacings[0].tomograms[0].zarr()).info)
+
+    # Get Zarr store for a tomogram feature
+    print(root.runs[0].voxel_spacings[0].tomograms[1].features)
+    print(zarr.open_group(root.runs[0].voxel_spacings[0].tomograms[1].features[0].zarr()).info)
+
+    # Get a pick file's contents
+    print(root.runs[0].picks[0].load())
+
+    # Get a mesh file's contents
+    print(root.runs[0].meshes[0].mesh)
+
+    # Get a Zarr store for a segmentation
+    print(root.runs[0].segmentations[0].path)
+    print(zarr.open_group(root.runs[0].segmentations[0].zarr()).info)
+
+    # %%
+    a = root.runs[0].new_mesh("ribosome", "0", "cooltool")
+    a.store()
+
+    b = root.new_run("TS_004")
+    c = b.new_voxel_spacing(10)

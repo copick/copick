@@ -16,6 +16,7 @@ dependencies = [
     "numpy",
     "qtpy",
     "trimesh",
+    "zarr",
 ]
 authors = [
   {name = "Utz H. Ermel", email = "utz.ermel@czii.org"},

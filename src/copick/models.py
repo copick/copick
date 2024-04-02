@@ -1,10 +1,11 @@
 import json
-from typing import Dict, List, Literal, MutableMapping, Optional, Tuple, TypeVar, Union
+from typing import Dict, List, Literal, MutableMapping, Optional, Tuple, Type, TypeVar, Union
 
 import numpy as np
 
 # Should work with pydantic 1 and 2
 import pydantic
+import trimesh
 
 if pydantic.VERSION.startswith("1"):
     from pydantic import BaseModel, validator
@@ -187,6 +188,28 @@ class CopickRoot:
         """Refresh the self-referential tree structure."""
         self._runs = self.query()
 
+    def new_run(self, name: str, **kwargs) -> TCopickRun:
+        """Create a new run object."""
+        if name in [r.name for r in self.runs]:
+            raise ValueError(f"Run name {name} already exists.")
+
+        clz, meta_clz = self._run_factory()
+        rm = meta_clz(name=name, **kwargs)
+        run = clz(self, meta=rm)
+
+        # Append the run
+        if self._runs is None:
+            self._runs = []
+        self._runs.append(run)
+
+        run.ensure()
+
+        return run
+
+    def _run_factory(self) -> Tuple[Type[TCopickRun], Type["CopickRunMeta"]]:
+        """Override this method to return the run class and run meta class."""
+        return CopickRun, CopickRunMeta
+
 
 class CopickRunMeta(BaseModel):
     name: str
@@ -317,10 +340,29 @@ class CopickRun:
 
         return self._segmentations
 
-    def new_voxel_spacing(self, voxel_size: float) -> TCopickVoxelSpacing:
+    def new_voxel_spacing(self, voxel_size: float, **kwargs) -> TCopickVoxelSpacing:
         """Create a new voxel spacing object."""
-        vm = CopickVoxelSpacingMeta(voxel_size=voxel_size)
-        return CopickVoxelSpacing(run=self, meta=vm)
+        if voxel_size in [vs.voxel_size for vs in self.voxel_spacings]:
+            raise ValueError(f"VoxelSpacing {voxel_size} already exists for this run.")
+
+        clz, meta_clz = self._voxel_spacing_factory()
+
+        vm = meta_clz(voxel_size=voxel_size, **kwargs)
+        vs = clz(run=self, meta=vm)
+
+        # Append the voxel spacing
+        if self._voxel_spacings is None:
+            self._voxel_spacings = []
+        self._voxel_spacings.append(vs)
+
+        # Ensure the voxel spacing record exists
+        vs.ensure()
+
+        return vs
+
+    def _voxel_spacing_factory(self) -> Tuple[Type[TCopickVoxelSpacing], Type["CopickVoxelSpacingMeta"]]:
+        """Override this method to return the voxel spacing class and voxel spacing metadata class."""
+        return CopickVoxelSpacing, CopickVoxelSpacingMeta
 
     def new_picks(self, object_name: str, session_id: str, user_id: Optional[str] = None) -> TCopickPicks:
         """Create a new picks object."""
@@ -341,9 +383,25 @@ class CopickRun:
             session_id=session_id,
             run_name=self.name,
         )
-        return CopickPicks(run=self, file=pm)
 
-    def new_mesh(self, object_name: str, session_id: str, user_id: Optional[str] = None) -> TCopickMesh:
+        clz = self._picks_factory()
+
+        picks = clz(run=self, file=pm)
+
+        if self._picks is None:
+            self._picks = []
+        self._picks.append(picks)
+
+        # Create the picks file
+        picks.store()
+
+        return picks
+
+    def _picks_factory(self) -> Type[TCopickPicks]:
+        """Override this method to return the picks class."""
+        return CopickPicks
+
+    def new_mesh(self, object_name: str, session_id: str, user_id: Optional[str] = None, **kwargs) -> TCopickMesh:
         """Create a new mesh object."""
         if object_name not in [o.name for o in self.root.config.pickable_objects]:
             raise ValueError(f"Object name {object_name} not found in pickable objects.")
@@ -356,14 +414,35 @@ class CopickRun:
         if uid is None:
             raise ValueError("User ID must be set in the root config or supplied to new_mesh.")
 
-        mm = CopickMeshMeta(
+        clz, meta_clz = self._mesh_factory()
+
+        mm = meta_clz(
             pickable_object_name=object_name,
             user_id=uid,
             session_id=session_id,
+            **kwargs,
         )
-        return CopickMesh(run=self, meta=mm)
 
-    def new_segmentation(self, session_id: str, user_id: Optional[str] = None) -> TCopickSegmentation:
+        # Need to create an empty trimesh.Trimesh object first, because empty scenes can't be exported.
+        tmesh = trimesh.Trimesh()
+        scene = tmesh.scene()
+
+        mesh = clz(run=self, meta=mm, mesh=scene)
+
+        if self._meshes is None:
+            self._meshes = []
+        self._meshes.append(mesh)
+
+        # Create the mesh file
+        mesh.store()
+
+        return mesh
+
+    def _mesh_factory(self) -> Tuple[Type[TCopickMesh], Type["CopickMeshMeta"]]:
+        """Override this method to return the mesh class and mesh metadata."""
+        return CopickMesh, CopickMeshMeta
+
+    def new_segmentation(self, session_id: str, user_id: Optional[str] = None, **kwargs) -> TCopickSegmentation:
         """Create a new segmentation object."""
 
         uid = self.root.config.user_id
@@ -374,11 +453,28 @@ class CopickRun:
         if uid is None:
             raise ValueError("User ID must be set in the root config or supplied to new_segmentation.")
 
-        sm = CopickSegmentationMeta(
+        clz, meta_clz = self._segmentation_factory()
+
+        sm = meta_clz(
             user_id=self.root.config.user_id,
             session_id=session_id,
+            **kwargs,
         )
-        return CopickSegmentation(run=self, meta=sm)
+        seg = clz(run=self, meta=sm)
+
+        if self._segmentations is None:
+            self._segmentations = []
+
+        self._segmentations.append(seg)
+
+        # Create the zarr store for this segmentation
+        _ = seg.zarr()
+
+        return seg
+
+    def _segmentation_factory(self) -> Tuple[Type[TCopickSegmentation], Type["CopickSegmentationMeta"]]:
+        """Override this method to return the segmentation class and segmentation metadata class."""
+        return CopickSegmentation, CopickSegmentationMeta
 
     def refresh_voxel_spacings(self) -> None:
         """Refresh the voxel spacings."""
@@ -402,6 +498,10 @@ class CopickRun:
         self.refresh_picks()
         self.refresh_meshes()
         self.refresh_segmentations()
+
+    def ensure(self) -> None:
+        """Override to ensure the run record exists."""
+        pass
 
 
 class CopickVoxelSpacingMeta(BaseModel):
@@ -446,13 +546,33 @@ class CopickVoxelSpacing:
         """Refresh the children."""
         self.refresh_tomograms()
 
-    def new_tomogram(self, tomo_type: str) -> TCopickTomogram:
+    def new_tomogram(self, tomo_type: str, **kwargs) -> TCopickTomogram:
         """Create a new tomogram object."""
         if tomo_type in [tomo.tomo_type for tomo in self.tomograms]:
             raise ValueError(f"Tomogram type {tomo_type} already exists for this voxel spacing.")
 
-        tm = CopickTomogramMeta(tomo_type=tomo_type)
-        return CopickTomogram(voxel_spacing=self, meta=tm)
+        clz, meta_clz = self._tomogram_factory()
+
+        tm = meta_clz(tomo_type=tomo_type, **kwargs)
+        tomo = clz(voxel_spacing=self, meta=tm)
+
+        # Append the tomogram
+        if self._tomograms is None:
+            self._tomograms = []
+        self._tomograms.append(tomo)
+
+        # Create the zarr store for this tomogram
+        _ = tomo.zarr()
+
+        return tomo
+
+    def _tomogram_factory(self) -> Tuple[Type[TCopickTomogram], Type["CopickTomogramMeta"]]:
+        """Override this method to return the tomogram class."""
+        return CopickTomogram, CopickTomogramMeta
+
+    def ensure(self) -> None:
+        """Override to ensure the voxel spacing record exists."""
+        pass
 
 
 class CopickTomogramMeta(BaseModel):
@@ -496,13 +616,30 @@ class CopickTomogram:
         """Set the features."""
         self._features = value
 
-    def new_features(self, feature_type: str) -> TCopickFeatures:
+    def new_features(self, feature_type: str, **kwargs) -> TCopickFeatures:
         """Create a new features object."""
         if feature_type in [f.feature_type for f in self.features]:
             raise ValueError(f"Feature type {feature_type} already exists for this tomogram.")
 
-        fm = CopickFeaturesMeta(tomo_type=self.tomo_type, feature_type=feature_type)
-        return CopickFeatures(tomogram=self, meta=fm)
+        clz, meta_clz = self._feature_factory()
+
+        fm = meta_clz(tomo_type=self.tomo_type, feature_type=feature_type, **kwargs)
+        feat = clz(tomogram=self, meta=fm)
+
+        # Append the feature set
+        if self._features is None:
+            self._features = []
+
+        self._features.append(feat)
+
+        # Create the zarr store for this feature set
+        _ = feat.zarr()
+
+        return feat
+
+    def _feature_factory(self) -> Tuple[Type[TCopickFeatures], Type["CopickFeaturesMeta"]]:
+        """Override this method to return the features class and features metadata class."""
+        return CopickFeatures, CopickFeaturesMeta
 
     def query_features(self) -> List[TCopickFeatures]:
         """Override this method to query for features."""
@@ -644,13 +781,16 @@ class CopickMeshMeta(BaseModel):
 
 
 class CopickMesh:
-    def __init__(self, run: TCopickRun, meta: CopickMeshMeta):
+    def __init__(self, run: TCopickRun, meta: CopickMeshMeta, mesh: Optional[Geometry] = None):
         self.meta: CopickMeshMeta = meta
         """Metadata for this pick."""
         self.run: TCopickRun = run
         """Run this pick belongs to."""
 
-        self._mesh = None
+        if mesh is not None:
+            self._mesh = mesh
+        else:
+            self._mesh = None
 
     @property
     def pickable_object_name(self) -> str:
