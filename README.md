@@ -35,13 +35,146 @@ Shared data is organized as follows:
 
 A test set is hosted on [zenodo](https://doi.org/10.5281/zenodo.10905908).
 
-### Example / Test
+The fsspec implementation allows the dataset to be split into a static and an overlay part. The static part is read-only
+and contains the original data. The overlay part is read-write and contains the user-specific annotations.
 
+### Config for identical location
+
+```json
+{
+    "name": "test",
+    "description": "A test project.",
+    "version": "1.0.0",
+
+    "pickable_objects": [
+        {
+            "name": "proteasome",
+            "is_particle": true,
+            "pdb_id": "3J9I",
+            "label": 1,
+            "color": [255, 0, 0, 255]
+        },
+        {
+            "name": "ribosome",
+            "is_particle": true,
+            "pdb_id": "7P6Z",
+            "label": 2,
+            "color": [0, 255, 0, 255]
+        },
+        {
+            "name": "membrane",
+            "is_particle": false,
+            "label": 3,
+            "color": [0, 0, 0, 255]
+        }
+    ],
+
+    "overlay_root": "local:///PATH/TO/sample_project",
+    "static_root": "local:///PATH/TO/sample_project",
+
+    "overlay_fs_args": {
+        "auto_mkdir": true
+    }
+}
+```
+
+### Config for static remote and mutable local dataset
+
+This has the additional `s3fs` requirement.
+
+```json
+{
+    "name": "test",
+    "description": "A test project.",
+    "version": "1.0.0",
+
+    "pickable_objects": [
+        {
+            "name": "proteasome",
+            "is_particle": true,
+            "pdb_id": "3J9I",
+            "label": 1,
+            "color": [255, 0, 0, 255]
+        },
+        {
+            "name": "ribosome",
+            "is_particle": true,
+            "pdb_id": "7P6Z",
+            "label": 2,
+            "color": [0, 255, 0, 255]
+        },
+        {
+            "name": "membrane",
+            "is_particle": false,
+            "label": 3,
+            "color": [0, 0, 0, 255]
+        }
+    ],
+
+    "overlay_root": "local:///PATH/TO/sample_project",
+    "static_root": "s3://bucket/path/to/sample_project",
+
+    "overlay_fs_args": {
+        "auto_mkdir": true
+    }
+}
+```
+
+### API overview
 ```python
 from copick.impl.filesystem import CopickRootFSSpec
 import zarr
 
+# Project root
 root = CopickRootFSSpec.from_file("/PATH/TO/sample_project/copick_config_filesystem.json")
+
+## Root API
+root.config # CopickConfig object
+root.runs # List of run objects (lazy loading from filesystem location(s))
+root.get_run("run_name") # Get a run by name
+run = root.new_run("run_name") # Create a new run (appends to the list of runs and creates directory in overlay fs location)
+root.refresh() # Refresh the list of runs from filesystem location(s)
+
+## Run API
+# Hierarchical objects (lazy loading from filesystem location(s))
+run.picks # List of pick objects
+run.meshes # List of mesh objects
+run.segmentations # List of segmentation objects
+run.voxel_spacings # List of voxel spacing objects
+
+# Create new objects
+run.new_pick("user_id", "session_id", "object_name") # Create a new pick object (appends to the list of picks and creates file in overlay fs location)
+run.new_mesh("user_id", "session_id", "object_name") # Create a new mesh object (appends to the list of meshes and creates file in overlay fs location)
+run.new_segmentation("user_id", "session_id") # Create a new segmentation object (appends to the list of segmentations and creates zarr file in overlay fs location)
+run.new_voxel_spacing(10.000) # Create a new voxel spacing object (appends to the list of voxel spacings and creates directory in overlay fs location)
+
+# Get objects by name
+run.get_picks(object_name="object_name") # Get all picks (list) for this run with a given object name
+# ... similar for meshes, segmentations, voxel spacings
+
+## Pick API
+pick = run.picks[0] # Get a pick object
+pick.points # List of CopickPoint objects
+
+## Mesh API
+mesh = run.meshes[0] # Get a mesh object
+mesh.mesh # Trimesh scene object
+
+## Segmentation API
+segmentation = run.segmentations[0] # Get a segmentation object
+segmentation.zarr() # zarr.storage.FSStore object
+
+## VoxelSpacing API
+voxel_spacing = run.voxel_spacings[0] # Get a voxel spacing object
+voxel_spacing.tomograms # List of CopickTomogram objects
+
+## Tomogram API
+tomogram = voxel_spacing.tomograms[0] # Get a tomogram object
+tomogram.zarr() # zarr.storage.FSStore object
+tomogram.features # List of CopickTomogramFeature objects
+
+
+# Example usage
 # List of runs
 print(root.runs)
 
