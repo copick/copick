@@ -4,19 +4,23 @@ build-backend = "hatchling.build"
 
 [project]
 name = "copick"
-requires-python = ">=3.11"
+requires-python = ">=3.7"
 classifiers = [
     "Development Status :: 3 - Alpha",
     "License :: OSI Approved :: MIT License",
 ]
 dynamic = ["version"]
 dependencies = [
-    "pydantic",
+    "fsspec",
+    "pydantic<2",
+    "numpy",
     "qtpy",
+    "trimesh",
+    "zarr",
 ]
 authors = [
   {name = "Utz H. Ermel", email = "utz.ermel@czii.org"},
-  {name = "Kyle S. Harrington"},
+  {name = "Kyle I. S. Harrington", email = "kyle@kyleharrington.com"},
 ]
 description = "Definitions for a collaborative cryoET annotation tool."
 readme = "README.md"
@@ -33,6 +37,7 @@ dev = [
     "ipython",
     "pre-commit",
     "ruff",
+    "notebook"
 ]
 
 [tool.hatch.version]
@@ -59,6 +64,7 @@ select = [
     "SIM",  # simplify
 ]
 ignore = [
+    "N805",  # First argument of a method should be named `self`
     "N802",  # Function name should be lowercase
     "N999",  # Invalid module name
     "E501",  # line too long
@@ -81,3 +87,6 @@ show_error_codes = true
 ignore_missing_imports = true
 warn_unreachable = true
 strict = true
+plugins = [
+  "pydantic.mypy"
+]
