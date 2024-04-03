@@ -344,7 +344,7 @@ class CopickRun:
         ret = self.picks
 
         if object_name is not None:
-            ret = [p for p in ret if p.object_name == object_name]
+            ret = [p for p in ret if p.pickable_object_name == object_name]
 
         if user_id is not None:
             ret = [p for p in ret if p.user_id == user_id]
@@ -367,7 +367,7 @@ class CopickRun:
         ret = self.meshes
 
         if object_name is not None:
-            ret = [m for m in ret if m.object_name == object_name]
+            ret = [m for m in ret if m.pickable_object_name == object_name]
 
         if user_id is not None:
             ret = [m for m in ret if m.user_id == user_id]
