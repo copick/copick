@@ -434,6 +434,9 @@ class CopickRun:
         if uid is None:
             raise ValueError("User ID must be set in the root config or supplied to new_picks.")
 
+        if self.get_picks(object_name=object_name, session_id=session_id, user_id=uid):
+            raise ValueError(f"Picks for {object_name} by user/tool {uid} already exist in session {session_id}.")
+
         pm = CopickPicksFile(
             pickable_object_name=object_name,
             user_id=uid,
@@ -470,6 +473,9 @@ class CopickRun:
 
         if uid is None:
             raise ValueError("User ID must be set in the root config or supplied to new_mesh.")
+
+        if self.get_meshes(object_name=object_name, session_id=session_id, user_id=uid):
+            raise ValueError(f"Mesh for {object_name} by user/tool {uid} already exist in session {session_id}.")
 
         clz, meta_clz = self._mesh_factory()
 
@@ -509,6 +515,9 @@ class CopickRun:
 
         if uid is None:
             raise ValueError("User ID must be set in the root config or supplied to new_segmentation.")
+
+        if self.get_segmentations(session_id=session_id, user_id=uid):
+            raise ValueError(f"Segmentation by user/tool {uid} already exist in session {session_id}.")
 
         clz, meta_clz = self._segmentation_factory()
 
