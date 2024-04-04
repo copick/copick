@@ -532,7 +532,7 @@ class CopickRootFSSpec(CopickRoot):
     def __init__(self, config: CopickConfigFSSpec):
         super().__init__(config)
 
-        self.fs_overlay: AbstractFileSystem = fsspec.url_to_fs(config.overlay_root, **config.overlay_fs_args)[0]
+        self.fs_overlay: AbstractFileSystem = fsspec.core.url_to_fs(config.overlay_root, **config.overlay_fs_args)[0]
         self.fs_static: Optional[AbstractFileSystem] = None
 
         self.root_overlay: str = self.fs_overlay._strip_protocol(config.overlay_root)
@@ -542,7 +542,7 @@ class CopickRootFSSpec(CopickRoot):
             self.fs_static = self.fs_overlay
             self.root_static = self.fs_static._strip_protocol(config.overlay_root)
         else:
-            self.fs_static = fsspec.url_to_fs(config.static_root, **config.static_fs_args)[0]
+            self.fs_static = fsspec.core.url_to_fs(config.static_root, **config.static_fs_args)[0]
             self.root_static = self.fs_static._strip_protocol(config.static_root)
 
     @classmethod
