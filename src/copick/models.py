@@ -111,9 +111,12 @@ class CopickLocation(BaseModel):
 
 class CopickPoint(BaseModel):
     location: TCopickLocation
-    transformation_: Optional[List[List[float]]] = (
-        [[1.0, 0.0, 0.0, 0.0], [0.0, 1.0, 0.0, 0.0], [0.0, 0.0, 1.0, 0.0], [0.0, 0.0, 0.0, 1.0]],
-    )
+    transformation_: Optional[List[List[float]]] = [
+        [1.0, 0.0, 0.0, 0.0],
+        [0.0, 1.0, 0.0, 0.0],
+        [0.0, 0.0, 1.0, 0.0],
+        [0.0, 0.0, 0.0, 1.0],
+    ]
     instance_id: Optional[int] = 0
     score: Optional[float] = 1.0
 
