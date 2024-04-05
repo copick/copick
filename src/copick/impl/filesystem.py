@@ -580,7 +580,7 @@ class CopickRootFSSpec(CopickRoot):
         onames = [n.replace(overlay_run_dir, "") for n in paths]
 
         # Deduplicate
-        names = list(set(snames + onames))
+        names = sorted(set(snames + onames))
 
         runs = []
         for n in names:
