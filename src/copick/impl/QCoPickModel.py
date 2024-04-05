@@ -81,9 +81,9 @@ class QCoPickTreeModel(QAbstractItemModel):
             return None
 
     def hasChildren(self, parent: QModelIndex = ...) -> bool:
-        self._root if not parent.isValid() else parent.internalPointer()
+        parentItem = self._root if not parent.isValid() else parent.internalPointer()
 
-        return len()  # parentItem.is_dir
+        return parentItem.has_children  # parentItem.is_dir
 
     def headerData(self, section, orientation, role=...):
         if orientation == Qt.Orientation.Horizontal and role == Qt.ItemDataRole.DisplayRole:
