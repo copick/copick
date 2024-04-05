@@ -14,7 +14,7 @@ class TreeRoot:
         self.has_children = True
 
     def child(self, row) -> "TreeRun":
-        return TreeRun(run=self.root.runs[row].run)
+        return TreeRun(run=self.root.runs[row])
 
     def childCount(self) -> int:
         return len(self.root.runs)
