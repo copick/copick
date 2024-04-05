@@ -339,7 +339,6 @@ class CopickRun:
 
         return self._picks
 
-    @property
     def user_picks(self) -> List[TCopickPicks]:
         """Get picks by config user_id."""
         if self.root.config.user_id is None:
@@ -347,7 +346,6 @@ class CopickRun:
         else:
             self.get_picks(user_id=self.root.config.user_id)
 
-    @property
     def tool_picks(self) -> List[TCopickPicks]:
         """Get tool based picks."""
         return [p for p in self.picks if p.session_id == "0"]
@@ -375,7 +373,6 @@ class CopickRun:
 
         return self._meshes
 
-    @property
     def user_meshes(self) -> List[TCopickMesh]:
         """Get meshes by config user_id."""
         if self.root.config.user_id is None:
@@ -383,7 +380,6 @@ class CopickRun:
         else:
             self.get_meshes(user_id=self.root.config.user_id)
 
-    @property
     def tool_meshes(self) -> List[TCopickMesh]:
         """Get tool based meshes."""
         return [m for m in self.meshes if m.session_id == "0"]
@@ -411,7 +407,6 @@ class CopickRun:
 
         return self._segmentations
 
-    @property
     def user_segmentations(self) -> List[TCopickSegmentation]:
         """Get segmentations by config user_id."""
         if self.root.config.user_id is None:
@@ -419,7 +414,6 @@ class CopickRun:
         else:
             self.get_segmentations(user_id=self.root.config.user_id)
 
-    @property
     def tool_segmentations(self) -> List[TCopickSegmentation]:
         """Get tool based segmentations."""
         return [s for s in self.segmentations if s.session_id == "0"]
