@@ -213,6 +213,8 @@ class CopickTomogramFSSpec(CopickTomogramOverlay):
         paths = [p.rstrip("/") for p in paths if self.fs_static.isdir(p)]
         feature_types = [n.replace(feat_loc, "").replace("_features.zarr", "") for n in paths]
 
+        feature_types = list(set(feature_types))
+
         return [
             CopickFeaturesFSSpec(
                 tomogram=self,
@@ -230,6 +232,8 @@ class CopickTomogramFSSpec(CopickTomogramOverlay):
         paths = self.fs_overlay.glob(feat_loc + "*_features.zarr") + self.fs_overlay.glob(feat_loc + "*_features.zarr/")
         paths = [p.rstrip("/") for p in paths if self.fs_overlay.isdir(p)]
         feature_types = [n.replace(feat_loc, "").replace("_features.zarr", "") for n in paths]
+
+        feature_types = list(set(feature_types))
 
         return [
             CopickFeaturesFSSpec(
@@ -299,6 +303,8 @@ class CopickVoxelSpacingFSSpec(CopickVoxelSpacingOverlay):
         tomo_types = [n.replace(tomo_loc, "").replace(".zarr", "") for n in paths]
         tomo_types = [t for t in tomo_types if "features" not in t]
 
+        tomo_types = list(set(tomo_types))
+
         return [
             CopickTomogramFSSpec(
                 voxel_spacing=self,
@@ -314,6 +320,8 @@ class CopickVoxelSpacingFSSpec(CopickVoxelSpacingOverlay):
         paths = [p.rstrip("/") for p in paths if self.fs_overlay.isdir(p)]
         tomo_types = [n.replace(tomo_loc, "").replace(".zarr", "") for n in paths]
         tomo_types = [t for t in tomo_types if "features" not in t]
+
+        tomo_types = list(set(tomo_types))
 
         return [
             CopickTomogramFSSpec(
@@ -373,15 +381,14 @@ class CopickRunFSSpec(CopickRunOverlay):
         opaths = [p.rstrip("/") for p in opaths]
         ospacings = [float(p.replace(f"{overlay_vs_loc}", "")) for p in opaths]
 
-        paths = spaths + opaths
-        spacings = sspacings + ospacings
+        spacings = list(set(sspacings + ospacings))
 
         return [
             CopickVoxelSpacingFSSpec(
                 meta=CopickVoxelSpacingMeta(voxel_size=s),
                 run=self,
             )
-            for p, s in zip(paths, spacings, strict=True)
+            for s in spacings
         ]
 
     def _query_static_picks(self) -> List[CopickPicksFSSpec]:
@@ -487,6 +494,9 @@ class CopickRunFSSpec(CopickRunOverlay):
         paths = [p.rstrip("/") for p in paths if self.fs_static.isdir(p)]
         names = [n.replace(seg_loc, "").replace(".zarr", "") for n in paths]
 
+        # Deduplicate
+        names = list(set(names))
+
         users = [n.split("_")[0] for n in names]
         sessions = [n.split("_")[1] for n in names]
 
@@ -507,6 +517,9 @@ class CopickRunFSSpec(CopickRunOverlay):
         paths = self.fs_overlay.glob(seg_loc + "*.zarr") + self.fs_overlay.glob(seg_loc + "*.zarr/")
         paths = [p.rstrip("/") for p in paths if self.fs_overlay.isdir(p)]
         names = [n.replace(seg_loc, "").replace(".zarr", "") for n in paths]
+
+        # Deduplicate
+        names = list(set(names))
 
         users = [n.split("_")[0] for n in names]
         sessions = [n.split("_")[1] for n in names]
@@ -559,7 +572,15 @@ class CopickRootFSSpec(CopickRoot):
         static_run_dir = f"{self.root_static}/ExperimentRuns/"
         paths = self.fs_static.glob(static_run_dir + "*") + self.fs_static.glob(static_run_dir + "*/")
         paths = [p.rstrip("/") for p in paths if self.fs_static.isdir(p)]
-        names = [n.replace(static_run_dir, "") for n in paths]
+        snames = [n.replace(static_run_dir, "") for n in paths]
+
+        overlay_run_dir = f"{self.root_overlay}/ExperimentRuns/"
+        paths = self.fs_overlay.glob(overlay_run_dir + "*") + self.fs_overlay.glob(overlay_run_dir + "*/")
+        paths = [p.rstrip("/") for p in paths if self.fs_overlay.isdir(p)]
+        onames = [n.replace(overlay_run_dir, "") for n in paths]
+
+        # Deduplicate
+        names = list(set(snames + onames))
 
         runs = []
         for n in names:
@@ -567,3 +588,9 @@ class CopickRootFSSpec(CopickRoot):
             runs.append(CopickRunFSSpec(root=self, meta=rm))
 
         return runs
+
+
+if __name__ == "__main__":
+    root = CopickRootFSSpec.from_file("/Users/utz.ermel/Documents/copick/sample_project/copick_config_filesystem.json")
+
+    print(root.runs)
