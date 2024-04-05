@@ -15,7 +15,6 @@ class QCoPickTreeModel(QAbstractItemModel):
     ):
         super().__init__(parent)
         self._root = TreeRoot(root=root_item)
-
         self._icon_provider = QFileIconProvider()
 
     def index(self, row: int, column: int, parent=QModelIndex()) -> Union[QModelIndex, None]:
@@ -23,7 +22,6 @@ class QCoPickTreeModel(QAbstractItemModel):
             return None
 
         parentItem = self._root if not parent.isValid() else parent.internalPointer()
-
         childItem = parentItem.child(row)
 
         if childItem:
@@ -97,12 +95,4 @@ class QCoPickTreeModel(QAbstractItemModel):
             return None
 
         index.internalPointer()
-
-        # if item.is_dir:
-        #     return Qt.ItemFlag.ItemIsEnabled | Qt.ItemFlag.ItemIsSelectable
-        #
-        # if item.is_file:
-        #     if item.extension in self._openable_types:
-        #         return Qt.ItemFlag.ItemIsEnabled | Qt.ItemFlag.ItemIsSelectable
-        #     else:
-        #         return Qt.ItemFlag.ItemIsSelectable
+        return Qt.ItemFlag.ItemIsEnabled | Qt.ItemFlag.ItemIsSelectable
