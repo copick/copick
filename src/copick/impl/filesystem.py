@@ -588,9 +588,3 @@ class CopickRootFSSpec(CopickRoot):
             runs.append(CopickRunFSSpec(root=self, meta=rm))
 
         return runs
-
-
-if __name__ == "__main__":
-    root = CopickRootFSSpec.from_file("/Users/utz.ermel/Documents/copick/sample_project/copick_config_filesystem.json")
-
-    print(root.runs)
