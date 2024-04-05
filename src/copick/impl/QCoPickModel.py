@@ -1,7 +1,7 @@
 from typing import Any, Union
 
 from qtpy.QtCore import QAbstractItemModel, QModelIndex, Qt
-from qtpy.QtWidgets import QApplication, QFileIconProvider, QStyle
+from qtpy.QtWidgets import QFileIconProvider
 
 from copick.impl.tree import TreeRoot
 from copick.models import CopickRoot
@@ -61,21 +61,22 @@ class QCoPickTreeModel(QAbstractItemModel):
             return item.data(index.column())
 
         if role == 1 and index.column() == 0:
-            if item.is_dir:
-                return self._icon_provider.icon(QFileIconProvider.IconType.Folder)
-            elif item.is_file:
-                if item.being_fetched:
-                    app = QApplication.instance()
-
-                    icon = app.style().standardIcon(QStyle.StandardPixmap.SP_ArrowDown)
-                    return icon
-                elif item.is_cached:
-                    app = QApplication.instance()
-
-                    icon = app.style().standardIcon(QStyle.StandardPixmap.SP_DialogApplyButton)
-                    return icon
-                else:
-                    return self._icon_provider.icon(QFileIconProvider.IconType.File)
+            return self._icon_provider.icon(QFileIconProvider.IconType.Folder)
+            # if item.is_dir:
+            #
+            # elif item.is_file:
+            #     if item.being_fetched:
+            #         app = QApplication.instance()
+            #
+            #         icon = app.style().standardIcon(QStyle.StandardPixmap.SP_ArrowDown)
+            #         return icon
+            #     elif item.is_cached:
+            #         app = QApplication.instance()
+            #
+            #         icon = app.style().standardIcon(QStyle.StandardPixmap.SP_DialogApplyButton)
+            #         return icon
+            #     else:
+            #         return self._icon_provider.icon(QFileIconProvider.IconType.File)
         else:
             return None
 
@@ -95,13 +96,13 @@ class QCoPickTreeModel(QAbstractItemModel):
         if not index.isValid():
             return None
 
-        item = index.internalPointer()
+        index.internalPointer()
 
-        if item.is_dir:
-            return Qt.ItemFlag.ItemIsEnabled | Qt.ItemFlag.ItemIsSelectable
-
-        if item.is_file:
-            if item.extension in self._openable_types:
-                return Qt.ItemFlag.ItemIsEnabled | Qt.ItemFlag.ItemIsSelectable
-            else:
-                return Qt.ItemFlag.ItemIsSelectable
+        # if item.is_dir:
+        #     return Qt.ItemFlag.ItemIsEnabled | Qt.ItemFlag.ItemIsSelectable
+        #
+        # if item.is_file:
+        #     if item.extension in self._openable_types:
+        #         return Qt.ItemFlag.ItemIsEnabled | Qt.ItemFlag.ItemIsSelectable
+        #     else:
+        #         return Qt.ItemFlag.ItemIsSelectable
