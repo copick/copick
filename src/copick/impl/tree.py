@@ -11,6 +11,7 @@ from copick.models import (
 class TreeRoot:
     def __init__(self, root: CopickRoot):
         self.root = root
+        self.has_children = True
 
     def child(self, row) -> "TreeRun":
         return TreeRun(run=self.root.runs[row].run)
@@ -34,6 +35,7 @@ class TreeRoot:
 class TreeRun:
     def __init__(self, run: CopickRun):
         self.run = run
+        self.has_children = True
 
     def child(self, row) -> "TreeVoxelSpacing":
         return TreeVoxelSpacing(voxel_spacing=self.run.voxel_spacings[row])
@@ -57,6 +59,7 @@ class TreeRun:
 class TreeVoxelSpacing:
     def __init__(self, voxel_spacing: CopickVoxelSpacing):
         self.voxel_spacing = voxel_spacing
+        self.has_children = True
 
     def child(self, row) -> "TreeTomogram":
         return self.voxel_spacing.tomograms[row]
@@ -80,6 +83,7 @@ class TreeVoxelSpacing:
 class TreeTomogram:
     def __init__(self, tomogram: CopickTomogram):
         self.tomogram = tomogram
+        self.has_children = False
 
     def child(self, row) -> None:
         return None
