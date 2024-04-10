@@ -7,14 +7,17 @@ from copick.models import (
     CopickFeaturesMeta,
     CopickMesh,
     CopickMeshMeta,
+    CopickObject,
     CopickPicks,
     CopickPicksFile,
+    CopickRoot,
     CopickRun,
     CopickSegmentation,
     CopickSegmentationMeta,
     CopickTomogram,
     CopickTomogramMeta,
     CopickVoxelSpacing,
+    PickableObject,
 )
 
 
@@ -45,6 +48,12 @@ class CopickMeshOverlay(CopickMesh):
 class CopickSegmentationOverlay(CopickSegmentation):
     def __init__(self, run: CopickRun, meta: CopickSegmentationMeta, read_only: bool = False):
         super().__init__(run, meta)
+        self.read_only = read_only
+
+
+class CopickObjectOverlay(CopickObject):
+    def __init__(self, root: CopickRoot, meta: PickableObject, read_only: bool = True):
+        super().__init__(root, meta)
         self.read_only = read_only
 
 

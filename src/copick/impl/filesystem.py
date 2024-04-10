@@ -1,5 +1,5 @@
 import json
-from typing import Any, Dict, List, Optional, Tuple, Type
+from typing import Any, Dict, List, Optional, Tuple, Type, Union
 
 import fsspec
 import trimesh
@@ -10,6 +10,7 @@ from trimesh.parent import Geometry
 from copick.impl.overlay import (
     CopickFeaturesOverlay,
     CopickMeshOverlay,
+    CopickObjectOverlay,
     CopickPicksOverlay,
     CopickRunOverlay,
     CopickSegmentationOverlay,
@@ -26,6 +27,7 @@ from copick.models import (
     CopickSegmentationMeta,
     CopickTomogramMeta,
     CopickVoxelSpacingMeta,
+    PickableObject,
     TCopickFeatures,
     TCopickRun,
     TCopickVoxelSpacing,
@@ -73,7 +75,7 @@ class CopickPicksFSSpec(CopickPicksOverlay):
             self.fs.makedirs(self.directory, exist_ok=True)
 
         with self.fs.open(self.path, "w") as f:
-            json.dump(self.meta.dict(), f)
+            json.dump(self.meta.dict(), f, indent=4)
 
 
 class CopickMeshFSSpec(CopickMeshOverlay):
@@ -541,6 +543,36 @@ class CopickRunFSSpec(CopickRunOverlay):
             self.fs_overlay.makedirs(self.overlay_path, exist_ok=True)
 
 
+class CopickObjectFSSpec(CopickObjectOverlay):
+    @property
+    def path(self):
+        return f"{self.root.root_static}/Objects/{self.name}.zarr"
+
+    @property
+    def fs(self):
+        return self.root.fs_static
+
+    def zarr(self) -> Union[None, zarr.storage.FSStore]:
+        if not self.is_particle:
+            return None
+
+        if self.read_only:
+            mode = "r"
+            create = False
+        else:
+            mode = "w"
+            create = not self.fs.exists(self.path)
+
+        return zarr.storage.FSStore(
+            self.path,
+            fs=self.fs,
+            mode=mode,
+            key_separator="/",
+            dimension_separator="/",
+            create=create,
+        )
+
+
 class CopickRootFSSpec(CopickRoot):
     def __init__(self, config: CopickConfigFSSpec):
         super().__init__(config)
@@ -567,6 +599,9 @@ class CopickRootFSSpec(CopickRoot):
 
     def _run_factory(self) -> Tuple[Type[TCopickRun], Type["CopickRunMeta"]]:
         return CopickRunFSSpec, CopickRunMeta
+
+    def _object_factory(self) -> Tuple[Type[CopickObjectFSSpec], Type[PickableObject]]:
+        return CopickObjectFSSpec, PickableObject
 
     def query(self) -> List[CopickRunFSSpec]:
         static_run_dir = f"{self.root_static}/ExperimentRuns/"
