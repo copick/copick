@@ -27,6 +27,7 @@ TCopickTomogram = TypeVar("TCopickTomogram", bound="CopickTomogram")
 TCopickFeatures = TypeVar("TCopickFeatures", bound="CopickFeatures")
 TCopickVoxelSpacing = TypeVar("TCopickVoxelSpacing", bound="CopickVoxelSpacing")
 TCopickRun = TypeVar("TCopickRun", bound="CopickRun")
+TCopickObject = TypeVar("TCopickObject", bound="CopickObject")
 TCopickRoot = TypeVar("TCopickRoot", bound="CopickRoot")
 
 
@@ -37,6 +38,7 @@ class PickableObject(BaseModel):
     color: Optional[Tuple[int, int, int, int]]
     emdb_id: Optional[str] = None
     pdb_id: Optional[str] = None
+    threshold: Optional[float] = None
 
     @validator("label")
     def validate_label(cls, v) -> int:
@@ -144,6 +146,49 @@ class CopickPoint(BaseModel):
         self.transformation_ = value.tolist()
 
 
+class CopickObject:
+    def __init__(self, root: TCopickRoot, meta: PickableObject):
+        self.meta = meta
+        """Metadata for this object."""
+        self.root = root
+        """Reference to the root this object belongs to. Populated from config."""
+
+    @property
+    def name(self) -> str:
+        return self.meta.name
+
+    @property
+    def is_particle(self) -> bool:
+        return self.meta.is_particle
+
+    @property
+    def label(self) -> Union[int, None]:
+        return self.meta.label
+
+    @property
+    def color(self) -> Union[Tuple[int, int, int, int], None]:
+        return self.meta.color
+
+    @property
+    def emdb_id(self) -> Union[str, None]:
+        return self.meta.emdb_id
+
+    @property
+    def pdb_id(self) -> Union[str, None]:
+        return self.meta.pdb_id
+
+    @property
+    def threshold(self) -> Union[float, None]:
+        return self.meta.threshold
+
+    def zarr(self) -> Union[None, MutableMapping]:
+        """Get the zarr store for this object."""
+        if self.is_particle:
+            return None
+
+        pass
+
+
 class CopickRoot:
     def __init__(self, config: TCopickConfig):
         self.config = config
@@ -152,6 +197,10 @@ class CopickRoot:
         self._runs: Optional[List[TCopickRun]] = None
         """References to the runs for this project. Either populated from config or lazily loaded when CopickRoot.runs
         is accessed."""
+
+        self._objects: Optional[List[TCopickObject]] = None
+        """References to the pickable objects for this project. Either populated from config or lazily loaded when
+        CopickRoot.pickable_objects is accessed."""
 
         # If runs are specified in the config, create them
         if config.runs is not None:
@@ -195,6 +244,22 @@ class CopickRoot:
 
         return None
 
+    @property
+    def pickable_objects(self) -> List[TCopickObject]:
+        if self._objects is None:
+            clz, meta_clz = self._object_factory()
+            self._objects = [clz(self, meta=obj) for obj in self.config.pickable_objects]
+
+        return self._objects
+
+    def get_object(self, name: str) -> Union[TCopickObject, None]:
+        """Get object by name."""
+        for obj in self.pickable_objects:
+            if obj.name == name:
+                return obj
+
+        return None
+
     def refresh(self) -> None:
         """Refresh the self-referential tree structure."""
         self._runs = self.query()
@@ -220,6 +285,10 @@ class CopickRoot:
     def _run_factory(self) -> Tuple[Type[TCopickRun], Type["CopickRunMeta"]]:
         """Override this method to return the run class and run metadata class."""
         return CopickRun, CopickRunMeta
+
+    def _object_factory(self) -> Tuple[Type[TCopickObject], Type["PickableObject"]]:
+        """Override this method to return the object class and object metadata class."""
+        return CopickObject, PickableObject
 
 
 class CopickRunMeta(BaseModel):
