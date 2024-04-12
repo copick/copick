@@ -60,7 +60,7 @@ class CopickConfig(BaseModel):
     """Name of the CoPick project."""
     description: Optional[str] = "Let's CoPick!"
     """Description of the CoPick project."""
-    version: Optional[str] = "0.1.0"
+    version: Optional[str] = "0.2.0"
     """Version of the CoPick API."""
 
     # List[PickableObject]
@@ -941,6 +941,9 @@ class CopickPicksFile(BaseModel):
 
     points: Optional[List[TCopickPoint]] = None
     """References to the points for this pick."""
+
+    trust_orientation: Optional[bool] = True
+    """Flag to indicate if the angles are known for this pick or should be ignored."""
 
 
 class CopickPicks:
