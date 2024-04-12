@@ -982,10 +982,6 @@ class CopickPicks:
         self._store()
 
     @property
-    def color(self):
-        return self.run.root.get_object(self.pickable_object_name).color
-
-    @property
     def pickable_object_name(self) -> str:
         """Pickable object name from CopickConfig.pickable_objects[X].name"""
         return self.meta.pickable_object_name
@@ -1012,6 +1008,14 @@ class CopickPicks:
     def points(self, value: List[TCopickPoint]) -> None:
         """Set the points."""
         self.meta.points = value
+
+    @property
+    def trust_orientation(self) -> bool:
+        return self.meta.trust_orientation
+
+    @property
+    def color(self):
+        return self.run.root.get_object(self.pickable_object_name).color
 
     def refresh(self) -> None:
         """Refresh the children."""
