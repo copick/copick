@@ -116,11 +116,18 @@ class CopickMeshFSSpec(CopickMeshOverlay):
 
 class CopickSegmentationFSSpec(CopickSegmentationOverlay):
     @property
+    def filename(self) -> str:
+        if self.is_multilabel:
+            return f"{self.voxel_size:.3f}_{self.user_id}_{self.session_id}_{self.name}-multilabel.zarr"
+        else:
+            return f"{self.voxel_size:.3f}_{self.user_id}_{self.session_id}_{self.name}.zarr"
+
+    @property
     def path(self) -> str:
         if self.read_only:
-            return f"{self.run.static_path}/Segmentations/{self.user_id}_{self.session_id}.zarr"
+            return f"{self.run.static_path}/Segmentations/{self.filename}"
         else:
-            return f"{self.run.overlay_path}/Segmentations/{self.user_id}_{self.session_id}.zarr"
+            return f"{self.run.overlay_path}/Segmentations/{self.filename}"
 
     @property
     def fs(self) -> AbstractFileSystem:
@@ -499,19 +506,39 @@ class CopickRunFSSpec(CopickRunOverlay):
         # Deduplicate
         names = list(set(names))
 
-        users = [n.split("_")[0] for n in names]
-        sessions = [n.split("_")[1] for n in names]
+        # multilabel vs single label
+        metas = []
+        for n in names:
+            if "multilabel" in n:
+                parts = n.split("_")
+                metas.append(
+                    CopickSegmentationMeta(
+                        is_multilabel=True,
+                        voxel_size=float(parts[0]),
+                        user_id=parts[1],
+                        session_id=parts[2],
+                        name=parts[3].replace("-multilabel", ""),
+                    ),
+                )
+            else:
+                parts = n.split("_")
+                metas.append(
+                    CopickSegmentationMeta(
+                        is_multilabel=False,
+                        voxel_size=float(parts[0]),
+                        user_id=parts[1],
+                        session_id=parts[2],
+                        name=parts[3],
+                    ),
+                )
 
         return [
             CopickSegmentationFSSpec(
                 run=self,
-                meta=CopickSegmentationMeta(
-                    user_id=u,
-                    session_id=s,
-                ),
+                meta=m,
                 read_only=True,
             )
-            for u, s in zip(users, sessions, strict=True)
+            for m in metas
         ]
 
     def _query_overlay_segmentations(self) -> List[CopickSegmentationFSSpec]:
@@ -523,19 +550,39 @@ class CopickRunFSSpec(CopickRunOverlay):
         # Deduplicate
         names = list(set(names))
 
-        users = [n.split("_")[0] for n in names]
-        sessions = [n.split("_")[1] for n in names]
+        # multilabel vs single label
+        metas = []
+        for n in names:
+            if "multilabel" in n:
+                parts = n.split("_")
+                metas.append(
+                    CopickSegmentationMeta(
+                        is_multilabel=True,
+                        voxel_size=float(parts[0]),
+                        user_id=parts[1],
+                        session_id=parts[2],
+                        name=parts[3].replace("-multilabel", ""),
+                    ),
+                )
+            else:
+                parts = n.split("_")
+                metas.append(
+                    CopickSegmentationMeta(
+                        is_multilabel=False,
+                        voxel_size=float(parts[0]),
+                        user_id=parts[1],
+                        session_id=parts[2],
+                        name=parts[3],
+                    ),
+                )
 
         return [
             CopickSegmentationFSSpec(
                 run=self,
-                meta=CopickSegmentationMeta(
-                    user_id=u,
-                    session_id=s,
-                ),
+                meta=m,
                 read_only=False,
             )
-            for u, s in zip(users, sessions, strict=True)
+            for m in metas
         ]
 
     def ensure(self) -> None:

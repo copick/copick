@@ -38,7 +38,8 @@ class PickableObject(BaseModel):
     color: Optional[Tuple[int, int, int, int]]
     emdb_id: Optional[str] = None
     pdb_id: Optional[str] = None
-    threshold: Optional[float] = None
+    map_threshold: Optional[float] = None
+    radius: Optional[float] = None
 
     @validator("label")
     def validate_label(cls, v) -> int:
@@ -153,6 +154,9 @@ class CopickObject:
         self.root = root
         """Reference to the root this object belongs to. Populated from config."""
 
+    def __repr__(self):
+        return f"CopickObject(name={self.name}, is_particle={self.is_particle}, label={self.label}, color={self.color}, emdb_id={self.emdb_id}, pdb_id={self.pdb_id}, threshold={self.threshold})"
+
     @property
     def name(self) -> str:
         return self.meta.name
@@ -206,6 +210,9 @@ class CopickRoot:
         if config.runs is not None:
             self._runs = [CopickRun(self, CopickRunMeta(name=run_name)) for run_name in config.runs]
 
+    def __repr__(self):
+        return f"CopickRoot(user_id={self.user_id}, len(pickable_objects)={len(self.pickable_objects)}, len(runs)={len(self.runs if self.runs else [])}"
+
     @property
     def user_id(self) -> str:
         """Unique identifier for the user."""
@@ -215,14 +222,14 @@ class CopickRoot:
     def user_id(self, value: str) -> None:
         self.config.user_id = value
 
-    @property
-    def session_id(self) -> str:
-        """Unique identifier for the session."""
-        return self.config.user_id
-
-    @session_id.setter
-    def session_id(self, value: str) -> None:
-        self.config.user_id = value
+    # @property
+    # def session_id(self) -> str:
+    #     """Unique identifier for the session."""
+    #     return self.config.user_id
+    #
+    # @session_id.setter
+    # def session_id(self, value: str) -> None:
+    #     self.config.user_id = value
 
     def query(self) -> List[TCopickRun]:
         """Override this method to query for runs."""
@@ -364,6 +371,9 @@ class CopickRun:
                 cos = CopickSegmentation(run=self, meta=sm)
                 self._segmentations.append(cos)
 
+    def __repr__(self):
+        return f"CopickRun(name={self.name}, len(voxel_spacings)={len(self.voxel_spacings)}, len(picks)={len(self.picks)}, len(meshes)={len(self.meshes)}, len(segmentations)={len(self.segmentations)})"
+
     @property
     def name(self):
         return self.meta.name
@@ -490,7 +500,14 @@ class CopickRun:
         """Get tool based segmentations."""
         return [s for s in self.segmentations if s.session_id == "0"]
 
-    def get_segmentations(self, user_id: str = None, session_id: str = None) -> List[TCopickSegmentation]:
+    def get_segmentations(
+        self,
+        user_id: str = None,
+        session_id: str = None,
+        is_multilabel: bool = None,
+        name: str = None,
+        voxel_size: float = None,
+    ) -> List[TCopickSegmentation]:
         """Get segmentations by user_id or session_id (or combinations)."""
         ret = self.segmentations
 
@@ -499,6 +516,15 @@ class CopickRun:
 
         if session_id is not None:
             ret = [s for s in ret if s.session_id == session_id]
+
+        if is_multilabel is not None:
+            ret = [s for s in ret if s.is_multilabel == is_multilabel]
+
+        if name is not None:
+            ret = [s for s in ret if s.name == name]
+
+        if voxel_size is not None:
+            ret = [s for s in ret if s.voxel_size == voxel_size]
 
         return ret
 
@@ -610,8 +636,21 @@ class CopickRun:
         """Override this method to return the mesh class and mesh metadata."""
         return CopickMesh, CopickMeshMeta
 
-    def new_segmentation(self, session_id: str, user_id: Optional[str] = None, **kwargs) -> TCopickSegmentation:
+    def new_segmentation(
+        self,
+        voxel_size: float,
+        name: str,
+        session_id: str,
+        is_multilabel: bool,
+        user_id: Optional[str] = None,
+        **kwargs,
+    ) -> TCopickSegmentation:
         """Create a new segmentation object."""
+        if not is_multilabel and name not in [o.name for o in self.root.config.pickable_objects]:
+            raise ValueError(f"Object name {name} not found in pickable objects.")
+
+        if voxel_size not in [vs.voxel_size for vs in self.voxel_spacings]:
+            raise ValueError(f"VoxelSpacing {voxel_size} not found in voxel spacings for run {self.name}.")
 
         uid = self.root.config.user_id
 
@@ -627,8 +666,11 @@ class CopickRun:
         clz, meta_clz = self._segmentation_factory()
 
         sm = meta_clz(
+            is_multilabel=is_multilabel,
+            voxel_size=voxel_size,
             user_id=uid,
             session_id=session_id,
+            name=name,
             **kwargs,
         )
         seg = clz(run=self, meta=sm)
@@ -690,6 +732,9 @@ class CopickVoxelSpacing:
         if config is not None:
             tomo_metas = [CopickTomogramMeta(tomo_type=tt) for tt in config.tomograms[self.voxel_size]]
             self._tomograms = [CopickTomogram(voxel_spacing=self, meta=tm, config=config) for tm in tomo_metas]
+
+    def __repr__(self):
+        return f"CopickVoxelSpacing(voxel_size={self.voxel_size}, len(tomograms)={len(self.tomograms)})"
 
     @property
     def voxel_size(self) -> float:
@@ -775,6 +820,9 @@ class CopickTomogram:
             feat_metas = [CopickFeaturesMeta(tomo_type=self.tomo_type, feature_type=ft) for ft in config.feature_types]
             self._features = [CopickFeatures(tomogram=self, meta=fm) for fm in feat_metas]
 
+    def __repr__(self):
+        return f"CopickTomogram(tomo_type={self.tomo_type}, len(features)={len(self.features)})"
+
     @property
     def tomo_type(self) -> str:
         return self.meta.tomo_type
@@ -856,6 +904,9 @@ class CopickFeatures:
         self.tomogram: TCopickTomogram = tomogram
         """Tomogram these features belong to."""
 
+    def __repr__(self):
+        return f"CopickFeatures(tomo_type={self.tomo_type}, feature_type={self.feature_type})"
+
     @property
     def tomo_type(self) -> str:
         return self.meta.tomo_type
@@ -898,6 +949,9 @@ class CopickPicks:
         """Metadata for this pick."""
         self.run: TCopickRun = run
         """Run this pick belongs to."""
+
+    def __repr__(self):
+        return f"CopickPicks(pickable_object_name={self.pickable_object_name}, user_id={self.user_id}, session_id={self.session_id}, len(points)={len(self.points)})"
 
     def _load(self) -> CopickPicksFile:
         """Override this method to load points from a RESTful interface or filesystem."""
@@ -975,6 +1029,9 @@ class CopickMesh:
         else:
             self._mesh = None
 
+    def __repr__(self):
+        return f"CopickMesh(pickable_object_name={self.pickable_object_name}, user_id={self.user_id}, session_id={self.session_id})"
+
     @property
     def pickable_object_name(self) -> str:
         """Pickable object name from CopickConfig.pickable_objects[X].name"""
@@ -1038,13 +1095,25 @@ class CopickSegmentationMeta(BaseModel):
     session_id: Union[str, Literal["0"]]
     """Unique identifier for the pick"""
 
+    name: str
+    """Pickable Object name or multilabel name of the segmentation."""
+
+    is_multilabel: bool
+    """Flag to indicate if this is a multilabel segmentation. If False, it is a single label segmentation."""
+
+    voxel_size: float
+    """Voxel size for the tomogram this segmentation belongs to."""
+
 
 class CopickSegmentation:
     def __init__(self, run: TCopickRun, meta: CopickSegmentationMeta):
         self.meta: CopickSegmentationMeta = meta
-        """Metadata for this pick."""
+        """Metadata for this segmentation."""
         self.run: TCopickRun = run
         """Run this pick belongs to."""
+
+    def __repr__(self):
+        return f"CopickSegmentation(user_id={self.user_id}, session_id={self.session_id}, name={self.name}, is_multilabel={self.is_multilabel}, voxel_size={self.voxel_size})"
 
     @property
     def user_id(self) -> str:
@@ -1059,6 +1128,18 @@ class CopickSegmentation:
     @property
     def from_tool(self) -> bool:
         return self.session_id == "0"
+
+    @property
+    def is_multilabel(self) -> bool:
+        return self.meta.is_multilabel
+
+    @property
+    def voxel_size(self) -> float:
+        return self.meta.voxel_size
+
+    @property
+    def name(self) -> str:
+        return self.meta.name
 
     def zarr(self) -> MutableMapping:
         """Override to return the Zarr store for this segmentation. Also needs to handle creating the store if it
