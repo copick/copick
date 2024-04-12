@@ -978,6 +978,10 @@ class CopickPicks:
         self._store()
 
     @property
+    def color(self):
+        return self.run.root.get_object(self.pickable_object_name).color
+
+    @property
     def pickable_object_name(self) -> str:
         """Pickable object name from CopickConfig.pickable_objects[X].name"""
         return self.meta.pickable_object_name
@@ -1051,6 +1055,10 @@ class CopickMesh:
     def session_id(self) -> Union[str, Literal["0"]]:
         """Unique identifier for the pick session."""
         return self.meta.session_id
+
+    @property
+    def color(self):
+        return self.run.root.get_object(self.pickable_object_name).color
 
     def _load(self) -> Geometry:
         """Override this method to load mesh from a RESTful interface or filesystem."""
@@ -1146,7 +1154,15 @@ class CopickSegmentation:
     def name(self) -> str:
         return self.meta.name
 
-    def zarr(self) -> MutableMapping:
-        """Override to return the Zarr store for this segmentation. Also needs to handle creating the store if it
-        doesn't exist."""
-        pass
+    @property
+    def color(self):
+        if self.is_multilabel:
+            return [128, 128, 128, 0]
+        else:
+            return self.run.root.get_object(self.name).color
+
+
+def zarr(self) -> MutableMapping:
+    """Override to return the Zarr store for this segmentation. Also needs to handle creating the store if it
+    doesn't exist."""
+    pass
