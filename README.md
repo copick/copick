@@ -29,7 +29,7 @@ Shared data is organized as follows:
         |-- Segmentations/
             |-- [xx.yyy]_[user_id | tool_name]_[session_id | 0]_[object_name].zarr (spec: src/models.py:TBD)
             |   |-- [multiscale subdirectories according to OME-NGFF spec at 100% scale, 50% and 25% scale]
-            |-- [xx.yyy]_[user_id | tool_name]_[session_id | 0]_[name]_multilabel.zarr (spec: src/models.py:TBD)
+            |-- [xx.yyy]_[user_id | tool_name]_[session_id | 0]_[name]-multilabel.zarr (spec: src/models.py:TBD)
                 |-- [multiscale subdirectories according to OME-NGFF spec at 100% scale, 50% and 25% scale]
 ```
 
