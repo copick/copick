@@ -182,8 +182,12 @@ class CopickObject:
         return self.meta.pdb_id
 
     @property
-    def threshold(self) -> Union[float, None]:
-        return self.meta.threshold
+    def map_threshold(self) -> Union[float, None]:
+        return self.meta.map_threshold
+
+    @property
+    def radius(self) -> Union[float, None]:
+        return self.meta.radius
 
     def zarr(self) -> Union[None, MutableMapping]:
         """Get the zarr store for this object."""
