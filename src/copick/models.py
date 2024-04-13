@@ -982,6 +982,10 @@ class CopickPicks:
         self._store()
 
     @property
+    def from_tool(self) -> bool:
+        return self.session_id == "0"
+
+    @property
     def pickable_object_name(self) -> str:
         """Pickable object name from CopickConfig.pickable_objects[X].name"""
         return self.meta.pickable_object_name
