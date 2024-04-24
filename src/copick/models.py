@@ -155,7 +155,11 @@ class CopickObject:
         """Reference to the root this object belongs to. Populated from config."""
 
     def __repr__(self):
-        return f"CopickObject(name={self.name}, is_particle={self.is_particle}, label={self.label}, color={self.color}, emdb_id={self.emdb_id}, pdb_id={self.pdb_id}, threshold={self.threshold}) at {hex(id(self))}"
+        ret = (
+            f"CopickObject(name={self.name}, is_particle={self.is_particle}, label={self.label}, color={self.color}, "
+            f"emdb_id={self.emdb_id}, pdb_id={self.pdb_id}, threshold={self.threshold}) at {hex(id(self))}"
+        )
+        return ret
 
     @property
     def name(self) -> str:
@@ -215,7 +219,9 @@ class CopickRoot:
             self._runs = [CopickRun(self, CopickRunMeta(name=run_name)) for run_name in config.runs]
 
     def __repr__(self):
-        return f"CopickRoot(user_id={self.user_id}, len(pickable_objects)={len(self.pickable_objects)}, len(runs)={len(self.runs if self.runs else [])}) at {hex(id(self))}"
+        lpo = None if self._objects is None else len(self._objects)
+        lr = None if self._runs is None else len(self._runs)
+        return f"CopickRoot(user_id={self.user_id}, len(pickable_objects)={lpo}, len(runs)={lr}) at {hex(id(self))}"
 
     @property
     def user_id(self) -> str:
@@ -376,7 +382,15 @@ class CopickRun:
                 self._segmentations.append(cos)
 
     def __repr__(self):
-        return f"CopickRun(name={self.name}, len(voxel_spacings)={len(self.voxel_spacings)}, len(picks)={len(self.picks)}, len(meshes)={len(self.meshes)}, len(segmentations)={len(self.segmentations)}) at {hex(id(self))}"
+        lvs = None if self._voxel_spacings is None else len(self._voxel_spacings)
+        lpck = None if self._picks is None else len(self._picks)
+        lmsh = None if self._meshes is None else len(self._meshes)
+        lseg = None if self._segmentations is None else len(self._segmentations)
+        ret = (
+            f"CopickRun(name={self.name}, len(voxel_spacings)={lvs}, len(picks)={lpck}, len(meshes)={lmsh}, "
+            f"len(segmentations)={lseg}) at {hex(id(self))}"
+        )
+        return ret
 
     @property
     def name(self):
@@ -738,9 +752,8 @@ class CopickVoxelSpacing:
             self._tomograms = [CopickTomogram(voxel_spacing=self, meta=tm, config=config) for tm in tomo_metas]
 
     def __repr__(self):
-        return (
-            f"CopickVoxelSpacing(voxel_size={self.voxel_size}, len(tomograms)={len(self.tomograms)}) at {hex(id(self))}"
-        )
+        lts = None if self._tomograms is None else len(self._tomograms)
+        return f"CopickVoxelSpacing(voxel_size={self.voxel_size}, len(tomograms)={lts}) at {hex(id(self))}"
 
     @property
     def voxel_size(self) -> float:
@@ -827,7 +840,8 @@ class CopickTomogram:
             self._features = [CopickFeatures(tomogram=self, meta=fm) for fm in feat_metas]
 
     def __repr__(self):
-        return f"CopickTomogram(tomo_type={self.tomo_type}, len(features)={len(self.features)}) at {hex(id(self))}"
+        lft = None if self._features is None else len(self._features)
+        return f"CopickTomogram(tomo_type={self.tomo_type}, len(features)={lft}) at {hex(id(self))}"
 
     @property
     def tomo_type(self) -> str:
@@ -960,7 +974,12 @@ class CopickPicks:
         """Run this pick belongs to."""
 
     def __repr__(self):
-        return f"CopickPicks(pickable_object_name={self.pickable_object_name}, user_id={self.user_id}, session_id={self.session_id}, len(points)={len(self.points)}) at {hex(id(self))}"
+        lpt = None if self.meta.points is None else len(self.meta.points)
+        ret = (
+            f"CopickPicks(pickable_object_name={self.pickable_object_name}, user_id={self.user_id}, "
+            f"session_id={self.session_id}, len(points)={lpt}) at {hex(id(self))}"
+        )
+        return ret
 
     def _load(self) -> CopickPicksFile:
         """Override this method to load points from a RESTful interface or filesystem."""
@@ -1051,7 +1070,11 @@ class CopickMesh:
             self._mesh = None
 
     def __repr__(self):
-        return f"CopickMesh(pickable_object_name={self.pickable_object_name}, user_id={self.user_id}, session_id={self.session_id}) at {hex(id(self))}"
+        ret = (
+            f"CopickMesh(pickable_object_name={self.pickable_object_name}, user_id={self.user_id}, "
+            f"session_id={self.session_id}) at {hex(id(self))}"
+        )
+        return ret
 
     @property
     def pickable_object_name(self) -> str:
@@ -1138,7 +1161,11 @@ class CopickSegmentation:
         """Run this pick belongs to."""
 
     def __repr__(self):
-        return f"CopickSegmentation(user_id={self.user_id}, session_id={self.session_id}, name={self.name}, is_multilabel={self.is_multilabel}, voxel_size={self.voxel_size}) at {hex(id(self))}"
+        ret = (
+            f"CopickSegmentation(user_id={self.user_id}, session_id={self.session_id}, name={self.name}, "
+            f"is_multilabel={self.is_multilabel}, voxel_size={self.voxel_size}) at {hex(id(self))}"
+        )
+        return ret
 
     @property
     def user_id(self) -> str:
