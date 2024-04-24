@@ -9,7 +9,8 @@ classifiers = [
     "Development Status :: 3 - Alpha",
     "License :: OSI Approved :: MIT License",
 ]
-dynamic = ["version"]
+#dynamic = ["version"]
+version = "0.3.0"
 dependencies = [
     "fsspec",
     "pydantic",
@@ -40,8 +41,9 @@ dev = [
     "notebook"
 ]
 
-[tool.hatch.version]
-source = "vcs"
+#[tool.hatch.version]
+#source = "copick/__init__.py"
+#fallback-version = "0.3.0"
 
 [tool.black]
 line-length = 120
