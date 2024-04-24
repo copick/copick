@@ -444,7 +444,7 @@ class CopickRun:
         if self.root.config.user_id is None:
             return [p for p in self.picks if p.session_id != "0"]
         else:
-            self.get_picks(user_id=self.root.config.user_id)
+            return self.get_picks(user_id=self.root.config.user_id)
 
     def tool_picks(self) -> List[TCopickPicks]:
         """Get tool based picks."""
@@ -478,7 +478,7 @@ class CopickRun:
         if self.root.config.user_id is None:
             return [m for m in self.meshes if m.session_id != "0"]
         else:
-            self.get_meshes(user_id=self.root.config.user_id)
+            return self.get_meshes(user_id=self.root.config.user_id)
 
     def tool_meshes(self) -> List[TCopickMesh]:
         """Get tool based meshes."""
@@ -512,7 +512,7 @@ class CopickRun:
         if self.root.config.user_id is None:
             return [s for s in self.segmentations if s.session_id != "0"]
         else:
-            self.get_segmentations(user_id=self.root.config.user_id)
+            return self.get_segmentations(user_id=self.root.config.user_id)
 
     def tool_segmentations(self) -> List[TCopickSegmentation]:
         """Get tool based segmentations."""
