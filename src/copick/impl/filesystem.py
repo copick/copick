@@ -221,6 +221,8 @@ class CopickTomogramFSSpec(CopickTomogramOverlay):
         paths = self.fs_static.glob(feat_loc + "*_features.zarr") + self.fs_static.glob(feat_loc + "*_features.zarr/")
         paths = [p.rstrip("/") for p in paths if self.fs_static.isdir(p)]
         feature_types = [n.replace(feat_loc, "").replace("_features.zarr", "") for n in paths]
+        # Remove any hidden files?
+        feature_types = [ft for ft in feature_types if not ft.startswith(".")]
 
         feature_types = list(set(feature_types))
 
@@ -241,6 +243,8 @@ class CopickTomogramFSSpec(CopickTomogramOverlay):
         paths = self.fs_overlay.glob(feat_loc + "*_features.zarr") + self.fs_overlay.glob(feat_loc + "*_features.zarr/")
         paths = [p.rstrip("/") for p in paths if self.fs_overlay.isdir(p)]
         feature_types = [n.replace(feat_loc, "").replace("_features.zarr", "") for n in paths]
+        # Remove any hidden files?
+        feature_types = [ft for ft in feature_types if not ft.startswith(".")]
 
         feature_types = list(set(feature_types))
 
@@ -311,6 +315,8 @@ class CopickVoxelSpacingFSSpec(CopickVoxelSpacingOverlay):
         paths = [p.rstrip("/") for p in paths if self.fs_static.isdir(p)]
         tomo_types = [n.replace(tomo_loc, "").replace(".zarr", "") for n in paths]
         tomo_types = [t for t in tomo_types if "features" not in t]
+        # Remove any hidden files?
+        tomo_types = [tt for tt in tomo_types if not tt.startswith(".")]
 
         tomo_types = list(set(tomo_types))
 
@@ -329,6 +335,8 @@ class CopickVoxelSpacingFSSpec(CopickVoxelSpacingOverlay):
         paths = [p.rstrip("/") for p in paths if self.fs_overlay.isdir(p)]
         tomo_types = [n.replace(tomo_loc, "").replace(".zarr", "") for n in paths]
         tomo_types = [t for t in tomo_types if "features" not in t]
+        # Remove any hidden files?
+        tomo_types = [tt for tt in tomo_types if not tt.startswith(".")]
 
         tomo_types = list(set(tomo_types))
 
@@ -407,6 +415,8 @@ class CopickRunFSSpec(CopickRunOverlay):
         pick_loc = f"{self.static_path}/Picks/"
         paths = self.fs_static.glob(pick_loc + "*.json")
         names = [n.replace(pick_loc, "").replace(".json", "") for n in paths]
+        # Remove any hidden files?
+        names = [n for n in names if not n.startswith(".")]
 
         users = [n.split("_")[0] for n in names]
         sessions = [n.split("_")[1] for n in names]
@@ -429,6 +439,8 @@ class CopickRunFSSpec(CopickRunOverlay):
         pick_loc = f"{self.overlay_path}/Picks/"
         paths = self.fs_overlay.glob(pick_loc + "*.json")
         names = [n.replace(pick_loc, "").replace(".json", "") for n in paths]
+        # Remove any hidden files?
+        names = [n for n in names if not n.startswith(".")]
 
         users = [n.split("_")[0] for n in names]
         sessions = [n.split("_")[1] for n in names]
@@ -454,6 +466,8 @@ class CopickRunFSSpec(CopickRunOverlay):
         mesh_loc = f"{self.static_path}/Meshes/"
         paths = self.fs_static.glob(mesh_loc + "*.glb")
         names = [n.replace(mesh_loc, "").replace(".glb", "") for n in paths]
+        # Remove any hidden files?
+        names = [n for n in names if not n.startswith(".")]
 
         users = [n.split("_")[0] for n in names]
         sessions = [n.split("_")[1] for n in names]
@@ -476,6 +490,8 @@ class CopickRunFSSpec(CopickRunOverlay):
         mesh_loc = f"{self.overlay_path}/Meshes/"
         paths = self.fs_overlay.glob(mesh_loc + "*.glb")
         names = [n.replace(mesh_loc, "").replace(".glb", "") for n in paths]
+        # Remove any hidden files?
+        names = [n for n in names if not n.startswith(".")]
 
         users = [n.split("_")[0] for n in names]
         sessions = [n.split("_")[1] for n in names]
@@ -502,6 +518,8 @@ class CopickRunFSSpec(CopickRunOverlay):
         paths = self.fs_static.glob(seg_loc + "*.zarr") + self.fs_static.glob(seg_loc + "*.zarr/")
         paths = [p.rstrip("/") for p in paths if self.fs_static.isdir(p)]
         names = [n.replace(seg_loc, "").replace(".zarr", "") for n in paths]
+        # Remove any hidden files?
+        names = [n for n in names if not n.startswith(".")]
 
         # Deduplicate
         names = list(set(names))
@@ -546,6 +564,8 @@ class CopickRunFSSpec(CopickRunOverlay):
         paths = self.fs_overlay.glob(seg_loc + "*.zarr") + self.fs_overlay.glob(seg_loc + "*.zarr/")
         paths = [p.rstrip("/") for p in paths if self.fs_overlay.isdir(p)]
         names = [n.replace(seg_loc, "").replace(".zarr", "") for n in paths]
+        # Remove any hidden files?
+        names = [n for n in names if not n.startswith(".")]
 
         # Deduplicate
         names = list(set(names))
@@ -655,11 +675,15 @@ class CopickRootFSSpec(CopickRoot):
         paths = self.fs_static.glob(static_run_dir + "*") + self.fs_static.glob(static_run_dir + "*/")
         paths = [p.rstrip("/") for p in paths if self.fs_static.isdir(p)]
         snames = [n.replace(static_run_dir, "") for n in paths]
+        # Remove any hidden files?
+        snames = [n for n in snames if not n.startswith(".")]
 
         overlay_run_dir = f"{self.root_overlay}/ExperimentRuns/"
         paths = self.fs_overlay.glob(overlay_run_dir + "*") + self.fs_overlay.glob(overlay_run_dir + "*/")
         paths = [p.rstrip("/") for p in paths if self.fs_overlay.isdir(p)]
         onames = [n.replace(overlay_run_dir, "") for n in paths]
+        # Remove any hidden files?
+        onames = [n for n in onames if not n.startswith(".")]
 
         # Deduplicate
         names = sorted(set(snames + onames))
