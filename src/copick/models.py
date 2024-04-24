@@ -1038,6 +1038,9 @@ class CopickPicks:
 
     @property
     def color(self):
+        if self.run.root.get_object(self.pickable_object_name) is None:
+            raise ValueError(f"{self.pickable_object_name} is not a recognized object name (run: {self.run.name}).")
+
         return self.run.root.get_object(self.pickable_object_name).color
 
     def refresh(self) -> None:
