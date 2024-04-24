@@ -226,14 +226,14 @@ class CopickRoot:
     def user_id(self, value: str) -> None:
         self.config.user_id = value
 
-    # @property
-    # def session_id(self) -> str:
-    #     """Unique identifier for the session."""
-    #     return self.config.user_id
-    #
-    # @session_id.setter
-    # def session_id(self, value: str) -> None:
-    #     self.config.user_id = value
+    @property
+    def session_id(self) -> str:
+        """Unique identifier for the session."""
+        return self.config.user_id
+
+    @session_id.setter
+    def session_id(self, value: str) -> None:
+        self.config.user_id = value
 
     def query(self) -> List[TCopickRun]:
         """Override this method to query for runs."""
