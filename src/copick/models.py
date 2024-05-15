@@ -678,8 +678,16 @@ class CopickRun:
         if uid is None:
             raise ValueError("User ID must be set in the root config or supplied to new_segmentation.")
 
-        if self.get_segmentations(session_id=session_id, user_id=uid):
-            raise ValueError(f"Segmentation by user/tool {uid} already exist in session {session_id}.")
+        if self.get_segmentations(
+            session_id=session_id,
+            user_id=uid,
+            name=name,
+            is_multilabel=is_multilabel,
+            voxel_size=voxel_size,
+        ):
+            raise ValueError(
+                f"Segmentation by user/tool {uid} already exist in session {session_id} with name {name}, voxel size of {voxel_size}, and has a multilabel flag of {is_multilabel}."
+            )
 
         clz, meta_clz = self._segmentation_factory()
 
