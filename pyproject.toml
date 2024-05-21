@@ -103,6 +103,22 @@ plugins = [
   "pydantic.mypy"
 ]
 
+[tool.hatch.envs.default]
+dependencies = [
+  "pytest",
+]
+
+[tool.hatch.envs.default.scripts]
+test = "pytest {args:tests}"
+
+[tool.hatch.envs.all]
+matrix-name-format = "{variable}_{value}"
+
+# https://docs.pytest.org/en/latest/reference/customize.html
+[tool.pytest.ini_options]
+minversion = "6.0"
+testpaths = ["tests"]
+
 [tool.coverage.report]
 exclude_lines = [
     "pragma: no cover",
