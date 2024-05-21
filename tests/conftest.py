@@ -7,22 +7,22 @@ import fsspec
 import pooch
 import pytest
 
-OZ = Path("/Users/utz.ermel/Documents/copick/testproject")  # pooch.os_cache("test_data")
+OZ = pooch.os_cache("test_data")  # Path("/Users/utz.ermel/Documents/copick/testproject")  # pooch.os_cache("test_data")
 TOTO = pooch.create(
     path=OZ,
-    base_url="doi:10.5281/zenodo.11049961",
+    base_url="doi:10.5281/zenodo.11238625",
     registry={
-        "sample_project.zip": "md5:5f2c25c56cb8fdccb4b46c097975713d",
+        "sample_project.zip": "md5:b06ee6f4541b1ad06c988c8ca8d09945",
     },
 )
 
 
-CLEANUP = False
+CLEANUP = True
 
 
 @pytest.fixture(scope="session")
 def local_path() -> Path:
-    # TOTO.fetch("sample_project.zip", processor=pooch.Unzip(extract_dir="sample_project"))
+    TOTO.fetch("sample_project.zip", processor=pooch.Unzip(extract_dir="sample_project"))
     yield OZ / "sample_project"
 
     if CLEANUP:

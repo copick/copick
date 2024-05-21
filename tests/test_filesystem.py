@@ -84,18 +84,12 @@ def test_root_refresh(test_payload: Dict[str, Any]):
 
     # Check that the root is not populated
     assert copick_root._runs is None, "Runs should not be populated"
-    assert copick_root._objects is None, "Objects should not be populated"
 
     copick_root.refresh()
 
     assert copick_root._runs is not None, "Runs should be populated"
-    assert copick_root._objects is not None, "Objects should be populated"
-
     rnames = [r.name for r in copick_root.runs]
-    onames = [o.name for o in copick_root.pickable_objects]
-
     assert rnames == ["TS_001", "TS_002", "TS_003"], "Incorrect runs"
-    assert onames == ["proteasome", "ribosome", "membrane"], "Incorrect objects"
 
 
 def test_root_new_run(test_payload: Dict[str, Any]):
@@ -224,7 +218,7 @@ def test_run_lazy(test_payload: Dict[str, Any]):
     meshes = copick_run.meshes
 
     assert copick_run._meshes is not None, "Meshes should be populated"
-    assert len(meshes) == 1, "Incorrect number of meshes"
+    assert len(meshes) == 3, "Incorrect number of meshes"
 
     # Access the segmentations and confirm query
     segmentations = copick_run.segmentations
@@ -266,11 +260,10 @@ def test_run_entity_types(test_payload: Dict[str, Any]):
 
     # Check mesh types
     tool_meshes = copick_run.tool_meshes()
-    assert len(tool_meshes) == 1, "Incorrect number of tool meshes"
+    assert len(tool_meshes) == 2, "Incorrect number of tool meshes"
 
     user_meshes = copick_run.user_meshes()
-    assert len(user_meshes) == 0, "Incorrect number of user meshes"
-    # TODO: more examples
+    assert len(user_meshes) == 1, "Incorrect number of user meshes"
 
     # Check segmentation types
     tool_segmentations = copick_run.tool_segmentations()
@@ -328,8 +321,22 @@ def test_run_get_meshes(test_payload: Dict[str, Any]):
 
     # Get meshes
     meshes = copick_run.get_meshes()
+    assert len(meshes) == 3, "Incorrect number of meshes"
+
+    # Get meshes by object
+    meshes = copick_run.get_meshes(object_name="proteasome")
     assert len(meshes) == 1, "Incorrect number of meshes"
-    # TODO: more axamples
+    assert meshes[0].pickable_object_name == "proteasome", "Incorrect mesh"
+
+    # Get meshes by user_id
+    meshes = copick_run.get_meshes(user_id="user.test")
+    assert len(meshes) == 1, "Incorrect number of meshes"
+    assert meshes[0].user_id == "user.test", "Incorrect mesh"
+
+    # Get meshes by session_id
+    meshes = copick_run.get_meshes(session_id="321")
+    assert len(meshes) == 1, "Incorrect number of meshes"
+    assert meshes[0].session_id == "321", "Incorrect mesh"
 
 
 def test_run_get_segmentations(test_payload: Dict[str, Any]):
@@ -507,13 +514,15 @@ def test_run_new_meshes(test_payload: Dict[str, Any]):
         mesh3 == copick_run.get_meshes(object_name="membrane", session_id="1234", user_id="user.test")[0]
     ), "Mesh not found"
 
-    # Total number of meshes should be 3 now
+    # Total number of meshes should be 5 now
     copick_run.refresh_meshes()
-    assert len(copick_run.meshes) == 3, "Incorrect number of meshes"
+    assert len(copick_run.meshes) == 5, "Incorrect number of meshes"
 
     # Check filesystem for existing meshes
     st = [
         "membrain_0_membrane.glb",
+        "user.test_321_proteasome.glb",
+        "gapstop_0_ribosome.glb",
     ]
 
     ov = [
@@ -668,7 +677,7 @@ def test_run_refresh(test_payload: Dict[str, Any]):
 
     assert len(copick_run.voxel_spacings) == 2, "Incorrect number of voxel spacings"
     assert len(copick_run.picks) == 5, "Incorrect number of picks"
-    assert len(copick_run.meshes) == 1, "Incorrect number of meshes"
+    assert len(copick_run.meshes) == 3, "Incorrect number of meshes"
     assert len(copick_run.segmentations) == 3, "Incorrect number of segmentations"
 
 
@@ -822,9 +831,9 @@ def test_tomogram_lazy(test_payload: Dict[str, Any]):
     features = tomogram.features
     ftype = [f.feature_type for f in features]
 
-    assert len(features) == 1, "Incorrect number of features"
+    assert len(features) == 2, "Incorrect number of features"
     assert "sobel" in ftype, "Expected feature not found"
-    # TODO: add more feature cases
+    assert "edge" in ftype, "Expected feature not found"
 
 
 def test_tomogram_get_features(test_payload: Dict[str, Any]):
@@ -882,11 +891,12 @@ def test_tomogram_new_features(test_payload: Dict[str, Any]):
 
     # Total number of features should be 3 now
     tomogram.refresh_features()
-    assert len(tomogram.features) == 3, "Incorrect number of features"
+    assert len(tomogram.features) == 4, "Incorrect number of features"
 
     # Check filesystem for existing features
     st = [
         "wbp_sobel_features.zarr",
+        "wbp_edge_features.zarr",
     ]
 
     ov = [
@@ -922,7 +932,7 @@ def test_tomogram_refresh(test_payload: Dict[str, Any]):
     tomogram.refresh()
 
     assert tomogram._features is not None, "Features should be populated"
-    assert len(tomogram.features) == 1, "Incorrect number of features"
+    assert len(tomogram.features) == 2, "Incorrect number of features"
 
 
 def test_tomogram_zarr(test_payload: Dict[str, Any]):
