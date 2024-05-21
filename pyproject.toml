@@ -15,7 +15,6 @@ dependencies = [
     "fsspec",
     "pydantic",
     "numpy",
-    "qtpy",
     "trimesh",
     "zarr",
 ]
@@ -33,12 +32,20 @@ Repository = "https://github.com/uermel/copick.git"
 Issues = "https://github.com/uermel/copick/issues"
 
 [project.optional-dependencies]
+s3 = ["s3fs"]
+smb = ["smbprotocol"]
+ssh = ["sshfs"]
+test = [
+    "pytest",
+    "pytest-cov",
+    "pooch",
+]
 dev = [
     "black",
     "ipython",
     "pre-commit",
     "ruff",
-    "notebook"
+    "notebook",
 ]
 
 #[tool.hatch.version]
@@ -52,28 +59,29 @@ target_version = ['py311']
 [tool.ruff]
 select = [
     "E", "W",  # pycodestyle
-    "F",  # pyflakes
-    "B",  # bugbear
-    "I",  # isort
-    "N",  # pep8-naming
-    "ASYNC",  # async
-    "COM",  # commas
-    "C4",  # comprehensions
-    "DTZ",  # datetimez
-    "ISC",  # implicit-str-concat
-    "G",  # logging-format
-    "T20",  # print
-    "SIM",  # simplify
+    "F",       # pyflakes
+    "B",       # bugbear
+    "I",       # isort
+    "N",       # pep8-naming
+    "ASYNC",   # async
+    "COM",     # commas
+    "C4",      # comprehensions
+    "DTZ",     # datetimez
+    "ISC",     # implicit-str-concat
+    "G",       # logging-format
+    "T20",     # print
+    "SIM",     # simplify
 ]
 ignore = [
-    "B008",  # Do not perform calls in argument defaults
-    "N802",  # Function name should be lowercase
-    "N805",  # First argument of a method should be named `self`
-    "N806",  # Variable in function should be lowercase
-    "N999",  # Invalid module name
-    "E501",  # line too long
-    "C408",  # rewrite empty built-ins as literals
-    "T201",  # print statements.
+    "W293",   # blank line contains whitespace
+    "B008",   # Do not perform calls in argument defaults
+    "N802",   # Function name should be lowercase
+    "N805",   # First argument of a method should be named `self`
+    "N806",   # Variable in function should be lowercase
+    "N999",   # Invalid module name
+    "E501",   # line too long
+    "C408",   # rewrite empty built-ins as literals
+    "T201",   # print statements.
     "DTZ007", # Datetime objects without timezones.
     "DTZ005", # More datetimes without timezones.
 ]
@@ -93,4 +101,13 @@ warn_unreachable = true
 strict = true
 plugins = [
   "pydantic.mypy"
+]
+
+[tool.coverage.report]
+exclude_lines = [
+    "pragma: no cover",
+    "if TYPE_CHECKING:",
+    "@overload",
+    "except ImportError",
+    "pass",
 ]
