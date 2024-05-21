@@ -37,7 +37,7 @@ jobs:
         run: |
           python -m pip install --upgrade pip
           pip install setuptools pytest pipx
-          pip install -e .
+          pip install -e ".[test]"
           pipx install hatch
           pipx ensurepath
 
