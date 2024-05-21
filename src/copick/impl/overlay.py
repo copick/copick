@@ -29,7 +29,7 @@ class CopickPicksOverlay(CopickPicks):
     def store(self):
         """Store the picks, making sure the source is writable."""
         if self.read_only:
-            raise ValueError("Cannot store picks in a read-only source.")
+            raise PermissionError("Cannot store picks in a read-only source.")
         self._store()
 
 
@@ -41,7 +41,7 @@ class CopickMeshOverlay(CopickMesh):
     def store(self):
         """Store the mesh, making sure the source is writable."""
         if self.read_only:
-            raise ValueError("Cannot store mesh in a read-only source.")
+            raise PermissionError("Cannot store mesh in a read-only source.")
         self._store()
 
 
