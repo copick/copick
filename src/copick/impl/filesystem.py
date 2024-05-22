@@ -422,6 +422,9 @@ class CopickRunFSSpec(CopickRunOverlay):
         sessions = [n.split("_")[1] for n in names]
         objects = [n.split("_")[2] for n in names]
 
+        # zip(strict=True) (replace once python 3.9 is EOL)
+        assert len(users) == len(sessions) == len(objects)
+
         return [
             CopickPicksFSSpec(
                 run=self,
@@ -432,7 +435,7 @@ class CopickRunFSSpec(CopickRunOverlay):
                 ),
                 read_only=True,
             )
-            for u, s, o in zip(users, sessions, objects, strict=True)
+            for u, s, o in zip(users, sessions, objects)  # , strict=True)
         ]
 
     def _query_overlay_picks(self) -> List[CopickPicksFSSpec]:
@@ -446,6 +449,9 @@ class CopickRunFSSpec(CopickRunOverlay):
         sessions = [n.split("_")[1] for n in names]
         objects = [n.split("_")[2] for n in names]
 
+        # zip(strict=True) (replace once python 3.9 is EOL)
+        assert len(users) == len(sessions) == len(objects)
+
         return [
             CopickPicksFSSpec(
                 run=self,
@@ -456,7 +462,7 @@ class CopickRunFSSpec(CopickRunOverlay):
                 ),
                 read_only=False,
             )
-            for u, s, o in zip(users, sessions, objects, strict=True)
+            for u, s, o in zip(users, sessions, objects)  # , strict=True)
         ]
 
     def _query_static_meshes(self) -> List[CopickMeshFSSpec]:
@@ -473,6 +479,9 @@ class CopickRunFSSpec(CopickRunOverlay):
         sessions = [n.split("_")[1] for n in names]
         objects = [n.split("_")[2] for n in names]
 
+        # zip(strict=True) (replace once python 3.9 is EOL)
+        assert len(users) == len(sessions) == len(objects)
+
         return [
             CopickMeshFSSpec(
                 run=self,
@@ -483,7 +492,7 @@ class CopickRunFSSpec(CopickRunOverlay):
                 ),
                 read_only=True,
             )
-            for u, s, o in zip(users, sessions, objects, strict=True)
+            for u, s, o in zip(users, sessions, objects)  # , strict=True)
         ]
 
     def _query_overlay_meshes(self) -> List[CopickMeshFSSpec]:
@@ -497,6 +506,9 @@ class CopickRunFSSpec(CopickRunOverlay):
         sessions = [n.split("_")[1] for n in names]
         objects = [n.split("_")[2] for n in names]
 
+        # zip(strict=True) (replace once python 3.9 is EOL)
+        assert len(users) == len(sessions) == len(objects)
+
         return [
             CopickMeshFSSpec(
                 run=self,
@@ -507,7 +519,7 @@ class CopickRunFSSpec(CopickRunOverlay):
                 ),
                 read_only=False,
             )
-            for u, s, o in zip(users, sessions, objects, strict=True)
+            for u, s, o in zip(users, sessions, objects)  # , strict=True)
         ]
 
     def _query_static_segmentations(self) -> List[CopickSegmentationFSSpec]:
