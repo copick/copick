@@ -909,8 +909,8 @@ def test_tomogram_new_features(test_payload: Dict[str, Any]):
         for feature in ov + st:
             assert overlay_fs.exists(feature_path + feature), f"{feature} not found in overlay"
     else:
-        feature_path_overlay = str(overlay_loc / "ExperimentRuns" / "TS_001" / "Voxelspacing10.000") + "/"
-        feature_path_static = str(static_loc / "ExperimentRuns" / "TS_001" / "Voxelspacing10.000") + "/"
+        feature_path_overlay = str(overlay_loc / "ExperimentRuns" / "TS_001" / "VoxelSpacing10.000") + "/"
+        feature_path_static = str(static_loc / "ExperimentRuns" / "TS_001" / "VoxelSpacing10.000") + "/"
 
         for feature in st:
             assert static_fs.exists(feature_path_static + feature), f"{feature} not found in static"
