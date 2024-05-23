@@ -70,6 +70,9 @@ class CopickConfig(BaseModel):
     user_id: Optional[str] = None
     """Unique identifier for the user (e.g. when distributing the config file to users)."""
 
+    session_id: Optional[str] = None
+    """Unique identifier for the session"""
+
     voxel_spacings: Optional[List[float]] = None
     """Index for available voxel spacings."""
 
@@ -235,11 +238,11 @@ class CopickRoot:
     @property
     def session_id(self) -> str:
         """Unique identifier for the session."""
-        return self.config.user_id
+        return self.config.session_id
 
     @session_id.setter
     def session_id(self, value: str) -> None:
-        self.config.user_id = value
+        self.config.session_id = value
 
     def query(self) -> List[TCopickRun]:
         """Override this method to query for runs."""
@@ -686,7 +689,7 @@ class CopickRun:
             voxel_size=voxel_size,
         ):
             raise ValueError(
-                f"Segmentation by user/tool {uid} already exist in session {session_id} with name {name}, voxel size of {voxel_size}, and has a multilabel flag of {is_multilabel}."
+                f"Segmentation by user/tool {uid} already exist in session {session_id} with name {name}, voxel size of {voxel_size}, and has a multilabel flag of {is_multilabel}.",
             )
 
         clz, meta_clz = self._segmentation_factory()
