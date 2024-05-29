@@ -35,6 +35,8 @@ Issues = "https://github.com/uermel/copick/issues"
 s3 = ["s3fs"]
 smb = ["smbprotocol"]
 ssh = ["sshfs"]
+all = ["s3fs", "smbprotocol", "sshfs"]
+fledgeling = ["pooch", "s3fs", "smbprotocol", "sshfs"]
 test = [
     "pytest",
     "pytest-cov",
@@ -46,6 +48,12 @@ dev = [
     "pre-commit",
     "ruff",
     "notebook",
+]
+docs = [
+    "mkdocs",
+    "mkdocstrings[python]",
+    "mkdocs-autorefs",
+    "mkdocs-material",
 ]
 
 #[tool.hatch.version]
@@ -88,6 +96,9 @@ ignore = [
 ]
 line-length = 120
 target-version = "py311"
+exclude = [
+    "mkdocs.yml",
+]
 
 [tool.ruff.isort]
 known-first-party =["common"]

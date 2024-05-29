@@ -1,0 +1,2 @@
+[](){#CopickSegmentation}
+::: copick.models.CopickSegmentation

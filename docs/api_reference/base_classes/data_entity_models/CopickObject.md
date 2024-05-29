@@ -1,0 +1,2 @@
+[](){#CopickObject}
+::: copick.models.CopickObject
