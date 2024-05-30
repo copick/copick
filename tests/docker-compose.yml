@@ -1,0 +1,10 @@
+services:
+  motoserver:
+    image: motoserver/moto:4.1.0
+    ports:
+      - "4001:4001"
+    environment:
+      - MOTO_PORT=4001
+      - S3_IGNORE_SUBDOMAIN_BUCKETNAME=True
+    volumes:
+      - ./tests/bin:/moto/bin

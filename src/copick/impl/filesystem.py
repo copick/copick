@@ -431,6 +431,9 @@ class CopickVoxelSpacingFSSpec(CopickVoxelSpacingOverlay):
         """Ensure the voxel spacing directory exists, creating it if necessary."""
         if not self.fs_overlay.exists(self.overlay_path):
             self.fs_overlay.makedirs(self.overlay_path, exist_ok=True)
+            # TODO: Write metadata
+            with self.fs_overlay.open(self.overlay_path + "/.meta", "w") as f:
+                f.write("")  # Touch the file
 
 
 class CopickRunFSSpec(CopickRunOverlay):
@@ -710,6 +713,9 @@ class CopickRunFSSpec(CopickRunOverlay):
         """Ensure the run directory exists, creating it if necessary."""
         if not self.fs_overlay.exists(self.overlay_path):
             self.fs_overlay.makedirs(self.overlay_path, exist_ok=True)
+            # TODO: Write metadata
+            with self.fs_overlay.open(self.overlay_path + "/.meta", "w") as f:
+                f.write("")  # Touch the file
 
 
 class CopickObjectFSSpec(CopickObjectOverlay):

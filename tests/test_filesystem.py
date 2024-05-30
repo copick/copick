@@ -595,6 +595,7 @@ def test_run_new_segmentations(test_payload: Dict[str, Any]):
         )
 
     # Adding the first segmentation inits the _segmentations attribute as list of segmentations
+    # For object stores we actually need to write to the zarr to create the "directory"
     seg4 = copick_run.new_segmentation(
         voxel_size=10.000,
         user_id="test.user",
@@ -602,10 +603,12 @@ def test_run_new_segmentations(test_payload: Dict[str, Any]):
         name="ribosome",
         is_multilabel=False,
     )
+    zarr.create((5, 5, 5), store=seg4.zarr())
     assert copick_run._segmentations is not None, "Segmentations should be populated"
     assert seg4 in copick_run.segmentations, "Segmentation not added to segmentations"
 
     # Adding another segmentation appends to the list after setting user id
+    # For object stores we actually need to write to the zarr to create the "directory"
     copick_root.config.user_id = "user.test"
     seg5 = copick_run.new_segmentation(
         voxel_size=10.000,
@@ -613,7 +616,7 @@ def test_run_new_segmentations(test_payload: Dict[str, Any]):
         name="location",
         is_multilabel=True,
     )
-
+    zarr.create((5, 5, 5), store=seg5.zarr())
     assert seg5 in copick_run.segmentations, "Segmentation not added to segmentations"
     assert (
         seg5
@@ -750,13 +753,17 @@ def test_vs_new_tomogram(test_payload: Dict[str, Any]):
         vs.new_tomogram(tomo_type="denoised")
 
     # Adding the first tomogram inits the _tomograms attribute as list of tomograms
+    # For object stores we actually need to write to the zarr to create the "directory"
     tomogram = vs.new_tomogram(tomo_type="isonet")
+    zarr.create((5, 5, 5), store=tomogram.zarr())
 
     assert vs._tomograms is not None, "Tomograms should be populated"
     assert tomogram in vs.tomograms, "Tomogram not added to tomograms"
 
     # Adding another tomogram appends to the list
+    # For object stores we actually need to write to the zarr to create the "directory"
     tomogram = vs.new_tomogram(tomo_type="SIRT")
+    zarr.create((5, 5, 5), store=tomogram.zarr())
 
     assert tomogram in vs.tomograms, "Tomogram not added to tomograms"
     assert tomogram == vs.get_tomogram(tomo_type="SIRT"), "Tomogram not found"
@@ -878,13 +885,17 @@ def test_tomogram_new_features(test_payload: Dict[str, Any]):
         tomogram.new_features(feature_type="sobel")
 
     # Adding the first feature inits the _features attribute as list of features
+    # For object stores we actually need to write to the zarr to create the "directory"
     feature = tomogram.new_features(feature_type="sift")
+    zarr.create((5, 5, 5), store=feature.zarr())
 
     assert tomogram._features is not None, "Features should be populated"
     assert feature in tomogram.features, "Feature not added to features"
 
     # Adding another feature appends to the list
+    # For object stores we actually need to write to the zarr to create the "directory"
     feature = tomogram.new_features(feature_type="tomotwin")
+    zarr.create((5, 5, 5), store=feature.zarr())
 
     assert feature in tomogram.features, "Feature not added to features"
     assert feature == tomogram.get_features(feature_type="tomotwin"), "Feature not found"
