@@ -118,7 +118,7 @@ plugins = [
 
 [tool.hatch.envs.default]
 dependencies = [
-  "pytest", "pooch",
+  "pytest", "pooch", "s3fs",
 ]
 
 [tool.hatch.envs.default.scripts]
