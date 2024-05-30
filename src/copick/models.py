@@ -78,14 +78,9 @@ class CopickConfig(BaseModel):
         pickable_objects (List[PickableObject]): Index for available pickable objects.
         user_id: Unique identifier for the user (e.g. when distributing the config file to users).
         session_id: Unique identifier for the session.
-        voxel_spacings: Index for available voxel spacings.
         runs: Index for run names.
+        voxel_spacings: Index for available voxel spacings.
         tomograms: Index for available voxel spacings and tomogram types.
-        features: Index for available features. Must be computed on the tomogram types.
-        feature_types: Index for available feature types.
-        available_pre_picks: Index for available pre-pick tools.
-        available_pre_segmentations: Index for available pre-segmentations.
-        available_pre_meshes: Index for available pre-meshes.
     """
 
     name: Optional[str] = "CoPick"
@@ -94,14 +89,9 @@ class CopickConfig(BaseModel):
     pickable_objects: List[TPickableObject]
     user_id: Optional[str] = None
     session_id: Optional[str] = None
-    voxel_spacings: Optional[List[float]] = None
     runs: Optional[List[str]] = None
+    voxel_spacings: Optional[List[float]] = None
     tomograms: Optional[Dict[float, List[str]]] = {}
-    features: Optional[Dict[float, List[str]]] = {}
-    feature_types: Optional[List[str]] = []
-    available_pre_picks: Optional[Dict[str, List[str]]] = {}
-    available_pre_segmentations: Optional[List[str]] = []
-    available_pre_meshes: Optional[Dict[str, List[str]]] = []
 
     @classmethod
     def from_file(cls, filename: str) -> TCopickConfig:
