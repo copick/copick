@@ -44,7 +44,7 @@ jobs:
           pipx ensurepath
 
       - name: Test with pytest
-        run: hatch run test_extended:test -vvv -p no:warnings tests
+        run: hatch run test_extended:test -v -p no:warnings tests
         env:
           PLATFORM: ${{ matrix.platform }}
 
@@ -83,7 +83,7 @@ jobs:
           pipx ensurepath
 
       - name: Test with pytest
-        run: hatch run test:test -vvv -p no:warnings tests
+        run: hatch run test:test -v -p no:warnings tests
         env:
           PLATFORM: ${{ matrix.platform }}
 
