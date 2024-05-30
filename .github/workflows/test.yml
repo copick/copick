@@ -44,6 +44,7 @@ jobs:
           pip install -e ".[test]"
           pipx install hatch
           pipx ensurepath
+          pytest
 
 
       - name: Test with pytest
