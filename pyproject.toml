@@ -116,16 +116,21 @@ plugins = [
   "pydantic.mypy"
 ]
 
-[tool.hatch.envs.default]
+[tool.hatch.envs.test]
+dependencies = [
+  "pytest", "pooch",
+]
+
+[tool.hatch.envs.test_extended]
 dependencies = [
   "pytest", "pooch", "s3fs",
 ]
 
-[tool.hatch.envs.default.scripts]
-test = "pytest {args:tests}"
-
 [tool.hatch.envs.all]
 matrix-name-format = "{variable}_{value}"
+
+[tool.hatch.envs.all.scripts]
+test = "pytest {args:tests}"
 
 # https://docs.pytest.org/en/latest/reference/customize.html
 [tool.pytest.ini_options]
