@@ -44,7 +44,7 @@ jobs:
           pipx ensurepath
 
       - name: Test with pytest
-        run: hatch run test_extended:test -v -p no:warnings tests
+        run: hatch run test_extended:test -vvv -p no:warnings tests
         env:
           PLATFORM: ${{ matrix.platform }}
 
@@ -83,48 +83,48 @@ jobs:
           pipx ensurepath
 
       - name: Test with pytest
-        run: hatch run test:test -v -p no:warnings tests
+        run: hatch run test:test -vvv -p no:warnings tests
         env:
           PLATFORM: ${{ matrix.platform }}
 
       - name: Coverage
         uses: codecov/codecov-action@v1
 
-#  test-windows:
-#    name: ${{ matrix.platform }} py${{ matrix.python-version }}
-#    runs-on: ${{ matrix.platform }}
-#    strategy:
-#      matrix:
-#        platform: [
-#          windows-latest,
-#        ]
-#        python-version: [
-#          "3.9",
-#          "3.10",
-#          "3.11",
-#          "3.12",
-#        ]
-#
-#    steps:
-#      - uses: actions/checkout@v4
-#
-#      - name: Set up Python ${{ matrix.python-version }}
-#        uses: actions/setup-python@v5
-#        with:
-#          python-version: ${{ matrix.python-version }}
-#
-#      - name: Install dependencies
-#        run: |
-#          python.exe -m pip install --upgrade pip
-#          python.exe -m pip install setuptools pytest pipx
-#          python.exe -m pip install -e ".[test]"
-#          python.exe -m pipx install hatch
-#          python.exe -m pipx ensurepath
-#
-#      - name: Test with pytest
-#        run: hatch run test -v -p no:warnings tests
-#        env:
-#          PLATFORM: ${{ matrix.platform }}
-#
-#      - name: Coverage
-#        uses: codecov/codecov-action@v1
+  test-windows:
+    name: ${{ matrix.platform }} py${{ matrix.python-version }}
+    runs-on: ${{ matrix.platform }}
+    strategy:
+      matrix:
+        platform: [
+          windows-latest,
+        ]
+        python-version: [
+          "3.9",
+          "3.10",
+          "3.11",
+          "3.12",
+        ]
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Python ${{ matrix.python-version }}
+        uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python-version }}
+
+      - name: Install dependencies
+        run: |
+          python.exe -m pip install --upgrade pip
+          python.exe -m pip install setuptools pytest pipx
+          python.exe -m pip install -e ".[test]"
+          python.exe -m pipx install hatch
+          python.exe -m pipx ensurepath
+
+      - name: Test with pytest
+        run: hatch run test:test -vvv -p no:warnings tests
+        env:
+          PLATFORM: ${{ matrix.platform }}
+
+      - name: Coverage
+        uses: codecov/codecov-action@v1
