@@ -44,8 +44,7 @@ jobs:
           pip install -e ".[test]"
           pipx install hatch
           pipx ensurepath
-          pytest
-
+          docker compose -f ./tests/docker-compose.yml --profile test up -d
 
       - name: Test with pytest
         run: hatch run test -v -p no:warnings tests
