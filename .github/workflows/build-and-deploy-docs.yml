@@ -4,9 +4,6 @@ on:
   push:
     branches:
       - main
-  pull_request:
-    branches:
-      - main
 
 # This job installs dependencies, builds the book, and pushes it to
 # the `gh-pages` branch of the same repository.
