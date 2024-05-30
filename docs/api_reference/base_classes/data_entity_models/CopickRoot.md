@@ -1,0 +1,2 @@
+[](){#CopickRoot}
+::: copick.models.CopickRoot

@@ -35,6 +35,15 @@ from copick.models import (
 
 
 class CopickConfigFSSpec(CopickConfig):
+    """Copick configuration for fsspec-based storage.
+
+    Attributes:
+        overlay_root (str): The root URL for the overlay storage.
+        static_root (Optional[str]): The root URL for the static storage.
+        overlay_fs_args (Optional[Dict[str, Any]]): Additional arguments for the overlay filesystem.
+        static_fs_args (Optional[Dict[str, Any]]): Additional arguments for the static filesystem.
+    """
+
     overlay_root: str
     static_root: Optional[str]
 
@@ -43,6 +52,14 @@ class CopickConfigFSSpec(CopickConfig):
 
 
 class CopickPicksFSSpec(CopickPicksOverlay):
+    """CopickPicks class backed by fsspec storage.
+
+    Attributes:
+        path (str): The path to the picks file.
+        directory (str): The directory containing the picks file.
+        fs (AbstractFileSystem): The filesystem containing the picks file.
+    """
+
     @property
     def path(self) -> str:
         if self.read_only:
@@ -79,6 +96,14 @@ class CopickPicksFSSpec(CopickPicksOverlay):
 
 
 class CopickMeshFSSpec(CopickMeshOverlay):
+    """CopickMesh class backed by fspec storage.
+
+    Attributes:
+        path (str): The path to the mesh file.
+        directory (str): The directory containing the mesh file.
+        fs (AbstractFileSystem): The filesystem containing the mesh file.
+    """
+
     @property
     def path(self) -> str:
         if self.read_only:
@@ -115,6 +140,14 @@ class CopickMeshFSSpec(CopickMeshOverlay):
 
 
 class CopickSegmentationFSSpec(CopickSegmentationOverlay):
+    """CopickSegmentation class backed by fsspec storage.
+
+    Attributes:
+        filename (str): The filename of the segmentation file.
+        path (str): The path to the segmentation file.
+        fs (AbstractFileSystem): The filesystem containing the segmentation file.
+    """
+
     @property
     def filename(self) -> str:
         if self.is_multilabel:
@@ -134,6 +167,11 @@ class CopickSegmentationFSSpec(CopickSegmentationOverlay):
         return self.run.fs_static if self.read_only else self.run.fs_overlay
 
     def zarr(self) -> zarr.storage.FSStore:
+        """Get the zarr store for the segmentation object.
+
+        Returns:
+            zarr.storage.FSStore: The zarr store for the segmentation object.
+        """
         if self.read_only:
             mode = "r"
             create = False
@@ -152,6 +190,13 @@ class CopickSegmentationFSSpec(CopickSegmentationOverlay):
 
 
 class CopickFeaturesFSSpec(CopickFeaturesOverlay):
+    """CopickFeatures class backed by fsspec storage.
+
+    Attributes:
+        path (str): The path to the features file.
+        fs (AbstractFileSystem): The filesystem containing the features file.
+    """
+
     @property
     def path(self) -> str:
         if self.read_only:
@@ -164,6 +209,11 @@ class CopickFeaturesFSSpec(CopickFeaturesOverlay):
         return self.tomogram.fs_static if self.read_only else self.tomogram.fs_overlay
 
     def zarr(self) -> zarr.storage.FSStore:
+        """Get the zarr store for the features object.
+
+        Returns:
+            zarr.storage.FSStore: The zarr store for the features object.
+        """
         if self.read_only:
             mode = "r"
             create = False
@@ -182,6 +232,18 @@ class CopickFeaturesFSSpec(CopickFeaturesOverlay):
 
 
 class CopickTomogramFSSpec(CopickTomogramOverlay):
+    """CopickTomogram class backed by fsspec storage.
+
+    Attributes:
+        static_path (str): The path to the tomogram on the static source.
+        overlay_path (str): The path to the tomogram on the overlay source.
+        static_stem (str): The stem of the tomogram on the static source.
+        overlay_stem (str): The stem of the tomogram on the overlay source.
+        fs_static (AbstractFileSystem): The filesystem containing the tomogram on the static source.
+        fs_overlay (AbstractFileSystem): The filesystem containing the tomogram on the overlay source.
+        static_is_overlay (bool): Whether the static and overlay sources are the same.
+    """
+
     def _feature_factory(self) -> Tuple[Type[TCopickFeatures], Type["CopickFeaturesMeta"]]:
         return CopickFeaturesFSSpec, CopickFeaturesMeta
 
@@ -261,6 +323,11 @@ class CopickTomogramFSSpec(CopickTomogramOverlay):
         ]
 
     def zarr(self) -> zarr.storage.FSStore:
+        """Get the zarr store for the tomogram object.
+
+        Returns:
+            zarr.storage.FSStore: The zarr store for the tomogram object.
+        """
         if self.read_only:
             fs = self.fs_static
             path = self.static_path
@@ -283,6 +350,17 @@ class CopickTomogramFSSpec(CopickTomogramOverlay):
 
 
 class CopickVoxelSpacingFSSpec(CopickVoxelSpacingOverlay):
+    """CopickVoxelSpacing class backed by fsspec storage.
+
+    Attributes:
+        static_path (str): The path to the voxel spacing on the static source.
+        overlay_path (str): The path to the voxel spacing on the overlay source.
+        fs_static (AbstractFileSystem): The filesystem containing the voxel spacing on the static source.
+        fs_overlay (AbstractFileSystem): The filesystem containing the voxel spacing on the overlay source.
+        static_is_overlay (bool): Whether the static and overlay sources are the same.
+
+    """
+
     def _tomogram_factory(self) -> Tuple[Type[CopickTomogramFSSpec], Type[CopickTomogramMeta]]:
         return CopickTomogramFSSpec, CopickTomogramMeta
 
@@ -350,11 +428,22 @@ class CopickVoxelSpacingFSSpec(CopickVoxelSpacingOverlay):
         ]
 
     def ensure(self) -> None:
+        """Ensure the voxel spacing directory exists, creating it if necessary."""
         if not self.fs_overlay.exists(self.overlay_path):
             self.fs_overlay.makedirs(self.overlay_path, exist_ok=True)
 
 
 class CopickRunFSSpec(CopickRunOverlay):
+    """CopickRun class backed by fsspec storage.
+
+    Attributes:
+        static_path (str): The path to the run on the static source.
+        overlay_path (str): The path to the run on the overlay source.
+        fs_static (AbstractFileSystem): The filesystem containing the run on the static source.
+        fs_overlay (AbstractFileSystem): The filesystem containing the run on the overlay source.
+        static_is_overlay (bool): Whether the static and overlay sources are the same.
+    """
+
     def _voxel_spacing_factory(self) -> Tuple[Type[TCopickVoxelSpacing], Type["CopickVoxelSpacingMeta"]]:
         return CopickVoxelSpacingFSSpec, CopickVoxelSpacingMeta
 
@@ -618,11 +707,19 @@ class CopickRunFSSpec(CopickRunOverlay):
         ]
 
     def ensure(self) -> None:
+        """Ensure the run directory exists, creating it if necessary."""
         if not self.fs_overlay.exists(self.overlay_path):
             self.fs_overlay.makedirs(self.overlay_path, exist_ok=True)
 
 
 class CopickObjectFSSpec(CopickObjectOverlay):
+    """CopickObject class backed by fsspec storage.
+
+    Attributes:
+        path (str): The path to the object file.
+        fs (AbstractFileSystem): The filesystem containing the object file.
+    """
+
     @property
     def path(self):
         return f"{self.root.root_static}/Objects/{self.name}.zarr"
@@ -632,6 +729,11 @@ class CopickObjectFSSpec(CopickObjectOverlay):
         return self.root.fs_static
 
     def zarr(self) -> Union[None, zarr.storage.FSStore]:
+        """Get the zarr store for the object.
+
+        Returns:
+            Union[None, zarr.storage.FSStore]: The zarr store for the object, or None if the object is not a particle.
+        """
         if not self.is_particle:
             return None
 
@@ -653,7 +755,20 @@ class CopickObjectFSSpec(CopickObjectOverlay):
 
 
 class CopickRootFSSpec(CopickRoot):
+    """CopickRoot class backed by fspec storage.
+
+    Attributes:
+        fs_overlay (AbstractFileSystem): The filesystem for the overlay storage.
+        fs_static (Optional[AbstractFileSystem]): The filesystem for the static storage.
+        root_overlay (str): The root path for the overlay storage.
+        root_static (Optional[str]): The root path for the static storage.
+    """
+
     def __init__(self, config: CopickConfigFSSpec):
+        """
+        Args:
+            config: Copick configuration for fsspec-based storage.
+        """
         super().__init__(config)
 
         self.fs_overlay: AbstractFileSystem = fsspec.core.url_to_fs(config.overlay_root, **config.overlay_fs_args)[0]
@@ -671,12 +786,20 @@ class CopickRootFSSpec(CopickRoot):
 
     @classmethod
     def from_file(cls, path: str) -> "CopickRootFSSpec":
+        """Initialize a CopickRootFSSpec from a configuration file on disk.
+
+        Args:
+            path: Path to the configuration file on disk.
+
+        Returns:
+            CopickRootFSSpec: The initialized CopickRootFSSpec object.
+        """
         with open(path, "r") as f:
             data = json.load(f)
 
         return cls(CopickConfigFSSpec(**data))
 
-    def _run_factory(self) -> Tuple[Type[TCopickRun], Type["CopickRunMeta"]]:
+    def _run_factory(self) -> Tuple[Type[TCopickRun], Type["CopickRunMeta.md"]]:
         return CopickRunFSSpec, CopickRunMeta
 
     def _object_factory(self) -> Tuple[Type[CopickObjectFSSpec], Type[PickableObject]]:

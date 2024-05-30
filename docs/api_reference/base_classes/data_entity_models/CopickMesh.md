@@ -1,0 +1,2 @@
+ [](){#CopickMesh}
+::: copick.models.CopickMesh

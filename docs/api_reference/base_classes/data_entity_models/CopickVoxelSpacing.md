@@ -1,0 +1,2 @@
+[](){#CopickVoxelSpacing}
+::: copick.models.CopickVoxelSpacing

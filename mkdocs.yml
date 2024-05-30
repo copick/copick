@@ -1,0 +1,96 @@
+site_name: copick
+repo_url: "https://github.com/uermel/copick"
+repo_name: "uermel/copick"
+copyright: "2024, Utz Heinrich Ermel, Kyle I. S. Harrington"
+theme:
+  name: material
+  palette:
+    # Palette toggle for light mode
+    - scheme: slate
+      toggle:
+        icon: material/brightness-4
+        name: Switch to light mode
+
+    # Palette toggle for dark mode
+    - scheme: default
+      toggle:
+        icon: material/brightness-7
+        name: Switch to dark mode
+
+  logo: assets/logo.png
+
+nav:
+  - Home: index.md
+  - Quick Start: quickstart.md
+  - Data Model: datamodel.md
+  #- Tutorials: examples.md
+  #- Tools: tools.md
+  - API Reference:
+    - API Overview: "api_reference/api.md"
+    - Base Classes:
+      - Data Entity Models:
+        - CopickRoot: "api_reference/base_classes/data_entity_models/CopickRoot.md"
+        - CopickObject: "api_reference/base_classes/data_entity_models/CopickObject.md"
+        - CopickRun: "api_reference/base_classes/data_entity_models/CopickRun.md"
+        - CopickVoxelSpacing: "api_reference/base_classes/data_entity_models/CopickVoxelSpacing.md"
+        - CopickTomogram: "api_reference/base_classes/data_entity_models/CopickTomogram.md"
+        - CopickFeatures: "api_reference/base_classes/data_entity_models/CopickFeatures.md"
+        - CopickPicks: "api_reference/base_classes/data_entity_models/CopickPicks.md"
+        - CopickMesh: "api_reference/base_classes/data_entity_models/CopickMesh.md"
+        - CopickSegmentation: "api_reference/base_classes/data_entity_models/CopickSegmentation.md"
+      - Metadata Models:
+        - CopickConfig: "api_reference/base_classes/metadata_models/CopickConfig.md"
+        - PickableObject: "api_reference/base_classes/metadata_models/PickableObject.md"
+        - CopickPicksFile: "api_reference/base_classes/metadata_models/CopickPicksFile.md"
+        - CopickRunMeta: "api_reference/base_classes/metadata_models/CopickRunMeta.md"
+        - CopickVoxelSpacingMeta: "api_reference/base_classes/metadata_models/CopickVoxelSpacingMeta.md"
+        - CopickTomogramMeta: "api_reference/base_classes/metadata_models/CopickTomogramMeta.md"
+        - CopickFeaturesMeta: "api_reference/base_classes/metadata_models/CopickFeaturesMeta.md"
+        - CopickMeshMeta: "api_reference/base_classes/metadata_models/CopickMeshMeta.md"
+        - CopickSegmentationMeta: "api_reference/base_classes/metadata_models/CopickSegmentationMeta.md"
+
+    - Implementations:
+      - Overlay: "api_reference/implementations/Overlay.md"
+      - File System: "api_reference/implementations/Filesystem.md"
+      #- Data Portal: dataportal.md
+
+plugins:
+  - search
+  - autorefs
+  - mkdocstrings:
+      enabled: !ENV [ENABLE_MKDOCSTRINGS, true]
+      default_handler: python
+      handlers:
+        python:
+          options:
+            # General
+            show_source: false
+            preload_modules: [pydantic]
+            # Headings
+            show_symbol_type_toc: true
+            show_symbol_type_heading: true
+            show_root_full_path: true
+            show_root_heading: true
+            # Members
+            group_by_category: true
+            show_labels: false
+            inherited_members: false
+            members_order: source
+            # Docstrings
+            docstring_section_style: list
+            merge_init_into_class: false
+            docstring_style: google
+            # Signatures
+            show_signature_annotations: true
+            signature_crossrefs: false
+
+
+markdown_extensions:
+  - pymdownx.highlight:
+      anchor_linenums: true
+      line_spans: __span
+      pygments_lang_class: true
+  - pymdownx.inlinehilite
+  - pymdownx.snippets
+  - pymdownx.superfences
+  - attr_list
