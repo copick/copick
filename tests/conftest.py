@@ -353,6 +353,7 @@ if importlib_util.find_spec("smbclient"):
     @pytest.fixture(scope="session")
     def smb_container():
         os.system("docker compose -f ./tests/docker-compose.yml --profile smb up -d")
+        time.sleep(2)
         yield "smb:///data/"
         os.system("docker compose -f ./tests/docker-compose.yml --profile '*' stop")
 
