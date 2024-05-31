@@ -128,7 +128,7 @@ def local(base_project_directory, base_overlay_directory, base_config):
         shutil.rmtree(temp_dir)
 
 
-# COMMON_CASES.extend(["local_overlay_only", "local"])
+COMMON_CASES.extend(["local_overlay_only", "local"])
 
 
 if importlib_util.find_spec("s3fs"):
@@ -173,8 +173,6 @@ if importlib_util.find_spec("s3fs"):
             "testfs_overlay": fsspec.filesystem("s3", **cfg["overlay_fs_args"]),
             "testpath_overlay": PurePath(project_directory.replace("s3://", "")),
         }
-
-        # print(payload["testfs_overlay"].ls(payload["testpath_overlay"]))
 
         yield payload
 
@@ -233,7 +231,7 @@ if importlib_util.find_spec("s3fs"):
         if CLEANUP:
             shutil.rmtree(temp_dir)
 
-    # COMMON_CASES.extend(["s3_overlay_only", "s3"])
+    COMMON_CASES.extend(["s3_overlay_only", "s3"])
 
 
 if importlib_util.find_spec("sshfs"):
@@ -342,7 +340,7 @@ if importlib_util.find_spec("sshfs"):
         if CLEANUP:
             shutil.rmtree(temp_dir)
 
-    # COMMON_CASES.extend(["ssh_overlay_only", "ssh"])
+    COMMON_CASES.extend(["ssh_overlay_only", "ssh"])
 
 
 if importlib_util.find_spec("smbclient"):
@@ -351,7 +349,7 @@ if importlib_util.find_spec("smbclient"):
     def smb_container():
         os.system("docker compose -f ./tests/docker-compose.yml --profile smb up -d")
         yield "smb:///data/"
-        # os.system("docker compose -f ./tests/docker-compose.yml --profile '*' stop")
+        os.system("docker compose -f ./tests/docker-compose.yml --profile '*' stop")
 
     @pytest.fixture
     def smb_overlay_only(smb_container, base_project_directory, base_config_overlay_only):
@@ -394,46 +392,61 @@ if importlib_util.find_spec("smbclient"):
             shutil.rmtree(temp_dir)
             shutil.rmtree(f"tests/bin/smb/{project_directory_stripped}")
 
-    COMMON_CASES.extend(["smb_overlay_only"])
+    @pytest.fixture
+    def smb(smb_container, base_project_directory, base_overlay_directory, base_config_overlay_only):
+        # Temp dir for config
+        temp_dir = Path(tempfile.mkdtemp())
+        config = temp_dir / "smb.json"
 
+        # To ensure that each test has a unique project directory, generate UUID names
+        project_directory = f"{smb_container}sample_project_{uuid.uuid1()}"
+        project_directory_stripped = project_directory.replace("smb:///data/", "")
+        os.system(f'bash ./tests/seed_smb.sh "{base_project_directory}/*" "{project_directory_stripped}"')
 
-#
-#
-# try:
-#     import smbclient
-#
-#     @pytest.fixture(scope="session")
-#     def smb_params():
-#         pass
-#
-#     @pytest.fixture(scope="session")
-#     def cfg_smb_overlay_only():
-#         pass
-#
-#     def cfg_smb_local():
-#         pass
-#
-# except ImportError:
-#     pass
-#
-#
-# try:
-#     import sshfs
-#
-#     @pytest.fixture(scope="session")
-#     def ssh_params():
-#         pass
-#
-#     @pytest.fixture(scope="session")
-#     def cfg_ssh_overlay_only():
-#         pass
-#
-#     @pytest.fixture(scope="session")
-#     def cfg_ssh_local():
-#         pass
-#
-# except ImportError:
-#     pass
+        overlay_directory = f"{smb_container}sample_overlay_{uuid.uuid1()}"
+        overlay_directory_stripped = overlay_directory.replace("smb:///data/", "")
+        os.system(f'bash ./tests/seed_smb.sh "{base_overlay_directory}/*" "{overlay_directory_stripped}"')
+
+        # Open baseline config
+        with open(base_config_overlay_only, "r") as f:
+            cfg = json.load(f)
+
+        # Set the overlay root to the sample project
+        cfg["overlay_root"] = str(overlay_directory)
+        cfg["overlay_fs_args"] = {
+            "host": "localhost",
+            "username": "test.user",
+            "password": "password",
+        }
+
+        # Set the overlay root to the sample project
+        cfg["static_root"] = str(project_directory)
+        cfg["static_fs_args"] = {
+            "host": "localhost",
+            "username": "test.user",
+            "password": "password",
+        }
+
+        # Write the config to the local path
+        with open(config, "w") as f:
+            json.dump(cfg, f, indent=4)
+
+        payload = {
+            "cfg_file": config,
+            "testfs_static": fsspec.filesystem("smb", **cfg["static_fs_args"]),
+            "testpath_static": PurePath(project_directory.replace("smb://", "")),
+            "testfs_overlay": fsspec.filesystem("smb", **cfg["overlay_fs_args"]),
+            "testpath_overlay": PurePath(overlay_directory.replace("smb://", "")),
+        }
+
+        yield payload
+
+        if CLEANUP:
+            shutil.rmtree(temp_dir)
+            shutil.rmtree(f"tests/bin/smb/{project_directory_stripped}")
+            shutil.rmtree(f"tests/bin/smb/{overlay_directory_stripped}")
+
+    COMMON_CASES.extend(["smb_overlay_only", "smb"])
 
 
 def pytest_configure():
