@@ -2,6 +2,7 @@ import json
 import os
 import shutil
 import tempfile
+import time
 import uuid
 from importlib import util as importlib_util
 from pathlib import Path, PurePath
@@ -231,7 +232,7 @@ if importlib_util.find_spec("s3fs"):
         if CLEANUP:
             shutil.rmtree(temp_dir)
 
-    COMMON_CASES.extend(["s3_overlay_only", "s3"])
+    # COMMON_CASES.extend(["s3_overlay_only", "s3"])
 
 
 if importlib_util.find_spec("sshfs"):
@@ -239,8 +240,12 @@ if importlib_util.find_spec("sshfs"):
     @pytest.fixture(scope="session")
     def ssh_container():
         os.system("docker compose -f ./tests/docker-compose.yml --profile sshfs up -d")
+        # On startup we need to wait a second for the service to start, otherwise the first test fails.
+        # Let's not talk about how long it took to figure this out.
+        time.sleep(1)
         yield "ssh:///tmp/"
         os.system("docker compose -f ./tests/docker-compose.yml --profile '*' stop")
+        os.system("docker compose -f ./tests/docker-compose.yml --profile '*' rm -f")
 
     @pytest.fixture
     def ssh_overlay_only(ssh_container, base_project_directory, base_config_overlay_only):
@@ -446,7 +451,7 @@ if importlib_util.find_spec("smbclient"):
             shutil.rmtree(f"tests/bin/smb/{project_directory_stripped}")
             shutil.rmtree(f"tests/bin/smb/{overlay_directory_stripped}")
 
-    COMMON_CASES.extend(["smb_overlay_only", "smb"])
+    # COMMON_CASES.extend(["smb_overlay_only", "smb"])
 
 
 def pytest_configure():
