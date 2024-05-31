@@ -232,7 +232,7 @@ if importlib_util.find_spec("s3fs"):
         if CLEANUP:
             shutil.rmtree(temp_dir)
 
-    # COMMON_CASES.extend(["s3_overlay_only", "s3"])
+    COMMON_CASES.extend(["s3_overlay_only", "s3"])
 
 
 if importlib_util.find_spec("sshfs"):
@@ -353,6 +353,7 @@ if importlib_util.find_spec("smbclient"):
     @pytest.fixture(scope="session")
     def smb_container():
         os.system("docker compose -f ./tests/docker-compose.yml --profile smb up -d")
+        # On startup we need to wait a second for the service to start, otherwise the first test fails.
         time.sleep(2)
         yield "smb:///data/"
         os.system("docker compose -f ./tests/docker-compose.yml --profile '*' stop")
