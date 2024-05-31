@@ -48,8 +48,8 @@ services:
     stdin_open: true
     tty: true
     volumes:
-      - ./bin/smb:/share/data
-    command: '-s "data;/share/data;yes;no;no;test.user" -u "test.user;password" -p'
+      - ./bin/smb:/share/data:rw
+    command: '-s "data;/share/data;yes;no;no;test.user" -u "test.user;password" -p -g "log level = 2"'
 
 
 networks:
