@@ -37,6 +37,7 @@ jobs:
 
       - name: Install dependencies
         run: |
+          apt install sshpass
           python -m pip install --upgrade pip
           pip install setuptools pytest pipx
           pip install -e ".[test]"

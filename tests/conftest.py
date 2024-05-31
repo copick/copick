@@ -128,16 +128,15 @@ def local(base_project_directory, base_overlay_directory, base_config):
         shutil.rmtree(temp_dir)
 
 
-COMMON_CASES.extend(["local_overlay_only", "local"])
+# COMMON_CASES.extend(["local_overlay_only", "local"])
+
 
 if importlib_util.find_spec("s3fs"):
 
     @pytest.fixture(scope="session")
     def s3_container():
-        os.system("docker compose -f ./tests/docker-compose.yml --profile test up -d")
-
+        os.system("docker compose -f ./tests/docker-compose.yml --profile s3fs up -d")
         yield "s3://test-bucket/"
-
         os.system("docker compose -f ./tests/docker-compose.yml --profile '*' stop")
 
     @pytest.fixture
@@ -174,6 +173,8 @@ if importlib_util.find_spec("s3fs"):
             "testfs_overlay": fsspec.filesystem("s3", **cfg["overlay_fs_args"]),
             "testpath_overlay": PurePath(project_directory.replace("s3://", "")),
         }
+
+        # print(payload["testfs_overlay"].ls(payload["testpath_overlay"]))
 
         yield payload
 
@@ -232,7 +233,116 @@ if importlib_util.find_spec("s3fs"):
         if CLEANUP:
             shutil.rmtree(temp_dir)
 
-    COMMON_CASES.extend(["s3_overlay_only", "s3"])
+    # COMMON_CASES.extend(["s3_overlay_only"])
+
+
+if importlib_util.find_spec("sshfs"):
+
+    @pytest.fixture(scope="session")
+    def ssh_container():
+        os.system("docker compose -f ./tests/docker-compose.yml --profile sshfs up -d")
+        yield "ssh:///tmp/"
+        os.system("docker compose -f ./tests/docker-compose.yml --profile '*' stop")
+
+    @pytest.fixture
+    def ssh_overlay_only(ssh_container, base_project_directory, base_config_overlay_only):
+        # Temp dir for config
+        temp_dir = Path(tempfile.mkdtemp())
+        config = temp_dir / "ssh_overlay_only.json"
+
+        # To ensure that each test has a unique project directory, generate UUID names
+        project_directory = f"{ssh_container}sample_project_{uuid.uuid1()}"
+        project_directory_stripped = project_directory.replace("ssh://", "")
+        os.system(f'bash ./tests/seed_ssh.sh "{base_project_directory}/*" "{project_directory_stripped}"')
+
+        # Open baseline config
+        with open(base_config_overlay_only, "r") as f:
+            cfg = json.load(f)
+
+        # Set the overlay root to the sample project
+        cfg["overlay_root"] = str(project_directory)
+        cfg["overlay_fs_args"] = {
+            "host": "localhost",
+            "port": 2222,
+            "username": "test.user",
+            "password": "password",
+            "known_hosts": None,
+        }
+
+        # Write the config to the local path
+        with open(config, "w") as f:
+            json.dump(cfg, f, indent=4)
+
+        payload = {
+            "cfg_file": config,
+            "testfs_static": None,
+            "testpath_static": None,
+            "testfs_overlay": fsspec.filesystem("ssh", **cfg["overlay_fs_args"]),
+            "testpath_overlay": PurePath(project_directory_stripped),
+        }
+
+        yield payload
+
+        if CLEANUP:
+            shutil.rmtree(temp_dir)
+
+    @pytest.fixture
+    def ssh(ssh_container, base_project_directory, base_overlay_directory, base_config_overlay_only):
+        # Temp dir for config
+        temp_dir = Path(tempfile.mkdtemp())
+        config = temp_dir / "ssh.json"
+
+        # To ensure that each test has a unique project directory, generate UUID names
+        project_directory = f"{ssh_container}sample_project_{uuid.uuid1()}"
+        project_directory_stripped = project_directory.replace("ssh://", "")
+        os.system(f'bash ./tests/seed_ssh.sh "{base_project_directory}/*" "{project_directory_stripped}"')
+
+        overlay_directory = f"{ssh_container}sample_overlay_{uuid.uuid1()}"
+        overlay_directory_stripped = overlay_directory.replace("ssh://", "")
+        os.system(f'bash ./tests/seed_ssh.sh "{base_overlay_directory}/*" "{overlay_directory_stripped}"')
+
+        # Open baseline config
+        with open(base_config_overlay_only, "r") as f:
+            cfg = json.load(f)
+
+        # Set the overlay root to the sample project
+        cfg["overlay_root"] = str(overlay_directory)
+        cfg["overlay_fs_args"] = {
+            "host": "localhost",
+            "port": 2222,
+            "username": "test.user",
+            "password": "password",
+            "known_hosts": None,
+        }
+
+        # Set the overlay root to the sample project
+        cfg["static_root"] = str(project_directory)
+        cfg["static_fs_args"] = {
+            "host": "localhost",
+            "port": 2222,
+            "username": "test.user",
+            "password": "password",
+            "known_hosts": None,
+        }
+
+        # Write the config to the local path
+        with open(config, "w") as f:
+            json.dump(cfg, f, indent=4)
+
+        payload = {
+            "cfg_file": config,
+            "testfs_static": fsspec.filesystem("ssh", **cfg["static_fs_args"]),
+            "testpath_static": PurePath(project_directory_stripped),
+            "testfs_overlay": fsspec.filesystem("ssh", **cfg["overlay_fs_args"]),
+            "testpath_overlay": PurePath(overlay_directory_stripped),
+        }
+
+        yield payload
+
+        if CLEANUP:
+            shutil.rmtree(temp_dir)
+
+    COMMON_CASES.extend(["ssh_overlay_only", "ssh"])
 
 #
 #
