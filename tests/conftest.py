@@ -451,7 +451,7 @@ if importlib_util.find_spec("smbclient"):
             shutil.rmtree(f"tests/bin/smb/{project_directory_stripped}")
             shutil.rmtree(f"tests/bin/smb/{overlay_directory_stripped}")
 
-    # COMMON_CASES.extend(["smb_overlay_only", "smb"])
+    COMMON_CASES.extend(["smb_overlay_only", "smb"])
 
 
 def pytest_configure():
