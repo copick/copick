@@ -1,7 +1,6 @@
 import contextlib
 from typing import Any, Dict
 
-import fsspec.implementations.smb
 import numpy as np
 import pytest
 import zarr
@@ -11,6 +10,9 @@ from trimesh.parent import Geometry
 
 with contextlib.suppress(ImportError):
     import sshfs
+
+with contextlib.suppress(ImportError):
+    import fsspec.implementations.smb
 
 
 NUMERICAL_PRECISION = 1e-8

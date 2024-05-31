@@ -43,6 +43,7 @@ test = [
     "pooch",
     "s3fs",
     "sshfs>=2024.4.0",
+    "smbprotocol",
 ]
 dev = [
     "black",
@@ -127,7 +128,7 @@ test = "pytest {args:tests}"
 
 [tool.hatch.envs.test_extended]
 dependencies = [
-  "pytest", "pooch", "s3fs", "sshfs>=2024.4.0"
+  "pytest", "pooch", "s3fs", "sshfs>=2024.4.0", "smbprotocol"
 ]
 
 [tool.hatch.envs.test_extended.scripts]
