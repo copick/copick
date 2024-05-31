@@ -712,7 +712,6 @@ class CopickRunFSSpec(CopickRunOverlay):
     def ensure(self) -> None:
         """Ensure the run directory exists, creating it if necessary."""
         if not self.fs_overlay.exists(self.overlay_path):
-            print(self.overlay_path)
             self.fs_overlay.makedirs(self.overlay_path, exist_ok=True)
             # TODO: Write metadata
             with self.fs_overlay.open(self.overlay_path + "/.meta", "w") as f:
