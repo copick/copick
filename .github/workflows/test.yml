@@ -12,13 +12,53 @@ on:
   workflow_dispatch:
 
 jobs:
-  test-posix:
+  test-extended:
     name: ${{ matrix.platform }} py${{ matrix.python-version }}
     runs-on: ${{ matrix.platform }}
     strategy:
       matrix:
         platform: [
           ubuntu-latest,
+        ]
+        python-version: [
+          "3.9",
+          "3.10",
+          "3.11",
+          "3.12",
+        ]
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Python ${{ matrix.python-version }}
+        uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python-version }}
+
+      - name: Install dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y sshpass
+          python -m pip install --upgrade pip
+          pip install setuptools pytest pipx
+          pip install -e ".[test]"
+          pipx install hatch
+          pipx ensurepath
+
+      - name: Test with pytest
+        run: hatch run test_extended:test -vvv -p no:warnings tests
+        env:
+          PLATFORM: ${{ matrix.platform }}
+
+      - name: Coverage
+        uses: codecov/codecov-action@v1
+
+  test-macos:
+    name: ${{ matrix.platform }} py${{ matrix.python-version }}
+    runs-on: ${{ matrix.platform }}
+    strategy:
+      matrix:
+        platform: [
           macos-latest,
         ]
         python-version: [
@@ -45,7 +85,7 @@ jobs:
           pipx ensurepath
 
       - name: Test with pytest
-        run: hatch run test -v -p no:warnings tests
+        run: hatch run test:test -vvv -p no:warnings tests
         env:
           PLATFORM: ${{ matrix.platform }}
 
@@ -84,7 +124,7 @@ jobs:
           python.exe -m pipx ensurepath
 
       - name: Test with pytest
-        run: hatch run test -v -p no:warnings tests
+        run: hatch run test:test -vvv -p no:warnings tests
         env:
           PLATFORM: ${{ matrix.platform }}
 
