@@ -29,3 +29,44 @@ services:
     ports:
       - 2222:2222
     restart: unless-stopped
+
+  smb-server:
+    container_name: smb-server
+    profiles:
+      - smb
+    image: dperson/samba:latest
+    environment:
+      TZ: 'Europe/Brussels'
+    networks:
+      - default
+    ports:
+      - "139:139"
+      - "445:445"
+    tmpfs:
+      - /tmp
+    restart: unless-stopped
+    stdin_open: true
+    tty: true
+    volumes:
+      - ./bin/smb:/share/data
+    command: '-s "data;/share/data;yes;no;no;test.user" -u "test.user;password" -p'
+
+
+networks:
+  default:
+
+#  smb-server:
+#    profiles:
+#      - smb
+#    image: elswork/samba:latest
+#    container_name: smb-server
+#    hostname: smb-server
+#    user:
+#      "502:20:utz.ermel:staff:password"
+#    volumes:
+#      - ./bin/smb:/share/data
+#    command: "-s 'data:/share/data:rw:utz.ermel'"
+#    ports:
+#      - 139:139
+#      - 445:445
+#    restart: unless-stopped

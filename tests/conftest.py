@@ -233,7 +233,7 @@ if importlib_util.find_spec("s3fs"):
         if CLEANUP:
             shutil.rmtree(temp_dir)
 
-    # COMMON_CASES.extend(["s3_overlay_only"])
+    # COMMON_CASES.extend(["s3_overlay_only", "s3"])
 
 
 if importlib_util.find_spec("sshfs"):
@@ -342,7 +342,60 @@ if importlib_util.find_spec("sshfs"):
         if CLEANUP:
             shutil.rmtree(temp_dir)
 
-    COMMON_CASES.extend(["ssh_overlay_only", "ssh"])
+    # COMMON_CASES.extend(["ssh_overlay_only", "ssh"])
+
+
+if importlib_util.find_spec("smbclient"):
+
+    @pytest.fixture(scope="session")
+    def smb_container():
+        os.system("docker compose -f ./tests/docker-compose.yml --profile smb up -d")
+        yield "smb:///data/"
+        # os.system("docker compose -f ./tests/docker-compose.yml --profile '*' stop")
+
+    @pytest.fixture
+    def smb_overlay_only(smb_container, base_project_directory, base_config_overlay_only):
+        # Temp dir for config
+        temp_dir = Path(tempfile.mkdtemp())
+        config = temp_dir / "smb_overlay_only.json"
+
+        # To ensure that each test has a unique project directory, generate UUID names
+        project_directory = f"{smb_container}sample_project_{uuid.uuid1()}"
+        project_directory_stripped = project_directory.replace("smb:///data/", "")
+        os.system(f'bash ./tests/seed_smb.sh "{base_project_directory}/*" "{project_directory_stripped}"')
+
+        # Open baseline config
+        with open(base_config_overlay_only, "r") as f:
+            cfg = json.load(f)
+
+        # Set the overlay root to the sample project
+        cfg["overlay_root"] = str(project_directory)
+        cfg["overlay_fs_args"] = {
+            "host": "localhost",
+            "username": "test.user",
+            "password": "password",
+        }
+
+        # Write the config to the local path
+        with open(config, "w") as f:
+            json.dump(cfg, f, indent=4)
+
+        payload = {
+            "cfg_file": config,
+            "testfs_static": None,
+            "testpath_static": None,
+            "testfs_overlay": fsspec.filesystem("smb", **cfg["overlay_fs_args"]),
+            "testpath_overlay": PurePath(project_directory.replace("smb://", "")),
+        }
+
+        yield payload
+
+        if CLEANUP:
+            shutil.rmtree(temp_dir)
+            shutil.rmtree(f"tests/bin/smb/{project_directory_stripped}")
+
+    COMMON_CASES.extend(["smb_overlay_only"])
+
 
 #
 #

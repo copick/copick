@@ -1,6 +1,7 @@
 import contextlib
 from typing import Any, Dict
 
+import fsspec.implementations.smb
 import numpy as np
 import pytest
 import zarr
@@ -10,6 +11,7 @@ from trimesh.parent import Geometry
 
 with contextlib.suppress(ImportError):
     import sshfs
+
 
 NUMERICAL_PRECISION = 1e-8
 
@@ -119,7 +121,6 @@ def test_root_new_run(test_payload: Dict[str, Any]):
 
     # Adding the first run inits the _runs attribute as list of runs
     run4 = copick_root.new_run("TS_004")
-
     assert copick_root._runs is not None, "Runs should be populated"
     assert run4 in copick_root.runs, "Run not added to runs"
 
@@ -973,6 +974,10 @@ def test_tomogram_zarr(test_payload: Dict[str, Any]):
     if isinstance(test_payload["testfs_overlay"], sshfs.SSHFileSystem):
         return
 
+    # TODO: Fix this once new fsspec is released
+    if isinstance(test_payload["testfs_overlay"], fsspec.implementations.smb.SMBFileSystem):
+        return
+
     # Check zarr is readable
     arrays = list(zarr.open(tomogram.zarr(), "r").arrays())
     _, array = arrays[0]
@@ -1010,6 +1015,10 @@ def test_feature_zarr(test_payload: Dict[str, Any]):
 
     # TODO: Fix this once _pipe_file is implemented
     if isinstance(test_payload["testfs_overlay"], sshfs.SSHFileSystem):
+        return
+
+    # TODO: Fix this once new fsspec is released
+    if isinstance(test_payload["testfs_overlay"], fsspec.implementations.smb.SMBFileSystem):
         return
 
     # Check zarr is readable
