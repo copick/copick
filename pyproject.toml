@@ -35,12 +35,15 @@ Issues = "https://github.com/uermel/copick/issues"
 s3 = ["s3fs"]
 smb = ["smbprotocol"]
 ssh = ["sshfs"]
-all = ["s3fs", "smbprotocol", "sshfs"]
-fledgeling = ["pooch", "s3fs", "smbprotocol", "sshfs"]
+all = ["s3fs", "smbprotocol", "sshfs>=2024.4.0"]
+fledgeling = ["pooch", "s3fs", "smbprotocol", "sshfs>=2024.4.0"]
 test = [
     "pytest",
     "pytest-cov",
     "pooch",
+    "s3fs",
+    "sshfs>=2024.4.0",
+    "smbprotocol",
 ]
 dev = [
     "black",
@@ -115,16 +118,21 @@ plugins = [
   "pydantic.mypy"
 ]
 
-[tool.hatch.envs.default]
+[tool.hatch.envs.test]
 dependencies = [
   "pytest", "pooch",
 ]
 
-[tool.hatch.envs.default.scripts]
+[tool.hatch.envs.test.scripts]
 test = "pytest {args:tests}"
 
-[tool.hatch.envs.all]
-matrix-name-format = "{variable}_{value}"
+[tool.hatch.envs.test_extended]
+dependencies = [
+  "pytest", "pooch", "s3fs", "sshfs>=2024.4.0", "smbprotocol"
+]
+
+[tool.hatch.envs.test_extended.scripts]
+test = "pytest {args:tests}"
 
 # https://docs.pytest.org/en/latest/reference/customize.html
 [tool.pytest.ini_options]
