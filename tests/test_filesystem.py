@@ -16,8 +16,6 @@ with contextlib.suppress(ImportError):
 
 smb_imported = False
 with contextlib.suppress(ImportError):
-    import fsspec.implementations.smb
-
     smb_imported = True
 
 
@@ -986,11 +984,6 @@ def test_tomogram_zarr(test_payload: Dict[str, Any]):
         if isinstance(test_payload["testfs_overlay"], sshfs.SSHFileSystem):
             return
 
-    # TODO: Fix this once new fsspec is released
-    if smb_imported:  # noqa
-        if isinstance(test_payload["testfs_overlay"], fsspec.implementations.smb.SMBFileSystem):
-            return
-
     # Check zarr is readable
     arrays = list(zarr.open(tomogram.zarr(), "r").arrays())
     _, array = arrays[0]
@@ -1029,11 +1022,6 @@ def test_feature_zarr(test_payload: Dict[str, Any]):
     # TODO: Fix this once _pipe_file is implemented
     if sshfs_imported:  # noqa
         if isinstance(test_payload["testfs_overlay"], sshfs.SSHFileSystem):
-            return
-
-    # TODO: Fix this once new fsspec is released
-    if smb_imported:  # noqa
-        if isinstance(test_payload["testfs_overlay"], fsspec.implementations.smb.SMBFileSystem):
             return
 
     # Check zarr is readable

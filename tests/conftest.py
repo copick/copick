@@ -379,6 +379,7 @@ if importlib_util.find_spec("smbclient"):
             "host": "localhost",
             "username": "test.user",
             "password": "password",
+            "auto_mkdir": True,
         }
 
         # Write the config to the local path
@@ -424,6 +425,7 @@ if importlib_util.find_spec("smbclient"):
             "host": "localhost",
             "username": "test.user",
             "password": "password",
+            "auto_mkdir": True,
         }
 
         # Set the overlay root to the sample project
