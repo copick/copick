@@ -210,9 +210,15 @@ class CopickObject:
         self.root = root
 
     def __repr__(self):
+        label = self.label if self.label is not None else "None"
+        color = self.color if self.color is not None else "None"
+        emdb_id = self.emdb_id if self.emdb_id is not None else "None"
+        pdb_id = self.pdb_id if self.pdb_id is not None else "None"
+        map_threshold = self.map_threshold if self.map_threshold is not None else "None"
+
         ret = (
-            f"CopickObject(name={self.name}, is_particle={self.is_particle}, label={self.label}, color={self.color}, "
-            f"emdb_id={self.emdb_id}, pdb_id={self.pdb_id}, threshold={self.threshold}) at {hex(id(self))}"
+            f"CopickObject(name={self.name}, is_particle={self.is_particle}, label={label}, color={color}, "
+            f"emdb_id={emdb_id}, pdb_id={pdb_id}, threshold={map_threshold}) at {hex(id(self))}"
         )
         return ret
 
