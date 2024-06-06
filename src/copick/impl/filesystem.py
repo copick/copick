@@ -427,13 +427,29 @@ class CopickVoxelSpacingFSSpec(CopickVoxelSpacingOverlay):
             for tt in tomo_types
         ]
 
-    def ensure(self) -> None:
-        """Ensure the voxel spacing directory exists, creating it if necessary."""
-        if not self.fs_overlay.exists(self.overlay_path):
+    def ensure(self, create: bool = False) -> bool:
+        """Checks if the voxel spacing record exists in the static or overlay directory, optionally creating it in the
+        overlay filesystem if it does not.
+
+        Args:
+            create: Whether to create the voxel spacing record if it does not exist.
+
+        Returns:
+            bool: True if the voxel spacing record exists, False otherwise.
+        """
+        if self.static_is_overlay:
+            exists = self.fs_overlay.exists(self.overlay_path)
+        else:
+            exists = self.fs_static.exists(self.static_path) or self.fs_overlay.exists(self.overlay_path)
+
+        if not exists and create:
             self.fs_overlay.makedirs(self.overlay_path, exist_ok=True)
             # TODO: Write metadata
             with self.fs_overlay.open(self.overlay_path + "/.meta", "w") as f:
                 f.write("meta")  # Touch the file
+            return True
+        else:
+            return exists
 
 
 class CopickRunFSSpec(CopickRunOverlay):
@@ -709,13 +725,31 @@ class CopickRunFSSpec(CopickRunOverlay):
             for m in metas
         ]
 
-    def ensure(self) -> None:
-        """Ensure the run directory exists, creating it if necessary."""
-        if not self.fs_overlay.exists(self.overlay_path):
+    def ensure(self, create: bool = False) -> bool:
+        """Checks if the run record exists in the static or overlay directory, optionally creating it in the overlay
+        filesystem if it does not.
+
+        Args:
+            create: Whether to create the run record if it does not exist.
+
+        Returns:
+            bool: True if the run record exists, False otherwise.
+        """
+
+        if self.static_is_overlay:
+            exists = self.fs_overlay.exists(self.overlay_path)
+        else:
+            exists = self.fs_static.exists(self.static_path) or self.fs_overlay.exists(self.overlay_path)
+
+        if not exists and create:
+            self.fs_overlay.makedirs(self.overlay_path, exist_ok=True)
             self.fs_overlay.makedirs(self.overlay_path, exist_ok=True)
             # TODO: Write metadata
             with self.fs_overlay.open(self.overlay_path + "/.meta", "w") as f:
-                f.write("")  # Touch the file
+                f.write("meta")  # Touch the file
+            return True
+        else:
+            return exists
 
 
 class CopickObjectFSSpec(CopickObjectOverlay):
