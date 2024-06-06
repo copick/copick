@@ -1,3 +1,4 @@
+import concurrent.futures
 import json
 from typing import Any, Dict, List, Optional, Tuple, Type, Union
 
@@ -814,15 +815,19 @@ class CopickRootFSSpec(CopickRoot):
         self.fs_overlay: AbstractFileSystem = fsspec.core.url_to_fs(config.overlay_root, **config.overlay_fs_args)[0]
         self.fs_static: Optional[AbstractFileSystem] = None
 
-        self.root_overlay: str = self.fs_overlay._strip_protocol(config.overlay_root)
+        self.root_overlay: str = self.fs_overlay._strip_protocol(config.overlay_root).rstrip("/")
         self.root_static: Optional[str] = None
 
         if config.static_root is None:
             self.fs_static = self.fs_overlay
-            self.root_static = self.fs_static._strip_protocol(config.overlay_root)
+            self.root_static = self.fs_static._strip_protocol(config.overlay_root).rstrip("/")
         else:
             self.fs_static = fsspec.core.url_to_fs(config.static_root, **config.static_fs_args)[0]
-            self.root_static = self.fs_static._strip_protocol(config.static_root)
+            self.root_static = self.fs_static._strip_protocol(config.static_root).rstrip("/")
+
+    @property
+    def static_is_overlay(self):
+        return self.fs_static == self.fs_overlay and self.root_static == self.root_overlay
 
     @classmethod
     def from_file(cls, path: str) -> "CopickRootFSSpec":
@@ -839,30 +844,48 @@ class CopickRootFSSpec(CopickRoot):
 
         return cls(CopickConfigFSSpec(**data))
 
-    def _run_factory(self) -> Tuple[Type[TCopickRun], Type["CopickRunMeta.md"]]:
+    def _run_factory(self) -> Tuple[Type[TCopickRun], Type["CopickRunMeta"]]:
         return CopickRunFSSpec, CopickRunMeta
 
     def _object_factory(self) -> Tuple[Type[CopickObjectFSSpec], Type[PickableObject]]:
         return CopickObjectFSSpec, PickableObject
 
-    def query(self) -> List[CopickRunFSSpec]:
-        static_run_dir = f"{self.root_static}/ExperimentRuns/"
-        paths = self.fs_static.glob(static_run_dir + "*") + self.fs_static.glob(static_run_dir + "*/")
-        paths = [p.rstrip("/") for p in paths if self.fs_static.isdir(p)]
-        snames = [n.replace(static_run_dir, "") for n in paths]
-        # Remove any hidden files?
-        snames = [n for n in snames if not n.startswith(".")]
+    @staticmethod
+    def _query_names(fs, root):
+        # Query location
+        run_dir = f"{root}/ExperimentRuns/"
+        paths = fs.glob(run_dir + "**", maxdepth=1, detail=True)
+        names = [p.rstrip("/").replace(run_dir, "") for p, details in paths.items() if details["type"] == "directory"]
 
-        overlay_run_dir = f"{self.root_overlay}/ExperimentRuns/"
-        paths = self.fs_overlay.glob(overlay_run_dir + "*") + self.fs_overlay.glob(overlay_run_dir + "*/")
-        paths = [p.rstrip("/") for p in paths if self.fs_overlay.isdir(p)]
-        onames = [n.replace(overlay_run_dir, "") for n in paths]
-        # Remove any hidden files?
-        onames = [n for n in onames if not n.startswith(".")]
+        # Remove any hidden files
+        names = [n for n in names if not n.startswith(".") and n != f"{root}/ExperimentRuns"]
+
+        return names
+
+    def _query_static_names(self) -> List[str]:
+        return self._query_names(self.fs_static, self.root_static)
+
+    def _query_overlay_names(self) -> List[str]:
+        return self._query_names(self.fs_overlay, self.root_overlay)
+
+    def query(self):
+        # Query filesystems in parallel
+        if self.static_is_overlay:
+            tasks = [self._query_overlay_names]
+        else:
+            tasks = [self._query_static_names, self._query_overlay_names]
+
+        names = []
+
+        with concurrent.futures.ThreadPoolExecutor() as executor:
+            futures = [executor.submit(t) for t in tasks]
+            for future in concurrent.futures.as_completed(futures):
+                names += future.result()
 
         # Deduplicate
-        names = sorted(set(snames + onames))
+        names = sorted(set(names))
 
+        # Create objects
         runs = []
         for n in names:
             rm = CopickRunMeta(name=n)
