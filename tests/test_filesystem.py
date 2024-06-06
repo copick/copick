@@ -248,6 +248,9 @@ def test_run_get_voxel_spacing(test_payload: Dict[str, Any]):
     # Get run
     copick_run = copick_root.get_run("TS_001")
 
+    # Non-existing voxel spacing
+    assert copick_run.get_voxel_spacing(30.000) is None, "Voxel spacing should not exist"
+
     # Get voxel spacing
     vs = copick_run.get_voxel_spacing(10.000)
     assert vs is not None, "Voxel spacing not found"
