@@ -1,4 +1,3 @@
-import contextlib
 from typing import Any, Dict
 
 import numpy as np
@@ -7,19 +6,6 @@ import zarr
 from copick.impl.filesystem import CopickRootFSSpec
 from copick.models import CopickPicksFile
 from trimesh.parent import Geometry
-
-sshfs_imported = False
-with contextlib.suppress(ImportError):
-    import sshfs
-
-    sshfs_imported = True
-
-smb_imported = False
-with contextlib.suppress(ImportError):
-    import fsspec.implementations.smb
-
-    smb_imported = True
-
 
 NUMERICAL_PRECISION = 1e-8
 
@@ -566,11 +552,6 @@ def test_run_new_segmentations(test_payload: Dict[str, Any]):
     overlay_fs = test_payload["testfs_overlay"]
     overlay_loc = test_payload["testpath_overlay"]
 
-    # TODO: Fix this once _pipe_file is implemented
-    if sshfs_imported:  # noqa
-        if isinstance(overlay_fs, sshfs.SSHFileSystem):
-            return
-
     only_overlay = True
     static_fs = None
     static_loc = None
@@ -755,11 +736,6 @@ def test_vs_new_tomogram(test_payload: Dict[str, Any]):
     overlay_fs = test_payload["testfs_overlay"]
     overlay_loc = test_payload["testpath_overlay"]
 
-    # TODO: Fix this once _pipe_file is implemented
-    if sshfs_imported:  # noqa
-        if isinstance(overlay_fs, sshfs.SSHFileSystem):
-            return
-
     only_overlay = True
     static_fs = None
     static_loc = None
@@ -892,11 +868,6 @@ def test_tomogram_new_features(test_payload: Dict[str, Any]):
     overlay_fs = test_payload["testfs_overlay"]
     overlay_loc = test_payload["testpath_overlay"]
 
-    # TODO: Fix this once _pipe_file is implemented
-    if sshfs_imported:  # noqa
-        if isinstance(overlay_fs, sshfs.SSHFileSystem):
-            return
-
     only_overlay = True
     static_fs = None
     static_loc = None
@@ -981,16 +952,6 @@ def test_tomogram_zarr(test_payload: Dict[str, Any]):
     vs = copick_run.get_voxel_spacing(10.000)
     tomogram = vs.get_tomogram(tomo_type="denoised")
 
-    # TODO: Fix this once _pipe_file is implemented
-    if sshfs_imported:  # noqa
-        if isinstance(test_payload["testfs_overlay"], sshfs.SSHFileSystem):
-            return
-
-    # TODO: Fix this once new fsspec is released
-    if smb_imported:  # noqa
-        if isinstance(test_payload["testfs_overlay"], fsspec.implementations.smb.SMBFileSystem):
-            return
-
     # Check zarr is readable
     arrays = list(zarr.open(tomogram.zarr(), "r").arrays())
     _, array = arrays[0]
@@ -1025,16 +986,6 @@ def test_feature_zarr(test_payload: Dict[str, Any]):
     vs = copick_run.get_voxel_spacing(10.000)
     tomogram = vs.get_tomogram(tomo_type="wbp")
     feature = tomogram.get_features(feature_type="sobel")
-
-    # TODO: Fix this once _pipe_file is implemented
-    if sshfs_imported:  # noqa
-        if isinstance(test_payload["testfs_overlay"], sshfs.SSHFileSystem):
-            return
-
-    # TODO: Fix this once new fsspec is released
-    if smb_imported:  # noqa
-        if isinstance(test_payload["testfs_overlay"], fsspec.implementations.smb.SMBFileSystem):
-            return
 
     # Check zarr is readable
     arrays = list(zarr.open(feature.zarr(), "r").arrays())

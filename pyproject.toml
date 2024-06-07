@@ -12,7 +12,7 @@ classifiers = [
 #dynamic = ["version"]
 version = "0.4.0"
 dependencies = [
-    "fsspec",
+    "fsspec>=2024.6.0",
     "pydantic",
     "numpy",
     "trimesh",
@@ -34,15 +34,15 @@ Issues = "https://github.com/uermel/copick/issues"
 [project.optional-dependencies]
 s3 = ["s3fs"]
 smb = ["smbprotocol"]
-ssh = ["sshfs"]
-all = ["s3fs", "smbprotocol", "sshfs>=2024.4.0"]
-fledgeling = ["pooch", "s3fs", "smbprotocol", "sshfs>=2024.4.0"]
+ssh = ["sshfs>=2024.6.0"]
+all = ["s3fs", "smbprotocol", "sshfs>=2024.6.0"]
+fledgeling = ["pooch", "s3fs", "smbprotocol", "sshfs>=2024.6.0"]
 test = [
     "pytest",
     "pytest-cov",
     "pooch",
     "s3fs",
-    "sshfs>=2024.4.0",
+    "sshfs>=2024.6.0",
     "smbprotocol",
 ]
 dev = [
@@ -128,7 +128,7 @@ test = "pytest {args:tests}"
 
 [tool.hatch.envs.test_extended]
 dependencies = [
-  "pytest", "pooch", "s3fs", "sshfs>=2024.4.0", "smbprotocol"
+  "pytest", "pooch", "s3fs", "sshfs>=2024.6.0", "smbprotocol"
 ]
 
 [tool.hatch.envs.test_extended.scripts]
