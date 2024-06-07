@@ -75,6 +75,7 @@ def test_root_get_run(test_payload: Dict[str, Any]):
     for run in runs:
         assert copick_root.get_run(run) is not None, f"Run {run} not found"
         assert copick_root.get_run(run).name == run, f"Run {run} not found"
+        assert copick_root._runs is None, f"Random access for run {run} should not populate runs index"
 
     assert copick_root.get_run("TS_004") is None, "Run TS_004 should not be found"
 
@@ -233,10 +234,16 @@ def test_run_get_voxel_spacing(test_payload: Dict[str, Any]):
     # Get run
     copick_run = copick_root.get_run("TS_001")
 
+    # Non-existing voxel spacing
+    assert copick_run.get_voxel_spacing(30.000) is None, "Voxel spacing should not exist"
+
     # Get voxel spacing
     vs = copick_run.get_voxel_spacing(10.000)
     assert vs is not None, "Voxel spacing not found"
     assert vs.voxel_size == 10.000, "Incorrect voxel size"
+    assert (
+        copick_run._voxel_spacings is None
+    ), "Random access for voxel spacing should not populate voxel spacings index"
 
     vs = copick_run.get_voxel_spacing(20.000)
     assert vs is not None, "Voxel spacing not found"
@@ -1082,3 +1089,25 @@ def test_pick_io(test_payload: Dict[str, Any]):
     # Check pick is writable
     pck2 = copick_run.new_picks(object_name="ribosome", session_id="0", user_id="pytom")
     pck2.store()
+
+
+def test_repr(test_payload: Dict[str, Any]):
+    # Setup
+    copick_root = test_payload["root"]
+    copick_run = copick_root.get_run("TS_001")
+    vs = copick_run.get_voxel_spacing(10.000)
+    tomogram = vs.get_tomogram(tomo_type="wbp")
+    feature = tomogram.get_features(feature_type="sobel")
+    mesh = copick_run.get_meshes(object_name="membrane", session_id="0", user_id="membrain")[0]
+    pick = copick_run.get_picks(object_name="proteasome", session_id="0", user_id="pytom")[0]
+    seg = copick_run.get_segmentations(name="membrane")[0]
+    co = copick_root.pickable_objects[0]
+
+    repr(copick_run)
+    repr(vs)
+    repr(tomogram)
+    repr(feature)
+    repr(mesh)
+    repr(pick)
+    repr(seg)
+    repr(co)

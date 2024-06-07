@@ -78,14 +78,9 @@ class CopickConfig(BaseModel):
         pickable_objects (List[PickableObject]): Index for available pickable objects.
         user_id: Unique identifier for the user (e.g. when distributing the config file to users).
         session_id: Unique identifier for the session.
-        voxel_spacings: Index for available voxel spacings.
         runs: Index for run names.
+        voxel_spacings: Index for available voxel spacings.
         tomograms: Index for available voxel spacings and tomogram types.
-        features: Index for available features. Must be computed on the tomogram types.
-        feature_types: Index for available feature types.
-        available_pre_picks: Index for available pre-pick tools.
-        available_pre_segmentations: Index for available pre-segmentations.
-        available_pre_meshes: Index for available pre-meshes.
     """
 
     name: Optional[str] = "CoPick"
@@ -94,14 +89,9 @@ class CopickConfig(BaseModel):
     pickable_objects: List[TPickableObject]
     user_id: Optional[str] = None
     session_id: Optional[str] = None
-    voxel_spacings: Optional[List[float]] = None
     runs: Optional[List[str]] = None
+    voxel_spacings: Optional[List[float]] = None
     tomograms: Optional[Dict[float, List[str]]] = {}
-    features: Optional[Dict[float, List[str]]] = {}
-    feature_types: Optional[List[str]] = []
-    available_pre_picks: Optional[Dict[str, List[str]]] = {}
-    available_pre_segmentations: Optional[List[str]] = []
-    available_pre_meshes: Optional[Dict[str, List[str]]] = []
 
     @classmethod
     def from_file(cls, filename: str) -> TCopickConfig:
@@ -320,18 +310,32 @@ class CopickRoot:
 
         return self._runs
 
-    def get_run(self, name: str) -> Union[TCopickRun, None]:
+    def get_run(self, name: str, **kwargs) -> Union[TCopickRun, None]:
         """Get run by name.
 
         Args:
             name: Name of the run to retrieve.
+            **kwargs: Additional keyword arguments for the run metadata.
 
         Returns:
             CopickRun: The run with the given name, or None if not found.
         """
-        for run in self.runs:
-            if run.name == name:
+        # Random access
+        if self._runs is None:
+            clz, meta_clz = self._run_factory()
+            rm = meta_clz(name=name, **kwargs)
+            run = clz(self, meta=rm)
+
+            if not run.ensure(create=False):
+                return None
+            else:
                 return run
+
+        # Access through index
+        else:
+            for run in self.runs:
+                if run.name == name:
+                    return run
 
         return None
 
@@ -387,7 +391,7 @@ class CopickRoot:
             self._runs = []
         self._runs.append(run)
 
-        run.ensure()
+        run.ensure(create=True)
 
         return run
 
@@ -548,18 +552,33 @@ class CopickRun:
 
         return self._voxel_spacings
 
-    def get_voxel_spacing(self, voxel_size: float) -> Union[TCopickVoxelSpacing, None]:
+    def get_voxel_spacing(self, voxel_size: float, **kwargs) -> Union[TCopickVoxelSpacing, None]:
         """Get voxel spacing object by voxel size value.
 
         Args:
             voxel_size: Voxel size value to search for.
+            **kwargs: Additional keyword arguments for the voxel spacing metadata.
 
         Returns:
             CopickVoxelSpacing: The voxel spacing object with the given voxel size value, or None if not found.
         """
-        for vs in self.voxel_spacings:
-            if vs.voxel_size == voxel_size:
+        # Random access
+        if self._voxel_spacings is None:
+            clz, meta_clz = self._voxel_spacing_factory()
+            vm = meta_clz(voxel_size=voxel_size, **kwargs)
+            vs = clz(self, meta=vm)
+
+            if not vs.ensure(create=False):
+                return None
+            else:
                 return vs
+
+        # Access through index
+        else:
+            for vs in self.voxel_spacings:
+                if vs.voxel_size == voxel_size:
+                    return vs
+
         return None
 
     @property
@@ -754,7 +773,7 @@ class CopickRun:
         self._voxel_spacings.append(vs)
 
         # Ensure the voxel spacing record exists
-        vs.ensure()
+        vs.ensure(create=True)
 
         return vs
 
@@ -974,8 +993,15 @@ class CopickRun:
         self.refresh_meshes()
         self.refresh_segmentations()
 
-    def ensure(self) -> None:
-        """Override to ensure the run record exists."""
+    def ensure(self, create: bool = False) -> bool:
+        """Check if the run record exists, optionally create it if it does not.
+
+        Args:
+            create: Whether to create the run record if it does not exist.
+
+        Returns:
+            bool: True if the run record exists, False otherwise.
+        """
         raise NotImplementedError("ensure must be implemented for CopickRun.")
 
 
@@ -1036,7 +1062,7 @@ class CopickVoxelSpacing:
 
         return self._tomograms
 
-    def get_tomogram(self, tomo_type: str) -> Union[TCopickTomogram, None]:
+    def get_tomogram(self, tomo_type: str, **kwargs) -> Union[TCopickTomogram, None]:
         """Get tomogram by type.
 
         Args:
@@ -1093,8 +1119,15 @@ class CopickVoxelSpacing:
         """Override this method to return the tomogram class."""
         return CopickTomogram, CopickTomogramMeta
 
-    def ensure(self) -> None:
-        """Override to ensure the voxel spacing record exists."""
+    def ensure(self, create: bool = False) -> bool:
+        """Override to check if the voxel spacing record exists, optionally create it if it does not.
+
+        Args:
+            create: Whether to create the voxel spacing record if it does not exist.
+
+        Returns:
+            bool: True if the voxel spacing record exists, False otherwise.
+        """
         raise NotImplementedError("ensure must be implemented for CopickVoxelSpacing.")
 
 
