@@ -8,10 +8,6 @@ from copick.impl.filesystem import CopickRootFSSpec
 from copick.models import CopickPicksFile
 from trimesh.parent import Geometry
 
-sshfs_imported = False
-with contextlib.suppress(ImportError):
-    sshfs_imported = True
-
 smb_imported = False
 with contextlib.suppress(ImportError):
     import fsspec.implementations.smb
