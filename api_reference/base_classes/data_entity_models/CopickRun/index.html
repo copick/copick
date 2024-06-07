@@ -1719,7 +1719,7 @@ loaded when CopickRun.segmentations is accessed <strong>for the first time</stro
 
 
 <h3 id="copick.models.CopickRun.get_voxel_spacing" class="doc doc-heading">
-<code class="doc-symbol doc-symbol-heading doc-symbol-method"></code>            <code class="highlight language-python"><span class="n">get_voxel_spacing</span><span class="p">(</span><span class="n">voxel_size</span><span class="p">:</span> <span class="nb">float</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Union</span><span class="p">[</span><span class="n">TCopickVoxelSpacing</span><span class="p">,</span> <span class="kc">None</span><span class="p">]</span></code>
+<code class="doc-symbol doc-symbol-heading doc-symbol-method"></code>            <code class="highlight language-python"><span class="n">get_voxel_spacing</span><span class="p">(</span><span class="n">voxel_size</span><span class="p">:</span> <span class="nb">float</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Union</span><span class="p">[</span><span class="n">TCopickVoxelSpacing</span><span class="p">,</span> <span class="kc">None</span><span class="p">]</span></code>
 
 </h3>
 
@@ -1737,6 +1737,13 @@ loaded when CopickRun.segmentations is accessed <strong>for the first time</stro
           –
           <div class="doc-md-description">
             <p>Voxel size value to search for.</p>
+          </div>
+        </li>
+        <li class="doc-section-item field-body">
+          <b><code>**kwargs</code></b>
+          –
+          <div class="doc-md-description">
+            <p>Additional keyword arguments for the voxel spacing metadata.</p>
           </div>
         </li>
     </ul>
@@ -2543,14 +2550,41 @@ voxel spacings, or if the user ID is not set in the root config or supplied.</p>
 
 
 <h3 id="copick.models.CopickRun.ensure" class="doc doc-heading">
-<code class="doc-symbol doc-symbol-heading doc-symbol-method"></code>            <code class="highlight language-python"><span class="n">ensure</span><span class="p">()</span> <span class="o">-&gt;</span> <span class="kc">None</span></code>
+<code class="doc-symbol doc-symbol-heading doc-symbol-method"></code>            <code class="highlight language-python"><span class="n">ensure</span><span class="p">(</span><span class="n">create</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">bool</span></code>
 
 </h3>
 
 
     <div class="doc doc-contents ">
 
-      <p>Override to ensure the run record exists.</p>
+      <p>Check if the run record exists, optionally create it if it does not.</p>
+
+
+<p><span class="doc-section-title">Parameters:</span></p>
+    <ul>
+        <li class="doc-section-item field-body">
+          <b><code>create</code></b>
+              (<code>bool</code>, default:
+                  <code>False</code>
+)
+          –
+          <div class="doc-md-description">
+            <p>Whether to create the run record if it does not exist.</p>
+          </div>
+        </li>
+    </ul>
+
+
+<p><span class="doc-section-title">Returns:</span></p>
+    <ul>
+        <li class="doc-section-item field-body">
+<b><code>bool</code></b> (              <code>bool</code>
+)          –
+          <div class="doc-md-description">
+            <p>True if the run record exists, False otherwise.</p>
+          </div>
+        </li>
+    </ul>
 
     </div>
 

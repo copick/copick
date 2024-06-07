@@ -1893,14 +1893,42 @@ any storage supported by <code>fsspec</code>. The filesystem implementation is d
 
 
 <h3 id="copick.impl.filesystem.CopickRunFSSpec.ensure" class="doc doc-heading">
-<code class="doc-symbol doc-symbol-heading doc-symbol-method"></code>            <code class="highlight language-python"><span class="n">ensure</span><span class="p">()</span> <span class="o">-&gt;</span> <span class="kc">None</span></code>
+<code class="doc-symbol doc-symbol-heading doc-symbol-method"></code>            <code class="highlight language-python"><span class="n">ensure</span><span class="p">(</span><span class="n">create</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">bool</span></code>
 
 </h3>
 
 
     <div class="doc doc-contents ">
 
-      <p>Ensure the run directory exists, creating it if necessary.</p>
+      <p>Checks if the run record exists in the static or overlay directory, optionally creating it in the overlay
+filesystem if it does not.</p>
+
+
+<p><span class="doc-section-title">Parameters:</span></p>
+    <ul>
+        <li class="doc-section-item field-body">
+          <b><code>create</code></b>
+              (<code>bool</code>, default:
+                  <code>False</code>
+)
+          –
+          <div class="doc-md-description">
+            <p>Whether to create the run record if it does not exist.</p>
+          </div>
+        </li>
+    </ul>
+
+
+<p><span class="doc-section-title">Returns:</span></p>
+    <ul>
+        <li class="doc-section-item field-body">
+<b><code>bool</code></b> (              <code>bool</code>
+)          –
+          <div class="doc-md-description">
+            <p>True if the run record exists, False otherwise.</p>
+          </div>
+        </li>
+    </ul>
 
     </div>
 
@@ -2239,14 +2267,42 @@ any storage supported by <code>fsspec</code>. The filesystem implementation is d
 
 
 <h3 id="copick.impl.filesystem.CopickVoxelSpacingFSSpec.ensure" class="doc doc-heading">
-<code class="doc-symbol doc-symbol-heading doc-symbol-method"></code>            <code class="highlight language-python"><span class="n">ensure</span><span class="p">()</span> <span class="o">-&gt;</span> <span class="kc">None</span></code>
+<code class="doc-symbol doc-symbol-heading doc-symbol-method"></code>            <code class="highlight language-python"><span class="n">ensure</span><span class="p">(</span><span class="n">create</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">bool</span></code>
 
 </h3>
 
 
     <div class="doc doc-contents ">
 
-      <p>Ensure the voxel spacing directory exists, creating it if necessary.</p>
+      <p>Checks if the voxel spacing record exists in the static or overlay directory, optionally creating it in the
+overlay filesystem if it does not.</p>
+
+
+<p><span class="doc-section-title">Parameters:</span></p>
+    <ul>
+        <li class="doc-section-item field-body">
+          <b><code>create</code></b>
+              (<code>bool</code>, default:
+                  <code>False</code>
+)
+          –
+          <div class="doc-md-description">
+            <p>Whether to create the voxel spacing record if it does not exist.</p>
+          </div>
+        </li>
+    </ul>
+
+
+<p><span class="doc-section-title">Returns:</span></p>
+    <ul>
+        <li class="doc-section-item field-body">
+<b><code>bool</code></b> (              <code>bool</code>
+)          –
+          <div class="doc-md-description">
+            <p>True if the voxel spacing record exists, False otherwise.</p>
+          </div>
+        </li>
+    </ul>
 
     </div>
 
