@@ -1,4 +1,3 @@
-import contextlib
 from typing import Any, Dict
 
 import numpy as np
@@ -7,11 +6,6 @@ import zarr
 from copick.impl.filesystem import CopickRootFSSpec
 from copick.models import CopickPicksFile
 from trimesh.parent import Geometry
-
-smb_imported = False
-with contextlib.suppress(ImportError):
-    smb_imported = True
-
 
 NUMERICAL_PRECISION = 1e-8
 
