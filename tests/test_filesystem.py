@@ -10,8 +10,6 @@ from trimesh.parent import Geometry
 
 smb_imported = False
 with contextlib.suppress(ImportError):
-    import fsspec.implementations.smb
-
     smb_imported = True
 
 
@@ -960,11 +958,6 @@ def test_tomogram_zarr(test_payload: Dict[str, Any]):
     vs = copick_run.get_voxel_spacing(10.000)
     tomogram = vs.get_tomogram(tomo_type="denoised")
 
-    # TODO: Fix this once new fsspec is released
-    if smb_imported:  # noqa
-        if isinstance(test_payload["testfs_overlay"], fsspec.implementations.smb.SMBFileSystem):
-            return
-
     # Check zarr is readable
     arrays = list(zarr.open(tomogram.zarr(), "r").arrays())
     _, array = arrays[0]
@@ -999,11 +992,6 @@ def test_feature_zarr(test_payload: Dict[str, Any]):
     vs = copick_run.get_voxel_spacing(10.000)
     tomogram = vs.get_tomogram(tomo_type="wbp")
     feature = tomogram.get_features(feature_type="sobel")
-
-    # TODO: Fix this once new fsspec is released
-    if smb_imported:  # noqa
-        if isinstance(test_payload["testfs_overlay"], fsspec.implementations.smb.SMBFileSystem):
-            return
 
     # Check zarr is readable
     arrays = list(zarr.open(feature.zarr(), "r").arrays())
