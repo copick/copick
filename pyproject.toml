@@ -27,9 +27,13 @@ readme = "README.md"
 license = {file = "LICENSE"}
 keywords = ["cryoet", "cryo-et", "tomography", "annotation", "segmentation", "collaborative", "copick"]
 
+
 [project.urls]
 Repository = "https://github.com/uermel/copick.git"
 Issues = "https://github.com/uermel/copick/issues"
+
+[project.scripts]
+copick = "copick.cli.cli:cli"
 
 [project.optional-dependencies]
 s3 = ["s3fs"]
