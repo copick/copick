@@ -496,6 +496,20 @@ class CopickRunFSSpec(CopickRunOverlay):
     def static_is_overlay(self):
         return self.fs_static == self.fs_overlay and self.static_path == self.overlay_path
 
+    def _query_static_voxel_spacings(self) -> List[CopickVoxelSpacingFSSpec]:
+        static_vs_loc = f"{self.static_path}/VoxelSpacing"
+        spaths = self.fs_static.glob(static_vs_loc + "*") + self.fs_static.glob(static_vs_loc + "*/")
+        spaths = [p.rstrip("/") for p in spaths]
+        spacings = [float(p.replace(f"{static_vs_loc}", "")) for p in spaths]
+
+        return [
+            CopickVoxelSpacingFSSpec(
+                meta=CopickVoxelSpacingMeta(voxel_size=s),
+                run=self,
+            )
+            for s in spacings
+        ]
+
     def query_voxelspacings(self) -> List[CopickVoxelSpacingFSSpec]:
         static_vs_loc = f"{self.static_path}/VoxelSpacing"
         spaths = self.fs_static.glob(static_vs_loc + "*") + self.fs_static.glob(static_vs_loc + "*/")
