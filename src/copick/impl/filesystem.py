@@ -510,8 +510,11 @@ class CopickRunFSSpec(CopickRunOverlay):
         return self.fs_static == self.fs_overlay and self.static_path == self.overlay_path
 
     def _query_static_voxel_spacings(self) -> List[CopickVoxelSpacingFSSpec]:
+        if self.static_is_overlay:
+            return []
+
         static_vs_loc = f"{self.static_path}/VoxelSpacing"
-        spaths = self.fs_static.glob(static_vs_loc + "*") + self.fs_static.glob(static_vs_loc + "*/")
+        spaths = set(self.fs_static.glob(static_vs_loc + "*") + self.fs_static.glob(static_vs_loc + "*/"))
         spaths = [p.rstrip("/") for p in spaths]
         spacings = [float(p.replace(f"{static_vs_loc}", "")) for p in spaths]
 
@@ -525,16 +528,16 @@ class CopickRunFSSpec(CopickRunOverlay):
 
     def _query_overlay_voxel_spacings(self) -> List[CopickVoxelSpacingFSSpec]:
         overlay_vs_loc = f"{self.overlay_path}/VoxelSpacing"
-        opaths = self.fs_overlay.glob(overlay_vs_loc + "*") + self.fs_overlay.glob(overlay_vs_loc + "*/")
+        opaths = set(self.fs_overlay.glob(overlay_vs_loc + "*") + self.fs_overlay.glob(overlay_vs_loc + "*/"))
         opaths = [p.rstrip("/") for p in opaths]
-        ospacings = [float(p.replace(f"{overlay_vs_loc}", "")) for p in opaths]
+        spacings = [float(p.replace(f"{overlay_vs_loc}", "")) for p in opaths]
 
         return [
             CopickVoxelSpacingFSSpec(
                 meta=CopickVoxelSpacingMeta(voxel_size=s),
                 run=self,
             )
-            for s in ospacings
+            for s in spacings
         ]
 
     def _query_static_picks(self) -> List[CopickPicksFSSpec]:
@@ -763,7 +766,6 @@ class CopickRunFSSpec(CopickRunOverlay):
             exists = self.fs_static.exists(self.static_path) or self.fs_overlay.exists(self.overlay_path)
 
         if not exists and create:
-            self.fs_overlay.makedirs(self.overlay_path, exist_ok=True)
             self.fs_overlay.makedirs(self.overlay_path, exist_ok=True)
             # TODO: Write metadata
             with self.fs_overlay.open(self.overlay_path + "/.meta", "w") as f:

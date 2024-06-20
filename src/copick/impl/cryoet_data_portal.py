@@ -357,6 +357,8 @@ class CopickVoxelSpacingMetaCDP(CopickVoxelSpacingMeta):
 
 
 class CopickVoxelSpacingCDP(CopickVoxelSpacingOverlay):
+    run: "CopickRunCDP"
+
     def _tomogram_factory(self) -> Tuple[Type[CopickTomogramCDP], Type[CopickTomogramMetaCDP]]:
         return CopickTomogramCDP, CopickTomogramMetaCDP
 
@@ -409,13 +411,34 @@ class CopickVoxelSpacingCDP(CopickVoxelSpacingOverlay):
             for tt in tomo_types
         ]
 
-    def ensure(self) -> None:
-        """Ensure the voxel spacing directory exists, creating it if necessary."""
-        if not self.fs_overlay.exists(self.overlay_path):
+    def ensure(self, create: bool = False) -> bool:
+        """Checks if the voxel spacing record exists in the static or overlay directory, optionally creating it in the
+        overlay filesystem if it does not.
+
+        Args:
+            create: Whether to create the voxel spacing record if it does not exist.
+
+        Returns:
+            bool: True if the voxel spacing record exists, False otherwise.
+        """
+        client = cdp.Client()
+        vs = cdp.TomogramVoxelSpacing.find(
+            client,
+            [  # noqa
+                cdp.TomogramVoxelSpacing.run.id == self.run.portal_run_id,
+                cdp.TomogramVoxelSpacing.voxel_spacing == self.meta.voxel_size,
+            ],
+        )
+        exists = len(vs) > 0 or self.fs_overlay.exists(self.overlay_path)
+
+        if not exists and create:
             self.fs_overlay.makedirs(self.overlay_path, exist_ok=True)
             # TODO: Write metadata
             with self.fs_overlay.open(self.overlay_path + "/.meta", "w") as f:
                 f.write("meta")  # Touch the file
+            return True
+        else:
+            return exists
 
 
 class CopickRunMetaCDP(CopickRunMeta):
@@ -423,10 +446,13 @@ class CopickRunMetaCDP(CopickRunMeta):
 
     @classmethod
     def from_portal(cls, source: cdp.Run):
-        return cls(name=f"{source.name}_{source.id}", portal_run_id=source.id)
+        return cls(name=f"{source.dataset_id}_{source.name}", portal_run_id=source.id)
 
 
 class CopickRunCDP(CopickRunOverlay):
+    root: "CopickRootCDP"
+    meta: CopickRunMetaCDP
+
     def _voxel_spacing_factory(self) -> Tuple[Type[CopickVoxelSpacingCDP], Type[CopickVoxelSpacingMetaCDP]]:
         return CopickVoxelSpacingCDP, CopickVoxelSpacingMetaCDP
 
@@ -469,9 +495,9 @@ class CopickRunCDP(CopickRunOverlay):
 
     def _query_overlay_voxel_spacings(self) -> List[CopickVoxelSpacingCDP]:
         overlay_vs_loc = f"{self.overlay_path}/VoxelSpacing"
-        opaths = self.fs_overlay.glob(overlay_vs_loc + "*") + self.fs_overlay.glob(overlay_vs_loc + "*/")
+        opaths = set(self.fs_overlay.glob(overlay_vs_loc + "*") + self.fs_overlay.glob(overlay_vs_loc + "*/"))
         opaths = [p.rstrip("/") for p in opaths]
-        ospacings = [float(p.replace(f"{overlay_vs_loc}", "")) for p in opaths]
+        spacings = [float(p.replace(f"{overlay_vs_loc}", "")) for p in opaths]
 
         clz, meta_clz = self._voxel_spacing_factory()
 
@@ -480,7 +506,7 @@ class CopickRunCDP(CopickRunOverlay):
                 meta=meta_clz(voxel_size=s),
                 run=self,
             )
-            for s in ospacings
+            for s in spacings
         ]
 
     def _query_static_picks(self) -> List[CopickPicksCDP]:
@@ -637,24 +663,54 @@ class CopickRunCDP(CopickRunOverlay):
             for m in metas
         ]
 
-    def ensure(self) -> None:
-        """Ensure the run directory exists, creating it if necessary."""
-        if not self.fs_overlay.exists(self.overlay_path):
+    def ensure(self, create: bool = False) -> bool:
+        """Checks if the run record exists in the static or overlay directory, optionally creating it in the overlay
+        filesystem if it does not.
+
+        Args:
+            create: Whether to create the run record if it does not exist.
+
+        Returns:
+            bool: True if the run record exists, False otherwise.
+        """
+        client = cdp.Client()
+
+        dids = self.root.config.dataset_ids
+        name = self.name
+        for d in dids:
+            if name.startswith(str(d)):
+                name = name.replace(f"{d}_", "")
+                break
+
+        run = cdp.Run.find(
+            client,
+            [
+                cdp.Run.name == name,
+                cdp.Run.dataset_id._in(dids),  # noqa
+            ],
+        )
+
+        exists = len(run) > 0 or self.fs_overlay.exists(self.overlay_path)
+
+        if not exists and create:
             self.fs_overlay.makedirs(self.overlay_path, exist_ok=True)
             # TODO: Write metadata
             with self.fs_overlay.open(self.overlay_path + "/.meta", "w") as f:
-                f.write("")  # Touch the file
+                f.write("meta")  # Touch the file
+            return True
+        else:
+            return exists
 
 
 class CopickObjectCDP(CopickObjectOverlay):
     root: "CopickRootCDP"
 
     @property
-    def path(self):
+    def path(self) -> str:
         return f"{self.root.root_overlay}/Objects/{self.name}.zarr"
 
     @property
-    def fs(self):
+    def fs(self) -> AbstractFileSystem:
         return self.root.fs_overlay
 
     def zarr(self) -> Union[None, zarr.storage.FSStore]:
@@ -683,6 +739,8 @@ class CopickObjectCDP(CopickObjectOverlay):
 
 
 class CopickRootCDP(CopickRoot):
+    config: CopickConfigCDP
+
     def __init__(self, config: CopickConfigCDP):
         super().__init__(config)
 
