@@ -20,6 +20,7 @@ from copick.impl.overlay import (
 )
 from copick.models import (
     CopickConfig,
+    CopickFeatures,
     CopickFeaturesMeta,
     CopickMeshMeta,
     CopickPicksFile,
@@ -29,9 +30,6 @@ from copick.models import (
     CopickTomogramMeta,
     CopickVoxelSpacingMeta,
     PickableObject,
-    TCopickFeatures,
-    TCopickRun,
-    TCopickVoxelSpacing,
 )
 
 
@@ -45,6 +43,7 @@ class CopickConfigFSSpec(CopickConfig):
         static_fs_args (Optional[Dict[str, Any]]): Additional arguments for the static filesystem.
     """
 
+    config_type: str = "filesystem"
     overlay_root: str
     static_root: Optional[str]
 
@@ -245,7 +244,7 @@ class CopickTomogramFSSpec(CopickTomogramOverlay):
         static_is_overlay (bool): Whether the static and overlay sources are the same.
     """
 
-    def _feature_factory(self) -> Tuple[Type[TCopickFeatures], Type["CopickFeaturesMeta"]]:
+    def _feature_factory(self) -> Tuple[Type[CopickFeatures], Type["CopickFeaturesMeta"]]:
         return CopickFeaturesFSSpec, CopickFeaturesMeta
 
     @property
@@ -464,7 +463,7 @@ class CopickRunFSSpec(CopickRunOverlay):
         static_is_overlay (bool): Whether the static and overlay sources are the same.
     """
 
-    def _voxel_spacing_factory(self) -> Tuple[Type[TCopickVoxelSpacing], Type["CopickVoxelSpacingMeta"]]:
+    def _voxel_spacing_factory(self) -> Tuple[Type[CopickVoxelSpacingFSSpec], Type["CopickVoxelSpacingMeta"]]:
         return CopickVoxelSpacingFSSpec, CopickVoxelSpacingMeta
 
     def _picks_factory(self) -> Type[CopickPicksFSSpec]:
@@ -858,7 +857,7 @@ class CopickRootFSSpec(CopickRoot):
 
         return cls(CopickConfigFSSpec(**data))
 
-    def _run_factory(self) -> Tuple[Type[TCopickRun], Type["CopickRunMeta"]]:
+    def _run_factory(self) -> Tuple[Type[CopickRunFSSpec], Type["CopickRunMeta"]]:
         return CopickRunFSSpec, CopickRunMeta
 
     def _object_factory(self) -> Tuple[Type[CopickObjectFSSpec], Type[PickableObject]]:

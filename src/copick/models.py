@@ -37,6 +37,7 @@ class PickableObject(BaseModel):
     color: Optional[Tuple[int, int, int, int]]
     emdb_id: Optional[str] = None
     pdb_id: Optional[str] = None
+    go_id: Optional[str] = None
     map_threshold: Optional[float] = None
     radius: Optional[float] = None
 
@@ -226,6 +227,10 @@ class CopickObject:
     @property
     def pdb_id(self) -> Union[str, None]:
         return self.meta.pdb_id
+
+    @property
+    def go_id(self) -> Union[str, None]:
+        return self.meta.go_id
 
     @property
     def map_threshold(self) -> Union[float, None]:

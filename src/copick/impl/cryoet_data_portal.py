@@ -42,6 +42,7 @@ def camel(s: str) -> str:
 
 
 class CopickConfigCDP(CopickConfig):
+    config_type: str = "cryoet_data_portal"
     overlay_root: str
     dataset_ids: List[int]
 
@@ -53,12 +54,13 @@ class CopickPicksFileCDP(CopickPicksFile):
     portal_annotation_file_path: Optional[str] = None
 
     @classmethod
-    def from_portal(cls, source: cdp.AnnotationFile):
+    def from_portal(cls, source: cdp.AnnotationFile, name: Optional[str] = None):
         anno = source.annotation
 
         user = "data-portal"
         session = 0
-        object_name = f"{camel(anno.object_name)}-{source.id}"
+
+        object_name = f"{name}-{source.id}" if name else f"{camel(anno.object_name)}-{source.id}"
 
         clz = cls(
             pickable_object_name=object_name,
@@ -174,15 +176,15 @@ class CopickSegmentationMetaCDP(CopickSegmentationMeta):
     portal_annotation_file_path: Optional[str] = None
 
     @classmethod
-    def from_portal(cls, source: cdp.AnnotationFile):
-        name = f"{camel(source.annotation.object_name)}-{source.id}"
+    def from_portal(cls, source: cdp.AnnotationFile, name: Optional[str] = None):
+        object_name = f"{name}-{source.id}" if name else f"{camel(source.annotation.object_name)}-{source.id}"
 
         return cls(
             is_multilabel=False,
             voxel_size=source.annotation.tomogram_voxel_spacing.voxel_spacing,
             user_id="data-portal",
             session_id=0,
-            name=name,
+            name=object_name,
             portal_annotation_file_id=source.id,
             portal_annotation_file_path=source.s3_path,
         )
@@ -492,18 +494,20 @@ class CopickRunCDP(CopickRunOverlay):
 
         # Find all point annotations
         client = cdp.Client()
+        go_map = self.root.go_map
         point_annos = cdp.AnnotationFile.find(
             client,
             [
                 cdp.AnnotationFile.annotation.tomogram_voxel_spacing.run_id == self.portal_run_id,
                 cdp.AnnotationFile.shape_type._in(["Point", "OrientedPoint"]),  # noqa
+                cdp.AnnotationFile.annotation.object_id._in(go_map.keys()),  # noqa
             ],
         )
 
         return [
             CopickPicksCDP(
                 run=self,
-                file=CopickPicksFileCDP.from_portal(af),
+                file=CopickPicksFileCDP.from_portal(af, name=go_map[af.object_id]),
                 read_only=True,
             )
             for af in point_annos
@@ -569,12 +573,14 @@ class CopickRunCDP(CopickRunOverlay):
             return []
 
         client = cdp.Client()
+        go_map = self.root.go_map
         seg_annos = cdp.AnnotationFile.find(
             client,
             [  # noqa
                 cdp.AnnotationFile.annotation.tomogram_voxel_spacing.run_id == self.portal_run_id,
                 cdp.AnnotationFile.shape_type == "SegmentationMask",
                 cdp.AnnotationFile.format == "zarr",
+                cdp.AnnotationFile.annotation.object_id._in(go_map.keys()),
             ],
         )
 
@@ -582,7 +588,7 @@ class CopickRunCDP(CopickRunOverlay):
         clz, meta_clz = self._segmentation_factory()
 
         for af in seg_annos:
-            seg_meta = meta_clz.from_portal(af)
+            seg_meta = meta_clz.from_portal(af, name=go_map[af.annotation.object_id])
             seg = clz(run=self, meta=seg_meta, read_only=True)
             segmentations.append(seg)
 
@@ -647,11 +653,11 @@ class CopickRunCDP(CopickRunOverlay):
 class CopickObjectCDP(CopickObjectOverlay):
     @property
     def path(self):
-        return f"{self.root.root_static}/Objects/{self.name}.zarr"
+        return f"{self.root.root_overlay}/Objects/{self.name}.zarr"
 
     @property
     def fs(self):
-        return self.root.fs_static
+        return self.root.root_overlay
 
     def zarr(self) -> Union[None, zarr.storage.FSStore]:
         if not self.is_particle:
@@ -683,11 +689,14 @@ class CopickRootCDP(CopickRoot):
         super().__init__(config)
 
         self.fs_overlay: AbstractFileSystem = fsspec.core.url_to_fs(config.overlay_root, **config.overlay_fs_args)[0]
-
-        self.client = cdp.Client()
-        self.datasets = [cdp.Dataset.get_by_id(self.client, did) for did in config.dataset_ids]
-
         self.root_overlay: str = self.fs_overlay._strip_protocol(config.overlay_root)  # noqa
+
+        client = cdp.Client()
+        self.datasets = [cdp.Dataset.get_by_id(client, did) for did in config.dataset_ids]
+
+    @property
+    def go_map(self) -> Dict[str, str]:
+        return {po.go_id: po.name for po in self.pickable_objects if po.go_id is not None}
 
     @classmethod
     def from_file(cls, path: str) -> "CopickRootCDP":
@@ -703,7 +712,8 @@ class CopickRootCDP(CopickRoot):
         return CopickObjectCDP, PickableObject
 
     def query(self) -> List[CopickRunCDP]:
-        portal_runs = cdp.Run.find(self.client, [cdp.Run.dataset_id._in([d.id for d in self.datasets])])  # noqa
+        client = cdp.Client()
+        portal_runs = cdp.Run.find(client, [cdp.Run.dataset_id._in([d.id for d in self.datasets])])  # noqa
 
         runs = []
         for pr in portal_runs:

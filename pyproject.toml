@@ -17,6 +17,7 @@ dependencies = [
     "numpy",
     "trimesh",
     "zarr",
+    "cryoet-data-portal>=3.0.3"
 ]
 authors = [
   {name = "Utz H. Ermel", email = "utz.ermel@czii.org"},
