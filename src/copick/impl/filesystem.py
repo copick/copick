@@ -1,3 +1,4 @@
+import concurrent.futures
 import json
 from typing import Any, Dict, List, Optional, Tuple, Type, Union
 
@@ -19,6 +20,7 @@ from copick.impl.overlay import (
 )
 from copick.models import (
     CopickConfig,
+    CopickFeatures,
     CopickFeaturesMeta,
     CopickMeshMeta,
     CopickPicksFile,
@@ -28,9 +30,6 @@ from copick.models import (
     CopickTomogramMeta,
     CopickVoxelSpacingMeta,
     PickableObject,
-    TCopickFeatures,
-    TCopickRun,
-    TCopickVoxelSpacing,
 )
 
 
@@ -44,6 +43,7 @@ class CopickConfigFSSpec(CopickConfig):
         static_fs_args (Optional[Dict[str, Any]]): Additional arguments for the static filesystem.
     """
 
+    config_type: str = "filesystem"
     overlay_root: str
     static_root: Optional[str]
 
@@ -59,6 +59,8 @@ class CopickPicksFSSpec(CopickPicksOverlay):
         directory (str): The directory containing the picks file.
         fs (AbstractFileSystem): The filesystem containing the picks file.
     """
+
+    run: "CopickRunFSSpec"
 
     @property
     def path(self) -> str:
@@ -104,6 +106,8 @@ class CopickMeshFSSpec(CopickMeshOverlay):
         fs (AbstractFileSystem): The filesystem containing the mesh file.
     """
 
+    run: "CopickRunFSSpec"
+
     @property
     def path(self) -> str:
         if self.read_only:
@@ -147,6 +151,8 @@ class CopickSegmentationFSSpec(CopickSegmentationOverlay):
         path (str): The path to the segmentation file.
         fs (AbstractFileSystem): The filesystem containing the segmentation file.
     """
+
+    run: "CopickRunFSSpec"
 
     @property
     def filename(self) -> str:
@@ -197,6 +203,8 @@ class CopickFeaturesFSSpec(CopickFeaturesOverlay):
         fs (AbstractFileSystem): The filesystem containing the features file.
     """
 
+    tomogram: "CopickTomogramFSSpec"
+
     @property
     def path(self) -> str:
         if self.read_only:
@@ -244,7 +252,9 @@ class CopickTomogramFSSpec(CopickTomogramOverlay):
         static_is_overlay (bool): Whether the static and overlay sources are the same.
     """
 
-    def _feature_factory(self) -> Tuple[Type[TCopickFeatures], Type["CopickFeaturesMeta"]]:
+    voxel_spacing: "CopickVoxelSpacingFSSpec"
+
+    def _feature_factory(self) -> Tuple[Type[CopickFeatures], Type["CopickFeaturesMeta"]]:
         return CopickFeaturesFSSpec, CopickFeaturesMeta
 
     @property
@@ -361,27 +371,29 @@ class CopickVoxelSpacingFSSpec(CopickVoxelSpacingOverlay):
 
     """
 
+    run: "CopickRunFSSpec"
+
     def _tomogram_factory(self) -> Tuple[Type[CopickTomogramFSSpec], Type[CopickTomogramMeta]]:
         return CopickTomogramFSSpec, CopickTomogramMeta
 
     @property
-    def static_path(self):
+    def static_path(self) -> str:
         return f"{self.run.static_path}/VoxelSpacing{self.voxel_size:.3f}"
 
     @property
-    def overlay_path(self):
+    def overlay_path(self) -> str:
         return f"{self.run.overlay_path}/VoxelSpacing{self.voxel_size:.3f}"
 
     @property
-    def fs_static(self):
+    def fs_static(self) -> AbstractFileSystem:
         return self.run.fs_static
 
     @property
-    def fs_overlay(self):
+    def fs_overlay(self) -> AbstractFileSystem:
         return self.run.fs_overlay
 
     @property
-    def static_is_overlay(self):
+    def static_is_overlay(self) -> bool:
         return self.fs_static == self.fs_overlay and self.static_path == self.overlay_path
 
     def _query_static_tomograms(self) -> List[CopickTomogramFSSpec]:
@@ -427,13 +439,29 @@ class CopickVoxelSpacingFSSpec(CopickVoxelSpacingOverlay):
             for tt in tomo_types
         ]
 
-    def ensure(self) -> None:
-        """Ensure the voxel spacing directory exists, creating it if necessary."""
-        if not self.fs_overlay.exists(self.overlay_path):
+    def ensure(self, create: bool = False) -> bool:
+        """Checks if the voxel spacing record exists in the static or overlay directory, optionally creating it in the
+        overlay filesystem if it does not.
+
+        Args:
+            create: Whether to create the voxel spacing record if it does not exist.
+
+        Returns:
+            bool: True if the voxel spacing record exists, False otherwise.
+        """
+        if self.static_is_overlay:
+            exists = self.fs_overlay.exists(self.overlay_path)
+        else:
+            exists = self.fs_static.exists(self.static_path) or self.fs_overlay.exists(self.overlay_path)
+
+        if not exists and create:
             self.fs_overlay.makedirs(self.overlay_path, exist_ok=True)
             # TODO: Write metadata
             with self.fs_overlay.open(self.overlay_path + "/.meta", "w") as f:
                 f.write("meta")  # Touch the file
+            return True
+        else:
+            return exists
 
 
 class CopickRunFSSpec(CopickRunOverlay):
@@ -447,7 +475,9 @@ class CopickRunFSSpec(CopickRunOverlay):
         static_is_overlay (bool): Whether the static and overlay sources are the same.
     """
 
-    def _voxel_spacing_factory(self) -> Tuple[Type[TCopickVoxelSpacing], Type["CopickVoxelSpacingMeta"]]:
+    root: "CopickRootFSSpec"
+
+    def _voxel_spacing_factory(self) -> Tuple[Type[CopickVoxelSpacingFSSpec], Type["CopickVoxelSpacingMeta"]]:
         return CopickVoxelSpacingFSSpec, CopickVoxelSpacingMeta
 
     def _picks_factory(self) -> Type[CopickPicksFSSpec]:
@@ -460,37 +490,47 @@ class CopickRunFSSpec(CopickRunOverlay):
         return CopickSegmentationFSSpec, CopickSegmentationMeta
 
     @property
-    def static_path(self):
+    def static_path(self) -> str:
         return f"{self.root.root_static}/ExperimentRuns/{self.name}"
 
     @property
-    def overlay_path(self):
+    def overlay_path(self) -> str:
         return f"{self.root.root_overlay}/ExperimentRuns/{self.name}"
 
     @property
-    def fs_static(self):
+    def fs_static(self) -> AbstractFileSystem:
         return self.root.fs_static
 
     @property
-    def fs_overlay(self):
+    def fs_overlay(self) -> AbstractFileSystem:
         return self.root.fs_overlay
 
     @property
-    def static_is_overlay(self):
+    def static_is_overlay(self) -> bool:
         return self.fs_static == self.fs_overlay and self.static_path == self.overlay_path
 
-    def query_voxelspacings(self) -> List[CopickVoxelSpacingFSSpec]:
+    def _query_static_voxel_spacings(self) -> List[CopickVoxelSpacingFSSpec]:
+        if self.static_is_overlay:
+            return []
+
         static_vs_loc = f"{self.static_path}/VoxelSpacing"
-        spaths = self.fs_static.glob(static_vs_loc + "*") + self.fs_static.glob(static_vs_loc + "*/")
+        spaths = set(self.fs_static.glob(static_vs_loc + "*") + self.fs_static.glob(static_vs_loc + "*/"))
         spaths = [p.rstrip("/") for p in spaths]
-        sspacings = [float(p.replace(f"{static_vs_loc}", "")) for p in spaths]
+        spacings = [float(p.replace(f"{static_vs_loc}", "")) for p in spaths]
 
+        return [
+            CopickVoxelSpacingFSSpec(
+                meta=CopickVoxelSpacingMeta(voxel_size=s),
+                run=self,
+            )
+            for s in spacings
+        ]
+
+    def _query_overlay_voxel_spacings(self) -> List[CopickVoxelSpacingFSSpec]:
         overlay_vs_loc = f"{self.overlay_path}/VoxelSpacing"
-        opaths = self.fs_overlay.glob(overlay_vs_loc + "*") + self.fs_overlay.glob(overlay_vs_loc + "*/")
+        opaths = set(self.fs_overlay.glob(overlay_vs_loc + "*") + self.fs_overlay.glob(overlay_vs_loc + "*/"))
         opaths = [p.rstrip("/") for p in opaths]
-        ospacings = [float(p.replace(f"{overlay_vs_loc}", "")) for p in opaths]
-
-        spacings = list(set(sspacings + ospacings))
+        spacings = [float(p.replace(f"{overlay_vs_loc}", "")) for p in opaths]
 
         return [
             CopickVoxelSpacingFSSpec(
@@ -709,13 +749,30 @@ class CopickRunFSSpec(CopickRunOverlay):
             for m in metas
         ]
 
-    def ensure(self) -> None:
-        """Ensure the run directory exists, creating it if necessary."""
-        if not self.fs_overlay.exists(self.overlay_path):
+    def ensure(self, create: bool = False) -> bool:
+        """Checks if the run record exists in the static or overlay directory, optionally creating it in the overlay
+        filesystem if it does not.
+
+        Args:
+            create: Whether to create the run record if it does not exist.
+
+        Returns:
+            bool: True if the run record exists, False otherwise.
+        """
+
+        if self.static_is_overlay:
+            exists = self.fs_overlay.exists(self.overlay_path)
+        else:
+            exists = self.fs_static.exists(self.static_path) or self.fs_overlay.exists(self.overlay_path)
+
+        if not exists and create:
             self.fs_overlay.makedirs(self.overlay_path, exist_ok=True)
             # TODO: Write metadata
             with self.fs_overlay.open(self.overlay_path + "/.meta", "w") as f:
-                f.write("")  # Touch the file
+                f.write("meta")  # Touch the file
+            return True
+        else:
+            return exists
 
 
 class CopickObjectFSSpec(CopickObjectOverlay):
@@ -726,12 +783,14 @@ class CopickObjectFSSpec(CopickObjectOverlay):
         fs (AbstractFileSystem): The filesystem containing the object file.
     """
 
+    root: "CopickRootFSSpec"
+
     @property
-    def path(self):
+    def path(self) -> str:
         return f"{self.root.root_static}/Objects/{self.name}.zarr"
 
     @property
-    def fs(self):
+    def fs(self) -> AbstractFileSystem:
         return self.root.fs_static
 
     def zarr(self) -> Union[None, zarr.storage.FSStore]:
@@ -780,15 +839,19 @@ class CopickRootFSSpec(CopickRoot):
         self.fs_overlay: AbstractFileSystem = fsspec.core.url_to_fs(config.overlay_root, **config.overlay_fs_args)[0]
         self.fs_static: Optional[AbstractFileSystem] = None
 
-        self.root_overlay: str = self.fs_overlay._strip_protocol(config.overlay_root)
+        self.root_overlay: str = self.fs_overlay._strip_protocol(config.overlay_root).rstrip("/")
         self.root_static: Optional[str] = None
 
         if config.static_root is None:
             self.fs_static = self.fs_overlay
-            self.root_static = self.fs_static._strip_protocol(config.overlay_root)
+            self.root_static = self.fs_static._strip_protocol(config.overlay_root).rstrip("/")
         else:
             self.fs_static = fsspec.core.url_to_fs(config.static_root, **config.static_fs_args)[0]
-            self.root_static = self.fs_static._strip_protocol(config.static_root)
+            self.root_static = self.fs_static._strip_protocol(config.static_root).rstrip("/")
+
+    @property
+    def static_is_overlay(self) -> bool:
+        return self.fs_static == self.fs_overlay and self.root_static == self.root_overlay
 
     @classmethod
     def from_file(cls, path: str) -> "CopickRootFSSpec":
@@ -805,30 +868,48 @@ class CopickRootFSSpec(CopickRoot):
 
         return cls(CopickConfigFSSpec(**data))
 
-    def _run_factory(self) -> Tuple[Type[TCopickRun], Type["CopickRunMeta.md"]]:
+    def _run_factory(self) -> Tuple[Type[CopickRunFSSpec], Type["CopickRunMeta"]]:
         return CopickRunFSSpec, CopickRunMeta
 
     def _object_factory(self) -> Tuple[Type[CopickObjectFSSpec], Type[PickableObject]]:
         return CopickObjectFSSpec, PickableObject
 
-    def query(self) -> List[CopickRunFSSpec]:
-        static_run_dir = f"{self.root_static}/ExperimentRuns/"
-        paths = self.fs_static.glob(static_run_dir + "*") + self.fs_static.glob(static_run_dir + "*/")
-        paths = [p.rstrip("/") for p in paths if self.fs_static.isdir(p)]
-        snames = [n.replace(static_run_dir, "") for n in paths]
-        # Remove any hidden files?
-        snames = [n for n in snames if not n.startswith(".")]
+    @staticmethod
+    def _query_names(fs, root) -> List[str]:
+        # Query location
+        run_dir = f"{root}/ExperimentRuns/"
+        paths = fs.glob(run_dir + "**", maxdepth=1, detail=True)
+        names = [p.rstrip("/").replace(run_dir, "") for p, details in paths.items() if details["type"] == "directory"]
 
-        overlay_run_dir = f"{self.root_overlay}/ExperimentRuns/"
-        paths = self.fs_overlay.glob(overlay_run_dir + "*") + self.fs_overlay.glob(overlay_run_dir + "*/")
-        paths = [p.rstrip("/") for p in paths if self.fs_overlay.isdir(p)]
-        onames = [n.replace(overlay_run_dir, "") for n in paths]
-        # Remove any hidden files?
-        onames = [n for n in onames if not n.startswith(".")]
+        # Remove any hidden files
+        names = [n for n in names if not n.startswith(".") and n != f"{root}/ExperimentRuns"]
+
+        return names
+
+    def _query_static_names(self) -> List[str]:
+        return self._query_names(self.fs_static, self.root_static)
+
+    def _query_overlay_names(self) -> List[str]:
+        return self._query_names(self.fs_overlay, self.root_overlay)
+
+    def query(self) -> List[CopickRunFSSpec]:
+        # Query filesystems in parallel
+        if self.static_is_overlay:
+            tasks = [self._query_overlay_names]
+        else:
+            tasks = [self._query_static_names, self._query_overlay_names]
+
+        names = []
+
+        with concurrent.futures.ThreadPoolExecutor() as executor:
+            futures = [executor.submit(t) for t in tasks]
+            for future in concurrent.futures.as_completed(futures):
+                names += future.result()
 
         # Deduplicate
-        names = sorted(set(snames + onames))
+        names = sorted(set(names))
 
+        # Create objects
         runs = []
         for n in names:
             rm = CopickRunMeta(name=n)
