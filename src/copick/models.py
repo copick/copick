@@ -68,11 +68,6 @@ class CopickConfig(BaseModel):
         voxel_spacings: Index for available voxel spacings.
         runs: Index for run names.
         tomograms: Index for available voxel spacings and tomogram types.
-        features: Index for available features. Must be computed on the tomogram types.
-        feature_types: Index for available feature types.
-        available_pre_picks: Index for available pre-pick tools.
-        available_pre_segmentations: Index for available pre-segmentations.
-        available_pre_meshes: Index for available pre-meshes.
     """
 
     name: Optional[str] = "CoPick"
