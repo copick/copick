@@ -299,10 +299,6 @@ class CopickTomogramCDP(CopickTomogramOverlay):
     def fs_static(self) -> AbstractFileSystem:
         return s3fs.S3FileSystem(anon=True)
 
-    @property
-    def portal_tomo(self) -> cdp.Tomogram:
-        return self.meta.portal_tomo
-
     def _query_static_features(self) -> List[CopickFeaturesCDP]:
         # Features are not defined by the portal yet
         return []
@@ -651,13 +647,15 @@ class CopickRunCDP(CopickRunOverlay):
 
 
 class CopickObjectCDP(CopickObjectOverlay):
+    root: "CopickRootCDP"
+
     @property
     def path(self):
         return f"{self.root.root_overlay}/Objects/{self.name}.zarr"
 
     @property
     def fs(self):
-        return self.root.root_overlay
+        return self.root.fs_overlay
 
     def zarr(self) -> Union[None, zarr.storage.FSStore]:
         if not self.is_particle:

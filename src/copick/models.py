@@ -387,7 +387,8 @@ class CopickRoot:
             self._runs = []
         self._runs.append(run)
 
-        run.ensure()
+        # Ensure the run record exists
+        run.ensure(create=True)
 
         return run
 
