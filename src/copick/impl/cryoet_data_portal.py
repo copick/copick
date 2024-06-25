@@ -58,9 +58,9 @@ class CopickPicksFileCDP(CopickPicksFile):
         anno = source.annotation
 
         user = "data-portal"
-        session = 0
+        session = source.id
 
-        object_name = f"{name}-{source.id}" if name else f"{camel(anno.object_name)}-{source.id}"
+        object_name = f"{name}" if name else f"{camel(anno.object_name)}-{source.id}"
 
         clz = cls(
             pickable_object_name=object_name,
@@ -95,6 +95,9 @@ class CopickPicksFileCDP(CopickPicksFile):
 
 
 class CopickPicksCDP(CopickPicksOverlay):
+    run: "CopickRunCDP"
+    meta: CopickPicksFileCDP
+
     @property
     def path(self) -> str:
         if self.read_only:
@@ -136,6 +139,8 @@ class CopickPicksCDP(CopickPicksOverlay):
 
 
 class CopickMeshCDP(CopickMeshOverlay):
+    run: "CopickRunCDP"
+
     @property
     def path(self) -> Union[str, None]:
         if self.read_only:
@@ -177,13 +182,13 @@ class CopickSegmentationMetaCDP(CopickSegmentationMeta):
 
     @classmethod
     def from_portal(cls, source: cdp.AnnotationFile, name: Optional[str] = None):
-        object_name = f"{name}-{source.id}" if name else f"{camel(source.annotation.object_name)}-{source.id}"
+        object_name = f"{name}" if name else f"{camel(source.annotation.object_name)}-{source.id}"
 
         return cls(
             is_multilabel=False,
             voxel_size=source.annotation.tomogram_voxel_spacing.voxel_spacing,
             user_id="data-portal",
-            session_id=0,
+            session_id=source.id,
             name=object_name,
             portal_annotation_file_id=source.id,
             portal_annotation_file_path=source.s3_path,
@@ -191,6 +196,9 @@ class CopickSegmentationMetaCDP(CopickSegmentationMeta):
 
 
 class CopickSegmentationCDP(CopickSegmentationOverlay):
+    run: "CopickRunCDP"
+    meta: CopickSegmentationMetaCDP
+
     @property
     def filename(self) -> str:
         if self.is_multilabel:
@@ -232,6 +240,8 @@ class CopickSegmentationCDP(CopickSegmentationOverlay):
 
 
 class CopickFeaturesCDP(CopickFeaturesOverlay):
+    tomogram: "CopickTomogramCDP"
+
     @property
     def path(self) -> str:
         if self.read_only:
@@ -276,6 +286,9 @@ class CopickTomogramMetaCDP(CopickTomogramMeta):
 
 
 class CopickTomogramCDP(CopickTomogramOverlay):
+    voxel_spacing: "CopickVoxelSpacingCDP"
+    meta: CopickTomogramMetaCDP
+
     def _feature_factory(self) -> Tuple[Type[CopickFeaturesCDP], Type["CopickFeaturesMeta"]]:
         return CopickFeaturesCDP, CopickFeaturesMeta
 
@@ -358,6 +371,7 @@ class CopickVoxelSpacingMetaCDP(CopickVoxelSpacingMeta):
 
 class CopickVoxelSpacingCDP(CopickVoxelSpacingOverlay):
     run: "CopickRunCDP"
+    meta: CopickVoxelSpacingMetaCDP
 
     def _tomogram_factory(self) -> Tuple[Type[CopickTomogramCDP], Type[CopickTomogramMetaCDP]]:
         return CopickTomogramCDP, CopickTomogramMetaCDP
@@ -446,7 +460,7 @@ class CopickRunMetaCDP(CopickRunMeta):
 
     @classmethod
     def from_portal(cls, source: cdp.Run):
-        return cls(name=f"{source.dataset_id}_{source.name}", portal_run_id=source.id)
+        return cls(name=f"{source.id}", portal_run_id=source.id)
 
 
 class CopickRunCDP(CopickRunOverlay):
@@ -529,7 +543,7 @@ class CopickRunCDP(CopickRunOverlay):
         return [
             CopickPicksCDP(
                 run=self,
-                file=CopickPicksFileCDP.from_portal(af, name=go_map[af.object_id]),
+                file=CopickPicksFileCDP.from_portal(af, name=go_map[af.annotation.object_id]),
                 read_only=True,
             )
             for af in point_annos
@@ -674,23 +688,13 @@ class CopickRunCDP(CopickRunOverlay):
             bool: True if the run record exists, False otherwise.
         """
         client = cdp.Client()
+        try:
+            id_from_name = int(self.name)
+            run = cdp.Run.get_by_id(client, id_from_name)
+        except ValueError:
+            run = None
 
-        dids = self.root.config.dataset_ids
-        name = self.name
-        for d in dids:
-            if name.startswith(str(d)):
-                name = name.replace(f"{d}_", "")
-                break
-
-        run = cdp.Run.find(
-            client,
-            [
-                cdp.Run.name == name,
-                cdp.Run.dataset_id._in(dids),  # noqa
-            ],
-        )
-
-        exists = len(run) > 0 or self.fs_overlay.exists(self.overlay_path)
+        exists = run is not None or self.fs_overlay.exists(self.overlay_path)
 
         if not exists and create:
             self.fs_overlay.makedirs(self.overlay_path, exist_ok=True)
