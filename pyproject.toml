@@ -88,6 +88,7 @@ select = [
     "SIM",     # simplify
 ]
 ignore = [
+    "G004",   # logging format
     "W293",   # blank line contains whitespace
     "B008",   # Do not perform calls in argument defaults
     "B905",   # `zip()` without an explicit `strict=` parameter
