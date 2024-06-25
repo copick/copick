@@ -1,6 +1,6 @@
 import click
 
-from copick.ops.add import ImportRegistry
+from copick.cli._ops._add import AddRegistry
 
 
 @click.group()
@@ -14,5 +14,5 @@ def list():
     pass
 
 
-importers = ImportRegistry()
-cli.add_command(importers.cli_group())
+adders = AddRegistry()
+cli.add_command(adders.cli_group())
