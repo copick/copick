@@ -445,6 +445,9 @@ class CopickVoxelSpacingCDP(CopickVoxelSpacingOverlay):
         )
         exists = len(vs) > 0 or self.fs_overlay.exists(self.overlay_path)
 
+        if len(vs) > 0:
+            self.meta.portal_vs_id = vs[0].id
+
         if not exists and create:
             self.fs_overlay.makedirs(self.overlay_path, exist_ok=True)
             # TODO: Write metadata
@@ -695,6 +698,9 @@ class CopickRunCDP(CopickRunOverlay):
             run = None
 
         exists = run is not None or self.fs_overlay.exists(self.overlay_path)
+
+        if run:
+            self.meta.portal_run_id = run.id
 
         if not exists and create:
             self.fs_overlay.makedirs(self.overlay_path, exist_ok=True)
