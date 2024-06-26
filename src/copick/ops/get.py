@@ -80,11 +80,18 @@ def get_segmentations(
         )
         return [seg for seglist in res.values() for seg in seglist]
     else:
-        return [
-            seg
-            for run in runs
-            for seg in _segmentation_query(run, user_id, session_id, is_multilabel, name, voxel_size)
-        ]
+        res = map_runs(
+            _segmentation_query,
+            root,
+            runs,
+            workers=1,
+            user_id=user_id,
+            session_id=session_id,
+            is_multilabel=is_multilabel,
+            name=name,
+            voxel_size=voxel_size,
+        )
+        return [seg for seglist in res.values() for seg in seglist]
 
 
 def _mesh_query(
@@ -388,3 +395,28 @@ def get_features(
         return [feat for featlist in res.values() for feat in featlist]
     else:
         return [feat for run in runs for feat in _features_query(run, voxel_size, tomo_type, feature_type)]
+
+
+def get_runs(
+    root: Union[str, CopickRoot],
+    names: Union[str, Iterable[str], None] = None,
+) -> List[CopickRun]:
+    """Query runs from a Copick project.
+
+    Args:
+        root: The Copick project root.
+
+
+    Returns:
+        A list of runs.
+    """
+
+    if isinstance(root, str):
+        root = from_file(root)
+
+    if names is None:
+        return root.runs
+    elif isinstance(names, str):
+        return [root.get_run(name=names)]
+    else:
+        return [root.get_run(name=name) for name in names]
