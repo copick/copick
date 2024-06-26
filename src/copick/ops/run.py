@@ -43,4 +43,4 @@ def map_runs(
             else:
                 raise ValueError(f"Invalid run type: {type(run)}")
 
-    return {run: result() for run, result in results.items()}
+    return {run: result.result() for run, result in results.items()}
