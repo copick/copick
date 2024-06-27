@@ -4,6 +4,7 @@ from typing import Any, Dict, List, Optional, Tuple, Type, Union
 
 import cryoet_data_portal as cdp
 import fsspec
+import numpy as np
 import s3fs
 import trimesh
 import zarr
@@ -82,10 +83,12 @@ class CopickPicksFileCDP(CopickPicksFile):
             for line in f:
                 data = json.loads(line)
                 x, y, z = data["location"]["x"] * vs, data["location"]["y"] * vs, data["location"]["z"] * vs
+                mat = np.eye(4, 4)
+                mat[:3, :3] = np.array(data["xyz_rotation_matrix"])
                 if source.shape_type == "OrientedPoint":
                     point = CopickPoint(
                         location=CopickLocation(x=x, y=y, z=z),
-                        transformation_=data["xyz_rotation_matrix"],
+                        transformation_=mat.tolist(),
                     )
                 else:
                     point = CopickPoint(location=CopickLocation(x=x, y=y, z=z))
