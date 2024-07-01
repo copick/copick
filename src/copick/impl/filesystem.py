@@ -802,6 +802,9 @@ class CopickObjectFSSpec(CopickObjectOverlay):
         if not self.is_particle:
             return None
 
+        if not self.fs.exists(self.path):
+            return None
+
         if self.read_only:
             mode = "r"
             create = False

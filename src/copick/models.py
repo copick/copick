@@ -237,7 +237,7 @@ class CopickObject:
 
     def zarr(self) -> Union[None, MutableMapping]:
         """Override this method to return a zarr store for this object. Should return None if
-        CopickObject.is_particle is False."""
+        CopickObject.is_particle is False or there is no associated map."""
         if not self.is_particle:
             return None
 
