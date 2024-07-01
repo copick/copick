@@ -17,7 +17,7 @@ dependencies = [
     "numpy",
     "trimesh",
     "zarr",
-    "cryoet-data-porta==3.0.3",
+    "cryoet-data-portal==3.0.3",
     "s3fs",
 ]
 authors = [
