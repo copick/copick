@@ -102,6 +102,14 @@ class CopickPicksCDP(CopickPicksOverlay):
     meta: CopickPicksFileCDP
 
     @property
+    def from_tool(self) -> bool:
+        return bool(self.read_only or self.session_id == "0")
+
+    @property
+    def from_user(self) -> bool:
+        return not self.from_tool
+
+    @property
     def path(self) -> str:
         if self.read_only:
             return self.meta.portal_annotation_file_path
@@ -143,6 +151,14 @@ class CopickPicksCDP(CopickPicksOverlay):
 
 class CopickMeshCDP(CopickMeshOverlay):
     run: "CopickRunCDP"
+
+    @property
+    def from_tool(self) -> bool:
+        return bool(self.read_only or self.session_id == "0")
+
+    @property
+    def from_user(self) -> bool:
+        return not self.from_tool
 
     @property
     def path(self) -> Union[str, None]:
@@ -201,6 +217,14 @@ class CopickSegmentationMetaCDP(CopickSegmentationMeta):
 class CopickSegmentationCDP(CopickSegmentationOverlay):
     run: "CopickRunCDP"
     meta: CopickSegmentationMetaCDP
+
+    @property
+    def from_tool(self) -> bool:
+        return bool(self.read_only or self.session_id == "0")
+
+    @property
+    def from_user(self) -> bool:
+        return not self.from_tool
 
     @property
     def filename(self) -> str:
