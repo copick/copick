@@ -587,7 +587,7 @@ class CopickRun:
             List[CopickPicks]: List of user-generated picks.
         """
         if self.root.config.user_id is None:
-            return [p for p in self.picks if p.session_id != "0"]
+            return [p for p in self.picks if p.from_user]
         else:
             return self.get_picks(user_id=self.root.config.user_id)
 
@@ -597,7 +597,7 @@ class CopickRun:
         Returns:
             List[CopickPicks]: List of tool-generated picks.
         """
-        return [p for p in self.picks if p.session_id == "0"]
+        return [p for p in self.picks if p.from_tool]
 
     def get_picks(self, object_name: str = None, user_id: str = None, session_id: str = None) -> List["CopickPicks"]:
         """Get picks by name, user_id or session_id (or combinations).
@@ -637,7 +637,7 @@ class CopickRun:
             List[CopickMesh]: List of user-generated meshes.
         """
         if self.root.config.user_id is None:
-            return [m for m in self.meshes if m.session_id != "0"]
+            return [m for m in self.meshes if m.from_user]
         else:
             return self.get_meshes(user_id=self.root.config.user_id)
 
@@ -647,7 +647,7 @@ class CopickRun:
         Returns:
             List[CopickMesh]: List of tool-generated meshes.
         """
-        return [m for m in self.meshes if m.session_id == "0"]
+        return [m for m in self.meshes if m.from_tool]
 
     def get_meshes(self, object_name: str = None, user_id: str = None, session_id: str = None) -> List["CopickMesh"]:
         """Get meshes by name, user_id or session_id (or combinations).
@@ -687,7 +687,7 @@ class CopickRun:
             List[CopickSegmentation]: List of user-generated segmentations.
         """
         if self.root.config.user_id is None:
-            return [s for s in self.segmentations if s.session_id != "0"]
+            return [s for s in self.segmentations if s.from_user]
         else:
             return self.get_segmentations(user_id=self.root.config.user_id)
 
@@ -697,7 +697,7 @@ class CopickRun:
         Returns:
             List[CopickSegmentation]: List of tool-generated segmentations.
         """
-        return [s for s in self.segmentations if s.session_id == "0"]
+        return [s for s in self.segmentations if s.from_tool]
 
     def get_segmentations(
         self,
