@@ -1386,6 +1386,10 @@ class CopickPicks:
         return self.session_id == "0"
 
     @property
+    def from_user(self) -> bool:
+        return self.session_id != "0"
+
+    @property
     def pickable_object_name(self) -> str:
         return self.meta.pickable_object_name
 
