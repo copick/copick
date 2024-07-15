@@ -44,9 +44,10 @@ There are four ways of setting up local **copick** projects:
     ---
 
     Using this method, the static part of the project will be stored locally, while new copick entities are written to
-    another storage backend. This could be useful together with the ZIP-backend for creating sharable annotations.
+    another storage backend. This could be useful when results should be uploaded to a common storage server, but a local
+    copy of the data exists.
 
-    [:octicons-arrow-right-24: Get config templates](#)
+    [:octicons-arrow-right-24: Get config templates](#option-4-other-overlay-local-static-backend)
 </div>
 ---
 
@@ -73,7 +74,7 @@ root directory as indicated below.
 vi copick_config.json
 ```
 
-??? template "Cofiguration Template"
+??? example "Cofiguration Template"
     ```json
     --8<-- "configs/overlay_local.json"
     ```
@@ -107,7 +108,7 @@ root directory as indicated below.
 vi copick_config.json
 ```
 
-??? template "Cofiguration Template"
+??? example "Cofiguration Template"
     ```json
     --8<-- "configs/overlay_local_static_local.json"
     ```
@@ -116,9 +117,10 @@ vi copick_config.json
 
 ## Option 3: Local overlay, other static backend
 
-=== "CZ cryoET Data Portal"
+Choose your static backend:
 
-    ??? template "Cofiguration Template"
+=== "CZ cryoET Data Portal"
+    ??? example "Cofiguration Template"
         ```json
         --8<-- "configs/overlay_local_static_data_portal.json"
         ```
@@ -129,41 +131,67 @@ vi copick_config.json
 
 
 === "SMB Share"
+    ??? example "Cofiguration Template"
+        ```json
+        --8<-- "configs/overlay_local_static_smb.json"
+        ```
 
-    ```json
-    --8<-- "configs/overlay_local_static_smb.json"
-    ```
+    --8<-- "instructions/local_overlay.md"
+
+    --8<-- "instructions/shared_static.md"
 
 === "AWS S3"
+    ??? example "Cofiguration Template"
+        ```json
+        --8<-- "configs/overlay_local_static_s3.json"
+        ```
 
-    ```json
-    --8<-- "configs/overlay_local_static_s3.json"
-    ```
+    --8<-- "instructions/local_overlay.md"
+
+    --8<-- "instructions/s3_static.md"
 
 === "SSH"
+    ??? example "Cofiguration Template"
+        ```json
+        --8<-- "configs/overlay_local_static_ssh.json"
+        ```
 
-    ```json
-    --8<-- "configs/overlay_local_static_ssh.json"
-    ```
+    --8<-- "instructions/local_overlay.md"
+
+    --8<-- "instructions/ssh_static.md"
 
 ---
 
 ## Option 4: Other overlay, local static backend
 
-=== "SMB Share"
+Choose your overlay backend:
 
-    ```json
-    --8<-- "configs/overlay_smb_static_local.json"
-    ```
+=== "SMB Share"
+    ??? example "Cofiguration Template"
+        ```json
+        --8<-- "configs/overlay_smb_static_local.json"
+        ```
+
+    --8<-- "instructions/shared_overlay.md"
+
+    --8<-- "instructions/local_static.md"
 
 === "AWS S3"
+    ??? example "Cofiguration Template"
+        ```json
+        --8<-- "configs/overlay_s3_static_local.json"
+        ```
 
-    ```json
-    --8<-- "configs/overlay_s3_static_local.json"
-    ```
+    --8<-- "instructions/s3_overlay.md"
+
+    --8<-- "instructions/local_static.md"
 
 === "SSH"
+    ??? example "Cofiguration Template"
+        ```json
+        --8<-- "configs/overlay_ssh_static_local.json"
+        ```
 
-    ```json
-    --8<-- "configs/overlay_ssh_static_local.json"
-    ```
+    --8<-- "instructions/ssh_overlay.md"
+
+    --8<-- "instructions/local_static.md"

@@ -19,12 +19,12 @@ In the config file, the location should be passed to the `overlay_root`-field. A
 
 ```json
 {
-  "overlay_root": "/path/to/copick_project",
+  "overlay_root": "local:///path/to/copick_project",
   "overlay_fs_args": {
     "auto_mkdir": true
   }
 }
 ```
 
-!!! note "overlay_fs_args"
+??? note "More about `overlay_fs_args` ..."
     The `auto_mkdir`-flag is necessary to create copick-directories if they do not yet exist.

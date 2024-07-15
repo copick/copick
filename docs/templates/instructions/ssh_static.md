@@ -1,6 +1,6 @@
-**Set up your overlay project**
+**Set up your static project**
 
-This directory will contain all newly created data for your project.
+This directory will contain all static data for your project.
 
 !!! note "SSH authentication"
     Copick will work best via SSH if you have set up passwordless SSH authentication. Refer to the
@@ -17,24 +17,24 @@ This directory will contain all newly created data for your project.
 
 Make sure it exists on the remote filesystem and is writable:
 ```bash
-ssh -p 22 user.name@hpc.example.com "touch /path/to/copick_project"
-# Replace port, user name and path to the project overlay with the correct values
+ssh -p 22 user.name@hpc.example.com "touch /path/to/copick_project_static"
+# Replace port, user name and path to the static project with the correct values
 ```
 
 If it does not yet exist, create it with the following command:
 ```bash
-ssh -p 22 user.name@hpc.example.com "mkdir /path/to/copick_project"
-# Replace port, user name and path to the project overlay with the correct values
+ssh -p 22 user.name@hpc.example.com "mkdir /path/to/copick_project_static"
+# Replace port, user name and path to the static project with the correct values
 ```
 
-In the config file, the location should be passed to the `overlay_root`-field. Any arguments specified to the
-`overlay_fs_args`-field will be passed to [sshfs.SSHFileSystem](https://github.com/fsspec/sshfs?tab=readme-ov-file).
+In the config file, the location should be passed to the `static_root`-field. Any arguments specified to the
+`static_fs_args`-field will be passed to [sshfs.SSHFileSystem](https://github.com/fsspec/sshfs?tab=readme-ov-file).
 
 ```json
 {
-  "overlay_root": "ssh:///path/to/copick_project/",
+  "static_root": "ssh:///path/to/copick_project_static/",
 
-    "overlay_fs_args": {
+    "static_fs_args": {
         "username": "user.name",
         "host": "hpc.example.com",
         "port": 22
@@ -42,7 +42,7 @@ In the config file, the location should be passed to the `overlay_root`-field. A
 }
 ```
 
-??? note "More about `overlay_fs_args` ..."
+??? note "More about `static_fs_args` ..."
     The `username`, `host` and `port`-fields are necessary to set up the SSH connection. Refer to the
     [SSHFS documentation](https://github.com/fsspec/sshfs?tab=readme-ov-file) for detailed information.
 
@@ -56,7 +56,7 @@ In the config file, the location should be passed to the `overlay_root`-field. A
 
     ```json
     {
-      "overlay_fs_args": {
+      "static_fs_args": {
           "username": "user.name",
           "host": "localhost",
           "port": 2222

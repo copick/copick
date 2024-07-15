@@ -20,6 +20,7 @@ SMB_OVERLAY = {
         "username": "user.name",
         "password": "1234",
         "temppath": "/shared_drive",
+        "auto_mkdir": True,
     },
 }
 
@@ -53,6 +54,7 @@ SMB_STATIC = {
         "username": "user.name",
         "password": "1234",
         "temppath": "/shared_drive",
+        "auto_mkdir": True,
     },
 }
 

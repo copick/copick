@@ -54,6 +54,7 @@
         "host": "192.158.1.38",
         "username": "user.name",
         "password": "1234",
-        "temppath": "/shared_drive"
+        "temppath": "/shared_drive",
+        "auto_mkdir": true
     }
 }
