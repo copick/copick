@@ -34,7 +34,7 @@ provided through an object-oriented API that abstracts away the underlying stora
     No need for a dedicated server or database to access your data, just point **copick** to your data
     and go!
 
-    [:octicons-arrow-right-24: Deploy copick using album](#)
+    [:octicons-arrow-right-24: Deploy copick using album](examples/tutorials/album.md)
 
 -   :fontawesome-solid-layer-group:{ .lg .middle } __cross-platform__
 
@@ -43,7 +43,7 @@ provided through an object-oriented API that abstracts away the underlying stora
     **copick** works on any platform that supports Python. Compute on Linux, visualize on Windows or
     Mac!
 
-    [:octicons-arrow-right-24: Learn about copick and HPC](#)
+    [:octicons-arrow-right-24: Learn about copick and HPC](examples/tutorials/hpc.md)
 
 -   :fontawesome-solid-circle-nodes:{ .lg .middle } __ecosystem__
 
