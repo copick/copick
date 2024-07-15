@@ -19,6 +19,7 @@ dependencies = [
     "zarr",
     "cryoet-data-portal==3.0.3",
     "s3fs",
+    "click",
 ]
 authors = [
   {name = "Utz H. Ermel", email = "utz.ermel@czii.org"},
@@ -58,6 +59,9 @@ docs = [
     "mkdocs-autorefs",
     "mkdocs-material",
 ]
+
+[project.scripts]
+make_templates = "copick.cli.make_templates:create [docs]"
 
 #[tool.hatch.version]
 #source = "copick/__init__.py"
