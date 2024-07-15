@@ -1,6 +1,6 @@
 <figure markdown="span">
-  ![local-project](../../assets/local_light.png#only-light){ width="500" }
-  ![local-project](../../assets/local_dark.png#only-dark){ width="500" }
+  ![local-project](../../assets/local_light.png#only-light)
+  ![local-project](../../assets/local_dark.png#only-dark)
   <figcaption>copick project setup with local storage.</figcaption>
 </figure>
 

@@ -1,6 +1,6 @@
 <figure markdown="span">
-  ![data-portal-project](../../assets/data_portal_light.png#only-light){ width="500" }
-  ![data-portal-project](../../assets/data_portal_dark.png#only-dark){ width="500" }
+  ![data-portal-project](../../assets/data_portal_light.png#only-light)
+  ![data-portal-project](../../assets/data_portal_dark.png#only-dark)
   <figcaption>copick project setup static data from the CZ cryoET data portal.</figcaption>
 </figure>
 

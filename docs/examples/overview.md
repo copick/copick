@@ -76,7 +76,7 @@ tasks.
 
     Install **copick** and set up a simple project.
 
-    [:octicons-arrow-right-24: Learn more](quickstart.md)
+    [:octicons-arrow-right-24: Learn more](../quickstart.md)
 
 
 -   :fontawesome-solid-circle-nodes:{ .lg .middle }   __Data Portal__

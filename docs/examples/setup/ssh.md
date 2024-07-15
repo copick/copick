@@ -1,6 +1,6 @@
 <figure markdown="span">
-  ![ssh-project](../../assets/ssh_light.png#only-light){ width="500" }
-  ![ssh-project](../../assets/ssh_dark.png#only-dark){ width="500" }
+  ![ssh-project](../../assets/ssh_light.png#only-light)
+  ![ssh-project](../../assets/ssh_dark.png#only-dark)
   <figcaption>copick project setup with remote storage via SSH.</figcaption>
 </figure>
 

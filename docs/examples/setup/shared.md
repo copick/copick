@@ -1,6 +1,6 @@
 <figure markdown="span">
-  ![shared-project](../../assets/smb_light.png#only-light){ width="500" }
-  ![shared-project](../../assets/smb_dark.png#only-dark){ width="500" }
+  ![shared-project](../../assets/smb_light.png#only-light)
+  ![shared-project](../../assets/smb_dark.png#only-dark)
   <figcaption>copick project setup with SMB shared drive.</figcaption>
 </figure>
 

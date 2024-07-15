@@ -1,6 +1,6 @@
 <figure markdown="span">
-  ![s3-project](../../assets/s3_light.png#only-light){ width="500" }
-  ![s3-project](../../assets/s3_dark.png#only-dark){ width="500" }
+  ![s3-project](../../assets/s3_light.png#only-light)
+  ![s3-project](../../assets/s3_dark.png#only-dark)
   <figcaption>copick project setup with an S3 bucket.</figcaption>
 </figure>
 
