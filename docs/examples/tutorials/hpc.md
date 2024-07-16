@@ -49,7 +49,6 @@ We will store this information in a configuration file `copick_config.json` on t
             {
                 "name": "membrane",
                 "is_particle": false,
-                "pdb_id": "7P6Z",
                 "go_id": "GO:0016020",
                 "label": 3,
                 "color": [200, 200, 200, 255],
@@ -94,7 +93,6 @@ here, but will not be used in this tutorial.
             {
                 "name": "membrane",
                 "is_particle": false,
-                "pdb_id": "7P6Z",
                 "go_id": "GO:0016020",
                 "label": 3,
                 "color": [200, 200, 200, 255],
@@ -156,7 +154,6 @@ On our local machine, we create a new configuration file `copick_config_local.js
             {
                 "name": "membrane",
                 "is_particle": false,
-                "pdb_id": "7P6Z",
                 "go_id": "GO:0016020",
                 "label": 3,
                 "color": [200, 200, 200, 255],
@@ -202,7 +199,6 @@ used in this tutorial.
             {
                 "name": "membrane",
                 "is_particle": false,
-                "pdb_id": "7P6Z",
                 "go_id": "GO:0016020",
                 "label": 3,
                 "color": [200, 200, 200, 255],
