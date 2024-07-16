@@ -35,6 +35,7 @@ nav:
       - CZ cryoET Data Portal: "examples/setup/data_portal.md"
     - Tutorials:
       - CZ cryoET Data Portal: "examples/tutorials/data_portal.md"
+      - Copick and HPC: "examples/tutorials/hpc.md"
       - ChimeraX-Copick: "examples/tutorials/chimerax.md"
       - Copick and Album: "examples/tutorials/album.md"
       - Detecting Sample Boundaries: "examples/tutorials/sample_boundaries.md"
