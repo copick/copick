@@ -12,7 +12,7 @@
         <link rel="prev" href="../quickstart/">
       
       
-        <link rel="next" href="../api_reference/api/">
+        <link rel="next" href="../examples/overview/">
       
       
       <link rel="icon" href="../assets/images/favicon.png">
@@ -72,6 +72,11 @@
     <input class="md-toggle" data-md-toggle="search" type="checkbox" id="__search" autocomplete="off">
     <label class="md-overlay" for="__drawer"></label>
     <div data-md-component="skip">
+      
+        
+        <a href="#data-entities" class="md-skip">
+          Skip to content
+        </a>
       
     </div>
     <div data-md-component="announce">
@@ -293,6 +298,17 @@
       
       
       
+        <label class="md-nav__link md-nav__link--active" for="__toc">
+          
+  
+  <span class="md-ellipsis">
+    Data Model
+  </span>
+  
+
+          <span class="md-nav__icon md-icon"></span>
+        </label>
+      
       <a href="./" class="md-nav__link md-nav__link--active">
         
   
@@ -302,6 +318,158 @@
   
 
       </a>
+      
+        
+
+<nav class="md-nav md-nav--secondary" aria-label="Table of contents">
+  
+  
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      Table of contents
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#data-entities" class="md-nav__link">
+    <span class="md-ellipsis">
+      Data Entities
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Data Entities">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#root" class="md-nav__link">
+    <span class="md-ellipsis">
+      Root
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#pickable-object" class="md-nav__link">
+    <span class="md-ellipsis">
+      Pickable Object
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#run" class="md-nav__link">
+    <span class="md-ellipsis">
+      Run
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#voxel-spacing" class="md-nav__link">
+    <span class="md-ellipsis">
+      Voxel Spacing
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#image-data" class="md-nav__link">
+    <span class="md-ellipsis">
+      Image data
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Image data">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#tomogram" class="md-nav__link">
+    <span class="md-ellipsis">
+      Tomogram
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#feature-map" class="md-nav__link">
+    <span class="md-ellipsis">
+      Feature Map
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#annotation-data" class="md-nav__link">
+    <span class="md-ellipsis">
+      Annotation data
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Annotation data">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#point-annotations" class="md-nav__link">
+    <span class="md-ellipsis">
+      Point Annotations
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#mesh-annotations" class="md-nav__link">
+    <span class="md-ellipsis">
+      Mesh Annotations
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#dense-segmentations" class="md-nav__link">
+    <span class="md-ellipsis">
+      Dense Segmentations
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#on-disk-data-model" class="md-nav__link">
+    <span class="md-ellipsis">
+      On-disk Data Model
+    </span>
+  </a>
+  
+</li>
+      
+    </ul>
+  
+</nav>
       
     </li>
   
@@ -328,7 +496,7 @@
             
   
   <span class="md-ellipsis">
-    API Reference
+    Examples
   </span>
   
 
@@ -337,6 +505,427 @@
         
         <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_4_label" aria-expanded="false">
           <label class="md-nav__title" for="__nav_4">
+            <span class="md-nav__icon md-icon"></span>
+            Examples
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../examples/overview/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Overview
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    
+    
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_4_2" >
+        
+          
+          <label class="md-nav__link" for="__nav_4_2" id="__nav_4_2_label" tabindex="0">
+            
+  
+  <span class="md-ellipsis">
+    Setup
+  </span>
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="2" aria-labelledby="__nav_4_2_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_4_2">
+            <span class="md-nav__icon md-icon"></span>
+            Setup
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../examples/setup/local/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Local Project
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../examples/setup/shared/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Shared Project
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../examples/setup/aws_s3/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    AWS S3 Project
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../examples/setup/ssh/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    SSH Project
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../examples/setup/data_portal/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    CZ cryoET Data Portal
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    
+    
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_4_3" >
+        
+          
+          <label class="md-nav__link" for="__nav_4_3" id="__nav_4_3_label" tabindex="0">
+            
+  
+  <span class="md-ellipsis">
+    Tutorials
+  </span>
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="2" aria-labelledby="__nav_4_3_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_4_3">
+            <span class="md-nav__icon md-icon"></span>
+            Tutorials
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../examples/tutorials/data_portal/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    CZ cryoET Data Portal
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../examples/tutorials/hpc/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Copick and HPC
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../examples/tutorials/chimerax/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    ChimeraX-Copick
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../examples/tutorials/album/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Copick and Album
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../examples/tutorials/sample_boundaries/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Detecting Sample Boundaries
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../examples/tutorials/membrain/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Copick and membrain-seg
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../examples/snippets/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Snippets
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../tools/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Tools
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_6" >
+        
+          
+          <label class="md-nav__link" for="__nav_6" id="__nav_6_label" tabindex="0">
+            
+  
+  <span class="md-ellipsis">
+    API Reference
+  </span>
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_6_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_6">
             <span class="md-nav__icon md-icon"></span>
             API Reference
           </label>
@@ -377,10 +966,10 @@
       
         
         
-        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_4_2" >
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_6_2" >
         
           
-          <label class="md-nav__link" for="__nav_4_2" id="__nav_4_2_label" tabindex="0">
+          <label class="md-nav__link" for="__nav_6_2" id="__nav_6_2_label" tabindex="0">
             
   
   <span class="md-ellipsis">
@@ -391,8 +980,8 @@
             <span class="md-nav__icon md-icon"></span>
           </label>
         
-        <nav class="md-nav" data-md-level="2" aria-labelledby="__nav_4_2_label" aria-expanded="false">
-          <label class="md-nav__title" for="__nav_4_2">
+        <nav class="md-nav" data-md-level="2" aria-labelledby="__nav_6_2_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_6_2">
             <span class="md-nav__icon md-icon"></span>
             Base Classes
           </label>
@@ -412,10 +1001,10 @@
       
         
         
-        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_4_2_1" >
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_6_2_1" >
         
           
-          <label class="md-nav__link" for="__nav_4_2_1" id="__nav_4_2_1_label" tabindex="0">
+          <label class="md-nav__link" for="__nav_6_2_1" id="__nav_6_2_1_label" tabindex="0">
             
   
   <span class="md-ellipsis">
@@ -426,8 +1015,8 @@
             <span class="md-nav__icon md-icon"></span>
           </label>
         
-        <nav class="md-nav" data-md-level="3" aria-labelledby="__nav_4_2_1_label" aria-expanded="false">
-          <label class="md-nav__title" for="__nav_4_2_1">
+        <nav class="md-nav" data-md-level="3" aria-labelledby="__nav_6_2_1_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_6_2_1">
             <span class="md-nav__icon md-icon"></span>
             Data Entity Models
           </label>
@@ -644,10 +1233,10 @@
       
         
         
-        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_4_2_2" >
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_6_2_2" >
         
           
-          <label class="md-nav__link" for="__nav_4_2_2" id="__nav_4_2_2_label" tabindex="0">
+          <label class="md-nav__link" for="__nav_6_2_2" id="__nav_6_2_2_label" tabindex="0">
             
   
   <span class="md-ellipsis">
@@ -658,8 +1247,8 @@
             <span class="md-nav__icon md-icon"></span>
           </label>
         
-        <nav class="md-nav" data-md-level="3" aria-labelledby="__nav_4_2_2_label" aria-expanded="false">
-          <label class="md-nav__title" for="__nav_4_2_2">
+        <nav class="md-nav" data-md-level="3" aria-labelledby="__nav_6_2_2_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_6_2_2">
             <span class="md-nav__icon md-icon"></span>
             Metadata Models
           </label>
@@ -884,10 +1473,10 @@
       
         
         
-        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_4_3" >
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_6_3" >
         
           
-          <label class="md-nav__link" for="__nav_4_3" id="__nav_4_3_label" tabindex="0">
+          <label class="md-nav__link" for="__nav_6_3" id="__nav_6_3_label" tabindex="0">
             
   
   <span class="md-ellipsis">
@@ -898,8 +1487,8 @@
             <span class="md-nav__icon md-icon"></span>
           </label>
         
-        <nav class="md-nav" data-md-level="2" aria-labelledby="__nav_4_3_label" aria-expanded="false">
-          <label class="md-nav__title" for="__nav_4_3">
+        <nav class="md-nav" data-md-level="2" aria-labelledby="__nav_6_3_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_6_3">
             <span class="md-nav__icon md-icon"></span>
             Implementations
           </label>
@@ -947,6 +1536,27 @@
 
               
             
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../api_reference/implementations/Dataportal/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Data Portal
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
           </ul>
         </nav>
       
@@ -980,6 +1590,149 @@
   
   
   
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      Table of contents
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#data-entities" class="md-nav__link">
+    <span class="md-ellipsis">
+      Data Entities
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Data Entities">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#root" class="md-nav__link">
+    <span class="md-ellipsis">
+      Root
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#pickable-object" class="md-nav__link">
+    <span class="md-ellipsis">
+      Pickable Object
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#run" class="md-nav__link">
+    <span class="md-ellipsis">
+      Run
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#voxel-spacing" class="md-nav__link">
+    <span class="md-ellipsis">
+      Voxel Spacing
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#image-data" class="md-nav__link">
+    <span class="md-ellipsis">
+      Image data
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Image data">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#tomogram" class="md-nav__link">
+    <span class="md-ellipsis">
+      Tomogram
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#feature-map" class="md-nav__link">
+    <span class="md-ellipsis">
+      Feature Map
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#annotation-data" class="md-nav__link">
+    <span class="md-ellipsis">
+      Annotation data
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Annotation data">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#point-annotations" class="md-nav__link">
+    <span class="md-ellipsis">
+      Point Annotations
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#mesh-annotations" class="md-nav__link">
+    <span class="md-ellipsis">
+      Mesh Annotations
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#dense-segmentations" class="md-nav__link">
+    <span class="md-ellipsis">
+      Dense Segmentations
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#on-disk-data-model" class="md-nav__link">
+    <span class="md-ellipsis">
+      On-disk Data Model
+    </span>
+  </a>
+  
+</li>
+      
+    </ul>
+  
 </nav>
                   </div>
                 </div>
@@ -998,32 +1751,401 @@
 
   <h1>Data Model</h1>
 
+<h2 id="data-entities">Data Entities</h2>
+<h3 id="root">Root</h3>
+<p>The project's root. This is the entry point for the copick API. It allows access to information about the <a href="#pickable-object">pickable
+objects</a> and <a href="">runs</a> contained in the project.</p>
+<details class="example">
+<summary>Example Code - Print available objects and runs</summary>
+<div class="language-python highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="sd">&quot;&quot;&quot;Print all objects and runs in a copick project.&quot;&quot;&quot;</span>
+</span><span id="__span-0-2"><a id="__codelineno-0-2" name="__codelineno-0-2" href="#__codelineno-0-2"></a>
+</span><span id="__span-0-3"><a id="__codelineno-0-3" name="__codelineno-0-3" href="#__codelineno-0-3"></a><span class="kn">import</span> <span class="nn">copick</span>
+</span><span id="__span-0-4"><a id="__codelineno-0-4" name="__codelineno-0-4" href="#__codelineno-0-4"></a>
+</span><span id="__span-0-5"><a id="__codelineno-0-5" name="__codelineno-0-5" href="#__codelineno-0-5"></a><span class="c1"># Initialize the root object from a configuration file</span>
+</span><span id="__span-0-6"><a id="__codelineno-0-6" name="__codelineno-0-6" href="#__codelineno-0-6"></a><span class="n">root</span> <span class="o">=</span> <span class="n">copick</span><span class="o">.</span><span class="n">from_file</span><span class="p">(</span><span class="s2">&quot;path/to/config.json&quot;</span><span class="p">)</span>
+</span><span id="__span-0-7"><a id="__codelineno-0-7" name="__codelineno-0-7" href="#__codelineno-0-7"></a>
+</span><span id="__span-0-8"><a id="__codelineno-0-8" name="__codelineno-0-8" href="#__codelineno-0-8"></a><span class="c1"># List all available objects</span>
+</span><span id="__span-0-9"><a id="__codelineno-0-9" name="__codelineno-0-9" href="#__codelineno-0-9"></a><span class="n">obj_info</span> <span class="o">=</span> <span class="p">[(</span><span class="n">o</span><span class="o">.</span><span class="n">name</span><span class="p">,</span> <span class="n">o</span><span class="o">.</span><span class="n">label</span><span class="p">)</span> <span class="k">for</span> <span class="n">o</span> <span class="ow">in</span> <span class="n">root</span><span class="o">.</span><span class="n">objects</span><span class="o">.</span><span class="n">values</span><span class="p">()]</span>
+</span><span id="__span-0-10"><a id="__codelineno-0-10" name="__codelineno-0-10" href="#__codelineno-0-10"></a>
+</span><span id="__span-0-11"><a id="__codelineno-0-11" name="__codelineno-0-11" href="#__codelineno-0-11"></a><span class="nb">print</span><span class="p">(</span><span class="s2">&quot;Pickable objects in this project:&quot;</span><span class="p">)</span>
+</span><span id="__span-0-12"><a id="__codelineno-0-12" name="__codelineno-0-12" href="#__codelineno-0-12"></a><span class="k">for</span> <span class="n">name</span><span class="p">,</span> <span class="n">label</span> <span class="ow">in</span> <span class="n">obj_info</span><span class="p">:</span>
+</span><span id="__span-0-13"><a id="__codelineno-0-13" name="__codelineno-0-13" href="#__codelineno-0-13"></a>    <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;  </span><span class="si">{</span><span class="n">name</span><span class="si">}</span><span class="s2">: </span><span class="si">{</span><span class="n">label</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+</span><span id="__span-0-14"><a id="__codelineno-0-14" name="__codelineno-0-14" href="#__codelineno-0-14"></a>
+</span><span id="__span-0-15"><a id="__codelineno-0-15" name="__codelineno-0-15" href="#__codelineno-0-15"></a><span class="c1"># Execute a function on each run in the project</span>
+</span><span id="__span-0-16"><a id="__codelineno-0-16" name="__codelineno-0-16" href="#__codelineno-0-16"></a><span class="n">runs</span> <span class="o">=</span> <span class="n">root</span><span class="o">.</span><span class="n">runs</span>
+</span><span id="__span-0-17"><a id="__codelineno-0-17" name="__codelineno-0-17" href="#__codelineno-0-17"></a>
+</span><span id="__span-0-18"><a id="__codelineno-0-18" name="__codelineno-0-18" href="#__codelineno-0-18"></a><span class="nb">print</span><span class="p">(</span><span class="s2">&quot;Runs in this project:&quot;</span><span class="p">)</span>
+</span><span id="__span-0-19"><a id="__codelineno-0-19" name="__codelineno-0-19" href="#__codelineno-0-19"></a><span class="k">for</span> <span class="n">run</span> <span class="ow">in</span> <span class="n">runs</span><span class="p">:</span>
+</span><span id="__span-0-20"><a id="__codelineno-0-20" name="__codelineno-0-20" href="#__codelineno-0-20"></a>    <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Run: </span><span class="si">{</span><span class="n">run</span><span class="o">.</span><span class="n">name</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+</span><span id="__span-0-21"><a id="__codelineno-0-21" name="__codelineno-0-21" href="#__codelineno-0-21"></a>    <span class="c1"># Do something with the run</span>
+</span></code></pre></div>
+<p>Refer to the <a href="../api_reference/base_classes/data_entity_models/CopickRoot/">API Reference</a> for more information on
+the CopickRoot API.</p>
+</details>
+<h3 id="pickable-object">Pickable Object</h3>
+<p>Objects are any entity that can be labeled inside a 3D image using points, meshes or dense segmentation masks. In most
+cases, these will be macromolecular complexes or other cellular structures, like membranes. They can also be more
+abstract entities like "contamination particles", "carbon edges", or "sample boundaries".</p>
+<p>In the configuration file, each object is defined by a JSON object, that allows the user to specify the object's name,
+label, color, radius, and other properties.</p>
+<div class="admonition warning">
+<p class="admonition-title">Naming Conventions</p>
+<p>Object names should never contain underscores!</p>
+</div>
+<details class="example">
+<summary>Example Code - Read an object's density map.</summary>
+<div class="language-python highlight"><pre><span></span><code><span id="__span-1-1"><a id="__codelineno-1-1" name="__codelineno-1-1" href="#__codelineno-1-1"></a><span class="sd">&quot;&quot;&quot;Read a density map from an object&#39;s zarr-store into a numpy array.&quot;&quot;&quot;</span>
+</span><span id="__span-1-2"><a id="__codelineno-1-2" name="__codelineno-1-2" href="#__codelineno-1-2"></a>
+</span><span id="__span-1-3"><a id="__codelineno-1-3" name="__codelineno-1-3" href="#__codelineno-1-3"></a><span class="kn">import</span> <span class="nn">copick</span>
+</span><span id="__span-1-4"><a id="__codelineno-1-4" name="__codelineno-1-4" href="#__codelineno-1-4"></a><span class="kn">import</span> <span class="nn">numpy</span> <span class="k">as</span> <span class="nn">np</span>
+</span><span id="__span-1-5"><a id="__codelineno-1-5" name="__codelineno-1-5" href="#__codelineno-1-5"></a><span class="kn">import</span> <span class="nn">zarr</span>
+</span><span id="__span-1-6"><a id="__codelineno-1-6" name="__codelineno-1-6" href="#__codelineno-1-6"></a>
+</span><span id="__span-1-7"><a id="__codelineno-1-7" name="__codelineno-1-7" href="#__codelineno-1-7"></a><span class="c1"># Initialize the root object from a configuration file</span>
+</span><span id="__span-1-8"><a id="__codelineno-1-8" name="__codelineno-1-8" href="#__codelineno-1-8"></a><span class="n">root</span> <span class="o">=</span> <span class="n">copick</span><span class="o">.</span><span class="n">from_file</span><span class="p">(</span><span class="s2">&quot;path/to/config.json&quot;</span><span class="p">)</span>
+</span><span id="__span-1-9"><a id="__codelineno-1-9" name="__codelineno-1-9" href="#__codelineno-1-9"></a>
+</span><span id="__span-1-10"><a id="__codelineno-1-10" name="__codelineno-1-10" href="#__codelineno-1-10"></a><span class="c1"># Get the object named &#39;proteasome&#39;</span>
+</span><span id="__span-1-11"><a id="__codelineno-1-11" name="__codelineno-1-11" href="#__codelineno-1-11"></a><span class="n">proteasome</span> <span class="o">=</span> <span class="n">root</span><span class="o">.</span><span class="n">get_object</span><span class="p">(</span><span class="s2">&quot;proteasome&quot;</span><span class="p">)</span>
+</span><span id="__span-1-12"><a id="__codelineno-1-12" name="__codelineno-1-12" href="#__codelineno-1-12"></a>
+</span><span id="__span-1-13"><a id="__codelineno-1-13" name="__codelineno-1-13" href="#__codelineno-1-13"></a><span class="c1"># Read the density map for the object from its zarr-store</span>
+</span><span id="__span-1-14"><a id="__codelineno-1-14" name="__codelineno-1-14" href="#__codelineno-1-14"></a><span class="n">zarr_array</span> <span class="o">=</span> <span class="n">zarr</span><span class="o">.</span><span class="n">open</span><span class="p">(</span><span class="n">proteasome</span><span class="o">.</span><span class="n">zarr</span><span class="p">())[</span><span class="s2">&quot;0&quot;</span><span class="p">]</span>
+</span><span id="__span-1-15"><a id="__codelineno-1-15" name="__codelineno-1-15" href="#__codelineno-1-15"></a><span class="n">density_map</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">zarr_array</span><span class="p">)</span>
+</span></code></pre></div>
+<p>Refer to the <a href="../api_reference/base_classes/data_entity_models/CopickObject/">API Reference</a> for more information on
+the CopickObject API.</p>
+</details>
+<div class="admonition note">
+<p class="admonition-title">Example Object Definition</p>
+<p>The following is an example of a pickable object definition in the configuration file:
+<div class="language-json highlight"><pre><span></span><code><span id="__span-2-1"><a id="__codelineno-2-1" name="__codelineno-2-1" href="#__codelineno-2-1"></a><span class="p">{</span>
+</span><span id="__span-2-2"><a id="__codelineno-2-2" name="__codelineno-2-2" href="#__codelineno-2-2"></a><span class="w">    </span><span class="nt">&quot;name&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;proteasome&quot;</span><span class="p">,</span>
+</span><span id="__span-2-3"><a id="__codelineno-2-3" name="__codelineno-2-3" href="#__codelineno-2-3"></a><span class="w">    </span><span class="nt">&quot;is_particle&quot;</span><span class="p">:</span><span class="w"> </span><span class="kc">true</span><span class="p">,</span>
+</span><span id="__span-2-4"><a id="__codelineno-2-4" name="__codelineno-2-4" href="#__codelineno-2-4"></a><span class="w">    </span><span class="nt">&quot;pdb_id&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;3J9I&quot;</span><span class="p">,</span>
+</span><span id="__span-2-5"><a id="__codelineno-2-5" name="__codelineno-2-5" href="#__codelineno-2-5"></a><span class="w">    </span><span class="nt">&quot;emdb_id&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;1234&quot;</span><span class="p">,</span>
+</span><span id="__span-2-6"><a id="__codelineno-2-6" name="__codelineno-2-6" href="#__codelineno-2-6"></a><span class="w">    </span><span class="nt">&quot;go_id&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;GO:0001234&quot;</span><span class="p">,</span>
+</span><span id="__span-2-7"><a id="__codelineno-2-7" name="__codelineno-2-7" href="#__codelineno-2-7"></a><span class="w">    </span><span class="nt">&quot;label&quot;</span><span class="p">:</span><span class="w"> </span><span class="mi">1</span><span class="p">,</span>
+</span><span id="__span-2-8"><a id="__codelineno-2-8" name="__codelineno-2-8" href="#__codelineno-2-8"></a><span class="w">    </span><span class="nt">&quot;color&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">[</span><span class="mi">255</span><span class="p">,</span><span class="w"> </span><span class="mi">0</span><span class="p">,</span><span class="w"> </span><span class="mi">0</span><span class="p">,</span><span class="w"> </span><span class="mi">255</span><span class="p">],</span>
+</span><span id="__span-2-9"><a id="__codelineno-2-9" name="__codelineno-2-9" href="#__codelineno-2-9"></a><span class="w">    </span><span class="nt">&quot;radius&quot;</span><span class="p">:</span><span class="w"> </span><span class="mi">60</span><span class="p">,</span>
+</span><span id="__span-2-10"><a id="__codelineno-2-10" name="__codelineno-2-10" href="#__codelineno-2-10"></a><span class="w">    </span><span class="nt">&quot;map_threshold&quot;</span><span class="p">:</span><span class="w"> </span><span class="mf">0.0418</span>
+</span><span id="__span-2-11"><a id="__codelineno-2-11" name="__codelineno-2-11" href="#__codelineno-2-11"></a><span class="p">}</span>
+</span></code></pre></div></p>
+<ul>
+<li><code>name</code>: The name of the object, which should be unique within one project.</li>
+<li>
+<p><code>is_particle</code>: A boolean indicating whether the object can be represented by point annotations. By default, all
+    objects can be represented by mesh annotations or dense segmentations.</p>
+</li>
+<li>
+<p><code>pdb_id</code>: The PDB ID of the object, if available.</p>
+</li>
+<li><code>emdb_id</code>: The EMDB ID of the object, if available.</li>
+<li><code>go_id</code>: The GO ID of the object, if available. When using the data portal, this field is used to find matching
+    annotations in the data portal.</li>
+<li><code>label</code>: An integer that indicates which numeric label should be used in segmentations to represent this object.</li>
+<li><code>color</code>: An array of four integers that represent the RGBA color of the object when rendered in a 3D viewer.</li>
+<li><code>radius</code>: An integer that represents the radius of the object in angstroms. This is used to determine the size of the
+    object when rendering it as a sphere in a 3D viewer.</li>
+<li><code>map_threshold</code>: A float that represents the threshold value to use when a density map is used to represent the
+    object. This is used to determine the isosurface level to use when rendering the object as a mesh. Density maps are
+    discovered by the copick API by looking for files with the same name as the object in the <code>Objects</code> directory of
+    the project's root.</li>
+</ul>
+</div>
+<h3 id="run">Run</h3>
+<p>A run is a collection of data that is associated with a particular location on the sample. Run objects allow access to
+any 3D image data, segmentations, and annotations that are associated with a particular location on the sample. Images
+are stored in groups based on their voxel spacing, while point annotations, mesh annotations, and dense segmentations
+are related to the run as a whole.</p>
+<details class="example">
+<summary>Example Code - List available segmentations for a run</summary>
+<div class="language-python highlight"><pre><span></span><code><span id="__span-3-1"><a id="__codelineno-3-1" name="__codelineno-3-1" href="#__codelineno-3-1"></a><span class="sd">&quot;&quot;&quot;Print all segmentations for a run in a copick project.&quot;&quot;&quot;</span>
+</span><span id="__span-3-2"><a id="__codelineno-3-2" name="__codelineno-3-2" href="#__codelineno-3-2"></a>
+</span><span id="__span-3-3"><a id="__codelineno-3-3" name="__codelineno-3-3" href="#__codelineno-3-3"></a><span class="kn">import</span> <span class="nn">copick</span>
+</span><span id="__span-3-4"><a id="__codelineno-3-4" name="__codelineno-3-4" href="#__codelineno-3-4"></a>
+</span><span id="__span-3-5"><a id="__codelineno-3-5" name="__codelineno-3-5" href="#__codelineno-3-5"></a><span class="c1"># Initialize the root object from a configuration file</span>
+</span><span id="__span-3-6"><a id="__codelineno-3-6" name="__codelineno-3-6" href="#__codelineno-3-6"></a><span class="n">root</span> <span class="o">=</span> <span class="n">copick</span><span class="o">.</span><span class="n">from_file</span><span class="p">(</span><span class="s2">&quot;path/to/config.json&quot;</span><span class="p">)</span>
+</span><span id="__span-3-7"><a id="__codelineno-3-7" name="__codelineno-3-7" href="#__codelineno-3-7"></a>
+</span><span id="__span-3-8"><a id="__codelineno-3-8" name="__codelineno-3-8" href="#__codelineno-3-8"></a><span class="c1"># Get the run named &#39;TS_001&#39;</span>
+</span><span id="__span-3-9"><a id="__codelineno-3-9" name="__codelineno-3-9" href="#__codelineno-3-9"></a><span class="n">run</span> <span class="o">=</span> <span class="n">root</span><span class="o">.</span><span class="n">get_run</span><span class="p">(</span><span class="s2">&quot;TS_001&quot;</span><span class="p">)</span>
+</span><span id="__span-3-10"><a id="__codelineno-3-10" name="__codelineno-3-10" href="#__codelineno-3-10"></a>
+</span><span id="__span-3-11"><a id="__codelineno-3-11" name="__codelineno-3-11" href="#__codelineno-3-11"></a><span class="c1"># List all available segmentations for the run</span>
+</span><span id="__span-3-12"><a id="__codelineno-3-12" name="__codelineno-3-12" href="#__codelineno-3-12"></a><span class="n">segmentations</span> <span class="o">=</span> <span class="n">run</span><span class="o">.</span><span class="n">segmentations</span>
+</span><span id="__span-3-13"><a id="__codelineno-3-13" name="__codelineno-3-13" href="#__codelineno-3-13"></a><span class="k">for</span> <span class="n">segmentation</span> <span class="ow">in</span> <span class="n">segmentations</span><span class="p">:</span>
+</span><span id="__span-3-14"><a id="__codelineno-3-14" name="__codelineno-3-14" href="#__codelineno-3-14"></a>    <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Segmentation: </span><span class="si">{</span><span class="n">segmentation</span><span class="o">.</span><span class="n">name</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+</span></code></pre></div>
+<p>Refer to the <a href="../api_reference/base_classes/data_entity_models/CopickRun/">API Reference</a> for more information on
+the CopickRun API.</p>
+</details>
+<h3 id="voxel-spacing">Voxel Spacing</h3>
+<p>A voxel spacing groups together all tomograms of a particular resolution. Voxel spacings are rounded to the third
+decimal place.</p>
+<details class="example">
+<summary>Example Code - List available tomograms for a voxel spacing</summary>
+<div class="language-python highlight"><pre><span></span><code><span id="__span-4-1"><a id="__codelineno-4-1" name="__codelineno-4-1" href="#__codelineno-4-1"></a><span class="sd">&quot;&quot;&quot;Print the list of tomograms for a given voxel spacing.&quot;&quot;&quot;</span>
+</span><span id="__span-4-2"><a id="__codelineno-4-2" name="__codelineno-4-2" href="#__codelineno-4-2"></a>
+</span><span id="__span-4-3"><a id="__codelineno-4-3" name="__codelineno-4-3" href="#__codelineno-4-3"></a><span class="kn">import</span> <span class="nn">copick</span>
+</span><span id="__span-4-4"><a id="__codelineno-4-4" name="__codelineno-4-4" href="#__codelineno-4-4"></a>
+</span><span id="__span-4-5"><a id="__codelineno-4-5" name="__codelineno-4-5" href="#__codelineno-4-5"></a><span class="c1"># Initialize the root object from a configuration file</span>
+</span><span id="__span-4-6"><a id="__codelineno-4-6" name="__codelineno-4-6" href="#__codelineno-4-6"></a><span class="n">root</span> <span class="o">=</span> <span class="n">copick</span><span class="o">.</span><span class="n">from_file</span><span class="p">(</span><span class="s2">&quot;path/to/config.json&quot;</span><span class="p">)</span>
+</span><span id="__span-4-7"><a id="__codelineno-4-7" name="__codelineno-4-7" href="#__codelineno-4-7"></a>
+</span><span id="__span-4-8"><a id="__codelineno-4-8" name="__codelineno-4-8" href="#__codelineno-4-8"></a><span class="c1"># Get the run named &#39;TS_001&#39;</span>
+</span><span id="__span-4-9"><a id="__codelineno-4-9" name="__codelineno-4-9" href="#__codelineno-4-9"></a><span class="n">run</span> <span class="o">=</span> <span class="n">root</span><span class="o">.</span><span class="n">get_run</span><span class="p">(</span><span class="s2">&quot;TS_001&quot;</span><span class="p">)</span>
+</span><span id="__span-4-10"><a id="__codelineno-4-10" name="__codelineno-4-10" href="#__codelineno-4-10"></a>
+</span><span id="__span-4-11"><a id="__codelineno-4-11" name="__codelineno-4-11" href="#__codelineno-4-11"></a><span class="c1"># Get the voxel spacing with a resolution of 10 angstroms</span>
+</span><span id="__span-4-12"><a id="__codelineno-4-12" name="__codelineno-4-12" href="#__codelineno-4-12"></a><span class="n">voxel_spacing</span> <span class="o">=</span> <span class="n">run</span><span class="o">.</span><span class="n">get_voxel_spacing</span><span class="p">(</span><span class="mf">10.000</span><span class="p">)</span>
+</span><span id="__span-4-13"><a id="__codelineno-4-13" name="__codelineno-4-13" href="#__codelineno-4-13"></a>
+</span><span id="__span-4-14"><a id="__codelineno-4-14" name="__codelineno-4-14" href="#__codelineno-4-14"></a><span class="c1"># List all available tomograms for the voxel spacing</span>
+</span><span id="__span-4-15"><a id="__codelineno-4-15" name="__codelineno-4-15" href="#__codelineno-4-15"></a><span class="n">tomograms</span> <span class="o">=</span> <span class="n">voxel_spacing</span><span class="o">.</span><span class="n">tomograms</span>
+</span><span id="__span-4-16"><a id="__codelineno-4-16" name="__codelineno-4-16" href="#__codelineno-4-16"></a><span class="k">for</span> <span class="n">tomogram</span> <span class="ow">in</span> <span class="n">tomograms</span><span class="p">:</span>
+</span><span id="__span-4-17"><a id="__codelineno-4-17" name="__codelineno-4-17" href="#__codelineno-4-17"></a>    <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Tomogram: </span><span class="si">{</span><span class="n">tomogram</span><span class="o">.</span><span class="n">name</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+</span></code></pre></div>
+<p>Refer to the <a href="../api_reference/base_classes/data_entity_models/CopickVoxelSpacing/">API Reference</a> for more information
+on the CopickVoxelSpacing API.</p>
+</details>
+<h3 id="image-data">Image data</h3>
+<h4 id="tomogram">Tomogram</h4>
+<p>At each resolution, multiple tomograms can be stored. Tomograms are stored as OME-NGFF files, which are a zarr-based
+format that allows for efficient access to multiscale 3D image data. The filename of the zarr file allows relating the
+image to its reconstruction method or processing steps. Typical useful tomogram types are <code>wbp</code>, <code>sirt</code>, <code>denoised</code>,
+etc.</p>
+<details class="example">
+<summary>Example Code - Read a tomogram into a numpy array</summary>
+<div class="language-python highlight"><pre><span></span><code><span id="__span-5-1"><a id="__codelineno-5-1" name="__codelineno-5-1" href="#__codelineno-5-1"></a><span class="sd">&quot;&quot;&quot;Read a tomogram from a zarr-store into a numpy array.&quot;&quot;&quot;</span>
+</span><span id="__span-5-2"><a id="__codelineno-5-2" name="__codelineno-5-2" href="#__codelineno-5-2"></a>
+</span><span id="__span-5-3"><a id="__codelineno-5-3" name="__codelineno-5-3" href="#__codelineno-5-3"></a><span class="kn">import</span> <span class="nn">copick</span>
+</span><span id="__span-5-4"><a id="__codelineno-5-4" name="__codelineno-5-4" href="#__codelineno-5-4"></a><span class="kn">import</span> <span class="nn">numpy</span> <span class="k">as</span> <span class="nn">np</span>
+</span><span id="__span-5-5"><a id="__codelineno-5-5" name="__codelineno-5-5" href="#__codelineno-5-5"></a><span class="kn">import</span> <span class="nn">zarr</span>
+</span><span id="__span-5-6"><a id="__codelineno-5-6" name="__codelineno-5-6" href="#__codelineno-5-6"></a>
+</span><span id="__span-5-7"><a id="__codelineno-5-7" name="__codelineno-5-7" href="#__codelineno-5-7"></a><span class="c1"># Initialize the root object from a configuration file</span>
+</span><span id="__span-5-8"><a id="__codelineno-5-8" name="__codelineno-5-8" href="#__codelineno-5-8"></a><span class="n">root</span> <span class="o">=</span> <span class="n">copick</span><span class="o">.</span><span class="n">from_file</span><span class="p">(</span><span class="s2">&quot;path/to/config.json&quot;</span><span class="p">)</span>
+</span><span id="__span-5-9"><a id="__codelineno-5-9" name="__codelineno-5-9" href="#__codelineno-5-9"></a>
+</span><span id="__span-5-10"><a id="__codelineno-5-10" name="__codelineno-5-10" href="#__codelineno-5-10"></a><span class="c1"># Get the run named &#39;TS_001&#39;</span>
+</span><span id="__span-5-11"><a id="__codelineno-5-11" name="__codelineno-5-11" href="#__codelineno-5-11"></a><span class="n">run</span> <span class="o">=</span> <span class="n">root</span><span class="o">.</span><span class="n">get_run</span><span class="p">(</span><span class="s2">&quot;TS_001&quot;</span><span class="p">)</span>
+</span><span id="__span-5-12"><a id="__codelineno-5-12" name="__codelineno-5-12" href="#__codelineno-5-12"></a>
+</span><span id="__span-5-13"><a id="__codelineno-5-13" name="__codelineno-5-13" href="#__codelineno-5-13"></a><span class="c1"># Get the voxel spacing with a resolution of 10 angstroms</span>
+</span><span id="__span-5-14"><a id="__codelineno-5-14" name="__codelineno-5-14" href="#__codelineno-5-14"></a><span class="n">voxel_spacing</span> <span class="o">=</span> <span class="n">run</span><span class="o">.</span><span class="n">get_voxel_spacing</span><span class="p">(</span><span class="mf">10.000</span><span class="p">)</span>
+</span><span id="__span-5-15"><a id="__codelineno-5-15" name="__codelineno-5-15" href="#__codelineno-5-15"></a>
+</span><span id="__span-5-16"><a id="__codelineno-5-16" name="__codelineno-5-16" href="#__codelineno-5-16"></a><span class="c1"># Get the tomogram named &#39;wbp&#39;</span>
+</span><span id="__span-5-17"><a id="__codelineno-5-17" name="__codelineno-5-17" href="#__codelineno-5-17"></a><span class="n">tomogram</span> <span class="o">=</span> <span class="n">voxel_spacing</span><span class="o">.</span><span class="n">get_tomogram</span><span class="p">(</span><span class="s2">&quot;wbp&quot;</span><span class="p">)</span>
+</span><span id="__span-5-18"><a id="__codelineno-5-18" name="__codelineno-5-18" href="#__codelineno-5-18"></a>
+</span><span id="__span-5-19"><a id="__codelineno-5-19" name="__codelineno-5-19" href="#__codelineno-5-19"></a><span class="c1"># Read the tomogram from its zarr-store</span>
+</span><span id="__span-5-20"><a id="__codelineno-5-20" name="__codelineno-5-20" href="#__codelineno-5-20"></a><span class="c1"># Scale &quot;0&quot; is the unbinned tomogram</span>
+</span><span id="__span-5-21"><a id="__codelineno-5-21" name="__codelineno-5-21" href="#__codelineno-5-21"></a><span class="n">zarr_array</span> <span class="o">=</span> <span class="n">zarr</span><span class="o">.</span><span class="n">open</span><span class="p">(</span><span class="n">tomogram</span><span class="o">.</span><span class="n">zarr</span><span class="p">())[</span><span class="s2">&quot;0&quot;</span><span class="p">]</span>
+</span><span id="__span-5-22"><a id="__codelineno-5-22" name="__codelineno-5-22" href="#__codelineno-5-22"></a><span class="n">tomogram_data</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">zarr_array</span><span class="p">)</span>
+</span><span id="__span-5-23"><a id="__codelineno-5-23" name="__codelineno-5-23" href="#__codelineno-5-23"></a>
+</span><span id="__span-5-24"><a id="__codelineno-5-24" name="__codelineno-5-24" href="#__codelineno-5-24"></a><span class="c1"># Scale &quot;1&quot; is the tomogram binned by 2</span>
+</span><span id="__span-5-25"><a id="__codelineno-5-25" name="__codelineno-5-25" href="#__codelineno-5-25"></a><span class="n">zarr_array_bin2</span> <span class="o">=</span> <span class="n">zarr</span><span class="o">.</span><span class="n">open</span><span class="p">(</span><span class="n">tomogram</span><span class="o">.</span><span class="n">zarr</span><span class="p">())[</span><span class="s2">&quot;1&quot;</span><span class="p">]</span>
+</span><span id="__span-5-26"><a id="__codelineno-5-26" name="__codelineno-5-26" href="#__codelineno-5-26"></a><span class="n">tomogram_data_bin2</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">zarr_array_bin2</span><span class="p">)</span>
+</span></code></pre></div>
+<p>Refer to the <a href="../api_reference/base_classes/data_entity_models/CopickTomogram/">API Reference</a> for more information on
+the CopickTomogram API.</p>
+</details>
+<div class="admonition note">
+<p class="admonition-title">Example tomogram file name</p>
+<p>Tomograms are named according to the following pattern:
+<div class="language-text highlight"><pre><span></span><code><span id="__span-6-1"><a id="__codelineno-6-1" name="__codelineno-6-1" href="#__codelineno-6-1"></a>wbp.zarr
+</span></code></pre></div></p>
+<p>The <code>wbp</code> part of the filename is the type of tomogram. This could be <code>wbp</code>, <code>sirt</code>, <code>denoised</code>, etc.</p>
+</div>
+<h4 id="feature-map">Feature Map</h4>
+<p>Feature maps are stored as OME-NGFF files with relation to the tomogram they are computed from. Feature maps are stored
+as zarr files, and can be used to store any type of data that is computed from a tomogram. They may be useful for
+interactive segmentation tasks.</p>
+<details class="example">
+<summary>Example Code - Read a feature map into a numpy array</summary>
+<div class="language-python highlight"><pre><span></span><code><span id="__span-7-1"><a id="__codelineno-7-1" name="__codelineno-7-1" href="#__codelineno-7-1"></a><span class="sd">&quot;&quot;&quot;Read a feature map from a zarr-store into a numpy array.&quot;&quot;&quot;</span>
+</span><span id="__span-7-2"><a id="__codelineno-7-2" name="__codelineno-7-2" href="#__codelineno-7-2"></a>
+</span><span id="__span-7-3"><a id="__codelineno-7-3" name="__codelineno-7-3" href="#__codelineno-7-3"></a><span class="kn">import</span> <span class="nn">copick</span>
+</span><span id="__span-7-4"><a id="__codelineno-7-4" name="__codelineno-7-4" href="#__codelineno-7-4"></a><span class="kn">import</span> <span class="nn">numpy</span> <span class="k">as</span> <span class="nn">np</span>
+</span><span id="__span-7-5"><a id="__codelineno-7-5" name="__codelineno-7-5" href="#__codelineno-7-5"></a><span class="kn">import</span> <span class="nn">zarr</span>
+</span><span id="__span-7-6"><a id="__codelineno-7-6" name="__codelineno-7-6" href="#__codelineno-7-6"></a>
+</span><span id="__span-7-7"><a id="__codelineno-7-7" name="__codelineno-7-7" href="#__codelineno-7-7"></a><span class="c1"># Initialize the root object from a configuration file</span>
+</span><span id="__span-7-8"><a id="__codelineno-7-8" name="__codelineno-7-8" href="#__codelineno-7-8"></a><span class="n">root</span> <span class="o">=</span> <span class="n">copick</span><span class="o">.</span><span class="n">from_file</span><span class="p">(</span><span class="s2">&quot;path/to/config.json&quot;</span><span class="p">)</span>
+</span><span id="__span-7-9"><a id="__codelineno-7-9" name="__codelineno-7-9" href="#__codelineno-7-9"></a>
+</span><span id="__span-7-10"><a id="__codelineno-7-10" name="__codelineno-7-10" href="#__codelineno-7-10"></a><span class="c1"># Get the run named &#39;TS_001&#39;</span>
+</span><span id="__span-7-11"><a id="__codelineno-7-11" name="__codelineno-7-11" href="#__codelineno-7-11"></a><span class="n">run</span> <span class="o">=</span> <span class="n">root</span><span class="o">.</span><span class="n">get_run</span><span class="p">(</span><span class="s2">&quot;TS_001&quot;</span><span class="p">)</span>
+</span><span id="__span-7-12"><a id="__codelineno-7-12" name="__codelineno-7-12" href="#__codelineno-7-12"></a>
+</span><span id="__span-7-13"><a id="__codelineno-7-13" name="__codelineno-7-13" href="#__codelineno-7-13"></a><span class="c1"># Get the voxel spacing with a resolution of 10 angstroms</span>
+</span><span id="__span-7-14"><a id="__codelineno-7-14" name="__codelineno-7-14" href="#__codelineno-7-14"></a><span class="n">voxel_spacing</span> <span class="o">=</span> <span class="n">run</span><span class="o">.</span><span class="n">get_voxel_spacing</span><span class="p">(</span><span class="mf">10.000</span><span class="p">)</span>
+</span><span id="__span-7-15"><a id="__codelineno-7-15" name="__codelineno-7-15" href="#__codelineno-7-15"></a>
+</span><span id="__span-7-16"><a id="__codelineno-7-16" name="__codelineno-7-16" href="#__codelineno-7-16"></a><span class="c1"># Get the tomogram named &#39;wbp&#39;</span>
+</span><span id="__span-7-17"><a id="__codelineno-7-17" name="__codelineno-7-17" href="#__codelineno-7-17"></a><span class="n">tomogram</span> <span class="o">=</span> <span class="n">voxel_spacing</span><span class="o">.</span><span class="n">get_tomogram</span><span class="p">(</span><span class="s2">&quot;wbp&quot;</span><span class="p">)</span>
+</span><span id="__span-7-18"><a id="__codelineno-7-18" name="__codelineno-7-18" href="#__codelineno-7-18"></a>
+</span><span id="__span-7-19"><a id="__codelineno-7-19" name="__codelineno-7-19" href="#__codelineno-7-19"></a><span class="c1"># Get the feature map named &#39;sobel&#39;</span>
+</span><span id="__span-7-20"><a id="__codelineno-7-20" name="__codelineno-7-20" href="#__codelineno-7-20"></a><span class="n">feature_map</span> <span class="o">=</span> <span class="n">tomogram</span><span class="o">.</span><span class="n">get_features</span><span class="p">(</span><span class="s2">&quot;sobel&quot;</span><span class="p">)</span>
+</span><span id="__span-7-21"><a id="__codelineno-7-21" name="__codelineno-7-21" href="#__codelineno-7-21"></a>
+</span><span id="__span-7-22"><a id="__codelineno-7-22" name="__codelineno-7-22" href="#__codelineno-7-22"></a><span class="c1"># Read the feature map from its zarr-store</span>
+</span><span id="__span-7-23"><a id="__codelineno-7-23" name="__codelineno-7-23" href="#__codelineno-7-23"></a><span class="n">zarr_array</span> <span class="o">=</span> <span class="n">zarr</span><span class="o">.</span><span class="n">open</span><span class="p">(</span><span class="n">feature_map</span><span class="o">.</span><span class="n">zarr</span><span class="p">())[</span><span class="s2">&quot;0&quot;</span><span class="p">]</span>
+</span><span id="__span-7-24"><a id="__codelineno-7-24" name="__codelineno-7-24" href="#__codelineno-7-24"></a><span class="n">feature_map_data</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">zarr_array</span><span class="p">)</span>
+</span></code></pre></div>
+<p>Refer to the <a href="../api_reference/base_classes/data_entity_models/CopickFeatures/">API Reference</a> for more information on
+the CopickFeatures API.</p>
+</details>
+<div class="admonition note">
+<p class="admonition-title">Example feature map file name</p>
+<p>Feature maps are named according to the following pattern:
+<div class="language-text highlight"><pre><span></span><code><span id="__span-8-1"><a id="__codelineno-8-1" name="__codelineno-8-1" href="#__codelineno-8-1"></a>wbp_density_features.zarr
+</span></code></pre></div></p>
+<p>The <code>wbp</code> part of the filename is the type of tomogram that the feature map was computed from. The <code>sobel</code> part of
+the filename is the type of feature that the feature map represents. This could be <code>density</code>, <code>gradient</code>, <code>curvature</code>,
+etc.</p>
+</div>
+<h3 id="annotation-data">Annotation data</h3>
+<h4 id="point-annotations">Point Annotations</h4>
+<p>Point annotations are stored as JSON files in the <code>Picks</code> directory of the run. Each file contains a list of points in
+angstrom coordinates that represent the location of a particular object in the tomogram. The filename of the JSON file
+allows relating the points to the user or tool that created them, as well as the object that they represent.</p>
+<div class="admonition warning">
+<p class="admonition-title">Naming Conventions</p>
+<p>user_ids, session_ids, and object names should never contain underscores!</p>
+</div>
+<details class="example">
+<summary>Example Code - Read point annotations from copick</summary>
+<div class="language-python highlight"><pre><span></span><code><span id="__span-9-1"><a id="__codelineno-9-1" name="__codelineno-9-1" href="#__codelineno-9-1"></a><span class="sd">&quot;&quot;&quot;Read points from a CopickPicks object.&quot;&quot;&quot;</span>
+</span><span id="__span-9-2"><a id="__codelineno-9-2" name="__codelineno-9-2" href="#__codelineno-9-2"></a>
+</span><span id="__span-9-3"><a id="__codelineno-9-3" name="__codelineno-9-3" href="#__codelineno-9-3"></a><span class="kn">import</span> <span class="nn">copick</span>
+</span><span id="__span-9-4"><a id="__codelineno-9-4" name="__codelineno-9-4" href="#__codelineno-9-4"></a><span class="kn">import</span> <span class="nn">numpy</span> <span class="k">as</span> <span class="nn">np</span>
+</span><span id="__span-9-5"><a id="__codelineno-9-5" name="__codelineno-9-5" href="#__codelineno-9-5"></a>
+</span><span id="__span-9-6"><a id="__codelineno-9-6" name="__codelineno-9-6" href="#__codelineno-9-6"></a><span class="c1"># Initialize the root object from a configuration file</span>
+</span><span id="__span-9-7"><a id="__codelineno-9-7" name="__codelineno-9-7" href="#__codelineno-9-7"></a><span class="n">root</span> <span class="o">=</span> <span class="n">copick</span><span class="o">.</span><span class="n">from_file</span><span class="p">(</span><span class="s2">&quot;path/to/config.json&quot;</span><span class="p">)</span>
+</span><span id="__span-9-8"><a id="__codelineno-9-8" name="__codelineno-9-8" href="#__codelineno-9-8"></a>
+</span><span id="__span-9-9"><a id="__codelineno-9-9" name="__codelineno-9-9" href="#__codelineno-9-9"></a><span class="c1"># Get the first run in the project</span>
+</span><span id="__span-9-10"><a id="__codelineno-9-10" name="__codelineno-9-10" href="#__codelineno-9-10"></a><span class="n">run</span> <span class="o">=</span> <span class="n">root</span><span class="o">.</span><span class="n">runs</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+</span><span id="__span-9-11"><a id="__codelineno-9-11" name="__codelineno-9-11" href="#__codelineno-9-11"></a>
+</span><span id="__span-9-12"><a id="__codelineno-9-12" name="__codelineno-9-12" href="#__codelineno-9-12"></a><span class="c1"># Get &#39;proteasome&#39; picks of user &#39;alice&#39;</span>
+</span><span id="__span-9-13"><a id="__codelineno-9-13" name="__codelineno-9-13" href="#__codelineno-9-13"></a><span class="n">picks</span> <span class="o">=</span> <span class="n">run</span><span class="o">.</span><span class="n">get_picks</span><span class="p">(</span><span class="n">object_name</span><span class="o">=</span><span class="s2">&quot;proteasome&quot;</span><span class="p">,</span> <span class="n">user_id</span><span class="o">=</span><span class="s2">&quot;alice&quot;</span><span class="p">)[</span><span class="mi">0</span><span class="p">]</span>
+</span><span id="__span-9-14"><a id="__codelineno-9-14" name="__codelineno-9-14" href="#__codelineno-9-14"></a>
+</span><span id="__span-9-15"><a id="__codelineno-9-15" name="__codelineno-9-15" href="#__codelineno-9-15"></a><span class="c1"># Get the points from the picks</span>
+</span><span id="__span-9-16"><a id="__codelineno-9-16" name="__codelineno-9-16" href="#__codelineno-9-16"></a><span class="n">point_arr</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">((</span><span class="nb">len</span><span class="p">(</span><span class="n">picks</span><span class="o">.</span><span class="n">points</span><span class="p">),</span> <span class="mi">3</span><span class="p">))</span>
+</span><span id="__span-9-17"><a id="__codelineno-9-17" name="__codelineno-9-17" href="#__codelineno-9-17"></a><span class="k">for</span> <span class="n">idx</span><span class="p">,</span> <span class="n">pt</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">picks</span><span class="o">.</span><span class="n">points</span><span class="p">):</span>
+</span><span id="__span-9-18"><a id="__codelineno-9-18" name="__codelineno-9-18" href="#__codelineno-9-18"></a>    <span class="n">point_arr</span><span class="p">[</span><span class="n">idx</span><span class="p">,</span> <span class="p">:]</span> <span class="o">=</span> <span class="p">[</span><span class="n">pt</span><span class="o">.</span><span class="n">location</span><span class="o">.</span><span class="n">x</span><span class="p">,</span> <span class="n">pt</span><span class="o">.</span><span class="n">location</span><span class="o">.</span><span class="n">y</span><span class="p">,</span> <span class="n">pt</span><span class="o">.</span><span class="n">location</span><span class="o">.</span><span class="n">z</span><span class="p">]</span>
+</span></code></pre></div>
+<p>Refer to the <a href="../api_reference/base_classes/data_entity_models/CopickPicks/">API Reference</a> for more information on
+the CopickPicks API.</p>
+</details>
+<div class="admonition note">
+<p class="admonition-title">Example point file name</p>
+<p>Point files are named according to the following pattern:
+<div class="language-text highlight"><pre><span></span><code><span id="__span-10-1"><a id="__codelineno-10-1" name="__codelineno-10-1" href="#__codelineno-10-1"></a>good.picker_0_proteasome.json
+</span></code></pre></div></p>
+<p>The <code>good.picker</code> part of the filename is the user or tool that created the points. The <code>0</code> part of the filename is
+the session id of the user or tool that created the points. The <code>proteasome</code> part of the filename is the name of the
+object that the points represent.</p>
+</div>
+<h4 id="mesh-annotations">Mesh Annotations</h4>
+<p>Mesh annotations are stored as glb files in the <code>Meshes</code> directory of the run. Each file contains a 3D mesh, with
+vertices in angstrom coordinates, that represents the shape of a particular object in the tomogram. The filename of the
+glb file allows relating the mesh to the user or tool that created it, as well as the object that it represents.</p>
+<div class="admonition warning">
+<p class="admonition-title">Naming Conventions</p>
+<p>user_ids, session_ids, and object names should never contain underscores!</p>
+</div>
+<details class="example">
+<summary>Example Code - Read mesh annotations and visualize them in 3D</summary>
+<div class="language-python highlight"><pre><span></span><code><span id="__span-11-1"><a id="__codelineno-11-1" name="__codelineno-11-1" href="#__codelineno-11-1"></a><span class="sd">&quot;&quot;&quot;Read a mesh from a CopickMesh object and display it.&quot;&quot;&quot;</span>
+</span><span id="__span-11-2"><a id="__codelineno-11-2" name="__codelineno-11-2" href="#__codelineno-11-2"></a>
+</span><span id="__span-11-3"><a id="__codelineno-11-3" name="__codelineno-11-3" href="#__codelineno-11-3"></a><span class="kn">import</span> <span class="nn">copick</span>
+</span><span id="__span-11-4"><a id="__codelineno-11-4" name="__codelineno-11-4" href="#__codelineno-11-4"></a>
+</span><span id="__span-11-5"><a id="__codelineno-11-5" name="__codelineno-11-5" href="#__codelineno-11-5"></a><span class="c1"># Initialize the root object from a configuration file</span>
+</span><span id="__span-11-6"><a id="__codelineno-11-6" name="__codelineno-11-6" href="#__codelineno-11-6"></a><span class="n">root</span> <span class="o">=</span> <span class="n">copick</span><span class="o">.</span><span class="n">from_file</span><span class="p">(</span><span class="s2">&quot;path/to/config.json&quot;</span><span class="p">)</span>
+</span><span id="__span-11-7"><a id="__codelineno-11-7" name="__codelineno-11-7" href="#__codelineno-11-7"></a>
+</span><span id="__span-11-8"><a id="__codelineno-11-8" name="__codelineno-11-8" href="#__codelineno-11-8"></a><span class="c1"># Get the first run in the project</span>
+</span><span id="__span-11-9"><a id="__codelineno-11-9" name="__codelineno-11-9" href="#__codelineno-11-9"></a><span class="n">run</span> <span class="o">=</span> <span class="n">root</span><span class="o">.</span><span class="n">runs</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+</span><span id="__span-11-10"><a id="__codelineno-11-10" name="__codelineno-11-10" href="#__codelineno-11-10"></a>
+</span><span id="__span-11-11"><a id="__codelineno-11-11" name="__codelineno-11-11" href="#__codelineno-11-11"></a><span class="c1"># Get a membrane mesh from user &#39;bob&#39;</span>
+</span><span id="__span-11-12"><a id="__codelineno-11-12" name="__codelineno-11-12" href="#__codelineno-11-12"></a><span class="n">mesh</span> <span class="o">=</span> <span class="n">run</span><span class="o">.</span><span class="n">get_meshes</span><span class="p">(</span><span class="n">object_name</span><span class="o">=</span><span class="s2">&quot;membrane&quot;</span><span class="p">,</span> <span class="n">user_id</span><span class="o">=</span><span class="s2">&quot;bob&quot;</span><span class="p">)[</span><span class="mi">0</span><span class="p">]</span>
+</span><span id="__span-11-13"><a id="__codelineno-11-13" name="__codelineno-11-13" href="#__codelineno-11-13"></a>
+</span><span id="__span-11-14"><a id="__codelineno-11-14" name="__codelineno-11-14" href="#__codelineno-11-14"></a><span class="c1"># Show the mesh</span>
+</span><span id="__span-11-15"><a id="__codelineno-11-15" name="__codelineno-11-15" href="#__codelineno-11-15"></a><span class="n">mesh</span><span class="o">.</span><span class="n">mesh</span><span class="o">.</span><span class="n">show</span><span class="p">()</span>
+</span></code></pre></div>
+<p>Refer to the <a href="../api_reference/base_classes/data_entity_models/CopickMesh/">API Reference</a> for more information on
+the CopickMesh API.</p>
+</details>
+<div class="admonition note">
+<p class="admonition-title">Example mesh file name</p>
+<p>Mesh files are named according to the following pattern:
+<div class="language-text highlight"><pre><span></span><code><span id="__span-12-1"><a id="__codelineno-12-1" name="__codelineno-12-1" href="#__codelineno-12-1"></a>good.picker_0_proteasome.glb
+</span></code></pre></div></p>
+<p>The <code>good.picker</code> part of the filename is the user or tool that created the mesh. The <code>0</code> part of the filename is
+the session id of the user or tool that created the mesh. The <code>proteasome</code> part of the filename is the name of the
+object that the mesh represents.</p>
+</div>
+<h4 id="dense-segmentations">Dense Segmentations</h4>
+<p>Dense segmentations are stored as OME-NGFF files in the <code>Segmentations</code> directory of the run. Each can either contain a
+binary segmentation (values of 0 or 1) or a multilabel segmentation (where permissable labels are defined by the
+labels among the pickable objects). The filename of the zarr file allows relating the segmentation to the user or tool
+that created it, as well as the object that it represents.</p>
+<div class="admonition warning">
+<p class="admonition-title">Naming Conventions</p>
+<p>user_ids, session_ids, and object names should never contain underscores!</p>
+</div>
+<details class="example">
+<summary>Example Code - Read a segmentation into a numpy array</summary>
+<div class="language-python highlight"><pre><span></span><code><span id="__span-13-1"><a id="__codelineno-13-1" name="__codelineno-13-1" href="#__codelineno-13-1"></a><span class="sd">&quot;&quot;&quot;Read a segmentation from a CopickSegmentation object.&quot;&quot;&quot;</span>
+</span><span id="__span-13-2"><a id="__codelineno-13-2" name="__codelineno-13-2" href="#__codelineno-13-2"></a>
+</span><span id="__span-13-3"><a id="__codelineno-13-3" name="__codelineno-13-3" href="#__codelineno-13-3"></a><span class="kn">import</span> <span class="nn">copick</span>
+</span><span id="__span-13-4"><a id="__codelineno-13-4" name="__codelineno-13-4" href="#__codelineno-13-4"></a><span class="kn">import</span> <span class="nn">numpy</span> <span class="k">as</span> <span class="nn">np</span>
+</span><span id="__span-13-5"><a id="__codelineno-13-5" name="__codelineno-13-5" href="#__codelineno-13-5"></a><span class="kn">import</span> <span class="nn">zarr</span>
+</span><span id="__span-13-6"><a id="__codelineno-13-6" name="__codelineno-13-6" href="#__codelineno-13-6"></a>
+</span><span id="__span-13-7"><a id="__codelineno-13-7" name="__codelineno-13-7" href="#__codelineno-13-7"></a><span class="c1"># Initialize the root object from a configuration file</span>
+</span><span id="__span-13-8"><a id="__codelineno-13-8" name="__codelineno-13-8" href="#__codelineno-13-8"></a><span class="n">root</span> <span class="o">=</span> <span class="n">copick</span><span class="o">.</span><span class="n">from_file</span><span class="p">(</span><span class="s2">&quot;path/to/config.json&quot;</span><span class="p">)</span>
+</span><span id="__span-13-9"><a id="__codelineno-13-9" name="__codelineno-13-9" href="#__codelineno-13-9"></a>
+</span><span id="__span-13-10"><a id="__codelineno-13-10" name="__codelineno-13-10" href="#__codelineno-13-10"></a><span class="c1"># Get the first run in the project</span>
+</span><span id="__span-13-11"><a id="__codelineno-13-11" name="__codelineno-13-11" href="#__codelineno-13-11"></a><span class="n">run</span> <span class="o">=</span> <span class="n">root</span><span class="o">.</span><span class="n">runs</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+</span><span id="__span-13-12"><a id="__codelineno-13-12" name="__codelineno-13-12" href="#__codelineno-13-12"></a>
+</span><span id="__span-13-13"><a id="__codelineno-13-13" name="__codelineno-13-13" href="#__codelineno-13-13"></a><span class="c1"># Get &#39;proteasome&#39; segmentation of user &#39;alice&#39;</span>
+</span><span id="__span-13-14"><a id="__codelineno-13-14" name="__codelineno-13-14" href="#__codelineno-13-14"></a><span class="n">segmentation</span> <span class="o">=</span> <span class="n">run</span><span class="o">.</span><span class="n">get_segmentations</span><span class="p">(</span><span class="n">object_name</span><span class="o">=</span><span class="s2">&quot;proteasome&quot;</span><span class="p">,</span> <span class="n">user_id</span><span class="o">=</span><span class="s2">&quot;alice&quot;</span><span class="p">)[</span><span class="mi">0</span><span class="p">]</span>
+</span><span id="__span-13-15"><a id="__codelineno-13-15" name="__codelineno-13-15" href="#__codelineno-13-15"></a>
+</span><span id="__span-13-16"><a id="__codelineno-13-16" name="__codelineno-13-16" href="#__codelineno-13-16"></a><span class="c1"># Get the segmentation array from the segmentation</span>
+</span><span id="__span-13-17"><a id="__codelineno-13-17" name="__codelineno-13-17" href="#__codelineno-13-17"></a><span class="n">seg_zarr</span> <span class="o">=</span> <span class="n">zarr</span><span class="o">.</span><span class="n">open</span><span class="p">(</span><span class="n">segmentation</span><span class="o">.</span><span class="n">zarr</span><span class="p">())[</span><span class="s2">&quot;0&quot;</span><span class="p">]</span>
+</span><span id="__span-13-18"><a id="__codelineno-13-18" name="__codelineno-13-18" href="#__codelineno-13-18"></a><span class="n">seg</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">seg_zarr</span><span class="p">)</span>
+</span></code></pre></div>
+<p>Refer to the <a href="../api_reference/base_classes/data_entity_models/CopickSegmentation/">API Reference</a> for more information
+on the CopickSegmentation API.</p>
+</details>
+<div class="admonition note">
+<p class="admonition-title">Example segmentation file names</p>
+<p>Segmentation files are named according to the following pattern:
+<div class="language-text highlight"><pre><span></span><code><span id="__span-14-1"><a id="__codelineno-14-1" name="__codelineno-14-1" href="#__codelineno-14-1"></a>10.000_good.picker_0_proteasome.zarr
+</span></code></pre></div></p>
+<p>The <code>10.000</code> part of the filename is the voxel spacing of the tomogram that the segmentation was created from. The
+<code>good.picker</code> part of the filename is the user or tool that created the segmentation. The <code>0</code> part of the filename is
+the session id of the user or tool that created the segmentation. The <code>proteasome</code> part of the filename is the name of
+the object that the segmentation represents. This is a binary segmentation.</p>
+<div class="language-text highlight"><pre><span></span><code><span id="__span-15-1"><a id="__codelineno-15-1" name="__codelineno-15-1" href="#__codelineno-15-1"></a>10.000_good.picker_0_segmentation-multilabel.zarr
+</span></code></pre></div>
+<p>The <code>10.000</code> part of the filename is the voxel spacing of the tomogram that the segmentation was created from. The
+<code>good.picker</code> part of the filename is the user or tool that created the segmentation. The <code>0</code> part of the filename is
+the session id of the user or tool that created the segmentation. The <code>segmentation</code> part of the filename is an
+arbitrary name that describes the segmentation. This is a multilabel segmentation, thus all objects in the project
+could be represented in this segmentation.</p>
+</div>
+<h2 id="on-disk-data-model">On-disk Data Model</h2>
 <p>The on-disk data model of copick is as follows:</p>
-<div class="language-text highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a>📁 copick_root
-</span><span id="__span-0-2"><a id="__codelineno-0-2" name="__codelineno-0-2" href="#__codelineno-0-2"></a>├─ 📄 copick_config.json
-</span><span id="__span-0-3"><a id="__codelineno-0-3" name="__codelineno-0-3" href="#__codelineno-0-3"></a>├─ 📁 Objects
-</span><span id="__span-0-4"><a id="__codelineno-0-4" name="__codelineno-0-4" href="#__codelineno-0-4"></a>│  └─ 📄 [pickable_object_name].zarr
-</span><span id="__span-0-5"><a id="__codelineno-0-5" name="__codelineno-0-5" href="#__codelineno-0-5"></a>└─ 📁 ExperimentRuns
-</span><span id="__span-0-6"><a id="__codelineno-0-6" name="__codelineno-0-6" href="#__codelineno-0-6"></a>   └─ 📁 [run_name] (index: src/io/copick_models.py:CopickPicks.runs)
-</span><span id="__span-0-7"><a id="__codelineno-0-7" name="__codelineno-0-7" href="#__codelineno-0-7"></a>      ├─ 📁 VoxelSpacing[xx.yyy]/
-</span><span id="__span-0-8"><a id="__codelineno-0-8" name="__codelineno-0-8" href="#__codelineno-0-8"></a>      │  ├─ 📁 [tomotype].zarr/
-</span><span id="__span-0-9"><a id="__codelineno-0-9" name="__codelineno-0-9" href="#__codelineno-0-9"></a>      │  │  └─ [OME-NGFF spec at 100%, 50% and 25% scale]
-</span><span id="__span-0-10"><a id="__codelineno-0-10" name="__codelineno-0-10" href="#__codelineno-0-10"></a>      │  └─ 📁 [tomotype]_[feature_type]_features.zarr/
-</span><span id="__span-0-11"><a id="__codelineno-0-11" name="__codelineno-0-11" href="#__codelineno-0-11"></a>      │     └─ [OME-NGFF spec at 100% scale]
-</span><span id="__span-0-12"><a id="__codelineno-0-12" name="__codelineno-0-12" href="#__codelineno-0-12"></a>      ├─ 📁 VoxelSpacing[x2.yy2]/
-</span><span id="__span-0-13"><a id="__codelineno-0-13" name="__codelineno-0-13" href="#__codelineno-0-13"></a>      │  ├─ 📁 [tomotype].zarr/
-</span><span id="__span-0-14"><a id="__codelineno-0-14" name="__codelineno-0-14" href="#__codelineno-0-14"></a>      │  │  └─ [OME-NGFF spec at 100%, 50% and 25% scale]
-</span><span id="__span-0-15"><a id="__codelineno-0-15" name="__codelineno-0-15" href="#__codelineno-0-15"></a>      │  └─ 📁 [tomotype]_[feature_type]_features.zarr/
-</span><span id="__span-0-16"><a id="__codelineno-0-16" name="__codelineno-0-16" href="#__codelineno-0-16"></a>      │     └─ [OME-NGFF spec at 100% scale]
-</span><span id="__span-0-17"><a id="__codelineno-0-17" name="__codelineno-0-17" href="#__codelineno-0-17"></a>      ├─ 📁 Picks/
-</span><span id="__span-0-18"><a id="__codelineno-0-18" name="__codelineno-0-18" href="#__codelineno-0-18"></a>      │  └─ 📄 [user_id | tool_name]_[session_id | 0]_[object_name].json
-</span><span id="__span-0-19"><a id="__codelineno-0-19" name="__codelineno-0-19" href="#__codelineno-0-19"></a>      ├─ 📁 Meshes/
-</span><span id="__span-0-20"><a id="__codelineno-0-20" name="__codelineno-0-20" href="#__codelineno-0-20"></a>      │  └─ 📄 [user_id | tool_name]_[session_id | 0]_[object_name].glb
-</span><span id="__span-0-21"><a id="__codelineno-0-21" name="__codelineno-0-21" href="#__codelineno-0-21"></a>      └─ 📁 Segmentations/
-</span><span id="__span-0-22"><a id="__codelineno-0-22" name="__codelineno-0-22" href="#__codelineno-0-22"></a>         ├─ 📁 [xx.yyy]_[user_id | tool_name]_[session_id | 0]_[object_name].zarr
-</span><span id="__span-0-23"><a id="__codelineno-0-23" name="__codelineno-0-23" href="#__codelineno-0-23"></a>         │   └─ [OME-NGFF spec at 100% scale, 50% and 25% scale]
-</span><span id="__span-0-24"><a id="__codelineno-0-24" name="__codelineno-0-24" href="#__codelineno-0-24"></a>         └─ 📁 [xx.yyy]_[user_id | tool_name]_[session_id | 0]_[name]-multilabel.zarr
-</span><span id="__span-0-25"><a id="__codelineno-0-25" name="__codelineno-0-25" href="#__codelineno-0-25"></a>             └─ [OME-NGFF spec at 100% scale, 50% and 25% scale]
+<div class="language-text highlight"><pre><span></span><code><span id="__span-16-1"><a id="__codelineno-16-1" name="__codelineno-16-1" href="#__codelineno-16-1"></a>📁 copick_root
+</span><span id="__span-16-2"><a id="__codelineno-16-2" name="__codelineno-16-2" href="#__codelineno-16-2"></a>├─ 📄 copick_config.json
+</span><span id="__span-16-3"><a id="__codelineno-16-3" name="__codelineno-16-3" href="#__codelineno-16-3"></a>├─ 📁 Objects
+</span><span id="__span-16-4"><a id="__codelineno-16-4" name="__codelineno-16-4" href="#__codelineno-16-4"></a>│  └─ 📄 [pickable_object_name].zarr
+</span><span id="__span-16-5"><a id="__codelineno-16-5" name="__codelineno-16-5" href="#__codelineno-16-5"></a>└─ 📁 ExperimentRuns
+</span><span id="__span-16-6"><a id="__codelineno-16-6" name="__codelineno-16-6" href="#__codelineno-16-6"></a>   └─ 📁 [run_name] (index: src/io/copick_models.py:CopickPicks.runs)
+</span><span id="__span-16-7"><a id="__codelineno-16-7" name="__codelineno-16-7" href="#__codelineno-16-7"></a>      ├─ 📁 VoxelSpacing[xx.yyy]/
+</span><span id="__span-16-8"><a id="__codelineno-16-8" name="__codelineno-16-8" href="#__codelineno-16-8"></a>      │  ├─ 📁 [tomotype].zarr/
+</span><span id="__span-16-9"><a id="__codelineno-16-9" name="__codelineno-16-9" href="#__codelineno-16-9"></a>      │  │  └─ [OME-NGFF spec at 100%, 50% and 25% scale]
+</span><span id="__span-16-10"><a id="__codelineno-16-10" name="__codelineno-16-10" href="#__codelineno-16-10"></a>      │  └─ 📁 [tomotype]_[feature_type]_features.zarr/
+</span><span id="__span-16-11"><a id="__codelineno-16-11" name="__codelineno-16-11" href="#__codelineno-16-11"></a>      │     └─ [OME-NGFF spec at 100% scale]
+</span><span id="__span-16-12"><a id="__codelineno-16-12" name="__codelineno-16-12" href="#__codelineno-16-12"></a>      ├─ 📁 VoxelSpacing[x2.yy2]/
+</span><span id="__span-16-13"><a id="__codelineno-16-13" name="__codelineno-16-13" href="#__codelineno-16-13"></a>      │  ├─ 📁 [tomotype].zarr/
+</span><span id="__span-16-14"><a id="__codelineno-16-14" name="__codelineno-16-14" href="#__codelineno-16-14"></a>      │  │  └─ [OME-NGFF spec at 100%, 50% and 25% scale]
+</span><span id="__span-16-15"><a id="__codelineno-16-15" name="__codelineno-16-15" href="#__codelineno-16-15"></a>      │  └─ 📁 [tomotype]_[feature_type]_features.zarr/
+</span><span id="__span-16-16"><a id="__codelineno-16-16" name="__codelineno-16-16" href="#__codelineno-16-16"></a>      │     └─ [OME-NGFF spec at 100% scale]
+</span><span id="__span-16-17"><a id="__codelineno-16-17" name="__codelineno-16-17" href="#__codelineno-16-17"></a>      ├─ 📁 Picks/
+</span><span id="__span-16-18"><a id="__codelineno-16-18" name="__codelineno-16-18" href="#__codelineno-16-18"></a>      │  └─ 📄 [user_id | tool_name]_[session_id | 0]_[object_name].json
+</span><span id="__span-16-19"><a id="__codelineno-16-19" name="__codelineno-16-19" href="#__codelineno-16-19"></a>      ├─ 📁 Meshes/
+</span><span id="__span-16-20"><a id="__codelineno-16-20" name="__codelineno-16-20" href="#__codelineno-16-20"></a>      │  └─ 📄 [user_id | tool_name]_[session_id | 0]_[object_name].glb
+</span><span id="__span-16-21"><a id="__codelineno-16-21" name="__codelineno-16-21" href="#__codelineno-16-21"></a>      └─ 📁 Segmentations/
+</span><span id="__span-16-22"><a id="__codelineno-16-22" name="__codelineno-16-22" href="#__codelineno-16-22"></a>         ├─ 📁 [xx.yyy]_[user_id | tool_name]_[session_id | 0]_[object_name].zarr
+</span><span id="__span-16-23"><a id="__codelineno-16-23" name="__codelineno-16-23" href="#__codelineno-16-23"></a>         │   └─ [OME-NGFF spec at 100% scale, 50% and 25% scale]
+</span><span id="__span-16-24"><a id="__codelineno-16-24" name="__codelineno-16-24" href="#__codelineno-16-24"></a>         └─ 📁 [xx.yyy]_[user_id | tool_name]_[session_id | 0]_[name]-multilabel.zarr
+</span><span id="__span-16-25"><a id="__codelineno-16-25" name="__codelineno-16-25" href="#__codelineno-16-25"></a>             └─ [OME-NGFF spec at 100% scale, 50% and 25% scale]
 </span></code></pre></div>
 
 
@@ -1075,7 +2197,7 @@
     </div>
     
     
-    <script id="__config" type="application/json">{"base": "..", "features": [], "search": "../assets/javascripts/workers/search.b8dbb3d2.min.js", "translations": {"clipboard.copied": "Copied to clipboard", "clipboard.copy": "Copy to clipboard", "search.result.more.one": "1 more on this page", "search.result.more.other": "# more on this page", "search.result.none": "No matching documents", "search.result.one": "1 matching document", "search.result.other": "# matching documents", "search.result.placeholder": "Type to start searching", "search.result.term.missing": "Missing", "select.version": "Select version"}}</script>
+    <script id="__config" type="application/json">{"base": "..", "features": ["content.code.copy"], "search": "../assets/javascripts/workers/search.b8dbb3d2.min.js", "translations": {"clipboard.copied": "Copied to clipboard", "clipboard.copy": "Copy to clipboard", "search.result.more.one": "1 more on this page", "search.result.more.other": "# more on this page", "search.result.none": "No matching documents", "search.result.one": "1 matching document", "search.result.other": "# matching documents", "search.result.placeholder": "Type to start searching", "search.result.term.missing": "Missing", "select.version": "Select version"}}</script>
     
     
       <script src="../assets/javascripts/bundle.fe8b6f2b.min.js"></script>
