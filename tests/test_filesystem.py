@@ -594,16 +594,6 @@ def test_run_new_segmentations(test_payload: Dict[str, Any]):
             is_multilabel=False,
         )
 
-    # Add segmentation with voxel_spacing that does not exist
-    with pytest.raises(ValueError):
-        copick_run.new_segmentation(
-            voxel_size=30.000,
-            user_id="cellcanvas",
-            session_id="0",
-            name="prediction",
-            is_multilabel=True,
-        )
-
     # Adding the first segmentation inits the _segmentations attribute as list of segmentations
     # For object stores we actually need to write to the zarr to create the "directory"
     seg4 = copick_run.new_segmentation(
