@@ -18,12 +18,31 @@ theme:
         name: Switch to dark mode
 
   logo: assets/logo.png
+  features:
+    - content.code.copy
 
 nav:
   - Home: index.md
   - Quick Start: quickstart.md
   - Data Model: datamodel.md
-  #- Tutorials: examples.md
+  - Examples:
+    - Overview: "examples/overview.md"
+    - Setup:
+      - Local Project: "examples/setup/local.md"
+      - Shared Project: "examples/setup/shared.md"
+      - AWS S3 Project: "examples/setup/aws_s3.md"
+      - SSH Project: "examples/setup/ssh.md"
+      - CZ cryoET Data Portal: "examples/setup/data_portal.md"
+    - Tutorials:
+      - CZ cryoET Data Portal: "examples/tutorials/data_portal.md"
+      - Copick and HPC: "examples/tutorials/hpc.md"
+      - ChimeraX-Copick: "examples/tutorials/chimerax.md"
+      - Copick and Album: "examples/tutorials/album.md"
+      - Detecting Sample Boundaries: "examples/tutorials/sample_boundaries.md"
+      - Copick and membrain-seg: "examples/tutorials/membrain.md"
+    - Snippets: "examples/snippets.md"
+
+  - Tools: tools.md
   #- Tools: tools.md
   - API Reference:
     - API Overview: "api_reference/api.md"
@@ -52,7 +71,7 @@ nav:
     - Implementations:
       - Overlay: "api_reference/implementations/Overlay.md"
       - File System: "api_reference/implementations/Filesystem.md"
-      #- Data Portal: dataportal.md
+      - Data Portal: "api_reference/implementations/Dataportal.md"
 
 plugins:
   - search
@@ -94,3 +113,15 @@ markdown_extensions:
   - pymdownx.snippets
   - pymdownx.superfences
   - attr_list
+  - md_in_html
+  - pymdownx.emoji:
+      emoji_index: !!python/name:material.extensions.emoji.twemoji
+      emoji_generator: !!python/name:material.extensions.emoji.to_svg
+  - pymdownx.superfences
+  - pymdownx.tabbed:
+      alternate_style: true
+  - admonition
+  - pymdownx.details
+  - pymdownx.snippets:
+      check_paths: true
+      base_path: [ docs/snippets, docs/templates, "." ]
