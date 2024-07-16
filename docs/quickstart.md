@@ -94,5 +94,6 @@ To test with the example dataset:
 
     # Access the data
     group = zarr.open(tomogram.zarr())
-    _, array = group.arrays()[0]
+    arrays = list(group.arrays())
+    _, array = arrays[0]
     ```
