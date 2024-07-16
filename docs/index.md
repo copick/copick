@@ -59,7 +59,7 @@ provided through an object-oriented API that abstracts away the underlying stora
 
     Copick is released under the open source MIT license.
 
-    [:octicons-arrow-right-24: License](https://github.com/uermel/copick/blob/main/LICENSE)
+    [:octicons-arrow-right-24: License](https://github.com/copick/copick/blob/main/LICENSE)
 
 </div>
 

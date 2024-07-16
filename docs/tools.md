@@ -17,7 +17,7 @@ curation. The plugin is available in the ChimeraX Toolshed and can be installed 
 
 <div class="grid cards" markdown>
 
-- :fontawesome-solid-code: [__Repository__](https://github.com/uermel/chimerax-copick)
+- :fontawesome-solid-code: [__Repository__](https://github.com/copick/chimerax-copick)
 - :fontawesome-solid-circle-info: [__Tutorial__](examples/tutorials/chimerax.md)
 - :fontawesome-solid-globe: __Website__
 - :fontawesome-solid-question: __Docs__
@@ -98,7 +98,7 @@ points, manipulate meshes and more.
 
 <div class="grid cards" markdown>
 
-- :fontawesome-solid-code: [__Repository__](https://github.com/uermel/copick-catalog)
+- :fontawesome-solid-code: [__Repository__](https://github.com/copick/copick-catalog)
 - :fontawesome-solid-circle-info: __Tutorial__
 - :fontawesome-solid-globe: __Website__
 - :fontawesome-solid-question: __Docs__

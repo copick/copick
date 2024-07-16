@@ -17,7 +17,7 @@ provided through an object-oriented API that abstracts away the underlying stora
 
 ## Documentation
 
-For more information, see the [documentation](https://uermel.github.io/copick/).
+For more information, see the [documentation](https://copick.github.io/copick/).
 
 ## Installation
 

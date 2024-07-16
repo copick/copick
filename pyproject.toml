@@ -31,8 +31,10 @@ license = {file = "LICENSE"}
 keywords = ["cryoet", "cryo-et", "tomography", "annotation", "segmentation", "collaborative", "copick"]
 
 [project.urls]
-Repository = "https://github.com/uermel/copick.git"
-Issues = "https://github.com/uermel/copick/issues"
+Repository = "https://github.com/copick/copick.git"
+Issues = "https://github.com/copick/copick/issues"
+docs = "https://copick.github.io/copick/"
+documentation = "https://copick.github.io/copick/"
 
 [project.optional-dependencies]
 smb = ["smbprotocol"]
