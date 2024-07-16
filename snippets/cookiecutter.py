@@ -17,7 +17,7 @@ dependencies:
   - trimesh
   - pip:
     - album
-    - "copick[all] @ git+https://github.com/uermel/copick.git@f78e7a6"
+    - "copick[all]>=0.5.2"
 """
 
 args = [
