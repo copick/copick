@@ -914,9 +914,6 @@ class CopickRun:
         if not is_multilabel and name not in [o.name for o in self.root.config.pickable_objects]:
             raise ValueError(f"Object name {name} not found in pickable objects.")
 
-        if voxel_size not in [vs.voxel_size for vs in self.voxel_spacings]:
-            raise ValueError(f"VoxelSpacing {voxel_size} not found in voxel spacings for run {self.name}.")
-
         uid = self.root.config.user_id
 
         if user_id is not None:
