@@ -662,6 +662,21 @@ class CopickRunCDP(CopickRunOverlay):
         portal_meta_query: Dict[str, Any] = None,
         portal_author_query: List[str] = None,
     ) -> List["CopickPicksCDP"]:
+        """Get picks by name, user_id or session_id (or combinations). Portal metadata are compared for equality. Portal
+        authors are checked for inclusion in the full author list.
+
+        Args:
+            object_name: Name of the object to search for.
+            user_id: User ID to search for.
+            session_id: Session ID to search for.
+            portal_meta_query: Dictionary of values to compare against portal metadata of this annotation. Allowed keys
+                are the scalar fields of [cryoet_data_portal.Annotation](https://chanzuckerberg.github.io/cryoet-data-portal/python-api.html#annotation)
+            portal_author_query: List of author names. Segmentations are included if this author is in the portal
+                annotation's author list.
+
+        Returns:
+            List[CopickPicks]: List of picks that match the search criteria.
+        """
         picks = super().get_picks(object_name, user_id, session_id)
 
         # Just return the regular output if no additional conditions
@@ -795,6 +810,24 @@ class CopickRunCDP(CopickRunOverlay):
         portal_meta_query: Dict[str, Any] = None,
         portal_author_query: List[str] = None,
     ) -> List["CopickSegmentationCDP"]:
+        """Get segmentations by user_id, session_id, name, type or voxel_size (or combinations) and portal metadata and
+        authors. Portal metadata are compared for equality. Portal authors are checked for inclusion in the full author
+        list.
+
+        Args:
+            user_id: User ID to search for.
+            session_id: Session ID to search for.
+            is_multilabel: Whether the segmentation is multilabel or not.
+            name: Name of the segmentation to search for.
+            voxel_size: Voxel size to search for.
+            portal_meta_query: Dictionary of values to compare against portal metadata of this annotation. Allowed keys
+                are the scalar fields of [cryoet_data_portal.Annotation](https://chanzuckerberg.github.io/cryoet-data-portal/python-api.html#annotation)
+            portal_author_query: List of author names. Segmentations are included if this author is in the portal
+                annotation's author list.
+
+        Returns:
+            List[CopickSegmentation]: List of segmentations that match the search criteria.
+        """
         segmentations = super().get_segmentations(user_id, session_id, is_multilabel, name, voxel_size)
 
         # Just return the regular output if no additional conditions
