@@ -4,16 +4,16 @@ from typing import Dict, List, Literal, MutableMapping, Optional, Tuple, Type, U
 import numpy as np
 
 # Should work with pydantic 1 and 2
-import pydantic
+# import pydantic
 import trimesh
 
-if pydantic.VERSION.startswith("1"):
-    from pydantic import BaseModel, validator
-elif pydantic.VERSION.startswith("2"):
-    from pydantic.v1 import BaseModel, validator
-else:
-    raise ImportError(f"Unsupported pydantic version {pydantic.VERSION}.")
-
+# if pydantic.VERSION.startswith("1"):
+#     from pydantic import BaseModel, validator
+# elif pydantic.VERSION.startswith("2"):
+#     from pydantic.v1 import BaseModel, validator
+# else:
+#     raise ImportError(f"Unsupported pydantic version {pydantic.VERSION}.")
+from pydantic import BaseModel, field_validator
 from trimesh.parent import Geometry
 
 
@@ -41,13 +41,13 @@ class PickableObject(BaseModel):
     map_threshold: Optional[float] = None
     radius: Optional[float] = None
 
-    @validator("label")
+    @field_validator("label")
     def validate_label(cls, v) -> int:
         """Validate the label."""
         assert v != 0, "Label 0 is reserved for background."
         return v
 
-    @validator("color")
+    @field_validator("color")
     def validate_color(cls, v) -> Tuple[int, int, int, int]:
         """Validate the color."""
         assert len(v) == 4, "Color must be a 4-tuple (RGBA)."
@@ -130,10 +130,11 @@ class CopickPoint(BaseModel):
     instance_id: Optional[int] = 0
     score: Optional[float] = 1.0
 
-    class Config:
-        arbitrary_types_allowed = True
+    model_config = {
+        "arbitrary_types_allowed": True,
+    }
 
-    @validator("transformation_")
+    @field_validator("transformation_")
     def validate_transformation(cls, v) -> List[List[float]]:
         """Validate the transformation matrix."""
         arr = np.array(v)
@@ -1314,8 +1315,8 @@ class CopickPicksFile(BaseModel):
     pickable_object_name: str
     user_id: str
     session_id: Union[str, Literal["0"]]
-    run_name: Optional[str]
-    voxel_spacing: Optional[float]
+    run_name: Optional[str] = None
+    voxel_spacing: Optional[float] = None
     unit: str = "angstrom"
     points: Optional[List[CopickPoint]] = None
     trust_orientation: Optional[bool] = True

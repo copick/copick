@@ -9,6 +9,7 @@ import s3fs
 import trimesh
 import zarr
 from fsspec import AbstractFileSystem
+from pydantic import BaseModel, create_model
 from trimesh.parent import Geometry
 
 from copick.impl.overlay import (
@@ -42,6 +43,48 @@ def camel(s: str) -> str:
     return "".join([s[0].lower(), s[1:]])
 
 
+_portal_types = Union[Type[cdp.Annotation], Type[cdp.AnnotationFile]]
+
+
+def _portal_to_model(clz: _portal_types, name: str) -> Type[BaseModel]:
+    """Automatically create a Pydantic model from a CryoET Data Portal annotation class."""
+    vals = clz.__annotations__
+    scalars = {k: (Optional[v], None) for k, v in vals.items() if v in [int, float, str, bool]}
+    return create_model(name, **scalars)
+
+
+_PortalAnnotation = _portal_to_model(cdp.Annotation, "PortalAnnotation")
+
+
+class PortalAnnotationMeta(BaseModel):
+    portal_metadata: Optional[_PortalAnnotation] = _PortalAnnotation()
+    portal_authors: Optional[List[str]] = []
+
+    @classmethod
+    def from_annotation(cls, source: cdp.AnnotationFile):
+        anno = source.annotation
+        return cls(
+            portal_metadata=_PortalAnnotation(**anno.to_dict()),
+            portal_authors=[a.name for a in anno.authors],
+        )
+
+    def compare(self, meta: Dict[str, Any], authors: List[str]) -> bool:
+        # To convert to proper format
+        qpm = _PortalAnnotation(**meta)
+        qa = authors
+
+        # Select fields to compare
+        fields = list(qpm.model_fields_set)
+        test_fields = [f for f in fields if getattr(qpm, f) is not None]
+
+        # Check if all authors are in the list
+        author_condition = all(a in self.portal_authors for a in qa)
+        # Check if all fields are equal
+        meta_condition = all(getattr(self.portal_metadata, f) == getattr(qpm, f) for f in test_fields)
+
+        return author_condition and meta_condition
+
+
 class CopickConfigCDP(CopickConfig):
     config_type: str = "cryoet_data_portal"
     overlay_root: str
@@ -53,15 +96,18 @@ class CopickConfigCDP(CopickConfig):
 class CopickPicksFileCDP(CopickPicksFile):
     portal_annotation_file_id: Optional[int] = None
     portal_annotation_file_path: Optional[str] = None
+    portal_metadata: Optional[PortalAnnotationMeta] = PortalAnnotationMeta()
 
     @classmethod
     def from_portal(cls, source: cdp.AnnotationFile, name: Optional[str] = None):
         anno = source.annotation
 
         user = "data-portal"
-        session = source.id
+        session = str(source.id)
 
         object_name = f"{name}" if name else f"{camel(anno.object_name)}-{source.id}"
+
+        portal_meta = PortalAnnotationMeta.from_annotation(source)
 
         clz = cls(
             pickable_object_name=object_name,
@@ -69,6 +115,7 @@ class CopickPicksFileCDP(CopickPicksFile):
             session_id=session,
             portal_annotation_file_id=source.id,
             portal_annotation_file_path=source.s3_path,
+            portal_metadata=portal_meta,
             points=[],
         )
 
@@ -198,19 +245,23 @@ class CopickMeshCDP(CopickMeshOverlay):
 class CopickSegmentationMetaCDP(CopickSegmentationMeta):
     portal_annotation_file_id: Optional[int] = None
     portal_annotation_file_path: Optional[str] = None
+    portal_metadata: Optional[PortalAnnotationMeta] = PortalAnnotationMeta()
 
     @classmethod
     def from_portal(cls, source: cdp.AnnotationFile, name: Optional[str] = None):
         object_name = f"{name}" if name else f"{camel(source.annotation.object_name)}-{source.id}"
 
+        portal_meta = PortalAnnotationMeta.from_annotation(source)
+
         return cls(
             is_multilabel=False,
             voxel_size=source.annotation.tomogram_voxel_spacing.voxel_spacing,
             user_id="data-portal",
-            session_id=source.id,
+            session_id=str(source.id),
             name=object_name,
             portal_annotation_file_id=source.id,
             portal_annotation_file_path=source.s3_path,
+            portal_metadata=portal_meta,
         )
 
 
@@ -603,6 +654,33 @@ class CopickRunCDP(CopickRunOverlay):
             for u, s, o in zip(users, sessions, objects, strict=True)
         ]
 
+    def get_picks(
+        self,
+        object_name: str = None,
+        user_id: str = None,
+        session_id: str = None,
+        portal_meta_query: Dict[str, Any] = None,
+        portal_author_query: List[str] = None,
+    ) -> List["CopickPicksCDP"]:
+        picks = super().get_picks(object_name, user_id, session_id)
+
+        # Just return the regular output if no additional conditions
+        if portal_meta_query is None and portal_author_query is None:
+            return picks
+
+        if portal_meta_query is None:
+            portal_meta_query = {}
+
+        if portal_author_query is None:
+            portal_author_query = []
+
+        print(picks)
+
+        # Compare the metadata
+        picks = [p for p in picks if p.meta.portal_metadata.compare(portal_meta_query, portal_author_query)]
+
+        return picks
+
     def _query_static_meshes(self) -> List[CopickMeshCDP]:
         # Not defined by the portal yet
         return []
@@ -706,6 +784,40 @@ class CopickRunCDP(CopickRunOverlay):
             )
             for m in metas
         ]
+
+    def get_segmentations(
+        self,
+        user_id: str = None,
+        session_id: str = None,
+        is_multilabel: bool = None,
+        name: str = None,
+        voxel_size: float = None,
+        portal_meta_query: Dict[str, Any] = None,
+        portal_author_query: List[str] = None,
+    ) -> List["CopickSegmentationCDP"]:
+        segmentations = super().get_segmentations(user_id, session_id, is_multilabel, name, voxel_size)
+
+        # Just return the regular output if no additional conditions
+        if portal_meta_query is None and portal_author_query is None:
+            return segmentations
+
+        if portal_meta_query is None:
+            portal_meta_query = {}
+
+        if portal_author_query is None:
+            portal_author_query = []
+
+        # Compare the metadata
+        segmentations = [
+            s
+            for s in segmentations
+            if s.meta.portal_metadata.compare(
+                portal_meta_query,
+                portal_author_query,
+            )
+        ]
+
+        return segmentations
 
     def ensure(self, create: bool = False) -> bool:
         """Checks if the run record exists in the static or overlay directory, optionally creating it in the overlay
