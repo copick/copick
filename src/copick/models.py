@@ -2,17 +2,7 @@ import json
 from typing import Dict, List, Literal, MutableMapping, Optional, Tuple, Type, Union
 
 import numpy as np
-
-# Should work with pydantic 1 and 2
-# import pydantic
 import trimesh
-
-# if pydantic.VERSION.startswith("1"):
-#     from pydantic import BaseModel, validator
-# elif pydantic.VERSION.startswith("2"):
-#     from pydantic.v1 import BaseModel, validator
-# else:
-#     raise ImportError(f"Unsupported pydantic version {pydantic.VERSION}.")
 from pydantic import BaseModel, field_validator
 from trimesh.parent import Geometry
 

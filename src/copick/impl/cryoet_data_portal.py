@@ -53,7 +53,7 @@ def _portal_to_model(clz: _portal_types, name: str) -> Type[BaseModel]:
     return create_model(name, **scalars)
 
 
-_PortalAnnotation = _portal_to_model(cdp.Annotation, "PortalAnnotation")
+_PortalAnnotation = _portal_to_model(cdp.Annotation, "_PortalAnnotation")
 
 
 class PortalAnnotationMeta(BaseModel):
