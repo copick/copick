@@ -3,6 +3,7 @@ from typing import Dict, List, Literal, MutableMapping, Optional, Tuple, Type, U
 
 import numpy as np
 import trimesh
+import zarr
 from pydantic import BaseModel, field_validator
 from trimesh.parent import Geometry
 
@@ -233,6 +234,32 @@ class CopickObject:
             return None
 
         raise NotImplementedError("zarr method must be implemented for particle objects.")
+
+    def numpy(
+        self,
+        zarr_group: str = "0",
+        x: slice = slice(None, None),
+        y: slice = slice(None, None),
+        z: slice = slice(None, None),
+    ) -> Union[None, np.ndarray]:
+        """Returns the content of the Zarr-File for this object as a numpy array. Multiscale group and slices are
+        supported.
+
+        Args:
+            zarr_group: Zarr group to access.
+            x: Slice for the x-axis.
+            y: Slice for the y-axis.
+            z: Slice for the z-axis.
+
+        Returns:
+            np.ndarray: The object as a numpy array.
+        """
+
+        loc = self.zarr()
+        if loc is None:
+            return None
+
+        return np.array(zarr.open(loc)[zarr_group][z, y, x])
 
 
 class CopickRoot:
@@ -1236,6 +1263,29 @@ class CopickTomogram:
         doesn't exist."""
         raise NotImplementedError("zarr must be implemented for CopickTomogram.")
 
+    def numpy(
+        self,
+        zarr_group: str = "0",
+        x: slice = slice(None, None),
+        y: slice = slice(None, None),
+        z: slice = slice(None, None),
+    ) -> np.ndarray:
+        """Returns the content of the Zarr-File for this tomogram as a numpy array. Multiscale group and slices are
+        supported.
+
+        Args:
+            zarr_group: Zarr group to access.
+            x: Slice for the x-axis.
+            y: Slice for the y-axis.
+            z: Slice for the z-axis.
+
+        Returns:
+            np.ndarray: The tomogram as a numpy array.
+        """
+
+        loc = self.zarr()
+        return np.array(zarr.open(loc)[zarr_group][z, y, x])
+
 
 class CopickFeaturesMeta(BaseModel):
     """Data model for feature map metadata.
@@ -1284,6 +1334,31 @@ class CopickFeatures:
         """Override to return the Zarr store for this feature set. Also needs to handle creating the store if it
         doesn't exist."""
         raise NotImplementedError("zarr must be implemented for CopickFeatures.")
+
+    def numpy(
+        self,
+        zarr_group: str = "0",
+        channel: slice = slice(None, None),
+        x: slice = slice(None, None),
+        y: slice = slice(None, None),
+        z: slice = slice(None, None),
+    ) -> np.ndarray:
+        """Returns the content of the Zarr-File for this feature map as a numpy array. Multiscale group and slices are
+        supported.
+
+        Args:
+            zarr_group: Zarr group to access.
+            channel: Slice for the channel axis.
+            x: Slice for the x-axis.
+            y: Slice for the y-axis.
+            z: Slice for the z-axis.
+
+        Returns:
+            np.ndarray: The object as a numpy array.
+        """
+
+        loc = self.zarr()
+        return np.array(zarr.open(loc)[zarr_group][channel, z, y, x])
 
 
 class CopickPicksFile(BaseModel):
@@ -1414,6 +1489,45 @@ class CopickPicks:
     def refresh(self) -> None:
         """Refresh the points from storage."""
         self.meta = self.load()
+
+    def numpy(self) -> Tuple[np.ndarray, np.ndarray]:
+        """Return the points as a [N, 3] numpy array (N, [x, y, z]) and the orientations as a [N, 4, 4] numpy array.
+
+        Returns:
+            Tuple[np.ndarray, np.ndarray]: The picks and orientations as numpy arrays.
+        """
+
+        points = np.zeros((len(self.points), 3))
+        orientations = np.zeros((len(self.points), 4, 4))
+
+        for i, p in enumerate(self.points):
+            points[i, :] = np.array([p.location.x, p.location.y, p.location.z])
+            orientations[i, :, :] = p.transformation
+
+        return points, orientations
+
+    def from_numpy(self, positions: np.ndarray, orientations: Optional[np.ndarray] = None) -> None:
+        """Set the points and orientations from numpy arrays.
+
+        Args:
+            positions: [N, 3] numpy array of positions (N, [x, y, z]).
+            orientations: [N, 4, 4] numpy array of orientations. If None, orientations will be set to the identity
+                matrix.
+        """
+
+        if positions.shape[0] != orientations.shape[0]:
+            raise ValueError("Number of positions and orientations must be the same.")
+
+        points = []
+
+        for i in range(positions.shape[0]):
+            p = CopickPoint(location=CopickLocation(x=positions[i, 0], y=positions[i, 1], z=positions[i, 2]))
+            if orientations is not None:
+                p.transformation = orientations[i, :, :]
+            points.append(p)
+
+        self.points = points
+        self.store()
 
 
 class CopickMeshMeta(BaseModel):
@@ -1622,3 +1736,26 @@ class CopickSegmentation:
         """Override to return the Zarr store for this segmentation. Also needs to handle creating the store if it
         doesn't exist."""
         raise NotImplementedError("zarr must be implemented for CopickSegmentation.")
+
+    def numpy(
+        self,
+        zarr_group: str = "0",
+        x: slice = slice(None, None),
+        y: slice = slice(None, None),
+        z: slice = slice(None, None),
+    ) -> np.ndarray:
+        """Returns the content of the Zarr-File for this segmentation as a numpy array. Multiscale group and slices are
+        supported.
+
+        Args:
+            zarr_group: Zarr group to access.
+            x: Slice for the x-axis.
+            y: Slice for the y-axis.
+            z: Slice for the z-axis.
+
+        Returns:
+            np.ndarray: The segmentation as a numpy array.
+        """
+
+        loc = self.zarr()
+        return np.array(zarr.open(loc)[zarr_group][z, y, x])
