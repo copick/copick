@@ -33,8 +33,8 @@ class PickableObject(BaseModel):
 
     name: str
     is_particle: bool
-    label: Optional[int]
-    color: Optional[Tuple[int, int, int, int]]
+    label: Optional[int] = 1
+    color: Optional[Tuple[int, int, int, int]] = (100, 100, 100, 255)
     emdb_id: Optional[str] = None
     pdb_id: Optional[str] = None
     go_id: Optional[str] = None
