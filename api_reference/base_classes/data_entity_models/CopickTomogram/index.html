@@ -1053,6 +1053,15 @@
   
 </li>
         
+          <li class="md-nav__item">
+  <a href="#copick.models.CopickTomogram.numpy" class="md-nav__link">
+    <span class="md-ellipsis">
+      <code class="doc-symbol doc-symbol-toc doc-symbol-method"></code>&nbsp;numpy
+    </span>
+  </a>
+  
+</li>
+        
       </ul>
     </nav>
   
@@ -1600,6 +1609,15 @@
   
 </li>
         
+          <li class="md-nav__item">
+  <a href="#copick.models.CopickTomogram.numpy" class="md-nav__link">
+    <span class="md-ellipsis">
+      <code class="doc-symbol doc-symbol-toc doc-symbol-method"></code>&nbsp;numpy
+    </span>
+  </a>
+  
+</li>
+        
       </ul>
     </nav>
   
@@ -1864,6 +1882,81 @@ associated Zarr-store.</p>
 
       <p>Override to return the Zarr store for this tomogram. Also needs to handle creating the store if it
 doesn't exist.</p>
+
+    </div>
+
+</div>
+
+<div class="doc doc-object doc-function">
+
+
+<h3 id="copick.models.CopickTomogram.numpy" class="doc doc-heading">
+<code class="doc-symbol doc-symbol-heading doc-symbol-method"></code>            <code class="highlight language-python"><span class="n">numpy</span><span class="p">(</span><span class="n">zarr_group</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s1">&#39;0&#39;</span><span class="p">,</span> <span class="n">x</span><span class="p">:</span> <span class="nb">slice</span> <span class="o">=</span> <span class="nb">slice</span><span class="p">(</span><span class="kc">None</span><span class="p">,</span> <span class="kc">None</span><span class="p">),</span> <span class="n">y</span><span class="p">:</span> <span class="nb">slice</span> <span class="o">=</span> <span class="nb">slice</span><span class="p">(</span><span class="kc">None</span><span class="p">,</span> <span class="kc">None</span><span class="p">),</span> <span class="n">z</span><span class="p">:</span> <span class="nb">slice</span> <span class="o">=</span> <span class="nb">slice</span><span class="p">(</span><span class="kc">None</span><span class="p">,</span> <span class="kc">None</span><span class="p">))</span> <span class="o">-&gt;</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span></code>
+
+</h3>
+
+
+    <div class="doc doc-contents ">
+
+      <p>Returns the content of the Zarr-File for this tomogram as a numpy array. Multiscale group and slices are
+supported.</p>
+
+
+<p><span class="doc-section-title">Parameters:</span></p>
+    <ul>
+        <li class="doc-section-item field-body">
+          <b><code>zarr_group</code></b>
+              (<code>str</code>, default:
+                  <code>&#39;0&#39;</code>
+)
+          –
+          <div class="doc-md-description">
+            <p>Zarr group to access.</p>
+          </div>
+        </li>
+        <li class="doc-section-item field-body">
+          <b><code>x</code></b>
+              (<code>slice</code>, default:
+                  <code>slice(None, None)</code>
+)
+          –
+          <div class="doc-md-description">
+            <p>Slice for the x-axis.</p>
+          </div>
+        </li>
+        <li class="doc-section-item field-body">
+          <b><code>y</code></b>
+              (<code>slice</code>, default:
+                  <code>slice(None, None)</code>
+)
+          –
+          <div class="doc-md-description">
+            <p>Slice for the y-axis.</p>
+          </div>
+        </li>
+        <li class="doc-section-item field-body">
+          <b><code>z</code></b>
+              (<code>slice</code>, default:
+                  <code>slice(None, None)</code>
+)
+          –
+          <div class="doc-md-description">
+            <p>Slice for the z-axis.</p>
+          </div>
+        </li>
+    </ul>
+
+
+<p><span class="doc-section-title">Returns:</span></p>
+    <ul>
+        <li class="doc-section-item field-body">
+              <code><span title="numpy.ndarray">ndarray</span></code>
+          –
+          <div class="doc-md-description">
+            <p>np.ndarray: The tomogram as a numpy array.</p>
+          </div>
+        </li>
+    </ul>
 
     </div>
 
