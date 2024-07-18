@@ -1491,39 +1491,53 @@ class CopickPicks:
         self.meta = self.load()
 
     def numpy(self) -> Tuple[np.ndarray, np.ndarray]:
-        """Return the points as a [N, 3] numpy array (N, [x, y, z]) and the orientations as a [N, 4, 4] numpy array.
+        """Return the points as a [N, 3] numpy array (N, [x, y, z]) and the transforms as a [N, 4, 4] numpy array.
+        Format of the transforms is:
+                ```
+                [[rxx, rxy, rxz, tx],
+                 [ryx, ryy, ryz, ty],
+                 [rzx, rzy, rzz, tz],
+                 [  0,   0,   0,  1]]
+                ```
 
         Returns:
-            Tuple[np.ndarray, np.ndarray]: The picks and orientations as numpy arrays.
+            Tuple[np.ndarray, np.ndarray]: The picks and transforms as numpy arrays.
         """
 
         points = np.zeros((len(self.points), 3))
-        orientations = np.zeros((len(self.points), 4, 4))
+        transforms = np.zeros((len(self.points), 4, 4))
 
         for i, p in enumerate(self.points):
             points[i, :] = np.array([p.location.x, p.location.y, p.location.z])
-            orientations[i, :, :] = p.transformation
+            transforms[i, :, :] = p.transformation
 
-        return points, orientations
+        return points, transforms
 
-    def from_numpy(self, positions: np.ndarray, orientations: Optional[np.ndarray] = None) -> None:
-        """Set the points and orientations from numpy arrays.
+    def from_numpy(self, positions: np.ndarray, transforms: Optional[np.ndarray] = None) -> None:
+        """Set the points and transforms from numpy arrays.
 
         Args:
             positions: [N, 3] numpy array of positions (N, [x, y, z]).
-            orientations: [N, 4, 4] numpy array of orientations. If None, orientations will be set to the identity
-                matrix.
+            transforms: [N, 4, 4] numpy array of orientations. If None, transforms will be set to the identity
+                matrix. Format of the transforms is:
+                ```
+                [[rxx, rxy, rxz, tx],
+                 [ryx, ryy, ryz, ty],
+                 [rzx, rzy, rzz, tz],
+                 [  0,   0,   0,  1]]
+                ```
+
         """
 
-        if positions.shape[0] != orientations.shape[0]:
-            raise ValueError("Number of positions and orientations must be the same.")
+        if positions.shape[0] != transforms.shape[0]:
+            raise ValueError("Number of positions and transforms must be the same.")
 
         points = []
 
         for i in range(positions.shape[0]):
             p = CopickPoint(location=CopickLocation(x=positions[i, 0], y=positions[i, 1], z=positions[i, 2]))
-            if orientations is not None:
-                p.transformation = orientations[i, :, :]
+            if transforms is not None:
+                p.transformation = transforms[i, :, :]
             points.append(p)
 
         self.points = points
