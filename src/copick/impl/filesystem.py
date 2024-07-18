@@ -882,7 +882,12 @@ class CopickRootFSSpec(CopickRoot):
         # Query location
         run_dir = f"{root}/ExperimentRuns/"
         paths = fs.glob(run_dir + "**", maxdepth=1, detail=True)
-        names = [p.rstrip("/").replace(run_dir, "") for p, details in paths.items() if details["type"] == "directory"]
+        names = [
+            p.rstrip("/").replace(run_dir, "")
+            for p, details in paths.items()
+            if (details.get("type", "") == "directory")
+            or (details.get("type", "") == "other" and details.get("islink", False))
+        ]
 
         # Remove any hidden files
         names = [n for n in names if not n.startswith(".") and n != f"{root}/ExperimentRuns"]
