@@ -1338,27 +1338,26 @@ class CopickFeatures:
     def numpy(
         self,
         zarr_group: str = "0",
-        channel: slice = slice(None, None),
-        x: slice = slice(None, None),
-        y: slice = slice(None, None),
-        z: slice = slice(None, None),
+        slices: Tuple[slice, ...] = None,
     ) -> np.ndarray:
         """Returns the content of the Zarr-File for this feature map as a numpy array. Multiscale group and slices are
         supported.
 
         Args:
             zarr_group: Zarr group to access.
-            channel: Slice for the channel axis.
-            x: Slice for the x-axis.
-            y: Slice for the y-axis.
-            z: Slice for the z-axis.
+            slices: Tuple of slices for the axes.
 
         Returns:
             np.ndarray: The object as a numpy array.
         """
 
         loc = self.zarr()
-        return np.array(zarr.open(loc)[zarr_group][channel, z, y, x])
+        group = zarr.open(loc)[zarr_group]
+
+        if slices is None:
+            return np.array(group)
+        else:
+            return np.array(group[slices])
 
 
 class CopickPicksFile(BaseModel):

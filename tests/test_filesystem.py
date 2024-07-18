@@ -1264,6 +1264,31 @@ def test_feature_zarr(test_payload: Dict[str, Any]):
     zarr.array(np.random.rand(64, 64, 64), store=feat.zarr(), chunks=(32, 32, 32))
 
 
+def test_feature_read_numpy(test_payload: Dict[str, Any]):
+    # Setup
+    copick_root = test_payload["root"]
+    copick_run = copick_root.get_run("TS_001")
+    vs = copick_run.get_voxel_spacing(10.000)
+    tomogram = vs.get_tomogram(tomo_type="wbp")
+    feature = tomogram.get_features(feature_type="sobel")
+
+    # Full volume
+    array = feature.numpy()
+    assert array.shape == (64, 64, 64), "Error getting numpy array, (incorrect shape)"
+    assert np.sum(array) == pytest.approx(
+        20619.8125,
+        abs=NUMERICAL_PRECISION,
+    ), "Error getting numpy array (incorrect sum)."
+
+    # Subregion
+    array = feature.numpy(slices=(slice(20, 40), slice(20, 40), slice(20, 40)))
+    assert array.shape == (20, 20, 20), "Error getting numpy array, (incorrect shape)"
+    assert np.sum(array) == pytest.approx(
+        563.36730957,
+        abs=NUMERICAL_PRECISION,
+    ), "Error getting numpy array (incorrect sum)."
+
+
 def test_mesh_meta(test_payload: Dict[str, Any]):
     # Setup
     copick_root = test_payload["root"]
