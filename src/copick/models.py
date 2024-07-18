@@ -33,12 +33,14 @@ class PickableObject(BaseModel):
     radius: Optional[float] = None
 
     @field_validator("label")
+    @classmethod
     def validate_label(cls, v) -> int:
         """Validate the label."""
         assert v != 0, "Label 0 is reserved for background."
         return v
 
     @field_validator("color")
+    @classmethod
     def validate_color(cls, v) -> Tuple[int, int, int, int]:
         """Validate the color."""
         assert len(v) == 4, "Color must be a 4-tuple (RGBA)."
@@ -126,6 +128,7 @@ class CopickPoint(BaseModel):
     }
 
     @field_validator("transformation_")
+    @classmethod
     def validate_transformation(cls, v) -> List[List[float]]:
         """Validate the transformation matrix."""
         arr = np.array(v)
