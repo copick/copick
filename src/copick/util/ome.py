@@ -37,6 +37,17 @@ def volume_pyramid(
     levels: int,
     dtype: np.dtype = np.float32,
 ) -> Dict[float, np.ndarray]:
+    """Create a volume pyramid by downscaling with interpolation, maintaining the local mean.
+
+    Args:
+        volume: The volume to downsample.
+        voxel_size: The voxel size of the input volume.
+        levels: The number of levels in the pyramid.
+        dtype: The data type of the output arrays.
+
+    Returns:
+        A dictionary containing the pyramid with the voxel size as the key.
+    """
     pyramid = {voxel_size: volume.astype(dtype)}
     vs = voxel_size
 
@@ -54,6 +65,17 @@ def segmentation_pyramid(
     levels: int,
     dtype: np.dtype = np.int8,
 ) -> Dict[float, np.ndarray]:
+    """Create an image pyramid by downsampling without interpolation.
+
+    Args:
+        segmentation: The segmentation to downsample.
+        voxel_size: The voxel size of the input segmentation.
+        levels: The number of levels in the pyramid.
+        dtype: The data type of the output arrays.
+
+    Returns:
+        A dictionary containing the pyramid with the voxel size as the key.
+    """
     pyramid = {voxel_size: segmentation.astype(dtype)}
     vs = voxel_size
 
