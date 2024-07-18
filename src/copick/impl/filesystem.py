@@ -45,7 +45,7 @@ class CopickConfigFSSpec(CopickConfig):
 
     config_type: str = "filesystem"
     overlay_root: str
-    static_root: Optional[str]
+    static_root: Optional[str] = None
 
     overlay_fs_args: Optional[Dict[str, Any]] = {}
     static_fs_args: Optional[Dict[str, Any]] = {}
