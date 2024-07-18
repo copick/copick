@@ -1471,6 +1471,24 @@
       <ul class="md-nav__list">
         
           <li class="md-nav__item">
+  <a href="#copick.impl.cryoet_data_portal.CopickRunCDP.get_picks" class="md-nav__link">
+    <span class="md-ellipsis">
+      <code class="doc-symbol doc-symbol-toc doc-symbol-method"></code>&nbsp;get_picks
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#copick.impl.cryoet_data_portal.CopickRunCDP.get_segmentations" class="md-nav__link">
+    <span class="md-ellipsis">
+      <code class="doc-symbol doc-symbol-toc doc-symbol-method"></code>&nbsp;get_segmentations
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
   <a href="#copick.impl.cryoet_data_portal.CopickRunCDP.ensure" class="md-nav__link">
     <span class="md-ellipsis">
       <code class="doc-symbol doc-symbol-toc doc-symbol-method"></code>&nbsp;ensure
@@ -1655,6 +1673,24 @@
   
     <nav class="md-nav" aria-label=" CopickRunCDP">
       <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#copick.impl.cryoet_data_portal.CopickRunCDP.get_picks" class="md-nav__link">
+    <span class="md-ellipsis">
+      <code class="doc-symbol doc-symbol-toc doc-symbol-method"></code>&nbsp;get_picks
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#copick.impl.cryoet_data_portal.CopickRunCDP.get_segmentations" class="md-nav__link">
+    <span class="md-ellipsis">
+      <code class="doc-symbol doc-symbol-toc doc-symbol-method"></code>&nbsp;get_segmentations
+    </span>
+  </a>
+  
+</li>
         
           <li class="md-nav__item">
   <a href="#copick.impl.cryoet_data_portal.CopickRunCDP.ensure" class="md-nav__link">
@@ -1915,6 +1951,201 @@ The filesystem implementation is defined in the <code>copick.impl.cryoet_data_po
 
 
 
+
+<div class="doc doc-object doc-function">
+
+
+<h3 id="copick.impl.cryoet_data_portal.CopickRunCDP.get_picks" class="doc doc-heading">
+<code class="doc-symbol doc-symbol-heading doc-symbol-method"></code>            <code class="highlight language-python"><span class="n">get_picks</span><span class="p">(</span><span class="n">object_name</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span> <span class="n">user_id</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span> <span class="n">session_id</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span> <span class="n">portal_meta_query</span><span class="p">:</span> <span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span> <span class="n">portal_author_query</span><span class="p">:</span> <span class="n">List</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">List</span><span class="p">[</span><span class="n">CopickPicksCDP</span><span class="p">]</span></code>
+
+</h3>
+
+
+    <div class="doc doc-contents ">
+
+      <p>Get picks by name, user_id or session_id (or combinations). Portal metadata are compared for equality. Portal
+authors are checked for inclusion in the full author list.</p>
+
+
+<p><span class="doc-section-title">Parameters:</span></p>
+    <ul>
+        <li class="doc-section-item field-body">
+          <b><code>object_name</code></b>
+              (<code>str</code>, default:
+                  <code>None</code>
+)
+          –
+          <div class="doc-md-description">
+            <p>Name of the object to search for.</p>
+          </div>
+        </li>
+        <li class="doc-section-item field-body">
+          <b><code>user_id</code></b>
+              (<code>str</code>, default:
+                  <code>None</code>
+)
+          –
+          <div class="doc-md-description">
+            <p>User ID to search for.</p>
+          </div>
+        </li>
+        <li class="doc-section-item field-body">
+          <b><code>session_id</code></b>
+              (<code>str</code>, default:
+                  <code>None</code>
+)
+          –
+          <div class="doc-md-description">
+            <p>Session ID to search for.</p>
+          </div>
+        </li>
+        <li class="doc-section-item field-body">
+          <b><code>portal_meta_query</code></b>
+              (<code><span title="typing.Dict">Dict</span>[str, <span title="typing.Any">Any</span>]</code>, default:
+                  <code>None</code>
+)
+          –
+          <div class="doc-md-description">
+            <p>Dictionary of values to compare against portal metadata of this annotation. Allowed keys
+are the scalar fields of <a href="https://chanzuckerberg.github.io/cryoet-data-portal/python-api.html#annotation">cryoet_data_portal.Annotation</a></p>
+          </div>
+        </li>
+        <li class="doc-section-item field-body">
+          <b><code>portal_author_query</code></b>
+              (<code><span title="typing.List">List</span>[str]</code>, default:
+                  <code>None</code>
+)
+          –
+          <div class="doc-md-description">
+            <p>List of author names. Segmentations are included if this author is in the portal
+annotation's author list.</p>
+          </div>
+        </li>
+    </ul>
+
+
+<p><span class="doc-section-title">Returns:</span></p>
+    <ul>
+        <li class="doc-section-item field-body">
+              <code><span title="typing.List">List</span>[<a class="autorefs autorefs-internal" title="copick.impl.cryoet_data_portal.CopickPicksCDP" href="#copick.impl.cryoet_data_portal.CopickPicksCDP">CopickPicksCDP</a>]</code>
+          –
+          <div class="doc-md-description">
+            <p>List[CopickPicks]: List of picks that match the search criteria.</p>
+          </div>
+        </li>
+    </ul>
+
+    </div>
+
+</div>
+
+<div class="doc doc-object doc-function">
+
+
+<h3 id="copick.impl.cryoet_data_portal.CopickRunCDP.get_segmentations" class="doc doc-heading">
+<code class="doc-symbol doc-symbol-heading doc-symbol-method"></code>            <code class="highlight language-python"><span class="n">get_segmentations</span><span class="p">(</span><span class="n">user_id</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span> <span class="n">session_id</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span> <span class="n">is_multilabel</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span> <span class="n">name</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span> <span class="n">voxel_size</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span> <span class="n">portal_meta_query</span><span class="p">:</span> <span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span> <span class="n">portal_author_query</span><span class="p">:</span> <span class="n">List</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">List</span><span class="p">[</span><span class="n">CopickSegmentationCDP</span><span class="p">]</span></code>
+
+</h3>
+
+
+    <div class="doc doc-contents ">
+
+      <p>Get segmentations by user_id, session_id, name, type or voxel_size (or combinations) and portal metadata and
+authors. Portal metadata are compared for equality. Portal authors are checked for inclusion in the full author
+list.</p>
+
+
+<p><span class="doc-section-title">Parameters:</span></p>
+    <ul>
+        <li class="doc-section-item field-body">
+          <b><code>user_id</code></b>
+              (<code>str</code>, default:
+                  <code>None</code>
+)
+          –
+          <div class="doc-md-description">
+            <p>User ID to search for.</p>
+          </div>
+        </li>
+        <li class="doc-section-item field-body">
+          <b><code>session_id</code></b>
+              (<code>str</code>, default:
+                  <code>None</code>
+)
+          –
+          <div class="doc-md-description">
+            <p>Session ID to search for.</p>
+          </div>
+        </li>
+        <li class="doc-section-item field-body">
+          <b><code>is_multilabel</code></b>
+              (<code>bool</code>, default:
+                  <code>None</code>
+)
+          –
+          <div class="doc-md-description">
+            <p>Whether the segmentation is multilabel or not.</p>
+          </div>
+        </li>
+        <li class="doc-section-item field-body">
+          <b><code>name</code></b>
+              (<code>str</code>, default:
+                  <code>None</code>
+)
+          –
+          <div class="doc-md-description">
+            <p>Name of the segmentation to search for.</p>
+          </div>
+        </li>
+        <li class="doc-section-item field-body">
+          <b><code>voxel_size</code></b>
+              (<code>float</code>, default:
+                  <code>None</code>
+)
+          –
+          <div class="doc-md-description">
+            <p>Voxel size to search for.</p>
+          </div>
+        </li>
+        <li class="doc-section-item field-body">
+          <b><code>portal_meta_query</code></b>
+              (<code><span title="typing.Dict">Dict</span>[str, <span title="typing.Any">Any</span>]</code>, default:
+                  <code>None</code>
+)
+          –
+          <div class="doc-md-description">
+            <p>Dictionary of values to compare against portal metadata of this annotation. Allowed keys
+are the scalar fields of <a href="https://chanzuckerberg.github.io/cryoet-data-portal/python-api.html#annotation">cryoet_data_portal.Annotation</a></p>
+          </div>
+        </li>
+        <li class="doc-section-item field-body">
+          <b><code>portal_author_query</code></b>
+              (<code><span title="typing.List">List</span>[str]</code>, default:
+                  <code>None</code>
+)
+          –
+          <div class="doc-md-description">
+            <p>List of author names. Segmentations are included if this author is in the portal
+annotation's author list.</p>
+          </div>
+        </li>
+    </ul>
+
+
+<p><span class="doc-section-title">Returns:</span></p>
+    <ul>
+        <li class="doc-section-item field-body">
+              <code><span title="typing.List">List</span>[<a class="autorefs autorefs-internal" title="copick.impl.cryoet_data_portal.CopickSegmentationCDP" href="#copick.impl.cryoet_data_portal.CopickSegmentationCDP">CopickSegmentationCDP</a>]</code>
+          –
+          <div class="doc-md-description">
+            <p>List[CopickSegmentation]: List of segmentations that match the search criteria.</p>
+          </div>
+        </li>
+    </ul>
+
+    </div>
+
+</div>
 
 <div class="doc doc-object doc-function">
 
