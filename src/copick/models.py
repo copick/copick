@@ -1472,9 +1472,6 @@ class CopickFeatures:
             slices: Tuple of slices for the axes.
         """
         loc = self.zarr()
-        if loc.mode != "w":
-            raise ValueError("Zarr store is not writable.")
-
         zarr.open(loc)[zarr_group][slices] = data
 
 

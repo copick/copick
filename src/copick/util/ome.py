@@ -27,8 +27,8 @@ def _ome_zarr_axes() -> List[Dict[str, str]]:
     ]
 
 
-def _ome_zarr_transforms(voxel_size: float) -> Dict[str, Any]:
-    return {"scale": [voxel_size, voxel_size, voxel_size], "type": "scale"}
+def _ome_zarr_transforms(voxel_size: float) -> List[Dict[str, Any]]:
+    return [{"scale": [voxel_size, voxel_size, voxel_size], "type": "scale"}]
 
 
 def volume_pyramid(
@@ -144,7 +144,7 @@ def fits_in_memory(array: zarr.Group, slices: Tuple[slice, ...]) -> Tuple[bool, 
 
     num_elem = []
     for dim, sl in zip(array.shape, slices):
-        num_elem.append(range(*sl.indices(dim)))
+        num_elem.append(len(range(*sl.indices(dim))))
 
     requested = np.prod(np.array(num_elem)) * array.itemsize
     available = psutil.virtual_memory().available
