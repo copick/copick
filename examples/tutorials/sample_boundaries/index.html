@@ -16,7 +16,7 @@
       
       
       <link rel="icon" href="../../../assets/images/favicon.png">
-      <meta name="generator" content="mkdocs-1.6.0, mkdocs-material-9.5.29">
+      <meta name="generator" content="mkdocs-1.6.0, mkdocs-material-9.5.28">
     
     
       
@@ -24,7 +24,7 @@
       
     
     
-      <link rel="stylesheet" href="../../../assets/stylesheets/main.76a95c52.min.css">
+      <link rel="stylesheet" href="../../../assets/stylesheets/main.6543a935.min.css">
       
         
         <link rel="stylesheet" href="../../../assets/stylesheets/palette.06af60db.min.css">
@@ -72,6 +72,11 @@
     <input class="md-toggle" data-md-toggle="search" type="checkbox" id="__search" autocomplete="off">
     <label class="md-overlay" for="__drawer"></label>
     <div data-md-component="skip">
+      
+        
+        <a href="#predicting-sample-boundaries" class="md-skip">
+          Skip to content
+        </a>
       
     </div>
     <div data-md-component="announce">
@@ -640,6 +645,17 @@
       
       
       
+        <label class="md-nav__link md-nav__link--active" for="__toc">
+          
+  
+  <span class="md-ellipsis">
+    Detecting Sample Boundaries
+  </span>
+  
+
+          <span class="md-nav__icon md-icon"></span>
+        </label>
+      
       <a href="./" class="md-nav__link md-nav__link--active">
         
   
@@ -649,6 +665,200 @@
   
 
       </a>
+      
+        
+
+<nav class="md-nav md-nav--secondary" aria-label="Table of contents">
+  
+  
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      Table of contents
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#predicting-sample-boundaries" class="md-nav__link">
+    <span class="md-ellipsis">
+      Predicting sample boundaries
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Predicting sample boundaries">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#step-0-environment-and-pre-requisites" class="md-nav__link">
+    <span class="md-ellipsis">
+      Step 0: Environment and Pre-requisites
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Step 0: Environment and Pre-requisites">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#1-chimerax-and-chimerax-copick-for-visualization-and-annotation" class="md-nav__link">
+    <span class="md-ellipsis">
+      1. ChimeraX and ChimeraX-copick (for visualization and annotation)
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#2-album-and-copick-catalog-for-processing-steps" class="md-nav__link">
+    <span class="md-ellipsis">
+      2. Album and copick-catalog (for processing steps)
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#3-j-finder-for-segmentation" class="md-nav__link">
+    <span class="md-ellipsis">
+      3. J-finder (for segmentation)
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#step-1-setup-your-copick-projects" class="md-nav__link">
+    <span class="md-ellipsis">
+      Step 1: Setup your copick projects
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#step-2-annotate-the-training-set" class="md-nav__link">
+    <span class="md-ellipsis">
+      Step 2: Annotate the training set
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#step-3-create-the-training-data" class="md-nav__link">
+    <span class="md-ellipsis">
+      Step 3: Create the training data
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Step 3: Create the training data">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#valid-reconstruction-area" class="md-nav__link">
+    <span class="md-ellipsis">
+      Valid reconstruction area
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#sample" class="md-nav__link">
+    <span class="md-ellipsis">
+      Sample
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#intersection" class="md-nav__link">
+    <span class="md-ellipsis">
+      Intersection
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#training-data" class="md-nav__link">
+    <span class="md-ellipsis">
+      Training data
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#step-4-train-the-model" class="md-nav__link">
+    <span class="md-ellipsis">
+      Step 4: Train the model
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Step 4: Train the model">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#create-the-multilabel-segmentation" class="md-nav__link">
+    <span class="md-ellipsis">
+      Create the multilabel segmentation
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#train-the-model" class="md-nav__link">
+    <span class="md-ellipsis">
+      Train the model
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#step-5-evaluate-the-model" class="md-nav__link">
+    <span class="md-ellipsis">
+      Step 5: Evaluate the model
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#step-6-post-processing" class="md-nav__link">
+    <span class="md-ellipsis">
+      Step 6: Post-processing
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+    </ul>
+  
+</nav>
       
     </li>
   
@@ -1426,6 +1636,191 @@
   
   
   
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      Table of contents
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#predicting-sample-boundaries" class="md-nav__link">
+    <span class="md-ellipsis">
+      Predicting sample boundaries
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Predicting sample boundaries">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#step-0-environment-and-pre-requisites" class="md-nav__link">
+    <span class="md-ellipsis">
+      Step 0: Environment and Pre-requisites
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Step 0: Environment and Pre-requisites">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#1-chimerax-and-chimerax-copick-for-visualization-and-annotation" class="md-nav__link">
+    <span class="md-ellipsis">
+      1. ChimeraX and ChimeraX-copick (for visualization and annotation)
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#2-album-and-copick-catalog-for-processing-steps" class="md-nav__link">
+    <span class="md-ellipsis">
+      2. Album and copick-catalog (for processing steps)
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#3-j-finder-for-segmentation" class="md-nav__link">
+    <span class="md-ellipsis">
+      3. J-finder (for segmentation)
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#step-1-setup-your-copick-projects" class="md-nav__link">
+    <span class="md-ellipsis">
+      Step 1: Setup your copick projects
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#step-2-annotate-the-training-set" class="md-nav__link">
+    <span class="md-ellipsis">
+      Step 2: Annotate the training set
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#step-3-create-the-training-data" class="md-nav__link">
+    <span class="md-ellipsis">
+      Step 3: Create the training data
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Step 3: Create the training data">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#valid-reconstruction-area" class="md-nav__link">
+    <span class="md-ellipsis">
+      Valid reconstruction area
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#sample" class="md-nav__link">
+    <span class="md-ellipsis">
+      Sample
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#intersection" class="md-nav__link">
+    <span class="md-ellipsis">
+      Intersection
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#training-data" class="md-nav__link">
+    <span class="md-ellipsis">
+      Training data
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#step-4-train-the-model" class="md-nav__link">
+    <span class="md-ellipsis">
+      Step 4: Train the model
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Step 4: Train the model">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#create-the-multilabel-segmentation" class="md-nav__link">
+    <span class="md-ellipsis">
+      Create the multilabel segmentation
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#train-the-model" class="md-nav__link">
+    <span class="md-ellipsis">
+      Train the model
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#step-5-evaluate-the-model" class="md-nav__link">
+    <span class="md-ellipsis">
+      Step 5: Evaluate the model
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#step-6-post-processing" class="md-nav__link">
+    <span class="md-ellipsis">
+      Step 6: Post-processing
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+    </ul>
+  
 </nav>
                   </div>
                 </div>
@@ -1444,7 +1839,575 @@
 
   <h1>Detecting Sample Boundaries</h1>
 
-<p>coming soon!</p>
+<h2 id="predicting-sample-boundaries">Predicting sample boundaries</h2>
+<figure>
+  <img alt="tutorial-goal" src="../../../assets/tomo_side_light.png#only-light" />
+  <img alt="tutorial-goal" src="../../../assets/tomo_side_dark.png#only-dark" />
+  <figcaption>Side view onto a cryo-electron tomogram (<a href="https://cryoetdataportal.czscience.com/runs/15094">run 15094</a>)
+without (left) and with (right) sample boundary annotation</figcaption>
+</figure>
+<p>Biological samples acquired in a cryoET experiment are usually thin slabs of vitrified ice containing the biological
+specimen of interest. Unfortunately, it is difficult to determine orientation and thickness of the samples ahead of
+reconstruction. For this reason, volumes reconstructed from cryoET tilt series are often larger than the actual sample
+and contain a significant amount of empty space (i.e. the vacuum inside the TEM column).</p>
+<p>There are several reasons for why it can be useful to determine more accurate sample boundaries, e.g.</p>
+<ul>
+<li>statistical analysis of the sample preparation process</li>
+<li>masking out the vacuum region to reduce the size of the volume</li>
+<li>masking out the vacuum region during the training of a neural network</li>
+<li>capping of membrane segmentations to define topological boundaries</li>
+</ul>
+<p>Below, we will show how to use <strong>copick</strong>, an adapted version of <a href="https://github.com/jtschwar/cryoet-deepfinder/tree/master">deepfinder</a>
+and <a href="https://album.solutions/">album</a> to predict sample boundaries for datasets <a href="https://cryoetdataportal.czscience.com/datasets/10301">10301</a>
+and <a href="https://cryoetdataportal.czscience.com/datasets/10302">10302</a> from the
+<a href="https://cryoetdataportal.czscience.com">CZ cryoET Data Portal</a>.</p>
+<figure>
+  <img alt="topview" src="../../../assets/tomo_top_both.png" width="400" />
+  <figcaption>Top view onto the same tomogram (<a href="https://cryoetdataportal.czscience.com/runs/15094">run 15094</a>)
+from dataset <a href="https://cryoetdataportal.czscience.com/datasets/10302">10302</a>.</figcaption>
+</figure>
+<h3 id="step-0-environment-and-pre-requisites">Step 0: Environment and Pre-requisites</h3>
+<p>For the purpose of this tutorial we will assume that we are working on a machine with access to an NVIDIA GPU and a
+working <code>CUDA 12.3</code>/<code>CUDNN 8.9</code> installation. Before we can start, we need to install the necessary software. We will
+use the following tools:</p>
+<h4 id="1-chimerax-and-chimerax-copick-for-visualization-and-annotation">1. ChimeraX and ChimeraX-copick (for visualization and annotation)</h4>
+<p>Download and install ChimeraX from <a href="https://www.cgl.ucsf.edu/chimerax/download.html">here</a>. After installing ChimeraX,
+install the ChimeraX-copick extension by running the following command in ChimeraX:</p>
+<div class="language-text highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a>toolshed install copick
+</span></code></pre></div>
+<h4 id="2-album-and-copick-catalog-for-processing-steps">2. Album and copick-catalog (for processing steps)</h4>
+<p>Comprehensive installation instructions for Album can be found on the <a href="https://docs.album.solutions/en/latest/installation-instructions.html">Album docs website</a>.</p>
+<p>TL;DR:
+<div class="language-bash highlight"><pre><span></span><code><span id="__span-1-1"><a id="__codelineno-1-1" name="__codelineno-1-1" href="#__codelineno-1-1"></a>conda<span class="w"> </span>create<span class="w"> </span>-n<span class="w"> </span>album<span class="w"> </span>album<span class="w"> </span>-c<span class="w"> </span>conda-forge
+</span><span id="__span-1-2"><a id="__codelineno-1-2" name="__codelineno-1-2" href="#__codelineno-1-2"></a>conda<span class="w"> </span>activate<span class="w"> </span>album
+</span></code></pre></div></p>
+<p>Now, add copick's Album catalog (<a href="https://github.com/copick/copick-catalog">copick-catalog</a>) to your album
+installation and install the requried solutions by running the following commands:</p>
+<div class="language-bash highlight"><pre><span></span><code><span id="__span-2-1"><a id="__codelineno-2-1" name="__codelineno-2-1" href="#__codelineno-2-1"></a>album<span class="w"> </span>add-catalog<span class="w"> </span>git@github.com:copick/copick-catalog.git
+</span><span id="__span-2-2"><a id="__codelineno-2-2" name="__codelineno-2-2" href="#__codelineno-2-2"></a>album<span class="w"> </span>update<span class="w"> </span><span class="o">&amp;&amp;</span><span class="w"> </span>album<span class="w"> </span>upgrade
+</span><span id="__span-2-3"><a id="__codelineno-2-3" name="__codelineno-2-3" href="#__codelineno-2-3"></a>album<span class="w"> </span>install<span class="w"> </span>copick:create_empty_picks:0.2.0
+</span><span id="__span-2-4"><a id="__codelineno-2-4" name="__codelineno-2-4" href="#__codelineno-2-4"></a>album<span class="w"> </span>install<span class="w"> </span>copick:fit_sample:0.7.0
+</span><span id="__span-2-5"><a id="__codelineno-2-5" name="__codelineno-2-5" href="#__codelineno-2-5"></a>album<span class="w"> </span>install<span class="w"> </span>copick:create_rec_limits:0.5.0
+</span><span id="__span-2-6"><a id="__codelineno-2-6" name="__codelineno-2-6" href="#__codelineno-2-6"></a>album<span class="w"> </span>install<span class="w"> </span>copick:intersect_mesh:0.5.0
+</span><span id="__span-2-7"><a id="__codelineno-2-7" name="__codelineno-2-7" href="#__codelineno-2-7"></a>album<span class="w"> </span>install<span class="w"> </span>copick:mesh_to_seg:0.7.0
+</span><span id="__span-2-8"><a id="__codelineno-2-8" name="__codelineno-2-8" href="#__codelineno-2-8"></a>album<span class="w"> </span>install<span class="w"> </span>copick:sample_mesh:0.5.0
+</span><span id="__span-2-9"><a id="__codelineno-2-9" name="__codelineno-2-9" href="#__codelineno-2-9"></a>album<span class="w"> </span>install<span class="w"> </span>copick:fit_sample_seg:0.9.0
+</span></code></pre></div>
+<h4 id="3-j-finder-for-segmentation">3. J-finder (for segmentation)</h4>
+<p>Download and install a copick-compatible version of deepfinder:</p>
+<div class="language-bash highlight"><pre><span></span><code><span id="__span-3-1"><a id="__codelineno-3-1" name="__codelineno-3-1" href="#__codelineno-3-1"></a>conda<span class="w"> </span>create<span class="w"> </span>-n<span class="w"> </span>deepfinder<span class="w"> </span><span class="nv">python</span><span class="o">=</span><span class="m">3</span>.10
+</span><span id="__span-3-2"><a id="__codelineno-3-2" name="__codelineno-3-2" href="#__codelineno-3-2"></a>conda<span class="w"> </span>activate<span class="w"> </span>deepfinder
+</span><span id="__span-3-3"><a id="__codelineno-3-3" name="__codelineno-3-3" href="#__codelineno-3-3"></a>git<span class="w"> </span>clone<span class="w"> </span>https://github.com/jtschwar/cryoet-deepfinder.git
+</span><span id="__span-3-4"><a id="__codelineno-3-4" name="__codelineno-3-4" href="#__codelineno-3-4"></a><span class="nb">cd</span><span class="w"> </span>cryoet-deepfinder
+</span><span id="__span-3-5"><a id="__codelineno-3-5" name="__codelineno-3-5" href="#__codelineno-3-5"></a>pip<span class="w"> </span>install<span class="w"> </span>.
+</span></code></pre></div>
+<h3 id="step-1-setup-your-copick-projects">Step 1: Setup your copick projects</h3>
+<p>We will create two copick projects that use datasets 10301 and 10302 from the CZ cryoET Data Portal. Both datasets stem
+from the same experiments and have the same characteristics, but the tomograms in dataset 10301 have protein annotations.
+We will use dataset 10301 as a training set and evaluate on dataset 10302.</p>
+<p>We will store new annotations in a local directory, called the "overlay", while the tomogram image data is obtained
+from the CZ cryoet data portal. In the following, we will create a configuration file <code>config_train.json</code> that describes
+the project. The configuration file is a JSON file that contains all information necessary to access the data and
+describing the objects that can be accessed and created using the copick API.</p>
+<p>The first part of the configuration file provides general information about the project, such as the project name,
+description, and copick-API version.</p>
+<details class="example">
+<summary>click to expand</summary>
+<div class="language-json highlight"><pre><span></span><code><span id="__span-4-1"><a id="__codelineno-4-1" name="__codelineno-4-1" href="#__codelineno-4-1"></a><span class="p">{</span>
+</span><span id="__span-4-2"><a id="__codelineno-4-2" name="__codelineno-4-2" href="#__codelineno-4-2"></a><span class="w">  </span><span class="nt">&quot;config_type&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;cryoet_data_portal&quot;</span><span class="p">,</span>
+</span><span id="__span-4-3"><a id="__codelineno-4-3" name="__codelineno-4-3" href="#__codelineno-4-3"></a><span class="w">  </span><span class="nt">&quot;name&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;Sample Boundary Prediction - Training Set&quot;</span><span class="p">,</span>
+</span><span id="__span-4-4"><a id="__codelineno-4-4" name="__codelineno-4-4" href="#__codelineno-4-4"></a><span class="w">  </span><span class="nt">&quot;description&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;This project uses dataset 10301 from the CZ cryoET Data Portal as a training set for sample boundary prediction.&quot;</span><span class="p">,</span>
+</span><span id="__span-4-5"><a id="__codelineno-4-5" name="__codelineno-4-5" href="#__codelineno-4-5"></a><span class="w">  </span><span class="nt">&quot;version&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;0.5.4&quot;</span>
+</span><span id="__span-4-6"><a id="__codelineno-4-6" name="__codelineno-4-6" href="#__codelineno-4-6"></a><span class="p">}</span>
+</span></code></pre></div>
+</details>
+<p>Next, we define the objects that can be accessed and created using the copick API. In this case we will create X objects:</p>
+<ul>
+<li>top-layer -- the top layer of the sample</li>
+<li>bottom-layer -- the bottom layer of the sample</li>
+<li>valid-area -- the valid area of the reconstructed tomogram</li>
+<li>sample -- the sample itself</li>
+<li>valid-sample -- the sample excluding the invalid reconstruction area</li>
+</ul>
+<details class="example">
+<summary>click to expand</summary>
+<div class="language-json highlight"><pre><span></span><code><span id="__span-5-1"><a id="__codelineno-5-1" name="__codelineno-5-1" href="#__codelineno-5-1"></a><span class="p">{</span>
+</span><span id="__span-5-2"><a id="__codelineno-5-2" name="__codelineno-5-2" href="#__codelineno-5-2"></a><span class="w">  </span><span class="nt">&quot;pickable_objects&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">[</span>
+</span><span id="__span-5-3"><a id="__codelineno-5-3" name="__codelineno-5-3" href="#__codelineno-5-3"></a><span class="w">        </span><span class="p">{</span>
+</span><span id="__span-5-4"><a id="__codelineno-5-4" name="__codelineno-5-4" href="#__codelineno-5-4"></a><span class="w">            </span><span class="nt">&quot;name&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;top-layer&quot;</span><span class="p">,</span>
+</span><span id="__span-5-5"><a id="__codelineno-5-5" name="__codelineno-5-5" href="#__codelineno-5-5"></a><span class="w">            </span><span class="nt">&quot;is_particle&quot;</span><span class="p">:</span><span class="w"> </span><span class="kc">true</span><span class="p">,</span>
+</span><span id="__span-5-6"><a id="__codelineno-5-6" name="__codelineno-5-6" href="#__codelineno-5-6"></a><span class="w">            </span><span class="nt">&quot;label&quot;</span><span class="p">:</span><span class="w"> </span><span class="mi">100</span><span class="p">,</span>
+</span><span id="__span-5-7"><a id="__codelineno-5-7" name="__codelineno-5-7" href="#__codelineno-5-7"></a><span class="w">            </span><span class="nt">&quot;color&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">[</span><span class="w">  </span><span class="mi">255</span><span class="p">,</span><span class="w"> </span><span class="mi">0</span><span class="p">,</span><span class="w"> </span><span class="mi">0</span><span class="p">,</span><span class="w"> </span><span class="mi">255</span><span class="p">],</span>
+</span><span id="__span-5-8"><a id="__codelineno-5-8" name="__codelineno-5-8" href="#__codelineno-5-8"></a><span class="w">            </span><span class="nt">&quot;radius&quot;</span><span class="p">:</span><span class="w"> </span><span class="mi">150</span><span class="p">,</span>
+</span><span id="__span-5-9"><a id="__codelineno-5-9" name="__codelineno-5-9" href="#__codelineno-5-9"></a><span class="w">            </span><span class="nt">&quot;map_threshold&quot;</span><span class="p">:</span><span class="w"> </span><span class="mf">0.037</span>
+</span><span id="__span-5-10"><a id="__codelineno-5-10" name="__codelineno-5-10" href="#__codelineno-5-10"></a><span class="w">        </span><span class="p">},</span>
+</span><span id="__span-5-11"><a id="__codelineno-5-11" name="__codelineno-5-11" href="#__codelineno-5-11"></a><span class="w">        </span><span class="p">{</span>
+</span><span id="__span-5-12"><a id="__codelineno-5-12" name="__codelineno-5-12" href="#__codelineno-5-12"></a><span class="w">            </span><span class="nt">&quot;name&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;bottom-layer&quot;</span><span class="p">,</span>
+</span><span id="__span-5-13"><a id="__codelineno-5-13" name="__codelineno-5-13" href="#__codelineno-5-13"></a><span class="w">            </span><span class="nt">&quot;is_particle&quot;</span><span class="p">:</span><span class="w"> </span><span class="kc">true</span><span class="p">,</span>
+</span><span id="__span-5-14"><a id="__codelineno-5-14" name="__codelineno-5-14" href="#__codelineno-5-14"></a><span class="w">            </span><span class="nt">&quot;label&quot;</span><span class="p">:</span><span class="w"> </span><span class="mi">101</span><span class="p">,</span>
+</span><span id="__span-5-15"><a id="__codelineno-5-15" name="__codelineno-5-15" href="#__codelineno-5-15"></a><span class="w">            </span><span class="nt">&quot;color&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">[</span>
+</span><span id="__span-5-16"><a id="__codelineno-5-16" name="__codelineno-5-16" href="#__codelineno-5-16"></a><span class="w">                </span><span class="mi">0</span><span class="p">,</span>
+</span><span id="__span-5-17"><a id="__codelineno-5-17" name="__codelineno-5-17" href="#__codelineno-5-17"></a><span class="w">                </span><span class="mi">255</span><span class="p">,</span>
+</span><span id="__span-5-18"><a id="__codelineno-5-18" name="__codelineno-5-18" href="#__codelineno-5-18"></a><span class="w">                </span><span class="mi">0</span><span class="p">,</span>
+</span><span id="__span-5-19"><a id="__codelineno-5-19" name="__codelineno-5-19" href="#__codelineno-5-19"></a><span class="w">                </span><span class="mi">255</span>
+</span><span id="__span-5-20"><a id="__codelineno-5-20" name="__codelineno-5-20" href="#__codelineno-5-20"></a><span class="w">            </span><span class="p">],</span>
+</span><span id="__span-5-21"><a id="__codelineno-5-21" name="__codelineno-5-21" href="#__codelineno-5-21"></a><span class="w">            </span><span class="nt">&quot;radius&quot;</span><span class="p">:</span><span class="w"> </span><span class="mi">150</span><span class="p">,</span>
+</span><span id="__span-5-22"><a id="__codelineno-5-22" name="__codelineno-5-22" href="#__codelineno-5-22"></a><span class="w">            </span><span class="nt">&quot;map_threshold&quot;</span><span class="p">:</span><span class="w"> </span><span class="mf">0.037</span>
+</span><span id="__span-5-23"><a id="__codelineno-5-23" name="__codelineno-5-23" href="#__codelineno-5-23"></a><span class="w">        </span><span class="p">},</span>
+</span><span id="__span-5-24"><a id="__codelineno-5-24" name="__codelineno-5-24" href="#__codelineno-5-24"></a><span class="w">        </span><span class="p">{</span>
+</span><span id="__span-5-25"><a id="__codelineno-5-25" name="__codelineno-5-25" href="#__codelineno-5-25"></a><span class="w">            </span><span class="nt">&quot;name&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;sample&quot;</span><span class="p">,</span>
+</span><span id="__span-5-26"><a id="__codelineno-5-26" name="__codelineno-5-26" href="#__codelineno-5-26"></a><span class="w">            </span><span class="nt">&quot;is_particle&quot;</span><span class="p">:</span><span class="w"> </span><span class="kc">false</span><span class="p">,</span>
+</span><span id="__span-5-27"><a id="__codelineno-5-27" name="__codelineno-5-27" href="#__codelineno-5-27"></a><span class="w">            </span><span class="nt">&quot;label&quot;</span><span class="p">:</span><span class="w"> </span><span class="mi">102</span><span class="p">,</span>
+</span><span id="__span-5-28"><a id="__codelineno-5-28" name="__codelineno-5-28" href="#__codelineno-5-28"></a><span class="w">            </span><span class="nt">&quot;color&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">[</span><span class="w">  </span><span class="mi">0</span><span class="p">,</span><span class="w"> </span><span class="mi">0</span><span class="p">,</span><span class="w"> </span><span class="mi">255</span><span class="p">,</span><span class="w"> </span><span class="mi">128</span><span class="p">],</span>
+</span><span id="__span-5-29"><a id="__codelineno-5-29" name="__codelineno-5-29" href="#__codelineno-5-29"></a><span class="w">            </span><span class="nt">&quot;radius&quot;</span><span class="p">:</span><span class="w"> </span><span class="mi">150</span><span class="p">,</span>
+</span><span id="__span-5-30"><a id="__codelineno-5-30" name="__codelineno-5-30" href="#__codelineno-5-30"></a><span class="w">            </span><span class="nt">&quot;map_threshold&quot;</span><span class="p">:</span><span class="w"> </span><span class="mf">0.037</span>
+</span><span id="__span-5-31"><a id="__codelineno-5-31" name="__codelineno-5-31" href="#__codelineno-5-31"></a><span class="w">        </span><span class="p">},</span>
+</span><span id="__span-5-32"><a id="__codelineno-5-32" name="__codelineno-5-32" href="#__codelineno-5-32"></a><span class="w">        </span><span class="p">{</span>
+</span><span id="__span-5-33"><a id="__codelineno-5-33" name="__codelineno-5-33" href="#__codelineno-5-33"></a><span class="w">            </span><span class="nt">&quot;name&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;valid-area&quot;</span><span class="p">,</span>
+</span><span id="__span-5-34"><a id="__codelineno-5-34" name="__codelineno-5-34" href="#__codelineno-5-34"></a><span class="w">            </span><span class="nt">&quot;is_particle&quot;</span><span class="p">:</span><span class="w"> </span><span class="kc">false</span><span class="p">,</span>
+</span><span id="__span-5-35"><a id="__codelineno-5-35" name="__codelineno-5-35" href="#__codelineno-5-35"></a><span class="w">            </span><span class="nt">&quot;label&quot;</span><span class="p">:</span><span class="w"> </span><span class="mi">103</span><span class="p">,</span>
+</span><span id="__span-5-36"><a id="__codelineno-5-36" name="__codelineno-5-36" href="#__codelineno-5-36"></a><span class="w">            </span><span class="nt">&quot;color&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">[</span>
+</span><span id="__span-5-37"><a id="__codelineno-5-37" name="__codelineno-5-37" href="#__codelineno-5-37"></a><span class="w">                </span><span class="mi">255</span><span class="p">,</span>
+</span><span id="__span-5-38"><a id="__codelineno-5-38" name="__codelineno-5-38" href="#__codelineno-5-38"></a><span class="w">                </span><span class="mi">255</span><span class="p">,</span>
+</span><span id="__span-5-39"><a id="__codelineno-5-39" name="__codelineno-5-39" href="#__codelineno-5-39"></a><span class="w">                </span><span class="mi">0</span><span class="p">,</span>
+</span><span id="__span-5-40"><a id="__codelineno-5-40" name="__codelineno-5-40" href="#__codelineno-5-40"></a><span class="w">                </span><span class="mi">128</span>
+</span><span id="__span-5-41"><a id="__codelineno-5-41" name="__codelineno-5-41" href="#__codelineno-5-41"></a><span class="w">            </span><span class="p">],</span>
+</span><span id="__span-5-42"><a id="__codelineno-5-42" name="__codelineno-5-42" href="#__codelineno-5-42"></a><span class="w">            </span><span class="nt">&quot;radius&quot;</span><span class="p">:</span><span class="w"> </span><span class="mi">150</span><span class="p">,</span>
+</span><span id="__span-5-43"><a id="__codelineno-5-43" name="__codelineno-5-43" href="#__codelineno-5-43"></a><span class="w">            </span><span class="nt">&quot;map_threshold&quot;</span><span class="p">:</span><span class="w"> </span><span class="mf">0.037</span>
+</span><span id="__span-5-44"><a id="__codelineno-5-44" name="__codelineno-5-44" href="#__codelineno-5-44"></a><span class="w">        </span><span class="p">},</span>
+</span><span id="__span-5-45"><a id="__codelineno-5-45" name="__codelineno-5-45" href="#__codelineno-5-45"></a><span class="w">        </span><span class="p">{</span>
+</span><span id="__span-5-46"><a id="__codelineno-5-46" name="__codelineno-5-46" href="#__codelineno-5-46"></a><span class="w">            </span><span class="nt">&quot;name&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;valid-sample&quot;</span><span class="p">,</span>
+</span><span id="__span-5-47"><a id="__codelineno-5-47" name="__codelineno-5-47" href="#__codelineno-5-47"></a><span class="w">            </span><span class="nt">&quot;is_particle&quot;</span><span class="p">:</span><span class="w"> </span><span class="kc">false</span><span class="p">,</span>
+</span><span id="__span-5-48"><a id="__codelineno-5-48" name="__codelineno-5-48" href="#__codelineno-5-48"></a><span class="w">            </span><span class="nt">&quot;label&quot;</span><span class="p">:</span><span class="w"> </span><span class="mi">2</span><span class="p">,</span>
+</span><span id="__span-5-49"><a id="__codelineno-5-49" name="__codelineno-5-49" href="#__codelineno-5-49"></a><span class="w">            </span><span class="nt">&quot;color&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">[</span>
+</span><span id="__span-5-50"><a id="__codelineno-5-50" name="__codelineno-5-50" href="#__codelineno-5-50"></a><span class="w">                </span><span class="mi">0</span><span class="p">,</span>
+</span><span id="__span-5-51"><a id="__codelineno-5-51" name="__codelineno-5-51" href="#__codelineno-5-51"></a><span class="w">                </span><span class="mi">255</span><span class="p">,</span>
+</span><span id="__span-5-52"><a id="__codelineno-5-52" name="__codelineno-5-52" href="#__codelineno-5-52"></a><span class="w">                </span><span class="mi">255</span><span class="p">,</span>
+</span><span id="__span-5-53"><a id="__codelineno-5-53" name="__codelineno-5-53" href="#__codelineno-5-53"></a><span class="w">                </span><span class="mi">128</span>
+</span><span id="__span-5-54"><a id="__codelineno-5-54" name="__codelineno-5-54" href="#__codelineno-5-54"></a><span class="w">            </span><span class="p">],</span>
+</span><span id="__span-5-55"><a id="__codelineno-5-55" name="__codelineno-5-55" href="#__codelineno-5-55"></a><span class="w">            </span><span class="nt">&quot;radius&quot;</span><span class="p">:</span><span class="w"> </span><span class="mi">150</span><span class="p">,</span>
+</span><span id="__span-5-56"><a id="__codelineno-5-56" name="__codelineno-5-56" href="#__codelineno-5-56"></a><span class="w">            </span><span class="nt">&quot;map_threshold&quot;</span><span class="p">:</span><span class="w"> </span><span class="mf">0.037</span>
+</span><span id="__span-5-57"><a id="__codelineno-5-57" name="__codelineno-5-57" href="#__codelineno-5-57"></a><span class="w">        </span><span class="p">}</span>
+</span><span id="__span-5-58"><a id="__codelineno-5-58" name="__codelineno-5-58" href="#__codelineno-5-58"></a><span class="w">    </span><span class="p">]</span>
+</span><span id="__span-5-59"><a id="__codelineno-5-59" name="__codelineno-5-59" href="#__codelineno-5-59"></a><span class="p">}</span>
+</span></code></pre></div>
+</details>
+<p>Finally, we define where <strong>copick</strong> should look for the data and store any annotations (in this case the home directory
+of Bob).</p>
+<details class="example">
+<summary>click to expand</summary>
+<div class="language-json highlight"><pre><span></span><code><span id="__span-6-1"><a id="__codelineno-6-1" name="__codelineno-6-1" href="#__codelineno-6-1"></a><span class="p">{</span>
+</span><span id="__span-6-2"><a id="__codelineno-6-2" name="__codelineno-6-2" href="#__codelineno-6-2"></a><span class="w">  </span><span class="nt">&quot;overlay_root&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;local:///home/bob/copick_project_train/&quot;</span><span class="p">,</span>
+</span><span id="__span-6-3"><a id="__codelineno-6-3" name="__codelineno-6-3" href="#__codelineno-6-3"></a><span class="w">  </span><span class="nt">&quot;overlay_fs_args&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
+</span><span id="__span-6-4"><a id="__codelineno-6-4" name="__codelineno-6-4" href="#__codelineno-6-4"></a><span class="w">    </span><span class="nt">&quot;auto_mkdir&quot;</span><span class="p">:</span><span class="w"> </span><span class="kc">true</span>
+</span><span id="__span-6-5"><a id="__codelineno-6-5" name="__codelineno-6-5" href="#__codelineno-6-5"></a><span class="w">  </span><span class="p">},</span>
+</span><span id="__span-6-6"><a id="__codelineno-6-6" name="__codelineno-6-6" href="#__codelineno-6-6"></a><span class="w">  </span><span class="nt">&quot;dataset_ids&quot;</span><span class="w"> </span><span class="p">:</span><span class="w"> </span><span class="p">[</span><span class="mi">10301</span><span class="p">]</span>
+</span><span id="__span-6-7"><a id="__codelineno-6-7" name="__codelineno-6-7" href="#__codelineno-6-7"></a><span class="p">}</span>
+</span></code></pre></div>
+</details>
+<p>We will repeat this process for a second project, <code>config_evaluate.json</code>, that includes both dataset 10301 and dataset
+10302 for evaluation. Find both full examples below:</p>
+<details class="example">
+<summary><code>config_train.json</code></summary>
+<div class="language-json highlight"><pre><span></span><code><span id="__span-7-1"><a id="__codelineno-7-1" name="__codelineno-7-1" href="#__codelineno-7-1"></a><span class="p">{</span>
+</span><span id="__span-7-2"><a id="__codelineno-7-2" name="__codelineno-7-2" href="#__codelineno-7-2"></a><span class="w">  </span><span class="nt">&quot;config_type&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;cryoet_data_portal&quot;</span><span class="p">,</span>
+</span><span id="__span-7-3"><a id="__codelineno-7-3" name="__codelineno-7-3" href="#__codelineno-7-3"></a><span class="w">  </span><span class="nt">&quot;name&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;Sample Boundary Prediction - Training Set&quot;</span><span class="p">,</span>
+</span><span id="__span-7-4"><a id="__codelineno-7-4" name="__codelineno-7-4" href="#__codelineno-7-4"></a><span class="w">  </span><span class="nt">&quot;description&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;This project uses dataset 10301 from the CZ cryoET Data Portal as a training set for sample boundary prediction.&quot;</span><span class="p">,</span>
+</span><span id="__span-7-5"><a id="__codelineno-7-5" name="__codelineno-7-5" href="#__codelineno-7-5"></a><span class="w">  </span><span class="nt">&quot;version&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;0.5.4&quot;</span><span class="p">,</span>
+</span><span id="__span-7-6"><a id="__codelineno-7-6" name="__codelineno-7-6" href="#__codelineno-7-6"></a><span class="w">  </span><span class="nt">&quot;pickable_objects&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">[</span>
+</span><span id="__span-7-7"><a id="__codelineno-7-7" name="__codelineno-7-7" href="#__codelineno-7-7"></a><span class="w">        </span><span class="p">{</span>
+</span><span id="__span-7-8"><a id="__codelineno-7-8" name="__codelineno-7-8" href="#__codelineno-7-8"></a><span class="w">            </span><span class="nt">&quot;name&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;top-layer&quot;</span><span class="p">,</span>
+</span><span id="__span-7-9"><a id="__codelineno-7-9" name="__codelineno-7-9" href="#__codelineno-7-9"></a><span class="w">            </span><span class="nt">&quot;is_particle&quot;</span><span class="p">:</span><span class="w"> </span><span class="kc">true</span><span class="p">,</span>
+</span><span id="__span-7-10"><a id="__codelineno-7-10" name="__codelineno-7-10" href="#__codelineno-7-10"></a><span class="w">            </span><span class="nt">&quot;label&quot;</span><span class="p">:</span><span class="w"> </span><span class="mi">100</span><span class="p">,</span>
+</span><span id="__span-7-11"><a id="__codelineno-7-11" name="__codelineno-7-11" href="#__codelineno-7-11"></a><span class="w">            </span><span class="nt">&quot;color&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">[</span><span class="w">  </span><span class="mi">255</span><span class="p">,</span><span class="w"> </span><span class="mi">0</span><span class="p">,</span><span class="w"> </span><span class="mi">0</span><span class="p">,</span><span class="w"> </span><span class="mi">255</span><span class="p">],</span>
+</span><span id="__span-7-12"><a id="__codelineno-7-12" name="__codelineno-7-12" href="#__codelineno-7-12"></a><span class="w">            </span><span class="nt">&quot;radius&quot;</span><span class="p">:</span><span class="w"> </span><span class="mi">150</span><span class="p">,</span>
+</span><span id="__span-7-13"><a id="__codelineno-7-13" name="__codelineno-7-13" href="#__codelineno-7-13"></a><span class="w">            </span><span class="nt">&quot;map_threshold&quot;</span><span class="p">:</span><span class="w"> </span><span class="mf">0.037</span>
+</span><span id="__span-7-14"><a id="__codelineno-7-14" name="__codelineno-7-14" href="#__codelineno-7-14"></a><span class="w">        </span><span class="p">},</span>
+</span><span id="__span-7-15"><a id="__codelineno-7-15" name="__codelineno-7-15" href="#__codelineno-7-15"></a><span class="w">        </span><span class="p">{</span>
+</span><span id="__span-7-16"><a id="__codelineno-7-16" name="__codelineno-7-16" href="#__codelineno-7-16"></a><span class="w">            </span><span class="nt">&quot;name&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;bottom-layer&quot;</span><span class="p">,</span>
+</span><span id="__span-7-17"><a id="__codelineno-7-17" name="__codelineno-7-17" href="#__codelineno-7-17"></a><span class="w">            </span><span class="nt">&quot;is_particle&quot;</span><span class="p">:</span><span class="w"> </span><span class="kc">true</span><span class="p">,</span>
+</span><span id="__span-7-18"><a id="__codelineno-7-18" name="__codelineno-7-18" href="#__codelineno-7-18"></a><span class="w">            </span><span class="nt">&quot;label&quot;</span><span class="p">:</span><span class="w"> </span><span class="mi">101</span><span class="p">,</span>
+</span><span id="__span-7-19"><a id="__codelineno-7-19" name="__codelineno-7-19" href="#__codelineno-7-19"></a><span class="w">            </span><span class="nt">&quot;color&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">[</span>
+</span><span id="__span-7-20"><a id="__codelineno-7-20" name="__codelineno-7-20" href="#__codelineno-7-20"></a><span class="w">                </span><span class="mi">0</span><span class="p">,</span>
+</span><span id="__span-7-21"><a id="__codelineno-7-21" name="__codelineno-7-21" href="#__codelineno-7-21"></a><span class="w">                </span><span class="mi">255</span><span class="p">,</span>
+</span><span id="__span-7-22"><a id="__codelineno-7-22" name="__codelineno-7-22" href="#__codelineno-7-22"></a><span class="w">                </span><span class="mi">0</span><span class="p">,</span>
+</span><span id="__span-7-23"><a id="__codelineno-7-23" name="__codelineno-7-23" href="#__codelineno-7-23"></a><span class="w">                </span><span class="mi">255</span>
+</span><span id="__span-7-24"><a id="__codelineno-7-24" name="__codelineno-7-24" href="#__codelineno-7-24"></a><span class="w">            </span><span class="p">],</span>
+</span><span id="__span-7-25"><a id="__codelineno-7-25" name="__codelineno-7-25" href="#__codelineno-7-25"></a><span class="w">            </span><span class="nt">&quot;radius&quot;</span><span class="p">:</span><span class="w"> </span><span class="mi">150</span><span class="p">,</span>
+</span><span id="__span-7-26"><a id="__codelineno-7-26" name="__codelineno-7-26" href="#__codelineno-7-26"></a><span class="w">            </span><span class="nt">&quot;map_threshold&quot;</span><span class="p">:</span><span class="w"> </span><span class="mf">0.037</span>
+</span><span id="__span-7-27"><a id="__codelineno-7-27" name="__codelineno-7-27" href="#__codelineno-7-27"></a><span class="w">        </span><span class="p">},</span>
+</span><span id="__span-7-28"><a id="__codelineno-7-28" name="__codelineno-7-28" href="#__codelineno-7-28"></a><span class="w">        </span><span class="p">{</span>
+</span><span id="__span-7-29"><a id="__codelineno-7-29" name="__codelineno-7-29" href="#__codelineno-7-29"></a><span class="w">            </span><span class="nt">&quot;name&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;sample&quot;</span><span class="p">,</span>
+</span><span id="__span-7-30"><a id="__codelineno-7-30" name="__codelineno-7-30" href="#__codelineno-7-30"></a><span class="w">            </span><span class="nt">&quot;is_particle&quot;</span><span class="p">:</span><span class="w"> </span><span class="kc">false</span><span class="p">,</span>
+</span><span id="__span-7-31"><a id="__codelineno-7-31" name="__codelineno-7-31" href="#__codelineno-7-31"></a><span class="w">            </span><span class="nt">&quot;label&quot;</span><span class="p">:</span><span class="w"> </span><span class="mi">102</span><span class="p">,</span>
+</span><span id="__span-7-32"><a id="__codelineno-7-32" name="__codelineno-7-32" href="#__codelineno-7-32"></a><span class="w">            </span><span class="nt">&quot;color&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">[</span><span class="w">  </span><span class="mi">0</span><span class="p">,</span><span class="w"> </span><span class="mi">0</span><span class="p">,</span><span class="w"> </span><span class="mi">255</span><span class="p">,</span><span class="w"> </span><span class="mi">128</span><span class="p">],</span>
+</span><span id="__span-7-33"><a id="__codelineno-7-33" name="__codelineno-7-33" href="#__codelineno-7-33"></a><span class="w">            </span><span class="nt">&quot;radius&quot;</span><span class="p">:</span><span class="w"> </span><span class="mi">150</span><span class="p">,</span>
+</span><span id="__span-7-34"><a id="__codelineno-7-34" name="__codelineno-7-34" href="#__codelineno-7-34"></a><span class="w">            </span><span class="nt">&quot;map_threshold&quot;</span><span class="p">:</span><span class="w"> </span><span class="mf">0.037</span>
+</span><span id="__span-7-35"><a id="__codelineno-7-35" name="__codelineno-7-35" href="#__codelineno-7-35"></a><span class="w">        </span><span class="p">},</span>
+</span><span id="__span-7-36"><a id="__codelineno-7-36" name="__codelineno-7-36" href="#__codelineno-7-36"></a><span class="w">        </span><span class="p">{</span>
+</span><span id="__span-7-37"><a id="__codelineno-7-37" name="__codelineno-7-37" href="#__codelineno-7-37"></a><span class="w">            </span><span class="nt">&quot;name&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;valid-area&quot;</span><span class="p">,</span>
+</span><span id="__span-7-38"><a id="__codelineno-7-38" name="__codelineno-7-38" href="#__codelineno-7-38"></a><span class="w">            </span><span class="nt">&quot;is_particle&quot;</span><span class="p">:</span><span class="w"> </span><span class="kc">false</span><span class="p">,</span>
+</span><span id="__span-7-39"><a id="__codelineno-7-39" name="__codelineno-7-39" href="#__codelineno-7-39"></a><span class="w">            </span><span class="nt">&quot;label&quot;</span><span class="p">:</span><span class="w"> </span><span class="mi">103</span><span class="p">,</span>
+</span><span id="__span-7-40"><a id="__codelineno-7-40" name="__codelineno-7-40" href="#__codelineno-7-40"></a><span class="w">            </span><span class="nt">&quot;color&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">[</span>
+</span><span id="__span-7-41"><a id="__codelineno-7-41" name="__codelineno-7-41" href="#__codelineno-7-41"></a><span class="w">                </span><span class="mi">255</span><span class="p">,</span>
+</span><span id="__span-7-42"><a id="__codelineno-7-42" name="__codelineno-7-42" href="#__codelineno-7-42"></a><span class="w">                </span><span class="mi">255</span><span class="p">,</span>
+</span><span id="__span-7-43"><a id="__codelineno-7-43" name="__codelineno-7-43" href="#__codelineno-7-43"></a><span class="w">                </span><span class="mi">0</span><span class="p">,</span>
+</span><span id="__span-7-44"><a id="__codelineno-7-44" name="__codelineno-7-44" href="#__codelineno-7-44"></a><span class="w">                </span><span class="mi">128</span>
+</span><span id="__span-7-45"><a id="__codelineno-7-45" name="__codelineno-7-45" href="#__codelineno-7-45"></a><span class="w">            </span><span class="p">],</span>
+</span><span id="__span-7-46"><a id="__codelineno-7-46" name="__codelineno-7-46" href="#__codelineno-7-46"></a><span class="w">            </span><span class="nt">&quot;radius&quot;</span><span class="p">:</span><span class="w"> </span><span class="mi">150</span><span class="p">,</span>
+</span><span id="__span-7-47"><a id="__codelineno-7-47" name="__codelineno-7-47" href="#__codelineno-7-47"></a><span class="w">            </span><span class="nt">&quot;map_threshold&quot;</span><span class="p">:</span><span class="w"> </span><span class="mf">0.037</span>
+</span><span id="__span-7-48"><a id="__codelineno-7-48" name="__codelineno-7-48" href="#__codelineno-7-48"></a><span class="w">        </span><span class="p">},</span>
+</span><span id="__span-7-49"><a id="__codelineno-7-49" name="__codelineno-7-49" href="#__codelineno-7-49"></a><span class="w">        </span><span class="p">{</span>
+</span><span id="__span-7-50"><a id="__codelineno-7-50" name="__codelineno-7-50" href="#__codelineno-7-50"></a><span class="w">            </span><span class="nt">&quot;name&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;valid-sample&quot;</span><span class="p">,</span>
+</span><span id="__span-7-51"><a id="__codelineno-7-51" name="__codelineno-7-51" href="#__codelineno-7-51"></a><span class="w">            </span><span class="nt">&quot;is_particle&quot;</span><span class="p">:</span><span class="w"> </span><span class="kc">false</span><span class="p">,</span>
+</span><span id="__span-7-52"><a id="__codelineno-7-52" name="__codelineno-7-52" href="#__codelineno-7-52"></a><span class="w">            </span><span class="nt">&quot;label&quot;</span><span class="p">:</span><span class="w"> </span><span class="mi">2</span><span class="p">,</span>
+</span><span id="__span-7-53"><a id="__codelineno-7-53" name="__codelineno-7-53" href="#__codelineno-7-53"></a><span class="w">            </span><span class="nt">&quot;color&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">[</span>
+</span><span id="__span-7-54"><a id="__codelineno-7-54" name="__codelineno-7-54" href="#__codelineno-7-54"></a><span class="w">                </span><span class="mi">0</span><span class="p">,</span>
+</span><span id="__span-7-55"><a id="__codelineno-7-55" name="__codelineno-7-55" href="#__codelineno-7-55"></a><span class="w">                </span><span class="mi">255</span><span class="p">,</span>
+</span><span id="__span-7-56"><a id="__codelineno-7-56" name="__codelineno-7-56" href="#__codelineno-7-56"></a><span class="w">                </span><span class="mi">255</span><span class="p">,</span>
+</span><span id="__span-7-57"><a id="__codelineno-7-57" name="__codelineno-7-57" href="#__codelineno-7-57"></a><span class="w">                </span><span class="mi">128</span>
+</span><span id="__span-7-58"><a id="__codelineno-7-58" name="__codelineno-7-58" href="#__codelineno-7-58"></a><span class="w">            </span><span class="p">],</span>
+</span><span id="__span-7-59"><a id="__codelineno-7-59" name="__codelineno-7-59" href="#__codelineno-7-59"></a><span class="w">            </span><span class="nt">&quot;radius&quot;</span><span class="p">:</span><span class="w"> </span><span class="mi">150</span><span class="p">,</span>
+</span><span id="__span-7-60"><a id="__codelineno-7-60" name="__codelineno-7-60" href="#__codelineno-7-60"></a><span class="w">            </span><span class="nt">&quot;map_threshold&quot;</span><span class="p">:</span><span class="w"> </span><span class="mf">0.037</span>
+</span><span id="__span-7-61"><a id="__codelineno-7-61" name="__codelineno-7-61" href="#__codelineno-7-61"></a><span class="w">        </span><span class="p">}</span>
+</span><span id="__span-7-62"><a id="__codelineno-7-62" name="__codelineno-7-62" href="#__codelineno-7-62"></a><span class="w">    </span><span class="p">],</span>
+</span><span id="__span-7-63"><a id="__codelineno-7-63" name="__codelineno-7-63" href="#__codelineno-7-63"></a><span class="w">  </span><span class="nt">&quot;overlay_root&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;local:///home/bob/copick_project_train/&quot;</span><span class="p">,</span>
+</span><span id="__span-7-64"><a id="__codelineno-7-64" name="__codelineno-7-64" href="#__codelineno-7-64"></a><span class="w">  </span><span class="nt">&quot;overlay_fs_args&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
+</span><span id="__span-7-65"><a id="__codelineno-7-65" name="__codelineno-7-65" href="#__codelineno-7-65"></a><span class="w">    </span><span class="nt">&quot;auto_mkdir&quot;</span><span class="p">:</span><span class="w"> </span><span class="kc">true</span>
+</span><span id="__span-7-66"><a id="__codelineno-7-66" name="__codelineno-7-66" href="#__codelineno-7-66"></a><span class="w">  </span><span class="p">},</span>
+</span><span id="__span-7-67"><a id="__codelineno-7-67" name="__codelineno-7-67" href="#__codelineno-7-67"></a><span class="w">  </span><span class="nt">&quot;dataset_ids&quot;</span><span class="w"> </span><span class="p">:</span><span class="w"> </span><span class="p">[</span><span class="mi">10301</span><span class="p">]</span>
+</span><span id="__span-7-68"><a id="__codelineno-7-68" name="__codelineno-7-68" href="#__codelineno-7-68"></a><span class="p">}</span>
+</span></code></pre></div>
+</details>
+<details class="example">
+<summary><code>config_evaluate.json</code></summary>
+<div class="language-json highlight"><pre><span></span><code><span id="__span-8-1"><a id="__codelineno-8-1" name="__codelineno-8-1" href="#__codelineno-8-1"></a><span class="p">{</span>
+</span><span id="__span-8-2"><a id="__codelineno-8-2" name="__codelineno-8-2" href="#__codelineno-8-2"></a><span class="w">  </span><span class="nt">&quot;config_type&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;cryoet_data_portal&quot;</span><span class="p">,</span>
+</span><span id="__span-8-3"><a id="__codelineno-8-3" name="__codelineno-8-3" href="#__codelineno-8-3"></a><span class="w">  </span><span class="nt">&quot;name&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;Sample Boundary Prediction - Evaluation Set&quot;</span><span class="p">,</span>
+</span><span id="__span-8-4"><a id="__codelineno-8-4" name="__codelineno-8-4" href="#__codelineno-8-4"></a><span class="w">  </span><span class="nt">&quot;description&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;This project uses datasets 10301 and 10302 from the CZ cryoET Data Portal for sample boundary prediction.&quot;</span><span class="p">,</span>
+</span><span id="__span-8-5"><a id="__codelineno-8-5" name="__codelineno-8-5" href="#__codelineno-8-5"></a><span class="w">  </span><span class="nt">&quot;version&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;0.5.4&quot;</span><span class="p">,</span>
+</span><span id="__span-8-6"><a id="__codelineno-8-6" name="__codelineno-8-6" href="#__codelineno-8-6"></a><span class="w">  </span><span class="nt">&quot;pickable_objects&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">[</span>
+</span><span id="__span-8-7"><a id="__codelineno-8-7" name="__codelineno-8-7" href="#__codelineno-8-7"></a><span class="w">        </span><span class="p">{</span>
+</span><span id="__span-8-8"><a id="__codelineno-8-8" name="__codelineno-8-8" href="#__codelineno-8-8"></a><span class="w">            </span><span class="nt">&quot;name&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;top-layer&quot;</span><span class="p">,</span>
+</span><span id="__span-8-9"><a id="__codelineno-8-9" name="__codelineno-8-9" href="#__codelineno-8-9"></a><span class="w">            </span><span class="nt">&quot;is_particle&quot;</span><span class="p">:</span><span class="w"> </span><span class="kc">true</span><span class="p">,</span>
+</span><span id="__span-8-10"><a id="__codelineno-8-10" name="__codelineno-8-10" href="#__codelineno-8-10"></a><span class="w">            </span><span class="nt">&quot;label&quot;</span><span class="p">:</span><span class="w"> </span><span class="mi">100</span><span class="p">,</span>
+</span><span id="__span-8-11"><a id="__codelineno-8-11" name="__codelineno-8-11" href="#__codelineno-8-11"></a><span class="w">            </span><span class="nt">&quot;color&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">[</span><span class="w">  </span><span class="mi">255</span><span class="p">,</span><span class="w"> </span><span class="mi">0</span><span class="p">,</span><span class="w"> </span><span class="mi">0</span><span class="p">,</span><span class="w"> </span><span class="mi">255</span><span class="p">],</span>
+</span><span id="__span-8-12"><a id="__codelineno-8-12" name="__codelineno-8-12" href="#__codelineno-8-12"></a><span class="w">            </span><span class="nt">&quot;radius&quot;</span><span class="p">:</span><span class="w"> </span><span class="mi">150</span><span class="p">,</span>
+</span><span id="__span-8-13"><a id="__codelineno-8-13" name="__codelineno-8-13" href="#__codelineno-8-13"></a><span class="w">            </span><span class="nt">&quot;map_threshold&quot;</span><span class="p">:</span><span class="w"> </span><span class="mf">0.037</span>
+</span><span id="__span-8-14"><a id="__codelineno-8-14" name="__codelineno-8-14" href="#__codelineno-8-14"></a><span class="w">        </span><span class="p">},</span>
+</span><span id="__span-8-15"><a id="__codelineno-8-15" name="__codelineno-8-15" href="#__codelineno-8-15"></a><span class="w">        </span><span class="p">{</span>
+</span><span id="__span-8-16"><a id="__codelineno-8-16" name="__codelineno-8-16" href="#__codelineno-8-16"></a><span class="w">            </span><span class="nt">&quot;name&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;bottom-layer&quot;</span><span class="p">,</span>
+</span><span id="__span-8-17"><a id="__codelineno-8-17" name="__codelineno-8-17" href="#__codelineno-8-17"></a><span class="w">            </span><span class="nt">&quot;is_particle&quot;</span><span class="p">:</span><span class="w"> </span><span class="kc">true</span><span class="p">,</span>
+</span><span id="__span-8-18"><a id="__codelineno-8-18" name="__codelineno-8-18" href="#__codelineno-8-18"></a><span class="w">            </span><span class="nt">&quot;label&quot;</span><span class="p">:</span><span class="w"> </span><span class="mi">101</span><span class="p">,</span>
+</span><span id="__span-8-19"><a id="__codelineno-8-19" name="__codelineno-8-19" href="#__codelineno-8-19"></a><span class="w">            </span><span class="nt">&quot;color&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">[</span>
+</span><span id="__span-8-20"><a id="__codelineno-8-20" name="__codelineno-8-20" href="#__codelineno-8-20"></a><span class="w">                </span><span class="mi">0</span><span class="p">,</span>
+</span><span id="__span-8-21"><a id="__codelineno-8-21" name="__codelineno-8-21" href="#__codelineno-8-21"></a><span class="w">                </span><span class="mi">255</span><span class="p">,</span>
+</span><span id="__span-8-22"><a id="__codelineno-8-22" name="__codelineno-8-22" href="#__codelineno-8-22"></a><span class="w">                </span><span class="mi">0</span><span class="p">,</span>
+</span><span id="__span-8-23"><a id="__codelineno-8-23" name="__codelineno-8-23" href="#__codelineno-8-23"></a><span class="w">                </span><span class="mi">255</span>
+</span><span id="__span-8-24"><a id="__codelineno-8-24" name="__codelineno-8-24" href="#__codelineno-8-24"></a><span class="w">            </span><span class="p">],</span>
+</span><span id="__span-8-25"><a id="__codelineno-8-25" name="__codelineno-8-25" href="#__codelineno-8-25"></a><span class="w">            </span><span class="nt">&quot;radius&quot;</span><span class="p">:</span><span class="w"> </span><span class="mi">150</span><span class="p">,</span>
+</span><span id="__span-8-26"><a id="__codelineno-8-26" name="__codelineno-8-26" href="#__codelineno-8-26"></a><span class="w">            </span><span class="nt">&quot;map_threshold&quot;</span><span class="p">:</span><span class="w"> </span><span class="mf">0.037</span>
+</span><span id="__span-8-27"><a id="__codelineno-8-27" name="__codelineno-8-27" href="#__codelineno-8-27"></a><span class="w">        </span><span class="p">},</span>
+</span><span id="__span-8-28"><a id="__codelineno-8-28" name="__codelineno-8-28" href="#__codelineno-8-28"></a><span class="w">        </span><span class="p">{</span>
+</span><span id="__span-8-29"><a id="__codelineno-8-29" name="__codelineno-8-29" href="#__codelineno-8-29"></a><span class="w">            </span><span class="nt">&quot;name&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;sample&quot;</span><span class="p">,</span>
+</span><span id="__span-8-30"><a id="__codelineno-8-30" name="__codelineno-8-30" href="#__codelineno-8-30"></a><span class="w">            </span><span class="nt">&quot;is_particle&quot;</span><span class="p">:</span><span class="w"> </span><span class="kc">false</span><span class="p">,</span>
+</span><span id="__span-8-31"><a id="__codelineno-8-31" name="__codelineno-8-31" href="#__codelineno-8-31"></a><span class="w">            </span><span class="nt">&quot;label&quot;</span><span class="p">:</span><span class="w"> </span><span class="mi">102</span><span class="p">,</span>
+</span><span id="__span-8-32"><a id="__codelineno-8-32" name="__codelineno-8-32" href="#__codelineno-8-32"></a><span class="w">            </span><span class="nt">&quot;color&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">[</span><span class="w">  </span><span class="mi">0</span><span class="p">,</span><span class="w"> </span><span class="mi">0</span><span class="p">,</span><span class="w"> </span><span class="mi">255</span><span class="p">,</span><span class="w"> </span><span class="mi">128</span><span class="p">],</span>
+</span><span id="__span-8-33"><a id="__codelineno-8-33" name="__codelineno-8-33" href="#__codelineno-8-33"></a><span class="w">            </span><span class="nt">&quot;radius&quot;</span><span class="p">:</span><span class="w"> </span><span class="mi">150</span><span class="p">,</span>
+</span><span id="__span-8-34"><a id="__codelineno-8-34" name="__codelineno-8-34" href="#__codelineno-8-34"></a><span class="w">            </span><span class="nt">&quot;map_threshold&quot;</span><span class="p">:</span><span class="w"> </span><span class="mf">0.037</span>
+</span><span id="__span-8-35"><a id="__codelineno-8-35" name="__codelineno-8-35" href="#__codelineno-8-35"></a><span class="w">        </span><span class="p">},</span>
+</span><span id="__span-8-36"><a id="__codelineno-8-36" name="__codelineno-8-36" href="#__codelineno-8-36"></a><span class="w">        </span><span class="p">{</span>
+</span><span id="__span-8-37"><a id="__codelineno-8-37" name="__codelineno-8-37" href="#__codelineno-8-37"></a><span class="w">            </span><span class="nt">&quot;name&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;valid-area&quot;</span><span class="p">,</span>
+</span><span id="__span-8-38"><a id="__codelineno-8-38" name="__codelineno-8-38" href="#__codelineno-8-38"></a><span class="w">            </span><span class="nt">&quot;is_particle&quot;</span><span class="p">:</span><span class="w"> </span><span class="kc">false</span><span class="p">,</span>
+</span><span id="__span-8-39"><a id="__codelineno-8-39" name="__codelineno-8-39" href="#__codelineno-8-39"></a><span class="w">            </span><span class="nt">&quot;label&quot;</span><span class="p">:</span><span class="w"> </span><span class="mi">103</span><span class="p">,</span>
+</span><span id="__span-8-40"><a id="__codelineno-8-40" name="__codelineno-8-40" href="#__codelineno-8-40"></a><span class="w">            </span><span class="nt">&quot;color&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">[</span>
+</span><span id="__span-8-41"><a id="__codelineno-8-41" name="__codelineno-8-41" href="#__codelineno-8-41"></a><span class="w">                </span><span class="mi">255</span><span class="p">,</span>
+</span><span id="__span-8-42"><a id="__codelineno-8-42" name="__codelineno-8-42" href="#__codelineno-8-42"></a><span class="w">                </span><span class="mi">255</span><span class="p">,</span>
+</span><span id="__span-8-43"><a id="__codelineno-8-43" name="__codelineno-8-43" href="#__codelineno-8-43"></a><span class="w">                </span><span class="mi">0</span><span class="p">,</span>
+</span><span id="__span-8-44"><a id="__codelineno-8-44" name="__codelineno-8-44" href="#__codelineno-8-44"></a><span class="w">                </span><span class="mi">128</span>
+</span><span id="__span-8-45"><a id="__codelineno-8-45" name="__codelineno-8-45" href="#__codelineno-8-45"></a><span class="w">            </span><span class="p">],</span>
+</span><span id="__span-8-46"><a id="__codelineno-8-46" name="__codelineno-8-46" href="#__codelineno-8-46"></a><span class="w">            </span><span class="nt">&quot;radius&quot;</span><span class="p">:</span><span class="w"> </span><span class="mi">150</span><span class="p">,</span>
+</span><span id="__span-8-47"><a id="__codelineno-8-47" name="__codelineno-8-47" href="#__codelineno-8-47"></a><span class="w">            </span><span class="nt">&quot;map_threshold&quot;</span><span class="p">:</span><span class="w"> </span><span class="mf">0.037</span>
+</span><span id="__span-8-48"><a id="__codelineno-8-48" name="__codelineno-8-48" href="#__codelineno-8-48"></a><span class="w">        </span><span class="p">},</span>
+</span><span id="__span-8-49"><a id="__codelineno-8-49" name="__codelineno-8-49" href="#__codelineno-8-49"></a><span class="w">        </span><span class="p">{</span>
+</span><span id="__span-8-50"><a id="__codelineno-8-50" name="__codelineno-8-50" href="#__codelineno-8-50"></a><span class="w">            </span><span class="nt">&quot;name&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;valid-sample&quot;</span><span class="p">,</span>
+</span><span id="__span-8-51"><a id="__codelineno-8-51" name="__codelineno-8-51" href="#__codelineno-8-51"></a><span class="w">            </span><span class="nt">&quot;is_particle&quot;</span><span class="p">:</span><span class="w"> </span><span class="kc">false</span><span class="p">,</span>
+</span><span id="__span-8-52"><a id="__codelineno-8-52" name="__codelineno-8-52" href="#__codelineno-8-52"></a><span class="w">            </span><span class="nt">&quot;label&quot;</span><span class="p">:</span><span class="w"> </span><span class="mi">2</span><span class="p">,</span>
+</span><span id="__span-8-53"><a id="__codelineno-8-53" name="__codelineno-8-53" href="#__codelineno-8-53"></a><span class="w">            </span><span class="nt">&quot;color&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">[</span>
+</span><span id="__span-8-54"><a id="__codelineno-8-54" name="__codelineno-8-54" href="#__codelineno-8-54"></a><span class="w">                </span><span class="mi">0</span><span class="p">,</span>
+</span><span id="__span-8-55"><a id="__codelineno-8-55" name="__codelineno-8-55" href="#__codelineno-8-55"></a><span class="w">                </span><span class="mi">255</span><span class="p">,</span>
+</span><span id="__span-8-56"><a id="__codelineno-8-56" name="__codelineno-8-56" href="#__codelineno-8-56"></a><span class="w">                </span><span class="mi">255</span><span class="p">,</span>
+</span><span id="__span-8-57"><a id="__codelineno-8-57" name="__codelineno-8-57" href="#__codelineno-8-57"></a><span class="w">                </span><span class="mi">128</span>
+</span><span id="__span-8-58"><a id="__codelineno-8-58" name="__codelineno-8-58" href="#__codelineno-8-58"></a><span class="w">            </span><span class="p">],</span>
+</span><span id="__span-8-59"><a id="__codelineno-8-59" name="__codelineno-8-59" href="#__codelineno-8-59"></a><span class="w">            </span><span class="nt">&quot;radius&quot;</span><span class="p">:</span><span class="w"> </span><span class="mi">150</span><span class="p">,</span>
+</span><span id="__span-8-60"><a id="__codelineno-8-60" name="__codelineno-8-60" href="#__codelineno-8-60"></a><span class="w">            </span><span class="nt">&quot;map_threshold&quot;</span><span class="p">:</span><span class="w"> </span><span class="mf">0.037</span>
+</span><span id="__span-8-61"><a id="__codelineno-8-61" name="__codelineno-8-61" href="#__codelineno-8-61"></a><span class="w">        </span><span class="p">}</span>
+</span><span id="__span-8-62"><a id="__codelineno-8-62" name="__codelineno-8-62" href="#__codelineno-8-62"></a><span class="w">    </span><span class="p">],</span>
+</span><span id="__span-8-63"><a id="__codelineno-8-63" name="__codelineno-8-63" href="#__codelineno-8-63"></a><span class="w">  </span><span class="nt">&quot;overlay_root&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;local:///home/bob/copick_project_evaluate/&quot;</span><span class="p">,</span>
+</span><span id="__span-8-64"><a id="__codelineno-8-64" name="__codelineno-8-64" href="#__codelineno-8-64"></a><span class="w">  </span><span class="nt">&quot;overlay_fs_args&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
+</span><span id="__span-8-65"><a id="__codelineno-8-65" name="__codelineno-8-65" href="#__codelineno-8-65"></a><span class="w">    </span><span class="nt">&quot;auto_mkdir&quot;</span><span class="p">:</span><span class="w"> </span><span class="kc">true</span>
+</span><span id="__span-8-66"><a id="__codelineno-8-66" name="__codelineno-8-66" href="#__codelineno-8-66"></a><span class="w">  </span><span class="p">},</span>
+</span><span id="__span-8-67"><a id="__codelineno-8-67" name="__codelineno-8-67" href="#__codelineno-8-67"></a><span class="w">  </span><span class="nt">&quot;dataset_ids&quot;</span><span class="w"> </span><span class="p">:</span><span class="w"> </span><span class="p">[</span><span class="mi">10301</span><span class="p">,</span><span class="w"> </span><span class="mi">10302</span><span class="p">]</span>
+</span><span id="__span-8-68"><a id="__codelineno-8-68" name="__codelineno-8-68" href="#__codelineno-8-68"></a><span class="p">}</span>
+</span></code></pre></div>
+</details>
+<h3 id="step-2-annotate-the-training-set">Step 2: Annotate the training set</h3>
+<p>We will now use ChimeraX to annotate the top- and bottom- boundaries of the training set. In a first step we will create
+empty <code>CopickPicks</code> objects for the top- and bottom-layer in the training set. To do this we use the
+<code>create_empty_picks</code>-solution:</p>
+<div class="language-bash highlight"><pre><span></span><code><span id="__span-9-1"><a id="__codelineno-9-1" name="__codelineno-9-1" href="#__codelineno-9-1"></a>album<span class="w"> </span>run<span class="w"> </span>copick:create_empty_picks:0.2.0<span class="w"> </span><span class="se">\</span>
+</span><span id="__span-9-2"><a id="__codelineno-9-2" name="__codelineno-9-2" href="#__codelineno-9-2"></a>--copick_config_path<span class="w"> </span>config_train.json<span class="w"> </span><span class="se">\</span>
+</span><span id="__span-9-3"><a id="__codelineno-9-3" name="__codelineno-9-3" href="#__codelineno-9-3"></a>--out_object<span class="w"> </span>top-layer<span class="w"> </span><span class="se">\</span>
+</span><span id="__span-9-4"><a id="__codelineno-9-4" name="__codelineno-9-4" href="#__codelineno-9-4"></a>--out_user<span class="w"> </span>bob<span class="w"> </span><span class="se">\</span>
+</span><span id="__span-9-5"><a id="__codelineno-9-5" name="__codelineno-9-5" href="#__codelineno-9-5"></a>--out_session<span class="w"> </span><span class="m">1</span>
+</span><span id="__span-9-6"><a id="__codelineno-9-6" name="__codelineno-9-6" href="#__codelineno-9-6"></a>
+</span><span id="__span-9-7"><a id="__codelineno-9-7" name="__codelineno-9-7" href="#__codelineno-9-7"></a>album<span class="w"> </span>run<span class="w"> </span>copick:create_empty_picks:0.2.0<span class="w"> </span><span class="se">\</span>
+</span><span id="__span-9-8"><a id="__codelineno-9-8" name="__codelineno-9-8" href="#__codelineno-9-8"></a>--copick_config_path<span class="w"> </span>config_train.json<span class="w"> </span><span class="se">\</span>
+</span><span id="__span-9-9"><a id="__codelineno-9-9" name="__codelineno-9-9" href="#__codelineno-9-9"></a>--out_object<span class="w"> </span>bottom-layer<span class="w"> </span><span class="se">\</span>
+</span><span id="__span-9-10"><a id="__codelineno-9-10" name="__codelineno-9-10" href="#__codelineno-9-10"></a>--out_user<span class="w"> </span>bob<span class="w"> </span><span class="se">\</span>
+</span><span id="__span-9-11"><a id="__codelineno-9-11" name="__codelineno-9-11" href="#__codelineno-9-11"></a>--out_session<span class="w"> </span><span class="m">1</span>
+</span></code></pre></div>
+<p>Open ChimeraX and start the copick extension by running the following command in the ChimeraX command line:</p>
+<div class="language-text highlight"><pre><span></span><code><span id="__span-10-1"><a id="__codelineno-10-1" name="__codelineno-10-1" href="#__codelineno-10-1"></a>copick start config_train.json
+</span></code></pre></div>
+<figure>
+  <img alt="chimerax-interface" src="../../../assets/chimx_boundary.png" width="800" />
+  <figcaption>The ChimeraX-copick interface after loading run 14069.</figcaption>
+</figure>
+<p>This will open a new window with the copick interface. On the top left side you will see the available objects, on the
+bottom left you can find a list of runs in the dataset. On the right side you can find the interface of ArtiaX (the
+plugin that allows you to annotate objects in ChimeraX).</p>
+<p>Double-click a run's directory (e.g. <code>14069</code>) in the run list to show the available resolutions, double-click the
+resolution's directory (<code>VS:7.840</code>) to display the available tomograms. In order to load a tomogram, double-click the
+tomogram.</p>
+<p>The tomogram will be displayed in the main viewport in the center. Available pickable objects are displayed in the
+list on the left side. Select a pickable object (e.g. top-layer) by double-clicking it and start annotating the top-border
+of the sample by placing points on the top-border of the sample.</p>
+<p>You can switch the slicing direction in the <code>Tomogram</code>-tab on the right. You can move through the 2D slices of the
+tomogram using the slider on the right or <code>Shift + Mouse Wheel</code>. For more information on how to use the copick interface,
+see the info box below and refer to the <a href="https://www.cgl.ucsf.edu/chimerax/docs/user/index.html">ChimeraX documentation</a>.</p>
+<details class="note">
+<summary>Keyboard Shortcuts</summary>
+<p><strong>Particles</strong></p>
+<ul>
+<li><code>--</code> Remove Particle.</li>
+<li><code>00</code> Set 0% transparency for active particle list.</li>
+<li><code>55</code> Set 50% transparency for active particle list.</li>
+<li><code>88</code> Set 80% transparency for active particle list.</li>
+<li><code>aa</code> Previous Particle.</li>
+<li><code>dd</code> Next Particle.</li>
+<li><code>sa</code> Select all particles for active particle list.</li>
+<li><code>ss</code> Select particles mode</li>
+<li><code>ww</code> Hide/Show ArtiaX particle lists.</li>
+</ul>
+<p><strong>Picking</strong></p>
+<ul>
+<li><code>ap</code> Add on plane mode</li>
+<li><code>dp</code> Delete picked mode</li>
+<li><code>ds</code> Delete selected particles</li>
+</ul>
+<p><strong>Visualization</strong></p>
+<ul>
+<li><code>cc</code> Turn Clipping On/Off</li>
+<li><code>ee</code> Switch to orthoplanes.</li>
+<li><code>ff</code> Move planes mouse mode.</li>
+<li><code>qq</code> Switch to single plane.</li>
+<li><code>rr</code> Rotate slab mouse mode.</li>
+<li><code>xx</code> View XY orientation.</li>
+<li><code>yy</code> View YZ orientation.</li>
+<li><code>zz</code> View XZ orientation.</li>
+</ul>
+<p><strong>Info</strong></p>
+<ul>
+<li><code>?</code> Show Shortcuts in Log.</li>
+<li><code>il</code> Toggle Info Label.</li>
+</ul>
+</details>
+<p>At the end of this step, you should have annotated the top- and bottom-layer of the all 18 tomograms in the training set.</p>
+<figure>
+  <img alt="top-bottom" src="../../../assets/top_bottom_light.png#only-light" />
+  <img alt="top-bottom" src="../../../assets/top_bottom_dark.png#only-dark" />
+  <figcaption>Points clicked along the top and bottom boundary of the sample of a tomogram.</figcaption>
+</figure>
+<h3 id="step-3-create-the-training-data">Step 3: Create the training data</h3>
+<h4 id="valid-reconstruction-area">Valid reconstruction area</h4>
+<p>Next, we will create the training data for the sample boundary prediction. First, we will create bounding boxes that
+describe the valid reconstruction area in each tomogram. In most TEMs, the tilt axis is not exactly parallel to
+either of the detector axes, causing tomograms to have small regions of invalid reconstruction at the corners. Using
+the <code>create_rec_limits</code>-solution, we can compute 3D meshes that describe the valid reconstruction area in each
+tomogram.</p>
+<p>In this case, we will assume an in-plane rotation of -6 degrees.</p>
+<div class="language-bash highlight"><pre><span></span><code><span id="__span-11-1"><a id="__codelineno-11-1" name="__codelineno-11-1" href="#__codelineno-11-1"></a>album<span class="w"> </span>run<span class="w"> </span>copick:create_rec_limits:0.5.0<span class="w"> </span><span class="se">\</span>
+</span><span id="__span-11-2"><a id="__codelineno-11-2" name="__codelineno-11-2" href="#__codelineno-11-2"></a>--copick_config_path<span class="w"> </span>config_train.json<span class="w"> </span><span class="se">\</span>
+</span><span id="__span-11-3"><a id="__codelineno-11-3" name="__codelineno-11-3" href="#__codelineno-11-3"></a>--voxel_spacing<span class="w"> </span><span class="m">7</span>.84<span class="w"> </span><span class="se">\</span>
+</span><span id="__span-11-4"><a id="__codelineno-11-4" name="__codelineno-11-4" href="#__codelineno-11-4"></a>--tomo_type<span class="w"> </span>wbp<span class="w"> </span><span class="se">\</span>
+</span><span id="__span-11-5"><a id="__codelineno-11-5" name="__codelineno-11-5" href="#__codelineno-11-5"></a>--angle<span class="w"> </span>-6<span class="w"> </span><span class="se">\</span>
+</span><span id="__span-11-6"><a id="__codelineno-11-6" name="__codelineno-11-6" href="#__codelineno-11-6"></a>--output_object<span class="w"> </span>valid-area<span class="w"> </span><span class="se">\</span>
+</span><span id="__span-11-7"><a id="__codelineno-11-7" name="__codelineno-11-7" href="#__codelineno-11-7"></a>--output_user<span class="w"> </span>bob<span class="w"> </span><span class="se">\</span>
+</span><span id="__span-11-8"><a id="__codelineno-11-8" name="__codelineno-11-8" href="#__codelineno-11-8"></a>--output_session<span class="w"> </span><span class="m">0</span>
+</span></code></pre></div>
+<p>You can now visualize the created bounding boxes in ChimeraX by restarting the copick interface and selecting the
+<code>valid-area</code> object in the Mesh-tab on the left side.</p>
+<figure>
+  <img alt="valid-area" src="../../../assets/valid_area_light.png#only-light" />
+  <img alt="valid-area" src="../../../assets/valid_area_dark.png#only-dark" />
+  <figcaption>Top view onto a tomogram (<a href="https://cryoetdataportal.czscience.com/runs/14069">run 15094</a>) without (left)
+and with (right) valid reconstruction area mesh overlayed.</figcaption>
+</figure>
+<h4 id="sample">Sample</h4>
+<p>Now, we will use the points created in <a href="#step-2-annotate-the-training-set">Step 2</a> to create a second 3D mesh that
+describes the sample boundaries. We do this, by fitting a plane defined by a cubic spline grid to the points using the
+<a href="https://github.com/teamtomo/torch-cubic-spline-grids">torch-cubic-spline-grid</a> package in the <code>fit_sample</code>-solution.</p>
+<div class="language-bash highlight"><pre><span></span><code><span id="__span-12-1"><a id="__codelineno-12-1" name="__codelineno-12-1" href="#__codelineno-12-1"></a>album<span class="w"> </span>run<span class="w"> </span>copick:fit_sample:0.7.0<span class="w"> </span><span class="se">\</span>
+</span><span id="__span-12-2"><a id="__codelineno-12-2" name="__codelineno-12-2" href="#__codelineno-12-2"></a>--copick_config_path<span class="w"> </span>config_train.json<span class="w"> </span><span class="se">\</span>
+</span><span id="__span-12-3"><a id="__codelineno-12-3" name="__codelineno-12-3" href="#__codelineno-12-3"></a>--top_object<span class="w"> </span>top-layer<span class="w"> </span><span class="se">\</span>
+</span><span id="__span-12-4"><a id="__codelineno-12-4" name="__codelineno-12-4" href="#__codelineno-12-4"></a>--bottom_object<span class="w"> </span>bottom-layer<span class="w"> </span><span class="se">\</span>
+</span><span id="__span-12-5"><a id="__codelineno-12-5" name="__codelineno-12-5" href="#__codelineno-12-5"></a>--input_user<span class="w"> </span>bob<span class="w"> </span>--input_session<span class="w"> </span><span class="m">1</span><span class="w"> </span><span class="se">\</span>
+</span><span id="__span-12-6"><a id="__codelineno-12-6" name="__codelineno-12-6" href="#__codelineno-12-6"></a>--voxel_spacing<span class="w"> </span><span class="m">7</span>.84<span class="w"> </span><span class="se">\</span>
+</span><span id="__span-12-7"><a id="__codelineno-12-7" name="__codelineno-12-7" href="#__codelineno-12-7"></a>--tomo_type<span class="w"> </span>wbp<span class="w"> </span><span class="se">\</span>
+</span><span id="__span-12-8"><a id="__codelineno-12-8" name="__codelineno-12-8" href="#__codelineno-12-8"></a>--output_object<span class="w"> </span>sample<span class="w"> </span><span class="se">\</span>
+</span><span id="__span-12-9"><a id="__codelineno-12-9" name="__codelineno-12-9" href="#__codelineno-12-9"></a>--output_user<span class="w"> </span>bob<span class="w"> </span><span class="se">\</span>
+</span><span id="__span-12-10"><a id="__codelineno-12-10" name="__codelineno-12-10" href="#__codelineno-12-10"></a>--output_session<span class="w"> </span><span class="m">0</span>
+</span></code></pre></div>
+<h4 id="intersection">Intersection</h4>
+<p>Next, we will intersect the valid reconstruction area with the sample to create a new object that describes the valid
+sample area. We do this using the <code>intersect_mesh</code>-solution:</p>
+<p><div class="language-bash highlight"><pre><span></span><code><span id="__span-13-1"><a id="__codelineno-13-1" name="__codelineno-13-1" href="#__codelineno-13-1"></a>album<span class="w"> </span>run<span class="w"> </span>copick:intersect_mesh:0.5.0<span class="w"> </span><span class="se">\</span>
+</span><span id="__span-13-2"><a id="__codelineno-13-2" name="__codelineno-13-2" href="#__codelineno-13-2"></a>--copick_config_path<span class="w"> </span>config_train.json<span class="w"> </span><span class="se">\</span>
+</span><span id="__span-13-3"><a id="__codelineno-13-3" name="__codelineno-13-3" href="#__codelineno-13-3"></a>--object_a<span class="w"> </span>valid-area<span class="w"> </span><span class="se">\</span>
+</span><span id="__span-13-4"><a id="__codelineno-13-4" name="__codelineno-13-4" href="#__codelineno-13-4"></a>--user_a<span class="w"> </span>bob<span class="w"> </span><span class="se">\</span>
+</span><span id="__span-13-5"><a id="__codelineno-13-5" name="__codelineno-13-5" href="#__codelineno-13-5"></a>--session_a<span class="w"> </span><span class="m">0</span><span class="w"> </span><span class="se">\</span>
+</span><span id="__span-13-6"><a id="__codelineno-13-6" name="__codelineno-13-6" href="#__codelineno-13-6"></a>--object_b<span class="w"> </span>sample<span class="w"> </span><span class="se">\</span>
+</span><span id="__span-13-7"><a id="__codelineno-13-7" name="__codelineno-13-7" href="#__codelineno-13-7"></a>--user_b<span class="w"> </span>bob<span class="w"> </span><span class="se">\</span>
+</span><span id="__span-13-8"><a id="__codelineno-13-8" name="__codelineno-13-8" href="#__codelineno-13-8"></a>--session_b<span class="w"> </span><span class="m">0</span><span class="w"> </span><span class="se">\</span>
+</span><span id="__span-13-9"><a id="__codelineno-13-9" name="__codelineno-13-9" href="#__codelineno-13-9"></a>--output_object<span class="w"> </span>valid-sample<span class="w"> </span><span class="se">\</span>
+</span><span id="__span-13-10"><a id="__codelineno-13-10" name="__codelineno-13-10" href="#__codelineno-13-10"></a>--output_user<span class="w"> </span>bob<span class="w"> </span><span class="se">\</span>
+</span><span id="__span-13-11"><a id="__codelineno-13-11" name="__codelineno-13-11" href="#__codelineno-13-11"></a>--output_session<span class="w"> </span><span class="m">0</span><span class="w"> </span><span class="se">\</span>
+</span></code></pre></div>
+You can now visualize the final 3D mesh for training in ChimeraX by restarting the copick interface and selecting the
+<code>valid-area</code> object in the Mesh-tab on the left side.</p>
+<figure>
+  <img alt="mesh" src="../../../assets/mesh_fit.png" width="400" />
+  <figcaption>Side view of the tomogram with points and intersected, valid sample area.</figcaption>
+</figure>
+<h4 id="training-data">Training data</h4>
+<p>Finally, we will create the training data for the sample boundary prediction. We will use the <code>mesh_to_seg</code>-solution to
+create a dense segmentation of the same size as the tomogram from the 3D meshes.</p>
+<div class="language-bash highlight"><pre><span></span><code><span id="__span-14-1"><a id="__codelineno-14-1" name="__codelineno-14-1" href="#__codelineno-14-1"></a>album<span class="w"> </span>run<span class="w"> </span>copick:mesh_to_seg:0.7.0<span class="w"> </span><span class="se">\</span>
+</span><span id="__span-14-2"><a id="__codelineno-14-2" name="__codelineno-14-2" href="#__codelineno-14-2"></a>--copick_config_path<span class="w"> </span>config_train.json<span class="w"> </span><span class="se">\</span>
+</span><span id="__span-14-3"><a id="__codelineno-14-3" name="__codelineno-14-3" href="#__codelineno-14-3"></a>--input_object<span class="w"> </span>valid-sample<span class="w"> </span><span class="se">\</span>
+</span><span id="__span-14-4"><a id="__codelineno-14-4" name="__codelineno-14-4" href="#__codelineno-14-4"></a>--input_user<span class="w"> </span>bob<span class="w"> </span><span class="se">\</span>
+</span><span id="__span-14-5"><a id="__codelineno-14-5" name="__codelineno-14-5" href="#__codelineno-14-5"></a>--input_session<span class="w"> </span><span class="m">0</span><span class="w"> </span><span class="se">\</span>
+</span><span id="__span-14-6"><a id="__codelineno-14-6" name="__codelineno-14-6" href="#__codelineno-14-6"></a>--voxel_spacing<span class="w"> </span><span class="m">7</span>.84<span class="w"> </span><span class="se">\</span>
+</span><span id="__span-14-7"><a id="__codelineno-14-7" name="__codelineno-14-7" href="#__codelineno-14-7"></a>--tomo_type<span class="w"> </span>wbp
+</span></code></pre></div>
+<p>We also need to determine where sub-volumes for training should be cropped. This allows us to ensure the correct ratio
+of positive and negative samples in the training data. We will use the <code>sample_mesh</code>-solution to create a set of
+points sampled using poisson disk and rejection sampling. The solution allows to specify the number of points inside,
+on the surface and outside the mesh.</p>
+<div class="language-bash highlight"><pre><span></span><code><span id="__span-15-1"><a id="__codelineno-15-1" name="__codelineno-15-1" href="#__codelineno-15-1"></a>album<span class="w"> </span>run<span class="w"> </span>copick:sample_mesh:0.5.0<span class="w"> </span><span class="se">\</span>
+</span><span id="__span-15-2"><a id="__codelineno-15-2" name="__codelineno-15-2" href="#__codelineno-15-2"></a>--copick_config_path<span class="w"> </span>config_train.json<span class="w"> </span><span class="se">\</span>
+</span><span id="__span-15-3"><a id="__codelineno-15-3" name="__codelineno-15-3" href="#__codelineno-15-3"></a>--input_object<span class="w"> </span>valid-sample<span class="w"> </span><span class="se">\</span>
+</span><span id="__span-15-4"><a id="__codelineno-15-4" name="__codelineno-15-4" href="#__codelineno-15-4"></a>--input_user<span class="w"> </span>bob<span class="w"> </span><span class="se">\</span>
+</span><span id="__span-15-5"><a id="__codelineno-15-5" name="__codelineno-15-5" href="#__codelineno-15-5"></a>--input_session<span class="w"> </span><span class="m">0</span><span class="w"> </span><span class="se">\</span>
+</span><span id="__span-15-6"><a id="__codelineno-15-6" name="__codelineno-15-6" href="#__codelineno-15-6"></a>--voxel_spacing<span class="w"> </span><span class="m">7</span>.84<span class="w"> </span><span class="se">\</span>
+</span><span id="__span-15-7"><a id="__codelineno-15-7" name="__codelineno-15-7" href="#__codelineno-15-7"></a>--tomo_type<span class="w"> </span>wbp<span class="w"> </span><span class="se">\</span>
+</span><span id="__span-15-8"><a id="__codelineno-15-8" name="__codelineno-15-8" href="#__codelineno-15-8"></a>--num_surf<span class="w"> </span><span class="m">300</span><span class="w"> </span><span class="se">\ </span><span class="w">       </span><span class="c1"># Number of points on the surface of the mesh</span>
+</span><span id="__span-15-9"><a id="__codelineno-15-9" name="__codelineno-15-9" href="#__codelineno-15-9"></a>--num_internal<span class="w"> </span><span class="m">300</span><span class="w"> </span><span class="se">\ </span><span class="w">   </span><span class="c1"># Number of points inside of the mesh</span>
+</span><span id="__span-15-10"><a id="__codelineno-15-10" name="__codelineno-15-10" href="#__codelineno-15-10"></a>--num_random<span class="w"> </span><span class="m">100</span><span class="w"> </span><span class="se">\ </span><span class="w">     </span><span class="c1"># Number of points outside of the mesh</span>
+</span><span id="__span-15-11"><a id="__codelineno-15-11" name="__codelineno-15-11" href="#__codelineno-15-11"></a>--min_dist<span class="w"> </span><span class="m">200</span><span class="w"> </span><span class="se">\ </span><span class="w">       </span><span class="c1"># Minimum distance between points in angstrom</span>
+</span><span id="__span-15-12"><a id="__codelineno-15-12" name="__codelineno-15-12" href="#__codelineno-15-12"></a>--output_user<span class="w"> </span>bob
+</span></code></pre></div>
+<p>The resulting segmentations will have the same name, user and session ID as the input object. You can now visualize the
+segmentations in ChimeraX by restarting the copick interface and selecting the <code>valid-sample</code> object in the
+<code>Segmentation</code>-tab on the top left part of the interface. You can also visualize the sampled points from the
+<code>Points</code>-tab on the left side.</p>
+<h3 id="step-4-train-the-model">Step 4: Train the model</h3>
+<h4 id="create-the-multilabel-segmentation">Create the multilabel segmentation</h4>
+<p>In the next step, we will create a second dense segmentation volume that contains the sample segmentation from the
+<a href="#step-3-create-the-training-data">previous step</a>. This is redundant in this case, but necessary for the training of the
+J-finder model if there were multiple segmentation targets. While the segmentation created previously is a binary mask,
+the segmentation volume created here contains integer labels for each voxel, corresponding to the "label" field in the
+<code>pickable_objects</code>-list in the configuration file.</p>
+<p>In order to do this, we will run step 1 of the J-finder pipeline:</p>
+<div class="language-bash highlight"><pre><span></span><code><span id="__span-16-1"><a id="__codelineno-16-1" name="__codelineno-16-1" href="#__codelineno-16-1"></a>step1<span class="w"> </span>create<span class="w"> </span><span class="se">\</span>
+</span><span id="__span-16-2"><a id="__codelineno-16-2" name="__codelineno-16-2" href="#__codelineno-16-2"></a>--config<span class="w"> </span>config_train.json<span class="w"> </span><span class="se">\</span>
+</span><span id="__span-16-3"><a id="__codelineno-16-3" name="__codelineno-16-3" href="#__codelineno-16-3"></a>--target<span class="w"> </span>valid-sample<span class="w"> </span>bob<span class="w"> </span><span class="m">0</span><span class="w"> </span><span class="m">0</span><span class="w"> </span><span class="se">\ </span><span class="w">         </span><span class="c1"># Format: input-picks-name user session radius</span>
+</span><span id="__span-16-4"><a id="__codelineno-16-4" name="__codelineno-16-4" href="#__codelineno-16-4"></a>--seg-target<span class="w"> </span>valid-sample<span class="w"> </span>bob<span class="w"> </span><span class="m">0</span><span class="w"> </span><span class="se">\ </span><span class="w">       </span><span class="c1"># Format: input-segmentation-name from-mesh user session</span>
+</span><span id="__span-16-5"><a id="__codelineno-16-5" name="__codelineno-16-5" href="#__codelineno-16-5"></a>--voxel-size<span class="w"> </span><span class="m">7</span>.84<span class="w"> </span><span class="se">\</span>
+</span><span id="__span-16-6"><a id="__codelineno-16-6" name="__codelineno-16-6" href="#__codelineno-16-6"></a>--tomogram-algorithm<span class="w"> </span>wbp<span class="w"> </span><span class="se">\</span>
+</span><span id="__span-16-7"><a id="__codelineno-16-7" name="__codelineno-16-7" href="#__codelineno-16-7"></a>--out-name<span class="w"> </span>sampletargets
+</span></code></pre></div>
+<p>This should create a new segmentation volume with name <code>sampletargets</code>, user <code>train-deepfinder</code> and session <code>0</code>.</p>
+<h4 id="train-the-model">Train the model</h4>
+<p>Next, we will train the J-finder model using the training data created in the previous steps. We will use the
+<code>train</code>-command of the J-finder pipeline:</p>
+<div class="language-bash highlight"><pre><span></span><code><span id="__span-17-1"><a id="__codelineno-17-1" name="__codelineno-17-1" href="#__codelineno-17-1"></a>mkdir<span class="w"> </span>outputs
+</span><span id="__span-17-2"><a id="__codelineno-17-2" name="__codelineno-17-2" href="#__codelineno-17-2"></a>
+</span><span id="__span-17-3"><a id="__codelineno-17-3" name="__codelineno-17-3" href="#__codelineno-17-3"></a>step2<span class="w"> </span>train<span class="w"> </span><span class="se">\</span>
+</span><span id="__span-17-4"><a id="__codelineno-17-4" name="__codelineno-17-4" href="#__codelineno-17-4"></a>--path-train<span class="w"> </span>config_train.json<span class="w"> </span><span class="se">\</span>
+</span><span id="__span-17-5"><a id="__codelineno-17-5" name="__codelineno-17-5" href="#__codelineno-17-5"></a>--train-voxel-size<span class="w"> </span><span class="m">7</span>.84<span class="w"> </span><span class="se">\</span>
+</span><span id="__span-17-6"><a id="__codelineno-17-6" name="__codelineno-17-6" href="#__codelineno-17-6"></a>--train-tomo-type<span class="w"> </span>wbp<span class="w"> </span><span class="se">\</span>
+</span><span id="__span-17-7"><a id="__codelineno-17-7" name="__codelineno-17-7" href="#__codelineno-17-7"></a>--output-path<span class="w"> </span>outputs/<span class="w"> </span><span class="se">\</span>
+</span><span id="__span-17-8"><a id="__codelineno-17-8" name="__codelineno-17-8" href="#__codelineno-17-8"></a>--n-class<span class="w"> </span><span class="m">3</span><span class="w"> </span>--dim-in<span class="w"> </span><span class="m">64</span><span class="w"> </span><span class="se">\</span>
+</span><span id="__span-17-9"><a id="__codelineno-17-9" name="__codelineno-17-9" href="#__codelineno-17-9"></a>--valid-tomo-ids<span class="w"> </span><span class="m">14069</span>,14070,14071<span class="w"> </span><span class="se">\</span>
+</span><span id="__span-17-10"><a id="__codelineno-17-10" name="__codelineno-17-10" href="#__codelineno-17-10"></a>--train-tomo-ids<span class="w"> </span><span class="m">14072</span>,14073,14074,14075,14076,14077,14078,14079,14080,14081,14082,14083,14084,14085,14086<span class="w"> </span><span class="se">\</span>
+</span><span id="__span-17-11"><a id="__codelineno-17-11" name="__codelineno-17-11" href="#__codelineno-17-11"></a>--sample-size<span class="w"> </span><span class="m">10</span><span class="w"> </span><span class="se">\</span>
+</span><span id="__span-17-12"><a id="__codelineno-17-12" name="__codelineno-17-12" href="#__codelineno-17-12"></a>--label-name<span class="w"> </span>sampletargets<span class="w"> </span><span class="se">\</span>
+</span><span id="__span-17-13"><a id="__codelineno-17-13" name="__codelineno-17-13" href="#__codelineno-17-13"></a>--target<span class="w"> </span>valid-sample<span class="w"> </span>bob<span class="w"> </span><span class="m">0</span>
+</span></code></pre></div>
+<p>In this case, runs <code>14069</code>, <code>14070</code>, and <code>14071</code> will be used for validation, while the remaining runs will be used for
+training. The model will be trained for 10 epochs with a sample size of 10. The model will be saved in the
+<code>outputs</code>-directory.</p>
+<h3 id="step-5-evaluate-the-model">Step 5: Evaluate the model</h3>
+<p>Now, we will evaluate the model on the evaluation set. For demonstration purposes we will only evaluate on three
+tomograms. We will use the <code>segment</code>-command of the J-finder pipeline:</p>
+<div class="language-bash highlight"><pre><span></span><code><span id="__span-18-1"><a id="__codelineno-18-1" name="__codelineno-18-1" href="#__codelineno-18-1"></a>step3<span class="w"> </span>segment<span class="w"> </span><span class="se">\</span>
+</span><span id="__span-18-2"><a id="__codelineno-18-2" name="__codelineno-18-2" href="#__codelineno-18-2"></a>--predict-config<span class="w"> </span>config_evaluate.json<span class="w"> </span><span class="se">\</span>
+</span><span id="__span-18-3"><a id="__codelineno-18-3" name="__codelineno-18-3" href="#__codelineno-18-3"></a>--path-weights<span class="w"> </span>outputs/net_weights_FINAL.h5<span class="w"> </span><span class="se">\</span>
+</span><span id="__span-18-4"><a id="__codelineno-18-4" name="__codelineno-18-4" href="#__codelineno-18-4"></a>--n-class<span class="w"> </span><span class="m">3</span><span class="w"> </span>--patch-size<span class="w"> </span><span class="m">196</span><span class="w"> </span><span class="se">\</span>
+</span><span id="__span-18-5"><a id="__codelineno-18-5" name="__codelineno-18-5" href="#__codelineno-18-5"></a>--voxel-size<span class="w"> </span><span class="m">7</span>.84<span class="w"> </span><span class="se">\</span>
+</span><span id="__span-18-6"><a id="__codelineno-18-6" name="__codelineno-18-6" href="#__codelineno-18-6"></a>--tomogram-algorithm<span class="w"> </span>wbp<span class="w"> </span><span class="se">\</span>
+</span><span id="__span-18-7"><a id="__codelineno-18-7" name="__codelineno-18-7" href="#__codelineno-18-7"></a>--segmentation-name<span class="w"> </span>segmentation<span class="w"> </span><span class="se">\</span>
+</span><span id="__span-18-8"><a id="__codelineno-18-8" name="__codelineno-18-8" href="#__codelineno-18-8"></a>--user-id<span class="w"> </span>output<span class="w"> </span><span class="se">\</span>
+</span><span id="__span-18-9"><a id="__codelineno-18-9" name="__codelineno-18-9" href="#__codelineno-18-9"></a>--session-id<span class="w"> </span><span class="m">0</span><span class="w"> </span><span class="se">\</span>
+</span><span id="__span-18-10"><a id="__codelineno-18-10" name="__codelineno-18-10" href="#__codelineno-18-10"></a>--tomo-ids<span class="w"> </span><span class="m">14114</span>,14132,14137,14163
+</span></code></pre></div>
+<p>This will create a new segmentation volume with name <code>segmentation</code>, user <code>output</code> and session <code>0</code> for the tomograms
+<code>14114</code>, <code>14132</code>, <code>14137</code>, and <code>14163</code>. You can now visualize the segmentations in ChimeraX by restarting the copick interface
+and selecting the <code>segmentation</code> object in the <code>Segmentation</code>-tab on the top left part of the interface.</p>
+<figure>
+  <img alt="prediction-fit" src="../../../assets/prediction_fit.png" width="800" />
+  <figcaption>Segmentation generated by the model and box fit to the segmentation.</figcaption>
+</figure>
+<h3 id="step-6-post-processing">Step 6: Post-processing</h3>
+<p>Finally, we will post-process the segmentations to create the final sample boundaries. The segmentations can contain
+small isolated regions that are not part of the sample. We will use the <code>fit_sample_seg</code>-solution to fit a box with
+parallel sides to the segmentation.</p>
+<div class="language-bash highlight"><pre><span></span><code><span id="__span-19-1"><a id="__codelineno-19-1" name="__codelineno-19-1" href="#__codelineno-19-1"></a>album<span class="w"> </span>run<span class="w"> </span>copick:fit_sample_seg:0.9.0<span class="w"> </span><span class="se">\</span>
+</span><span id="__span-19-2"><a id="__codelineno-19-2" name="__codelineno-19-2" href="#__codelineno-19-2"></a>--copick_config_path<span class="w"> </span>config_evaluate.json<span class="w"> </span><span class="se">\</span>
+</span><span id="__span-19-3"><a id="__codelineno-19-3" name="__codelineno-19-3" href="#__codelineno-19-3"></a>--top_object<span class="w"> </span>top-layer<span class="w"> </span><span class="se">\</span>
+</span><span id="__span-19-4"><a id="__codelineno-19-4" name="__codelineno-19-4" href="#__codelineno-19-4"></a>--bottom_object<span class="w"> </span>bottom-layer<span class="w"> </span><span class="se">\</span>
+</span><span id="__span-19-5"><a id="__codelineno-19-5" name="__codelineno-19-5" href="#__codelineno-19-5"></a>--input_user<span class="w"> </span>output<span class="w"> </span><span class="se">\</span>
+</span><span id="__span-19-6"><a id="__codelineno-19-6" name="__codelineno-19-6" href="#__codelineno-19-6"></a>--input_session<span class="w"> </span><span class="m">0</span><span class="w"> </span><span class="se">\</span>
+</span><span id="__span-19-7"><a id="__codelineno-19-7" name="__codelineno-19-7" href="#__codelineno-19-7"></a>--seg_name<span class="w"> </span>segmentation<span class="w"> </span><span class="se">\</span>
+</span><span id="__span-19-8"><a id="__codelineno-19-8" name="__codelineno-19-8" href="#__codelineno-19-8"></a>--voxel_spacing<span class="w"> </span><span class="m">7</span>.84<span class="w"> </span><span class="se">\</span>
+</span><span id="__span-19-9"><a id="__codelineno-19-9" name="__codelineno-19-9" href="#__codelineno-19-9"></a>--tomo_type<span class="w"> </span>wbp<span class="w"> </span><span class="se">\</span>
+</span><span id="__span-19-10"><a id="__codelineno-19-10" name="__codelineno-19-10" href="#__codelineno-19-10"></a>--run_names<span class="w"> </span><span class="m">14114</span>,14132,14137,14163<span class="w"> </span><span class="se">\</span>
+</span><span id="__span-19-11"><a id="__codelineno-19-11" name="__codelineno-19-11" href="#__codelineno-19-11"></a>--output_object<span class="w"> </span>valid-sample<span class="w"> </span><span class="se">\</span>
+</span><span id="__span-19-12"><a id="__codelineno-19-12" name="__codelineno-19-12" href="#__codelineno-19-12"></a>--output_user<span class="w"> </span>output<span class="w"> </span><span class="se">\</span>
+</span><span id="__span-19-13"><a id="__codelineno-19-13" name="__codelineno-19-13" href="#__codelineno-19-13"></a>--output_session<span class="w"> </span><span class="m">0</span>
+</span></code></pre></div>
+<p>You can now visualize the final 3D mesh for evaluation in ChimeraX by restarting the copick interface and selecting the
+<code>valid-sample</code> object in the <code>Mesh</code>-tab on the left side. Below you can see the final result for the three tomograms
+<code>14114</code>, <code>14132</code>, <code>14137</code>, and <code>14163</code>.</p>
+<figure>
+  <img alt="final-fit" src="../../../assets/final.png" width="800" />
+  <figcaption> Clipped boundaries predicted for <a href="https://cryoetdataportal.czscience.com/runs/14114">run 14114</a>,
+  <a href="https://cryoetdataportal.czscience.com/runs/14132">run 14132</a>,
+  <a href="https://cryoetdataportal.czscience.com/runs/14137">run 14137</a>, and
+  <a href="https://cryoetdataportal.czscience.com/runs/14163">run 14163</a> (left to right, top to bottom).</figcaption>
+</figure>
 
 
 
