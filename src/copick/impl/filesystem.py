@@ -887,6 +887,7 @@ class CopickRootFSSpec(CopickRoot):
             for p, details in paths.items()
             if (details.get("type", "") == "directory")
             or (details.get("type", "") == "other" and details.get("islink", False))
+            or (details.get("type", "") == "link")
         ]
 
         # Remove any hidden files
