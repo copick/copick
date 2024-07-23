@@ -10,7 +10,7 @@ classifiers = [
     "License :: OSI Approved :: MIT License",
 ]
 #dynamic = ["version"]
-version = "0.5.4"
+version = "0.5.5"
 dependencies = [
     "fsspec>=2024.6.0",
     "pydantic>=2",
