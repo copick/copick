@@ -1,6 +1,6 @@
 import concurrent.futures
 import json
-from typing import Any, Dict, List, Optional, Tuple, Type, Union
+from typing import TYPE_CHECKING, Any, Dict, List, Optional, Tuple, Type, Union
 
 import fsspec
 import trimesh
@@ -31,6 +31,17 @@ from copick.models import (
     CopickVoxelSpacingMeta,
     PickableObject,
 )
+
+# Type aliases using forward references
+if TYPE_CHECKING:
+    RunTypes = Tuple[Type["CopickRunFSSpec"], Type[CopickRunMeta]]
+    ObjectTypes = Tuple[Type["CopickObjectFSSpec"], Type[PickableObject]]
+    VoxelSpacingTypes = Tuple[Type["CopickVoxelSpacingFSSpec"], Type[CopickVoxelSpacingMeta]]
+    PicksTypes = Tuple[Type["CopickPicksFSSpec"], Type[CopickPicksFile]]
+    MeshTypes = Tuple[Type["CopickMeshFSSpec"], Type[CopickMeshMeta]]
+    SegmentationTypes = Tuple[Type["CopickSegmentationFSSpec"], Type[CopickSegmentationMeta]]
+    TomogramTypes = Tuple[Type["CopickTomogramFSSpec"], Type[CopickTomogramMeta]]
+    FeaturesTypes = Tuple[Type["CopickFeaturesFSSpec"], Type[CopickFeaturesMeta]]
 
 
 class CopickConfigFSSpec(CopickConfig):
@@ -252,9 +263,10 @@ class CopickTomogramFSSpec(CopickTomogramOverlay):
         static_is_overlay (bool): Whether the static and overlay sources are the same.
     """
 
+    features_types: "FeaturesTypes" = ("CopickFeaturesFSSpec", "CopickFeaturesMeta")
     voxel_spacing: "CopickVoxelSpacingFSSpec"
 
-    def _feature_factory(self) -> Tuple[Type[CopickFeatures], Type["CopickFeaturesMeta"]]:
+    def _feature_factory(self) -> Tuple[Type[CopickFeatures], Type[CopickFeaturesMeta]]:
         return CopickFeaturesFSSpec, CopickFeaturesMeta
 
     @property
