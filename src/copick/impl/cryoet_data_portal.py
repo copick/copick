@@ -375,7 +375,7 @@ class CopickTomogramMetaCDP(CopickTomogramMeta):
 
 
 class CopickTomogramCDP(CopickTomogramOverlay):
-    features_types: FeaturesTypes = ("CopickFeaturesCDP", "CopickFeaturesMeta")
+    features_types: "FeaturesTypes" = ("CopickFeaturesCDP", "CopickFeaturesMeta")
 
     voxel_spacing: "CopickVoxelSpacingCDP"
     meta: CopickTomogramMetaCDP
@@ -466,7 +466,7 @@ class CopickVoxelSpacingMetaCDP(CopickVoxelSpacingMeta):
 
 
 class CopickVoxelSpacingCDP(CopickVoxelSpacingOverlay):
-    tomogram_types: TomogramTypes = ("CopickTomogramCDP", "CopickTomogramMetaCDP")
+    tomogram_types: "TomogramTypes" = ("CopickTomogramCDP", "CopickTomogramMetaCDP")
 
     run: "CopickRunCDP"
     meta: CopickVoxelSpacingMetaCDP
@@ -570,10 +570,10 @@ class CopickRunMetaCDP(CopickRunMeta):
 
 
 class CopickRunCDP(CopickRunOverlay):
-    voxel_spacing_types: VoxelSpacingTypes = ("CopickVoxelSpacingCDP", "CopickVoxelSpacingMetaCDP")
-    picks_types: PicksTypes = ("CopickPicksCDP", "CopickPicksFileCDP")
-    mesh_types: MeshTypes = ("CopickMeshCDP", CopickMeshMeta)
-    segmentation_types: SegmentationTypes = ("CopickSegmentationCDP", "CopickSegmentationMetaCDP")
+    voxel_spacing_types: "VoxelSpacingTypes" = ("CopickVoxelSpacingCDP", "CopickVoxelSpacingMetaCDP")
+    picks_types: "PicksTypes" = ("CopickPicksCDP", "CopickPicksFileCDP")
+    mesh_types: "MeshTypes" = ("CopickMeshCDP", CopickMeshMeta)
+    segmentation_types: "SegmentationTypes" = ("CopickSegmentationCDP", "CopickSegmentationMetaCDP")
 
     root: "CopickRootCDP"
     meta: CopickRunMetaCDP
@@ -971,8 +971,8 @@ class CopickObjectCDP(CopickObjectOverlay):
 
 
 class CopickRootCDP(CopickRoot):
-    run_types: RunTypes = ("CopickRunCDP", "CopickRunMetaCDP")
-    object_types: ObjectTypes = ("CopickObjectCDP", PickableObject)
+    run_types: "RunTypes" = ("CopickRunCDP", "CopickRunMetaCDP")
+    object_types: "ObjectTypes" = ("CopickObjectCDP", PickableObject)
 
     config: CopickConfigCDP
 

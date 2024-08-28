@@ -880,8 +880,8 @@ class CopickRootFSSpec(CopickRoot):
         root_static (Optional[str]): The root path for the static storage.
     """
 
-    run_types: RunTypes = ("CopickRunFSSpec", "CopickRunMeta")
-    object_types: ObjectTypes = ("CopickObjectFSSpec", "PickableObject")
+    run_types: "RunTypes" = ("CopickRunFSSpec", "CopickRunMeta")
+    object_types: "ObjectTypes" = ("CopickObjectFSSpec", "PickableObject")
 
     def __init__(self, config: CopickConfigFSSpec):
         """
