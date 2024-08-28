@@ -1,6 +1,7 @@
 import json
 import re
-from typing import Any, Dict, List, Optional, Tuple, Type, Union
+import warnings
+from typing import TYPE_CHECKING, Any, Dict, List, Optional, Tuple, Type, Union
 
 import cryoet_data_portal as cdp
 import fsspec
@@ -36,6 +37,16 @@ from copick.models import (
     CopickVoxelSpacingMeta,
     PickableObject,
 )
+
+if TYPE_CHECKING:
+    RunTypes = Tuple[Type["CopickRunCDP"], Type["CopickRunMetaCDP"]]
+    ObjectTypes = Tuple[Type["CopickObjectCDP"], Type[PickableObject]]
+    VoxelSpacingTypes = Tuple[Type["CopickVoxelSpacingCDP"], Type["CopickVoxelSpacingMetaCDP"]]
+    PicksTypes = Tuple[Type["CopickPicksCDP"], Type["CopickPicksFileCDP"]]
+    MeshTypes = Tuple[Type["CopickMeshCDP"], Type[CopickMeshMeta]]
+    SegmentationTypes = Tuple[Type["CopickSegmentationCDP"], Type["CopickSegmentationMetaCDP"]]
+    TomogramTypes = Tuple[Type["CopickTomogramCDP"], Type["CopickTomogramMetaCDP"]]
+    FeaturesTypes = Tuple[Type["CopickFeaturesCDP"], Type[CopickFeaturesMeta]]
 
 
 def camel(s: str) -> str:
@@ -364,11 +375,18 @@ class CopickTomogramMetaCDP(CopickTomogramMeta):
 
 
 class CopickTomogramCDP(CopickTomogramOverlay):
+    features_types: FeaturesTypes = ("CopickFeaturesCDP", "CopickFeaturesMeta")
+
     voxel_spacing: "CopickVoxelSpacingCDP"
     meta: CopickTomogramMetaCDP
 
     def _feature_factory(self) -> Tuple[Type[CopickFeaturesCDP], Type["CopickFeaturesMeta"]]:
-        return CopickFeaturesCDP, CopickFeaturesMeta
+        warnings.warn(
+            "_feature_factory is deprecated, use CopickTomogramCDP.features_types class attribute instead.",
+            DeprecationWarning,
+            stacklevel=2,
+        )
+        return self.features_types
 
     @property
     def static_path(self) -> str:
@@ -403,7 +421,7 @@ class CopickTomogramCDP(CopickTomogramOverlay):
         feature_types = [ft for ft in feature_types if not ft.startswith(".")]
 
         feature_types = list(set(feature_types))
-        clz, meta_clz = self._feature_factory()
+        clz, meta_clz = self.features_types
 
         return [
             clz(
@@ -448,11 +466,18 @@ class CopickVoxelSpacingMetaCDP(CopickVoxelSpacingMeta):
 
 
 class CopickVoxelSpacingCDP(CopickVoxelSpacingOverlay):
+    tomogram_types: TomogramTypes = ("CopickTomogramCDP", "CopickTomogramMetaCDP")
+
     run: "CopickRunCDP"
     meta: CopickVoxelSpacingMetaCDP
 
     def _tomogram_factory(self) -> Tuple[Type[CopickTomogramCDP], Type[CopickTomogramMetaCDP]]:
-        return CopickTomogramCDP, CopickTomogramMetaCDP
+        warnings.warn(
+            "_tomogram_factory is deprecated, use CopickVoxelSpacingCDP.tomogram_types class attribute instead.",
+            DeprecationWarning,
+            stacklevel=2,
+        )
+        return self.tomogram_types
 
     @property
     def overlay_path(self):
@@ -472,7 +497,7 @@ class CopickVoxelSpacingCDP(CopickVoxelSpacingOverlay):
 
         client = cdp.Client()
         portal_tomos = cdp.Tomogram.find(client, [cdp.Tomogram.tomogram_voxel_spacing_id == self.portal_vs_id])  # noqa
-        clz, meta_clz = self._tomogram_factory()
+        clz, meta_clz = self.tomogram_types
         tomos = []
 
         for t in portal_tomos:
@@ -492,7 +517,7 @@ class CopickVoxelSpacingCDP(CopickVoxelSpacingOverlay):
         tomo_types = [tt for tt in tomo_types if not tt.startswith(".")]
 
         tomo_types = list(set(tomo_types))
-        clz, meta_clz = self._tomogram_factory()
+        clz, meta_clz = self.tomogram_types
 
         return [
             clz(
@@ -545,20 +570,45 @@ class CopickRunMetaCDP(CopickRunMeta):
 
 
 class CopickRunCDP(CopickRunOverlay):
+    voxel_spacing_types: VoxelSpacingTypes = ("CopickVoxelSpacingCDP", "CopickVoxelSpacingMetaCDP")
+    picks_types: PicksTypes = ("CopickPicksCDP", "CopickPicksFileCDP")
+    mesh_types: MeshTypes = ("CopickMeshCDP", CopickMeshMeta)
+    segmentation_types: SegmentationTypes = ("CopickSegmentationCDP", "CopickSegmentationMetaCDP")
+
     root: "CopickRootCDP"
     meta: CopickRunMetaCDP
 
     def _voxel_spacing_factory(self) -> Tuple[Type[CopickVoxelSpacingCDP], Type[CopickVoxelSpacingMetaCDP]]:
-        return CopickVoxelSpacingCDP, CopickVoxelSpacingMetaCDP
+        warnings.warn(
+            "_voxel_spacing_factory is deprecated, use CopickRunCDP.voxel_spacing_types class attribute instead.",
+            DeprecationWarning,
+            stacklevel=2,
+        )
+        return self.voxel_spacing_types
 
     def _picks_factory(self) -> Type[CopickPicksCDP]:
-        return CopickPicksCDP
+        warnings.warn(
+            "_picks_factory is deprecated, use CopickRunCDP.picks_types class attribute instead.",
+            DeprecationWarning,
+            stacklevel=2,
+        )
+        return self.picks_types[0]
 
     def _mesh_factory(self) -> Tuple[Type[CopickMeshCDP], Type[CopickMeshMeta]]:
-        return CopickMeshCDP, CopickMeshMeta
+        warnings.warn(
+            "_mesh_factory is deprecated, use CopickRunCDP.mesh_types class attribute instead.",
+            DeprecationWarning,
+            stacklevel=2,
+        )
+        return self.mesh_types
 
     def _segmentation_factory(self) -> Tuple[Type[CopickSegmentationCDP], Type[CopickSegmentationMetaCDP]]:
-        return CopickSegmentationCDP, CopickSegmentationMetaCDP
+        warnings.warn(
+            "_segmentation_factory is deprecated, use CopickRunCDP.segmentation_types class attribute instead.",
+            DeprecationWarning,
+            stacklevel=2,
+        )
+        return self.segmentation_types
 
     @property
     def overlay_path(self) -> str:
@@ -584,7 +634,7 @@ class CopickRunCDP(CopickRunOverlay):
         )
 
         # portal_vs = self.portal_run.tomogram_voxel_spacings
-        clz, meta_clz = self._voxel_spacing_factory()
+        clz, meta_clz = self.voxel_spacing_types
 
         return [clz(meta=meta_clz.from_portal(vs), run=self) for vs in portal_vs]
 
@@ -594,7 +644,7 @@ class CopickRunCDP(CopickRunOverlay):
         opaths = [p.rstrip("/") for p in opaths]
         spacings = [float(p.replace(f"{overlay_vs_loc}", "")) for p in opaths]
 
-        clz, meta_clz = self._voxel_spacing_factory()
+        clz, meta_clz = self.voxel_spacing_types
 
         return [
             clz(
@@ -711,7 +761,7 @@ class CopickRunCDP(CopickRunOverlay):
         sessions = [n.split("_")[1] for n in names]
         objects = [n.split("_")[2] for n in names]
 
-        clz, meta_clz = self._mesh_factory()
+        clz, meta_clz = self.mesh_types
 
         return [
             clz(
@@ -744,7 +794,7 @@ class CopickRunCDP(CopickRunOverlay):
         )
 
         segmentations = []
-        clz, meta_clz = self._segmentation_factory()
+        clz, meta_clz = self.segmentation_types
 
         for af in seg_annos:
             seg_meta = meta_clz.from_portal(af, name=go_map[af.annotation.object_id])
@@ -766,7 +816,7 @@ class CopickRunCDP(CopickRunOverlay):
 
         # multilabel vs single label
         metas = []
-        clz, meta_clz = self._segmentation_factory()
+        clz, meta_clz = self.segmentation_types
         for n in names:
             if "multilabel" in n:
                 parts = n.split("_")
@@ -921,6 +971,9 @@ class CopickObjectCDP(CopickObjectOverlay):
 
 
 class CopickRootCDP(CopickRoot):
+    run_types: RunTypes = ("CopickRunCDP", "CopickRunMetaCDP")
+    object_types: ObjectTypes = ("CopickObjectCDP", PickableObject)
+
     config: CopickConfigCDP
 
     def __init__(self, config: CopickConfigCDP):
@@ -944,10 +997,20 @@ class CopickRootCDP(CopickRoot):
         return cls(CopickConfigCDP(**data))
 
     def _run_factory(self) -> Tuple[Type[CopickRunCDP], Type[CopickRunMetaCDP]]:
-        return CopickRunCDP, CopickRunMetaCDP
+        warnings.warn(
+            "_run_factory is deprecated, use CopickRootCDP.run_types class attribute instead.",
+            DeprecationWarning,
+            stacklevel=2,
+        )
+        return self.run_types
 
     def _object_factory(self) -> Tuple[Type[CopickObjectCDP], Type[PickableObject]]:
-        return CopickObjectCDP, PickableObject
+        warnings.warn(
+            "_object_factory is deprecated, use CopickRootCDP.object_types class attribute instead.",
+            DeprecationWarning,
+            stacklevel=2,
+        )
+        return self.object_types
 
     def query(self) -> List[CopickRunCDP]:
         client = cdp.Client()
