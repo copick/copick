@@ -1,6 +1,7 @@
 import concurrent.futures
 import json
-from typing import Any, Dict, List, Optional, Tuple, Type, Union
+import warnings
+from typing import TYPE_CHECKING, Any, Dict, List, Optional, Tuple, Type, Union
 
 import fsspec
 import trimesh
@@ -20,7 +21,6 @@ from copick.impl.overlay import (
 )
 from copick.models import (
     CopickConfig,
-    CopickFeatures,
     CopickFeaturesMeta,
     CopickMeshMeta,
     CopickPicksFile,
@@ -31,6 +31,17 @@ from copick.models import (
     CopickVoxelSpacingMeta,
     PickableObject,
 )
+
+# Type aliases using forward references
+if TYPE_CHECKING:
+    RunClz = Tuple[Type["CopickRunFSSpec"], Type[CopickRunMeta]]
+    ObjectClz = Tuple[Type["CopickObjectFSSpec"], Type[PickableObject]]
+    VoxelSpacingClz = Tuple[Type["CopickVoxelSpacingFSSpec"], Type[CopickVoxelSpacingMeta]]
+    PicksClz = Tuple[Type["CopickPicksFSSpec"], Type[CopickPicksFile]]
+    MeshClz = Tuple[Type["CopickMeshFSSpec"], Type[CopickMeshMeta]]
+    SegmenationClz = Tuple[Type["CopickSegmentationFSSpec"], Type[CopickSegmentationMeta]]
+    TomogramClz = Tuple[Type["CopickTomogramFSSpec"], Type[CopickTomogramMeta]]
+    FeaturesClz = Tuple[Type["CopickFeaturesFSSpec"], Type[CopickFeaturesMeta]]
 
 
 class CopickConfigFSSpec(CopickConfig):
@@ -252,10 +263,16 @@ class CopickTomogramFSSpec(CopickTomogramOverlay):
         static_is_overlay (bool): Whether the static and overlay sources are the same.
     """
 
+    features_clz: "FeaturesClz" = ("CopickFeaturesFSSpec", "CopickFeaturesMeta")
     voxel_spacing: "CopickVoxelSpacingFSSpec"
 
-    def _feature_factory(self) -> Tuple[Type[CopickFeatures], Type["CopickFeaturesMeta"]]:
-        return CopickFeaturesFSSpec, CopickFeaturesMeta
+    def _feature_factory(self) -> Tuple[Type[CopickFeaturesFSSpec], Type[CopickFeaturesMeta]]:
+        warnings.warn(
+            "_feature_factory is deprecated, use CopickTomogramFSSpec.features_clz class attribute instead.",
+            DeprecationWarning,
+            stacklevel=2,
+        )
+        return self.features_clz
 
     @property
     def static_path(self) -> str:
@@ -371,10 +388,16 @@ class CopickVoxelSpacingFSSpec(CopickVoxelSpacingOverlay):
 
     """
 
+    tomogram_clz: "TomogramClz" = ("CopickTomogramFSSpec", "CopickTomogramMeta")
     run: "CopickRunFSSpec"
 
     def _tomogram_factory(self) -> Tuple[Type[CopickTomogramFSSpec], Type[CopickTomogramMeta]]:
-        return CopickTomogramFSSpec, CopickTomogramMeta
+        warnings.warn(
+            "_tomogram_factory is deprecated, use CopickVoxelSpacingFSSpec.tomogram_clz class attribute instead.",
+            DeprecationWarning,
+            stacklevel=2,
+        )
+        return self.tomogram_clz
 
     @property
     def static_path(self) -> str:
@@ -475,19 +498,44 @@ class CopickRunFSSpec(CopickRunOverlay):
         static_is_overlay (bool): Whether the static and overlay sources are the same.
     """
 
+    voxel_spacing_clz: "VoxelSpacingClz" = ("CopickVoxelSpacingFSSpec", "CopickVoxelSpacingMeta")
+    picks_clz: "PicksClz" = ("CopickPicksFSSpec", "CopickPicksFile")
+    mesh_clz: "MeshClz" = ("CopickMeshFSSpec", "CopickMeshMeta")
+    segmentation_clz: "SegmenationClz" = ("CopickSegmentationFSSpec", "CopickSegmentationMeta")
+
     root: "CopickRootFSSpec"
 
     def _voxel_spacing_factory(self) -> Tuple[Type[CopickVoxelSpacingFSSpec], Type["CopickVoxelSpacingMeta"]]:
-        return CopickVoxelSpacingFSSpec, CopickVoxelSpacingMeta
+        warnings.warn(
+            "_voxel_spacing_factory is deprecated, use CopickRunFSSpec.voxel_spacing_clz class attribute instead.",
+            DeprecationWarning,
+            stacklevel=2,
+        )
+        return self.voxel_spacing_clz
 
     def _picks_factory(self) -> Type[CopickPicksFSSpec]:
-        return CopickPicksFSSpec
+        warnings.warn(
+            "_picks_factory is deprecated, use CopickRunFSSpec.picks_clz class attribute instead.",
+            DeprecationWarning,
+            stacklevel=2,
+        )
+        return self.picks_clz[0]
 
     def _mesh_factory(self) -> Tuple[Type[CopickMeshFSSpec], Type[CopickMeshMeta]]:
-        return CopickMeshFSSpec, CopickMeshMeta
+        warnings.warn(
+            "_mesh_factory is deprecated, use CopickRunFSSpec.mesh_clz class attribute instead.",
+            DeprecationWarning,
+            stacklevel=2,
+        )
+        return self.mesh_clz
 
     def _segmentation_factory(self) -> Tuple[Type[CopickSegmentationFSSpec], Type[CopickSegmentationMeta]]:
-        return CopickSegmentationFSSpec, CopickSegmentationMeta
+        warnings.warn(
+            "_segmentation_factory is deprecated, use CopickRunFSSpec.segmentation_clz class attribute instead.",
+            DeprecationWarning,
+            stacklevel=2,
+        )
+        return self.segmentation_clz
 
     @property
     def static_path(self) -> str:
@@ -832,6 +880,9 @@ class CopickRootFSSpec(CopickRoot):
         root_static (Optional[str]): The root path for the static storage.
     """
 
+    run_clz: "RunClz" = ("CopickRunFSSpec", "CopickRunMeta")
+    object_clz: "ObjectClz" = ("CopickObjectFSSpec", "PickableObject")
+
     def __init__(self, config: CopickConfigFSSpec):
         """
         Args:
@@ -872,10 +923,20 @@ class CopickRootFSSpec(CopickRoot):
         return cls(CopickConfigFSSpec(**data))
 
     def _run_factory(self) -> Tuple[Type[CopickRunFSSpec], Type["CopickRunMeta"]]:
-        return CopickRunFSSpec, CopickRunMeta
+        warnings.warn(
+            "_run_factory is deprecated, use CopickRootFSSpec.run_clz class attribute instead.",
+            DeprecationWarning,
+            stacklevel=2,
+        )
+        return self.run_clz
 
     def _object_factory(self) -> Tuple[Type[CopickObjectFSSpec], Type[PickableObject]]:
-        return CopickObjectFSSpec, PickableObject
+        warnings.warn(
+            "_object_factory is deprecated, use CopickRootFSSpec.object_clz class attribute instead.",
+            DeprecationWarning,
+            stacklevel=2,
+        )
+        return self.object_clz
 
     @staticmethod
     def _query_names(fs, root) -> List[str]:
@@ -925,3 +986,14 @@ class CopickRootFSSpec(CopickRoot):
             runs.append(CopickRunFSSpec(root=self, meta=rm))
 
         return runs
+
+
+# Resolve forward references
+CopickRootFSSpec.run_clz = (CopickRunFSSpec, CopickRunMeta)
+CopickRootFSSpec.object_clz = (CopickObjectFSSpec, PickableObject)
+CopickRunFSSpec.voxel_spacing_clz = (CopickVoxelSpacingFSSpec, CopickVoxelSpacingMeta)
+CopickRunFSSpec.picks_clz = (CopickPicksFSSpec, CopickPicksFile)
+CopickRunFSSpec.mesh_clz = (CopickMeshFSSpec, CopickMeshMeta)
+CopickRunFSSpec.segmentation_clz = (CopickSegmentationFSSpec, CopickSegmentationMeta)
+CopickVoxelSpacingFSSpec.tomogram_clz = (CopickTomogramFSSpec, CopickTomogramMeta)
+CopickTomogramFSSpec.features_clz = (CopickFeaturesFSSpec, CopickFeaturesMeta)

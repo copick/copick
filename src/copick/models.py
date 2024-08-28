@@ -1,5 +1,6 @@
 import json
-from typing import Dict, List, Literal, MutableMapping, Optional, Tuple, Type, Union
+import warnings
+from typing import TYPE_CHECKING, List, Literal, MutableMapping, Optional, Tuple, Type, Union
 
 import numpy as np
 import trimesh
@@ -7,86 +8,18 @@ import zarr
 from pydantic import BaseModel, field_validator
 from trimesh.parent import Geometry
 
+from copick.util.ome import fits_in_memory, segmentation_pyramid, volume_pyramid, write_ome_zarr_3d
 
-class PickableObject(BaseModel):
-    """Metadata for a pickable objects.
-
-    Attributes:
-        name: Name of the object.
-        is_particle: Whether this object should be represented by points (True) or segmentation masks (False).
-        label: Numeric label/id for the object, as used in multilabel segmentation masks. Must be unique.
-        color: RGBA color for the object.
-        emdb_id: EMDB ID for the object.
-        pdb_id: PDB ID for the object.
-        map_threshold: Threshold to apply to the map when rendering the isosurface.
-        radius: Radius of the particle, when displaying as a sphere.
-    """
-
-    name: str
-    is_particle: bool
-    label: Optional[int] = 1
-    color: Optional[Tuple[int, int, int, int]] = (100, 100, 100, 255)
-    emdb_id: Optional[str] = None
-    pdb_id: Optional[str] = None
-    go_id: Optional[str] = None
-    map_threshold: Optional[float] = None
-    radius: Optional[float] = None
-
-    @field_validator("label")
-    @classmethod
-    def validate_label(cls, v) -> int:
-        """Validate the label."""
-        assert v != 0, "Label 0 is reserved for background."
-        return v
-
-    @field_validator("color")
-    @classmethod
-    def validate_color(cls, v) -> Tuple[int, int, int, int]:
-        """Validate the color."""
-        assert len(v) == 4, "Color must be a 4-tuple (RGBA)."
-        assert all(0 <= c <= 255 for c in v), "Color values must be in the range [0, 255]."
-        return v
-
-
-class CopickConfig(BaseModel):
-    """Configuration for a copick project. Defines the available objects, user_id and optionally an index for runs.
-
-    Attributes:
-        name: Name of the CoPick project.
-        description: Description of the CoPick project.
-        version: Version of the CoPick API.
-        pickable_objects (List[PickableObject]): Index for available pickable objects.
-        user_id: Unique identifier for the user (e.g. when distributing the config file to users).
-        session_id: Unique identifier for the session.
-        voxel_spacings: Index for available voxel spacings.
-        runs: Index for run names.
-        tomograms: Index for available voxel spacings and tomogram types.
-    """
-
-    name: Optional[str] = "CoPick"
-    description: Optional[str] = "Let's CoPick!"
-    version: Optional[str] = "0.2.0"
-    pickable_objects: List[PickableObject]
-    user_id: Optional[str] = None
-    session_id: Optional[str] = None
-    runs: Optional[List[str]] = None
-    voxel_spacings: Optional[List[float]] = None
-    tomograms: Optional[Dict[float, List[str]]] = {}
-
-    @classmethod
-    def from_file(cls, filename: str) -> "CopickConfig":
-        """
-        Load a CopickConfig from a file and create a CopickConfig object.
-
-        Args:
-            filename: path to the file
-
-        Returns:
-            CopickConfig: Initialized CopickConfig object
-
-        """
-        with open(filename) as f:
-            return cls(**json.load(f))
+# Type aliases using forward references
+if TYPE_CHECKING:
+    RunClz = Tuple[Type["CopickRun"], Type["CopickRunMeta"]]
+    ObjectClz = Tuple[Type["CopickObject"], Type["PickableObject"]]
+    VoxelSpacingClz = Tuple[Type["CopickVoxelSpacing"], Type["CopickVoxelSpacingMeta"]]
+    PicksClz = Tuple[Type["CopickPicks"], Type["CopickPicksFile"]]
+    MeshClz = Tuple[Type["CopickMesh"], Type["CopickMeshMeta"]]
+    SegmenationClz = Tuple[Type["CopickSegmentation"], Type["CopickSegmentationMeta"]]
+    TomogramClz = Tuple[Type["CopickTomogram"], Type["CopickTomogramMeta"]]
+    FeaturesClz = Tuple[Type["CopickFeatures"], Type["CopickFeaturesMeta"]]
 
 
 class CopickLocation(BaseModel):
@@ -153,6 +86,183 @@ class CopickPoint(BaseModel):
         assert value[3, 3] == 1.0, "Last element of transformation matrix must be 1.0."
         assert np.allclose(value[3, :], [0.0, 0.0, 0.0, 1.0]), "Last row of transformation matrix must be [0, 0, 0, 1]."
         self.transformation_ = value.tolist()
+
+
+class PickableObject(BaseModel):
+    """Metadata for a pickable objects.
+
+    Attributes:
+        name: Name of the object.
+        is_particle: Whether this object should be represented by points (True) or segmentation masks (False).
+        label: Numeric label/id for the object, as used in multilabel segmentation masks. Must be unique.
+        color: RGBA color for the object.
+        emdb_id: EMDB ID for the object.
+        pdb_id: PDB ID for the object.
+        map_threshold: Threshold to apply to the map when rendering the isosurface.
+        radius: Radius of the particle, when displaying as a sphere.
+    """
+
+    name: str
+    is_particle: bool
+    label: Optional[int] = 1
+    color: Optional[Tuple[int, int, int, int]] = (100, 100, 100, 255)
+    emdb_id: Optional[str] = None
+    pdb_id: Optional[str] = None
+    go_id: Optional[str] = None
+    map_threshold: Optional[float] = None
+    radius: Optional[float] = None
+
+    @field_validator("label")
+    @classmethod
+    def validate_label(cls, v) -> int:
+        """Validate the label."""
+        assert v != 0, "Label 0 is reserved for background."
+        return v
+
+    @field_validator("color")
+    @classmethod
+    def validate_color(cls, v) -> Tuple[int, int, int, int]:
+        """Validate the color."""
+        assert len(v) == 4, "Color must be a 4-tuple (RGBA)."
+        assert all(0 <= c <= 255 for c in v), "Color values must be in the range [0, 255]."
+        return v
+
+
+class CopickConfig(BaseModel):
+    """Configuration for a copick project. Defines the available objects, user_id and optionally an index for runs.
+
+    Attributes:
+        name: Name of the CoPick project.
+        description: Description of the CoPick project.
+        version: Version of the CoPick API.
+        pickable_objects (List[PickableObject]): Index for available pickable objects.
+        user_id: Unique identifier for the user (e.g. when distributing the config file to users).
+        session_id: Unique identifier for the session.
+    """
+
+    name: Optional[str] = "CoPick"
+    description: Optional[str] = "Let's CoPick!"
+    version: Optional[str] = "0.2.0"
+    pickable_objects: List[PickableObject]
+    user_id: Optional[str] = None
+    session_id: Optional[str] = None
+
+    @classmethod
+    def from_file(cls, filename: str) -> "CopickConfig":
+        """
+        Load a CopickConfig from a file and create a CopickConfig object.
+
+        Args:
+            filename: path to the file
+
+        Returns:
+            CopickConfig: Initialized CopickConfig object
+
+        """
+        with open(filename) as f:
+            return cls(**json.load(f))
+
+
+class CopickRunMeta(BaseModel):
+    """Data model for run level metadata.
+
+    Attributes:
+        name: Name of the run.
+    """
+
+    name: str
+
+
+class CopickVoxelSpacingMeta(BaseModel):
+    """Data model for voxel spacing metadata.
+
+    Attributes:
+        voxel_size: Voxel size in angstrom, rounded to the third decimal.
+    """
+
+    voxel_size: float
+
+
+class CopickTomogramMeta(BaseModel):
+    """Data model for tomogram metadata.
+
+    Attributes:
+        tomo_type: Type of the tomogram.
+    """
+
+    tomo_type: str
+
+
+class CopickFeaturesMeta(BaseModel):
+    """Data model for feature map metadata.
+
+    Attributes:
+        tomo_type: Type of the tomogram that the features were computed on.
+        feature_type: Type of the features contained.
+    """
+
+    tomo_type: str
+    feature_type: str
+
+
+class CopickPicksFile(BaseModel):
+    """Datamodel for a collection of locations, orientations and other metadata for one pickable object.
+
+    Attributes:
+        pickable_object_name: Pickable object name from CopickConfig.pickable_objects[X].name
+        user_id: Unique identifier for the user or tool name.
+        session_id: Unique identifier for the pick session (prevent race if they run multiple instances of napari,
+            ChimeraX, etc.) If it is 0, this pick was generated by a tool.
+        run_name: Name of the run this pick belongs to.
+        voxel_spacing: Voxel spacing for the tomogram this pick belongs to.
+        unit: Unit for the location of the pick.
+        points (List[CopickPoint]): References to the points for this pick.
+        trust_orientation: Flag to indicate if the angles are known for this pick or should be ignored.
+
+    """
+
+    pickable_object_name: str
+    user_id: str
+    session_id: Union[str, Literal["0"]]
+    run_name: Optional[str] = None
+    voxel_spacing: Optional[float] = None
+    unit: str = "angstrom"
+    points: Optional[List[CopickPoint]] = None
+    trust_orientation: Optional[bool] = True
+
+
+class CopickMeshMeta(BaseModel):
+    """Data model for mesh metadata.
+
+    Attributes:
+        pickable_object_name: Pickable object name from `CopickConfig.pickable_objects[...].name`
+        user_id: Unique identifier for the user or tool name.
+        session_id: Unique identifier for the pick session. If it is 0, this pick was generated by a tool.
+    """
+
+    pickable_object_name: str
+    user_id: str
+    session_id: Union[str, Literal["0"]]
+
+
+class CopickSegmentationMeta(BaseModel):
+    """Datamodel for segmentation metadata.
+
+    Attributes:
+        user_id: Unique identifier for the user or tool name.
+        session_id: Unique identifier for the segmentation session. If it is 0, this segmentation was generated by a
+            tool.
+        name: Pickable Object name or multilabel name of the segmentation.
+        is_multilabel: Flag to indicate if this is a multilabel segmentation. If False, it is a single label
+            segmentation.
+        voxel_size: Voxel size in angstrom of the tomogram this segmentation belongs to. Rounded to the third decimal.
+    """
+
+    user_id: str
+    session_id: Union[str, Literal["0"]]
+    name: str
+    is_multilabel: bool
+    voxel_size: float
 
 
 class CopickObject:
@@ -262,7 +372,51 @@ class CopickObject:
         if loc is None:
             return None
 
-        return np.array(zarr.open(loc)[zarr_group][z, y, x])
+        group = zarr.open(loc)[zarr_group]
+
+        fits, req, avail = fits_in_memory(group, (x, y, z))
+        if not fits:
+            raise ValueError(f"Requested region does not fit in memory. Requested: {req}, Available: {avail}.")
+
+        return group[z, y, x]
+
+    def from_numpy(
+        self,
+        data: np.ndarray,
+        voxel_size: float,
+        dtype: Optional[np.dtype] = np.float32,
+    ) -> None:
+        """Set the object from a numpy array.
+
+        Args:
+            data: The segmentation as a numpy array.
+            voxel_size: Voxel size of the object.
+            dtype: Data type of the segmentation. Default is `np.float32`.
+        """
+        loc = self.zarr()
+
+        pyramid = volume_pyramid(data, voxel_size, 1, dtype=dtype)
+        write_ome_zarr_3d(loc, pyramid)
+
+    def set_region(
+        self,
+        data: np.ndarray,
+        zarr_group: str = "0",
+        x: slice = slice(None, None),
+        y: slice = slice(None, None),
+        z: slice = slice(None, None),
+    ) -> None:
+        """Set a region of the object from a numpy array.
+
+        Args:
+            data: The object's subregion as a numpy array.
+            zarr_group: Zarr group to access.
+            x: Slice for the x-axis.
+            y: Slice for the y-axis.
+            z: Slice for the z-axis.
+        """
+        loc = self.zarr()
+        zarr.open(loc)[zarr_group][z, y, x] = data
 
 
 class CopickRoot:
@@ -277,6 +431,9 @@ class CopickRoot:
 
     """
 
+    run_clz: "RunClz" = ("CopickRun", "CopickRunMeta")
+    object_clz: "ObjectClz" = ("CopickObject", "PickableObject")
+
     def __init__(self, config: CopickConfig):
         """
         Args:
@@ -285,10 +442,6 @@ class CopickRoot:
         self.config = config
         self._runs: Optional[List["CopickRun"]] = None
         self._objects: Optional[List[CopickObject]] = None
-
-        # If runs are specified in the config, create them
-        if config.runs is not None:
-            self._runs = [CopickRun(self, CopickRunMeta(name=run_name)) for run_name in config.runs]
 
     def __repr__(self):
         lpo = None if self._objects is None else len(self._objects)
@@ -334,7 +487,7 @@ class CopickRoot:
         """
         # Random access
         if self._runs is None:
-            clz, meta_clz = self._run_factory()
+            clz, meta_clz = self.run_clz
             rm = meta_clz(name=name, **kwargs)
             run = clz(self, meta=rm)
 
@@ -354,7 +507,7 @@ class CopickRoot:
     @property
     def pickable_objects(self) -> List["CopickObject"]:
         if self._objects is None:
-            clz, meta_clz = self._object_factory()
+            clz, meta_clz = self.object_clz
             self._objects = [clz(self, meta=obj) for obj in self.config.pickable_objects]
 
         return self._objects
@@ -394,7 +547,7 @@ class CopickRoot:
         if name in [r.name for r in self.runs]:
             raise ValueError(f"Run name {name} already exists.")
 
-        clz, meta_clz = self._run_factory()
+        clz, meta_clz = self.run_clz
         rm = meta_clz(name=name, **kwargs)
         run = clz(self, meta=rm)
 
@@ -409,22 +562,28 @@ class CopickRoot:
         return run
 
     def _run_factory(self) -> Tuple[Type["CopickRun"], Type["CopickRunMeta"]]:
-        """Override this method to return the run class and run metadata class."""
-        return CopickRun, CopickRunMeta
+        """DEPRECATED, use CopickRoot.run_clz class attribute instead.
+
+        Override this method to return the run class and run metadata class.
+        """
+        warnings.warn(
+            "_run_factory is deprecated, use CopickRoot.run_clz class attribute instead.",
+            DeprecationWarning,
+            stacklevel=2,
+        )
+        return self.run_clz
 
     def _object_factory(self) -> Tuple[Type["CopickObject"], Type["PickableObject"]]:
-        """Override this method to return the object class and object metadata class."""
-        return CopickObject, PickableObject
+        """DEPRECATED, use CopickRoot.object_clz class attribute instead.
 
-
-class CopickRunMeta(BaseModel):
-    """Data model for run level metadata.
-
-    Attributes:
-        name: Name of the run.
-    """
-
-    name: str
+        Override this method to return the object class and object metadata class.
+        """
+        warnings.warn(
+            "_object_factory is deprecated, use CopickRoot.object_clz class attribute instead.",
+            DeprecationWarning,
+            stacklevel=2,
+        )
+        return self.object_clz
 
 
 class CopickRun:
@@ -443,11 +602,14 @@ class CopickRun:
             CopickRun.meshes is accessed **for the first time**.
         segmentations (List[CopickSegmentation]): Segmentations for this run. Either populated from config or lazily
             loaded when CopickRun.segmentations is accessed **for the first time**.
-
-
     """
 
-    def __init__(self, root: "CopickRoot", meta: CopickRunMeta, config: Optional["CopickConfig"] = None):
+    voxel_spacing_clz: "VoxelSpacingClz" = ("CopickVoxelSpacing", "CopickVoxelSpacingMeta")
+    picks_clz: "PicksClz" = ("CopickPicks", "CopickPicksFile")
+    mesh_clz: "MeshClz" = ("CopickMesh", "CopickMeshMeta")
+    segmentation_clz: "SegmenationClz" = ("CopickSegmentation", "CopickSegmentationMeta")
+
+    def __init__(self, root: "CopickRoot", meta: CopickRunMeta):
         self.meta = meta
         self.root = root
         self._voxel_spacings: Optional[List["CopickVoxelSpacing"]] = None
@@ -462,50 +624,6 @@ class CopickRun:
         self._segmentations: Optional[List["CopickSegmentation"]] = None
         """Segmentations for this run. Either populated from config or lazily loaded when
         CopickRun.segmentations is accessed for the first time."""
-
-        if config is not None:
-            voxel_spacings_metas = [
-                CopickVoxelSpacingMeta(run=self, voxel_size=vs, config=config) for vs in config.tomograms
-            ]
-            self._voxel_spacings = [CopickVoxelSpacing(run=self, meta=vs) for vs in voxel_spacings_metas]
-
-            #####################
-            # Picks from config #
-            #####################
-            # Select all available pre-picks for this run
-            avail = config.available_pre_picks.keys()
-            avail = [a for a in avail if a[0] == self.name]
-
-            # Pre-defined picks
-            for av in avail:
-                object_name = av[1]
-                prepicks = config.available_pre_picks[av]
-
-                for pp in prepicks:
-                    pm = CopickPicksFile(
-                        pickable_object_name=object_name,
-                        user_id=pp,
-                        session_id="0",
-                        run_name=self.name,
-                    )
-                    self._picks.append(CopickPicks(run=self, file=pm))
-
-            ######################
-            # Meshes from config #
-            ######################
-            for object_name, tool_names in config.available_pre_meshes.items():
-                for mesh_tool in tool_names:
-                    mm = CopickMeshMeta(pickable_object_name=object_name, user_id=mesh_tool, session_id="0")
-                    com = CopickMesh(run=self, meta=mm)
-                    self._meshes.append(com)
-
-            #############################
-            # Segmentations from config #
-            #############################
-            for seg_tool in config.available_pre_segmentations:
-                sm = CopickSegmentationMeta(run=self, user_id=seg_tool, session_id="0")
-                cos = CopickSegmentation(run=self, meta=sm)
-                self._segmentations.append(cos)
 
     def __repr__(self):
         lvs = None if self._voxel_spacings is None else len(self._voxel_spacings)
@@ -577,7 +695,7 @@ class CopickRun:
         """
         # Random access
         if self._voxel_spacings is None:
-            clz, meta_clz = self._voxel_spacing_factory()
+            clz, meta_clz = self.voxel_spacing_clz
             vm = meta_clz(voxel_size=voxel_size, **kwargs)
             vs = clz(self, meta=vm)
 
@@ -775,7 +893,7 @@ class CopickRun:
         if voxel_size in [vs.voxel_size for vs in self.voxel_spacings]:
             raise ValueError(f"VoxelSpacing {voxel_size} already exists for this run.")
 
-        clz, meta_clz = self._voxel_spacing_factory()
+        clz, meta_clz = self.voxel_spacing_clz
 
         vm = meta_clz(voxel_size=voxel_size, **kwargs)
         vs = clz(run=self, meta=vm)
@@ -791,8 +909,16 @@ class CopickRun:
         return vs
 
     def _voxel_spacing_factory(self) -> Tuple[Type["CopickVoxelSpacing"], Type["CopickVoxelSpacingMeta"]]:
-        """Override this method to return the voxel spacing class and voxel spacing metadata class."""
-        return CopickVoxelSpacing, CopickVoxelSpacingMeta
+        """DEPRECATED, use CopickRun.voxel_spacing_clz class attribute instead.
+
+        Override this method to return the voxel spacing class and voxel spacing metadata class.
+        """
+        warnings.warn(
+            "_voxel_spacing_factory is deprecated, use CopickRun.voxel_spacing_clz class attribute instead.",
+            DeprecationWarning,
+            stacklevel=2,
+        )
+        return self.voxel_spacing_clz
 
     def new_picks(self, object_name: str, session_id: str, user_id: Optional[str] = None) -> "CopickPicks":
         """Create a new picks object.
@@ -830,7 +956,7 @@ class CopickRun:
             run_name=self.name,
         )
 
-        clz = self._picks_factory()
+        clz = self.picks_clz[0]
 
         picks = clz(run=self, file=pm)
 
@@ -844,8 +970,16 @@ class CopickRun:
         return picks
 
     def _picks_factory(self) -> Type["CopickPicks"]:
-        """Override this method to return the picks class."""
-        return CopickPicks
+        """DEPRECATED, use CopickRun.picks_clz class attribute instead.
+
+        Override this method to return the picks class.
+        """
+        warnings.warn(
+            "_picks_factory is deprecated, use CopickRun.picks_clz class attribute instead.",
+            DeprecationWarning,
+            stacklevel=2,
+        )
+        return self.picks_clz[0]
 
     def new_mesh(self, object_name: str, session_id: str, user_id: Optional[str] = None, **kwargs) -> "CopickMesh":
         """Create a new mesh object.
@@ -877,7 +1011,7 @@ class CopickRun:
         if self.get_meshes(object_name=object_name, session_id=session_id, user_id=uid):
             raise ValueError(f"Mesh for {object_name} by user/tool {uid} already exist in session {session_id}.")
 
-        clz, meta_clz = self._mesh_factory()
+        clz, meta_clz = self.mesh_clz
 
         mm = meta_clz(
             pickable_object_name=object_name,
@@ -902,8 +1036,16 @@ class CopickRun:
         return mesh
 
     def _mesh_factory(self) -> Tuple[Type["CopickMesh"], Type["CopickMeshMeta"]]:
-        """Override this method to return the mesh class and mesh metadata."""
-        return CopickMesh, CopickMeshMeta
+        """DEPRECATED, use CopickRun.mesh_clz class attribute instead.
+
+        Override this method to return the mesh class and mesh metadata.
+        """
+        warnings.warn(
+            "_mesh_factory is deprecated, use CopickRun.mesh_clz class attribute instead.",
+            DeprecationWarning,
+            stacklevel=2,
+        )
+        return self.mesh_clz
 
     def new_segmentation(
         self,
@@ -954,7 +1096,7 @@ class CopickRun:
                 f"Segmentation by user/tool {uid} already exist in session {session_id} with name {name}, voxel size of {voxel_size}, and has a multilabel flag of {is_multilabel}.",
             )
 
-        clz, meta_clz = self._segmentation_factory()
+        clz, meta_clz = self.segmentation_clz
 
         sm = meta_clz(
             is_multilabel=is_multilabel,
@@ -977,8 +1119,16 @@ class CopickRun:
         return seg
 
     def _segmentation_factory(self) -> Tuple[Type["CopickSegmentation"], Type["CopickSegmentationMeta"]]:
-        """Override this method to return the segmentation class and segmentation metadata class."""
-        return CopickSegmentation, CopickSegmentationMeta
+        """DEPRECATED, use CopickRun.segmentation_clz class attribute instead.
+
+        Override this method to return the segmentation class and segmentation metadata class.
+        """
+        warnings.warn(
+            "_segmentation_factory is deprecated, use CopickRun.segmentation_clz class attribute instead.",
+            DeprecationWarning,
+            stacklevel=2,
+        )
+        return self.segmentation_clz
 
     def refresh_voxel_spacings(self) -> None:
         """Refresh the voxel spacings."""
@@ -1015,16 +1165,6 @@ class CopickRun:
         raise NotImplementedError("ensure must be implemented for CopickRun.")
 
 
-class CopickVoxelSpacingMeta(BaseModel):
-    """Data model for voxel spacing metadata.
-
-    Attributes:
-        voxel_size: Voxel size in angstrom, rounded to the third decimal.
-    """
-
-    voxel_size: float
-
-
 class CopickVoxelSpacing:
     """Encapsulates all data pertaining to a specific voxel spacing. This includes the tomograms and feature maps at
     this voxel spacing.
@@ -1036,7 +1176,9 @@ class CopickVoxelSpacing:
             when CopickVoxelSpacing.tomograms is accessed **for the first time**.
     """
 
-    def __init__(self, run: CopickRun, meta: CopickVoxelSpacingMeta, config: Optional[CopickConfig] = None):
+    tomogram_clz: "TomogramClz" = ("CopickTomogram", "CopickTomogramMeta")
+
+    def __init__(self, run: CopickRun, meta: CopickVoxelSpacingMeta):
         """
         Args:
             run: Reference to the run this voxel spacing belongs to.
@@ -1048,10 +1190,6 @@ class CopickVoxelSpacing:
 
         self._tomograms: Optional[List["CopickTomogram"]] = None
         """References to the tomograms for this voxel spacing."""
-
-        if config is not None:
-            tomo_metas = [CopickTomogramMeta(tomo_type=tt) for tt in config.tomograms[self.voxel_size]]
-            self._tomograms = [CopickTomogram(voxel_spacing=self, meta=tm, config=config) for tm in tomo_metas]
 
     def __repr__(self):
         lts = None if self._tomograms is None else len(self._tomograms)
@@ -1110,7 +1248,7 @@ class CopickVoxelSpacing:
         if tomo_type in [tomo.tomo_type for tomo in self.tomograms]:
             raise ValueError(f"Tomogram type {tomo_type} already exists for this voxel spacing.")
 
-        clz, meta_clz = self._tomogram_factory()
+        clz, meta_clz = self.tomogram_clz
 
         tm = meta_clz(tomo_type=tomo_type, **kwargs)
         tomo = clz(voxel_spacing=self, meta=tm)
@@ -1126,8 +1264,16 @@ class CopickVoxelSpacing:
         return tomo
 
     def _tomogram_factory(self) -> Tuple[Type["CopickTomogram"], Type["CopickTomogramMeta"]]:
-        """Override this method to return the tomogram class."""
-        return CopickTomogram, CopickTomogramMeta
+        """DEPRECATED, use CopickVoxelSpacing.tomogram_clz class attribute instead.
+
+        Override this method to return the tomogram class.
+        """
+        warnings.warn(
+            "_tomogram_factory is deprecated, use CopickVoxelSpacing.tomogram_clz class attribute instead.",
+            DeprecationWarning,
+            stacklevel=2,
+        )
+        return self.tomogram_clz
 
     def ensure(self, create: bool = False) -> bool:
         """Override to check if the voxel spacing record exists, optionally create it if it does not.
@@ -1139,16 +1285,6 @@ class CopickVoxelSpacing:
             bool: True if the voxel spacing record exists, False otherwise.
         """
         raise NotImplementedError("ensure must be implemented for CopickVoxelSpacing.")
-
-
-class CopickTomogramMeta(BaseModel):
-    """Data model for tomogram metadata.
-
-    Attributes:
-        tomo_type: Type of the tomogram.
-    """
-
-    tomo_type: str
 
 
 class CopickTomogram:
@@ -1163,21 +1299,14 @@ class CopickTomogram:
         tomo_type (str): Type of the tomogram.
     """
 
-    def __init__(
-        self,
-        voxel_spacing: "CopickVoxelSpacing",
-        meta: CopickTomogramMeta,
-        config: Optional["CopickConfig"] = None,
-    ):
+    features_clz: "FeaturesClz" = ("CopickFeatures", "CopickFeaturesMeta")
+
+    def __init__(self, voxel_spacing: "CopickVoxelSpacing", meta: CopickTomogramMeta):
         self.meta = meta
         self.voxel_spacing = voxel_spacing
 
         self._features: Optional[List["CopickFeatures"]] = None
         """Features for this tomogram."""
-
-        if config is not None and self.tomo_type in config.features[self.voxel_spacing.voxel_size]:
-            feat_metas = [CopickFeaturesMeta(tomo_type=self.tomo_type, feature_type=ft) for ft in config.feature_types]
-            self._features = [CopickFeatures(tomogram=self, meta=fm) for fm in feat_metas]
 
     def __repr__(self):
         lft = None if self._features is None else len(self._features)
@@ -1229,7 +1358,7 @@ class CopickTomogram:
         if feature_type in [f.feature_type for f in self.features]:
             raise ValueError(f"Feature type {feature_type} already exists for this tomogram.")
 
-        clz, meta_clz = self._feature_factory()
+        clz, meta_clz = self.features_clz
 
         fm = meta_clz(tomo_type=self.tomo_type, feature_type=feature_type, **kwargs)
         feat = clz(tomogram=self, meta=fm)
@@ -1246,8 +1375,16 @@ class CopickTomogram:
         return feat
 
     def _feature_factory(self) -> Tuple[Type["CopickFeatures"], Type["CopickFeaturesMeta"]]:
-        """Override this method to return the features class and features metadata class."""
-        return CopickFeatures, CopickFeaturesMeta
+        """DEPRECATED, use CopickTomogram.features_clz class attribute instead.
+
+        Override this method to return the features class and features metadata class.
+        """
+        warnings.warn(
+            "_feature_factory is deprecated, use CopickTomogram.features_clz class attribute instead.",
+            DeprecationWarning,
+            stacklevel=2,
+        )
+        return self.features_clz
 
     def query_features(self) -> List["CopickFeatures"]:
         """Override this method to query for features."""
@@ -1287,19 +1424,51 @@ class CopickTomogram:
         """
 
         loc = self.zarr()
+        group = zarr.open(loc)[zarr_group]
+
+        fits, req, avail = fits_in_memory(group, (x, y, z))
+        if not fits:
+            raise ValueError(f"Requested region does not fit in memory. Requested: {req}, Available: {avail}.")
+
         return np.array(zarr.open(loc)[zarr_group][z, y, x])
 
+    def from_numpy(
+        self,
+        data: np.ndarray,
+        levels: int = 3,
+        dtype: Optional[np.dtype] = np.float32,
+    ) -> None:
+        """Set the tomogram from a numpy array and compute multiscale pyramid. By default, three levels of the pyramid
+        are computed.
 
-class CopickFeaturesMeta(BaseModel):
-    """Data model for feature map metadata.
+        Args:
+            data: The segmentation as a numpy array.
+            levels: Number of levels in the multiscale pyramid.
+            dtype: Data type of the segmentation. Default is `np.float32`.
+        """
+        loc = self.zarr()
+        pyramid = volume_pyramid(data, self.voxel_spacing.voxel_size, levels, dtype=dtype)
+        write_ome_zarr_3d(loc, pyramid)
 
-    Attributes:
-        tomo_type: Type of the tomogram that the features were computed on.
-        feature_type: Type of the features contained.
-    """
+    def set_region(
+        self,
+        data: np.ndarray,
+        zarr_group: str = "0",
+        x: slice = slice(None, None),
+        y: slice = slice(None, None),
+        z: slice = slice(None, None),
+    ) -> None:
+        """Set a region of the tomogram from a numpy array.
 
-    tomo_type: str
-    feature_type: str
+        Args:
+            data: The tomogram's subregion as a numpy array.
+            zarr_group: Zarr group to access.
+            x: Slice for the x-axis.
+            y: Slice for the y-axis.
+            z: Slice for the z-axis.
+        """
+        loc = self.zarr()
+        zarr.open(loc)[zarr_group][z, y, x] = data
 
 
 class CopickFeatures:
@@ -1356,37 +1525,33 @@ class CopickFeatures:
 
         loc = self.zarr()
         group = zarr.open(loc)[zarr_group]
+        ndim = len(group.shape)
 
         if slices is None:
-            return np.array(group)
-        else:
-            return np.array(group[slices])
+            slices = tuple(slice(None, None) for _ in range(ndim))
 
+        fits, req, avail = fits_in_memory(group, slices)
+        if not fits:
+            raise ValueError(f"Requested region does not fit in memory. Requested: {req}, Available: {avail}.")
 
-class CopickPicksFile(BaseModel):
-    """Datamodel for a collection of locations, orientations and other metadata for one pickable object.
+        return np.array(group[slices])
 
-    Attributes:
-        pickable_object_name: Pickable object name from CopickConfig.pickable_objects[X].name
-        user_id: Unique identifier for the user or tool name.
-        session_id: Unique identifier for the pick session (prevent race if they run multiple instances of napari,
-            ChimeraX, etc.) If it is 0, this pick was generated by a tool.
-        run_name: Name of the run this pick belongs to.
-        voxel_spacing: Voxel spacing for the tomogram this pick belongs to.
-        unit: Unit for the location of the pick.
-        points (List[CopickPoint]): References to the points for this pick.
-        trust_orientation: Flag to indicate if the angles are known for this pick or should be ignored.
+    def set_region(
+        self,
+        data: np.ndarray,
+        zarr_group: str = "0",
+        slices: Tuple[slice, ...] = None,
+    ) -> None:
+        """Set the content of the Zarr-File for this feature map from a numpy array. Multiscale group and slices are
+        supported.
 
-    """
-
-    pickable_object_name: str
-    user_id: str
-    session_id: Union[str, Literal["0"]]
-    run_name: Optional[str] = None
-    voxel_spacing: Optional[float] = None
-    unit: str = "angstrom"
-    points: Optional[List[CopickPoint]] = None
-    trust_orientation: Optional[bool] = True
+        Args:
+            data: The data to set.
+            zarr_group: Zarr group to access.
+            slices: Tuple of slices for the axes.
+        """
+        loc = self.zarr()
+        zarr.open(loc)[zarr_group][slices] = data
 
 
 class CopickPicks:
@@ -1546,20 +1711,6 @@ class CopickPicks:
         self.store()
 
 
-class CopickMeshMeta(BaseModel):
-    """Data model for mesh metadata.
-
-    Attributes:
-        pickable_object_name: Pickable object name from `CopickConfig.pickable_objects[...].name`
-        user_id: Unique identifier for the user or tool name.
-        session_id: Unique identifier for the pick session. If it is 0, this pick was generated by a tool.
-    """
-
-    pickable_object_name: str
-    user_id: str
-    session_id: Union[str, Literal["0"]]
-
-
 class CopickMesh:
     """Encapsulates all data pertaining to a specific mesh. This includes the mesh (`trimesh.parent.Geometry`) and other
     metadata.
@@ -1654,26 +1805,6 @@ class CopickMesh:
     def refresh(self) -> None:
         """Refresh `CopickMesh.mesh` from storage."""
         self._mesh = self.load()
-
-
-class CopickSegmentationMeta(BaseModel):
-    """Datamodel for segmentation metadata.
-
-    Attributes:
-        user_id: Unique identifier for the user or tool name.
-        session_id: Unique identifier for the segmentation session. If it is 0, this segmentation was generated by a
-            tool.
-        name: Pickable Object name or multilabel name of the segmentation.
-        is_multilabel: Flag to indicate if this is a multilabel segmentation. If False, it is a single label
-            segmentation.
-        voxel_size: Voxel size in angstrom of the tomogram this segmentation belongs to. Rounded to the third decimal.
-    """
-
-    user_id: str
-    session_id: Union[str, Literal["0"]]
-    name: str
-    is_multilabel: bool
-    voxel_size: float
 
 
 class CopickSegmentation:
@@ -1774,4 +1905,59 @@ class CopickSegmentation:
         """
 
         loc = self.zarr()
+        group = zarr.open(loc)[zarr_group]
+
+        fits, req, avail = fits_in_memory(group, (x, y, z))
+        if not fits:
+            raise ValueError(f"Requested region does not fit in memory. Requested: {req}, Available: {avail}.")
+
         return np.array(zarr.open(loc)[zarr_group][z, y, x])
+
+    def from_numpy(
+        self,
+        data: np.ndarray,
+        levels: int = 1,
+        dtype: Optional[np.dtype] = np.uint8,
+    ) -> None:
+        """Set the segmentation from a numpy array and compute multiscale pyramid. By default, no pyramid is computed
+        for segmentations.
+
+        Args:
+            data: The segmentation as a numpy array.
+            levels: Number of levels in the multiscale pyramid.
+            dtype: Data type of the segmentation. Default is `np.uint8`.
+        """
+        loc = self.zarr()
+        pyramid = segmentation_pyramid(data, self.voxel_size, levels, dtype=dtype)
+        write_ome_zarr_3d(loc, pyramid)
+
+    def set_region(
+        self,
+        data: np.ndarray,
+        zarr_group: str = "0",
+        x: slice = slice(None, None),
+        y: slice = slice(None, None),
+        z: slice = slice(None, None),
+    ) -> None:
+        """Set a region of the segmentation from a numpy array.
+
+        Args:
+            data: The segmentation's subregion as a numpy array.
+            zarr_group: Zarr group to access.
+            x: Slice for the x-axis.
+            y: Slice for the y-axis.
+            z: Slice for the z-axis.
+        """
+        loc = self.zarr()
+        zarr.open(loc)[zarr_group][z, y, x] = data
+
+
+# Resolve forward references
+CopickRoot.run_clz = (CopickRun, CopickRunMeta)
+CopickRoot.object_clz = (CopickObject, PickableObject)
+CopickRun.voxel_spacing_clz = (CopickVoxelSpacing, CopickVoxelSpacingMeta)
+CopickRun.picks_clz = (CopickPicks, CopickPicksFile)
+CopickRun.mesh_clz = (CopickMesh, CopickMeshMeta)
+CopickRun.segmentation_clz = (CopickSegmentation, CopickSegmentationMeta)
+CopickVoxelSpacing.tomogram_clz = (CopickTomogram, CopickTomogramMeta)
+CopickTomogram.features_clz = (CopickFeatures, CopickFeaturesMeta)
