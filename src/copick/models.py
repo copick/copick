@@ -12,14 +12,14 @@ from copick.util.ome import fits_in_memory, segmentation_pyramid, volume_pyramid
 
 # Type aliases using forward references
 if TYPE_CHECKING:
-    RunTypes = Tuple[Type["CopickRun"], Type["CopickRunMeta"]]
-    ObjectTypes = Tuple[Type["CopickObject"], Type["PickableObject"]]
-    VoxelSpacingTypes = Tuple[Type["CopickVoxelSpacing"], Type["CopickVoxelSpacingMeta"]]
-    PicksTypes = Tuple[Type["CopickPicks"], Type["CopickPicksFile"]]
-    MeshTypes = Tuple[Type["CopickMesh"], Type["CopickMeshMeta"]]
-    SegmentationTypes = Tuple[Type["CopickSegmentation"], Type["CopickSegmentationMeta"]]
-    TomogramTypes = Tuple[Type["CopickTomogram"], Type["CopickTomogramMeta"]]
-    FeaturesTypes = Tuple[Type["CopickFeatures"], Type["CopickFeaturesMeta"]]
+    RunClz = Tuple[Type["CopickRun"], Type["CopickRunMeta"]]
+    ObjectClz = Tuple[Type["CopickObject"], Type["PickableObject"]]
+    VoxelSpacingClz = Tuple[Type["CopickVoxelSpacing"], Type["CopickVoxelSpacingMeta"]]
+    PicksClz = Tuple[Type["CopickPicks"], Type["CopickPicksFile"]]
+    MeshClz = Tuple[Type["CopickMesh"], Type["CopickMeshMeta"]]
+    SegmenationClz = Tuple[Type["CopickSegmentation"], Type["CopickSegmentationMeta"]]
+    TomogramClz = Tuple[Type["CopickTomogram"], Type["CopickTomogramMeta"]]
+    FeaturesClz = Tuple[Type["CopickFeatures"], Type["CopickFeaturesMeta"]]
 
 
 class CopickLocation(BaseModel):
@@ -431,8 +431,8 @@ class CopickRoot:
 
     """
 
-    run_types: "RunTypes" = ("CopickRun", "CopickRunMeta")
-    object_types: "ObjectTypes" = ("CopickObject", "PickableObject")
+    run_clz: "RunClz" = ("CopickRun", "CopickRunMeta")
+    object_clz: "ObjectClz" = ("CopickObject", "PickableObject")
 
     def __init__(self, config: CopickConfig):
         """
@@ -487,7 +487,7 @@ class CopickRoot:
         """
         # Random access
         if self._runs is None:
-            clz, meta_clz = self.run_types
+            clz, meta_clz = self.run_clz
             rm = meta_clz(name=name, **kwargs)
             run = clz(self, meta=rm)
 
@@ -507,7 +507,7 @@ class CopickRoot:
     @property
     def pickable_objects(self) -> List["CopickObject"]:
         if self._objects is None:
-            clz, meta_clz = self.object_types
+            clz, meta_clz = self.object_clz
             self._objects = [clz(self, meta=obj) for obj in self.config.pickable_objects]
 
         return self._objects
@@ -547,7 +547,7 @@ class CopickRoot:
         if name in [r.name for r in self.runs]:
             raise ValueError(f"Run name {name} already exists.")
 
-        clz, meta_clz = self.run_types
+        clz, meta_clz = self.run_clz
         rm = meta_clz(name=name, **kwargs)
         run = clz(self, meta=rm)
 
@@ -562,28 +562,28 @@ class CopickRoot:
         return run
 
     def _run_factory(self) -> Tuple[Type["CopickRun"], Type["CopickRunMeta"]]:
-        """DEPRECATED, use CopickRoot.run_types class attribute instead.
+        """DEPRECATED, use CopickRoot.run_clz class attribute instead.
 
         Override this method to return the run class and run metadata class.
         """
         warnings.warn(
-            "_run_factory is deprecated, use CopickRoot.run_types class attribute instead.",
+            "_run_factory is deprecated, use CopickRoot.run_clz class attribute instead.",
             DeprecationWarning,
             stacklevel=2,
         )
-        return self.run_types
+        return self.run_clz
 
     def _object_factory(self) -> Tuple[Type["CopickObject"], Type["PickableObject"]]:
-        """DEPRECATED, use CopickRoot.object_types class attribute instead.
+        """DEPRECATED, use CopickRoot.object_clz class attribute instead.
 
         Override this method to return the object class and object metadata class.
         """
         warnings.warn(
-            "_object_factory is deprecated, use CopickRoot.object_types class attribute instead.",
+            "_object_factory is deprecated, use CopickRoot.object_clz class attribute instead.",
             DeprecationWarning,
             stacklevel=2,
         )
-        return self.object_types
+        return self.object_clz
 
 
 class CopickRun:
@@ -604,10 +604,10 @@ class CopickRun:
             loaded when CopickRun.segmentations is accessed **for the first time**.
     """
 
-    voxel_spacing_types: "VoxelSpacingTypes" = ("CopickVoxelSpacing", "CopickVoxelSpacingMeta")
-    picks_types: "PicksTypes" = ("CopickPicks", "CopickPicksFile")
-    mesh_types: "MeshTypes" = ("CopickMesh", "CopickMeshMeta")
-    segmentation_types: "SegmentationTypes" = ("CopickSegmentation", "CopickSegmentationMeta")
+    voxel_spacing_clz: "VoxelSpacingClz" = ("CopickVoxelSpacing", "CopickVoxelSpacingMeta")
+    picks_clz: "PicksClz" = ("CopickPicks", "CopickPicksFile")
+    mesh_clz: "MeshClz" = ("CopickMesh", "CopickMeshMeta")
+    segmentation_clz: "SegmenationClz" = ("CopickSegmentation", "CopickSegmentationMeta")
 
     def __init__(self, root: "CopickRoot", meta: CopickRunMeta):
         self.meta = meta
@@ -695,7 +695,7 @@ class CopickRun:
         """
         # Random access
         if self._voxel_spacings is None:
-            clz, meta_clz = self.voxel_spacing_types
+            clz, meta_clz = self.voxel_spacing_clz
             vm = meta_clz(voxel_size=voxel_size, **kwargs)
             vs = clz(self, meta=vm)
 
@@ -893,7 +893,7 @@ class CopickRun:
         if voxel_size in [vs.voxel_size for vs in self.voxel_spacings]:
             raise ValueError(f"VoxelSpacing {voxel_size} already exists for this run.")
 
-        clz, meta_clz = self.voxel_spacing_types
+        clz, meta_clz = self.voxel_spacing_clz
 
         vm = meta_clz(voxel_size=voxel_size, **kwargs)
         vs = clz(run=self, meta=vm)
@@ -909,16 +909,16 @@ class CopickRun:
         return vs
 
     def _voxel_spacing_factory(self) -> Tuple[Type["CopickVoxelSpacing"], Type["CopickVoxelSpacingMeta"]]:
-        """DEPRECATED, use CopickRun.voxel_spacing_types class attribute instead.
+        """DEPRECATED, use CopickRun.voxel_spacing_clz class attribute instead.
 
         Override this method to return the voxel spacing class and voxel spacing metadata class.
         """
         warnings.warn(
-            "_voxel_spacing_factory is deprecated, use CopickRun.voxel_spacing_types class attribute instead.",
+            "_voxel_spacing_factory is deprecated, use CopickRun.voxel_spacing_clz class attribute instead.",
             DeprecationWarning,
             stacklevel=2,
         )
-        return self.voxel_spacing_types
+        return self.voxel_spacing_clz
 
     def new_picks(self, object_name: str, session_id: str, user_id: Optional[str] = None) -> "CopickPicks":
         """Create a new picks object.
@@ -956,7 +956,7 @@ class CopickRun:
             run_name=self.name,
         )
 
-        clz = self.picks_types[0]
+        clz = self.picks_clz[0]
 
         picks = clz(run=self, file=pm)
 
@@ -970,16 +970,16 @@ class CopickRun:
         return picks
 
     def _picks_factory(self) -> Type["CopickPicks"]:
-        """DEPRECATED, use CopickRun.picks_types class attribute instead.
+        """DEPRECATED, use CopickRun.picks_clz class attribute instead.
 
         Override this method to return the picks class.
         """
         warnings.warn(
-            "_picks_factory is deprecated, use CopickRun.picks_types class attribute instead.",
+            "_picks_factory is deprecated, use CopickRun.picks_clz class attribute instead.",
             DeprecationWarning,
             stacklevel=2,
         )
-        return self.picks_types[0]
+        return self.picks_clz[0]
 
     def new_mesh(self, object_name: str, session_id: str, user_id: Optional[str] = None, **kwargs) -> "CopickMesh":
         """Create a new mesh object.
@@ -1011,7 +1011,7 @@ class CopickRun:
         if self.get_meshes(object_name=object_name, session_id=session_id, user_id=uid):
             raise ValueError(f"Mesh for {object_name} by user/tool {uid} already exist in session {session_id}.")
 
-        clz, meta_clz = self.mesh_types
+        clz, meta_clz = self.mesh_clz
 
         mm = meta_clz(
             pickable_object_name=object_name,
@@ -1036,16 +1036,16 @@ class CopickRun:
         return mesh
 
     def _mesh_factory(self) -> Tuple[Type["CopickMesh"], Type["CopickMeshMeta"]]:
-        """DEPRECATED, use CopickRun.mesh_types class attribute instead.
+        """DEPRECATED, use CopickRun.mesh_clz class attribute instead.
 
         Override this method to return the mesh class and mesh metadata.
         """
         warnings.warn(
-            "_mesh_factory is deprecated, use CopickRun.mesh_types class attribute instead.",
+            "_mesh_factory is deprecated, use CopickRun.mesh_clz class attribute instead.",
             DeprecationWarning,
             stacklevel=2,
         )
-        return self.mesh_types
+        return self.mesh_clz
 
     def new_segmentation(
         self,
@@ -1096,7 +1096,7 @@ class CopickRun:
                 f"Segmentation by user/tool {uid} already exist in session {session_id} with name {name}, voxel size of {voxel_size}, and has a multilabel flag of {is_multilabel}.",
             )
 
-        clz, meta_clz = self.segmentation_types
+        clz, meta_clz = self.segmentation_clz
 
         sm = meta_clz(
             is_multilabel=is_multilabel,
@@ -1119,16 +1119,16 @@ class CopickRun:
         return seg
 
     def _segmentation_factory(self) -> Tuple[Type["CopickSegmentation"], Type["CopickSegmentationMeta"]]:
-        """DEPRECATED, use CopickRun.segmentation_types class attribute instead.
+        """DEPRECATED, use CopickRun.segmentation_clz class attribute instead.
 
         Override this method to return the segmentation class and segmentation metadata class.
         """
         warnings.warn(
-            "_segmentation_factory is deprecated, use CopickRun.segmentation_types class attribute instead.",
+            "_segmentation_factory is deprecated, use CopickRun.segmentation_clz class attribute instead.",
             DeprecationWarning,
             stacklevel=2,
         )
-        return self.segmentation_types
+        return self.segmentation_clz
 
     def refresh_voxel_spacings(self) -> None:
         """Refresh the voxel spacings."""
@@ -1176,7 +1176,7 @@ class CopickVoxelSpacing:
             when CopickVoxelSpacing.tomograms is accessed **for the first time**.
     """
 
-    tomogram_types: "TomogramTypes" = ("CopickTomogram", "CopickTomogramMeta")
+    tomogram_clz: "TomogramClz" = ("CopickTomogram", "CopickTomogramMeta")
 
     def __init__(self, run: CopickRun, meta: CopickVoxelSpacingMeta):
         """
@@ -1248,7 +1248,7 @@ class CopickVoxelSpacing:
         if tomo_type in [tomo.tomo_type for tomo in self.tomograms]:
             raise ValueError(f"Tomogram type {tomo_type} already exists for this voxel spacing.")
 
-        clz, meta_clz = self.tomogram_types
+        clz, meta_clz = self.tomogram_clz
 
         tm = meta_clz(tomo_type=tomo_type, **kwargs)
         tomo = clz(voxel_spacing=self, meta=tm)
@@ -1264,16 +1264,16 @@ class CopickVoxelSpacing:
         return tomo
 
     def _tomogram_factory(self) -> Tuple[Type["CopickTomogram"], Type["CopickTomogramMeta"]]:
-        """DEPRECATED, use CopickVoxelSpacing.tomogram_types class attribute instead.
+        """DEPRECATED, use CopickVoxelSpacing.tomogram_clz class attribute instead.
 
         Override this method to return the tomogram class.
         """
         warnings.warn(
-            "_tomogram_factory is deprecated, use CopickVoxelSpacing.tomogram_types class attribute instead.",
+            "_tomogram_factory is deprecated, use CopickVoxelSpacing.tomogram_clz class attribute instead.",
             DeprecationWarning,
             stacklevel=2,
         )
-        return self.tomogram_types
+        return self.tomogram_clz
 
     def ensure(self, create: bool = False) -> bool:
         """Override to check if the voxel spacing record exists, optionally create it if it does not.
@@ -1299,7 +1299,7 @@ class CopickTomogram:
         tomo_type (str): Type of the tomogram.
     """
 
-    features_types: "FeaturesTypes" = ("CopickFeatures", "CopickFeaturesMeta")
+    features_clz: "FeaturesClz" = ("CopickFeatures", "CopickFeaturesMeta")
 
     def __init__(self, voxel_spacing: "CopickVoxelSpacing", meta: CopickTomogramMeta):
         self.meta = meta
@@ -1358,7 +1358,7 @@ class CopickTomogram:
         if feature_type in [f.feature_type for f in self.features]:
             raise ValueError(f"Feature type {feature_type} already exists for this tomogram.")
 
-        clz, meta_clz = self.features_types
+        clz, meta_clz = self.features_clz
 
         fm = meta_clz(tomo_type=self.tomo_type, feature_type=feature_type, **kwargs)
         feat = clz(tomogram=self, meta=fm)
@@ -1375,16 +1375,16 @@ class CopickTomogram:
         return feat
 
     def _feature_factory(self) -> Tuple[Type["CopickFeatures"], Type["CopickFeaturesMeta"]]:
-        """DEPRECATED, use CopickTomogram.features_types class attribute instead.
+        """DEPRECATED, use CopickTomogram.features_clz class attribute instead.
 
         Override this method to return the features class and features metadata class.
         """
         warnings.warn(
-            "_feature_factory is deprecated, use CopickTomogram.features_types class attribute instead.",
+            "_feature_factory is deprecated, use CopickTomogram.features_clz class attribute instead.",
             DeprecationWarning,
             stacklevel=2,
         )
-        return self.features_types
+        return self.features_clz
 
     def query_features(self) -> List["CopickFeatures"]:
         """Override this method to query for features."""
@@ -1953,11 +1953,11 @@ class CopickSegmentation:
 
 
 # Resolve forward references
-CopickRoot.run_types = (CopickRun, CopickRunMeta)
-CopickRoot.object_types = (CopickObject, PickableObject)
-CopickRun.voxel_spacing_types = (CopickVoxelSpacing, CopickVoxelSpacingMeta)
-CopickRun.picks_types = (CopickPicks, CopickPicksFile)
-CopickRun.mesh_types = (CopickMesh, CopickMeshMeta)
-CopickRun.segmentation_types = (CopickSegmentation, CopickSegmentationMeta)
-CopickVoxelSpacing.tomogram_types = (CopickTomogram, CopickTomogramMeta)
-CopickTomogram.features_types = (CopickFeatures, CopickFeaturesMeta)
+CopickRoot.run_clz = (CopickRun, CopickRunMeta)
+CopickRoot.object_clz = (CopickObject, PickableObject)
+CopickRun.voxel_spacing_clz = (CopickVoxelSpacing, CopickVoxelSpacingMeta)
+CopickRun.picks_clz = (CopickPicks, CopickPicksFile)
+CopickRun.mesh_clz = (CopickMesh, CopickMeshMeta)
+CopickRun.segmentation_clz = (CopickSegmentation, CopickSegmentationMeta)
+CopickVoxelSpacing.tomogram_clz = (CopickTomogram, CopickTomogramMeta)
+CopickTomogram.features_clz = (CopickFeatures, CopickFeaturesMeta)
