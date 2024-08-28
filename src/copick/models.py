@@ -442,10 +442,6 @@ class CopickRoot:
         self._runs: Optional[List["CopickRun"]] = None
         self._objects: Optional[List[CopickObject]] = None
 
-        # If runs are specified in the config, create them
-        if config.runs is not None:
-            self._runs = [CopickRun(self, CopickRunMeta(name=run_name)) for run_name in config.runs]
-
     def __repr__(self):
         lpo = None if self._objects is None else len(self._objects)
         lr = None if self._runs is None else len(self._runs)
@@ -596,7 +592,7 @@ class CopickRun:
     mesh_types: "MeshTypes" = ("CopickMesh", "CopickMeshMeta")
     segmentation_types: "SegmentationTypes" = ("CopickSegmentation", "CopickSegmentationMeta")
 
-    def __init__(self, root: "CopickRoot", meta: CopickRunMeta, config: Optional["CopickConfig"] = None):
+    def __init__(self, root: "CopickRoot", meta: CopickRunMeta):
         self.meta = meta
         self.root = root
         self._voxel_spacings: Optional[List["CopickVoxelSpacing"]] = None
@@ -611,50 +607,6 @@ class CopickRun:
         self._segmentations: Optional[List["CopickSegmentation"]] = None
         """Segmentations for this run. Either populated from config or lazily loaded when
         CopickRun.segmentations is accessed for the first time."""
-
-        if config is not None:
-            voxel_spacings_metas = [
-                CopickVoxelSpacingMeta(run=self, voxel_size=vs, config=config) for vs in config.tomograms
-            ]
-            self._voxel_spacings = [CopickVoxelSpacing(run=self, meta=vs) for vs in voxel_spacings_metas]
-
-            #####################
-            # Picks from config #
-            #####################
-            # Select all available pre-picks for this run
-            avail = config.available_pre_picks.keys()
-            avail = [a for a in avail if a[0] == self.name]
-
-            # Pre-defined picks
-            for av in avail:
-                object_name = av[1]
-                prepicks = config.available_pre_picks[av]
-
-                for pp in prepicks:
-                    pm = CopickPicksFile(
-                        pickable_object_name=object_name,
-                        user_id=pp,
-                        session_id="0",
-                        run_name=self.name,
-                    )
-                    self._picks.append(CopickPicks(run=self, file=pm))
-
-            ######################
-            # Meshes from config #
-            ######################
-            for object_name, tool_names in config.available_pre_meshes.items():
-                for mesh_tool in tool_names:
-                    mm = CopickMeshMeta(pickable_object_name=object_name, user_id=mesh_tool, session_id="0")
-                    com = CopickMesh(run=self, meta=mm)
-                    self._meshes.append(com)
-
-            #############################
-            # Segmentations from config #
-            #############################
-            for seg_tool in config.available_pre_segmentations:
-                sm = CopickSegmentationMeta(run=self, user_id=seg_tool, session_id="0")
-                cos = CopickSegmentation(run=self, meta=sm)
-                self._segmentations.append(cos)
 
     def __repr__(self):
         lvs = None if self._voxel_spacings is None else len(self._voxel_spacings)
@@ -1177,7 +1129,7 @@ class CopickVoxelSpacing:
 
     tomogram_types: "TomogramTypes" = ("CopickTomogram", "CopickTomogramMeta")
 
-    def __init__(self, run: CopickRun, meta: CopickVoxelSpacingMeta, config: Optional[CopickConfig] = None):
+    def __init__(self, run: CopickRun, meta: CopickVoxelSpacingMeta):
         """
         Args:
             run: Reference to the run this voxel spacing belongs to.
@@ -1189,10 +1141,6 @@ class CopickVoxelSpacing:
 
         self._tomograms: Optional[List["CopickTomogram"]] = None
         """References to the tomograms for this voxel spacing."""
-
-        if config is not None:
-            tomo_metas = [CopickTomogramMeta(tomo_type=tt) for tt in config.tomograms[self.voxel_size]]
-            self._tomograms = [CopickTomogram(voxel_spacing=self, meta=tm, config=config) for tm in tomo_metas]
 
     def __repr__(self):
         lts = None if self._tomograms is None else len(self._tomograms)
@@ -1296,21 +1244,12 @@ class CopickTomogram:
 
     features_types: "FeaturesTypes" = ("CopickFeatures", "CopickFeaturesMeta")
 
-    def __init__(
-        self,
-        voxel_spacing: "CopickVoxelSpacing",
-        meta: CopickTomogramMeta,
-        config: Optional["CopickConfig"] = None,
-    ):
+    def __init__(self, voxel_spacing: "CopickVoxelSpacing", meta: CopickTomogramMeta):
         self.meta = meta
         self.voxel_spacing = voxel_spacing
 
         self._features: Optional[List["CopickFeatures"]] = None
         """Features for this tomogram."""
-
-        if config is not None and self.tomo_type in config.features[self.voxel_spacing.voxel_size]:
-            feat_metas = [CopickFeaturesMeta(tomo_type=self.tomo_type, feature_type=ft) for ft in config.feature_types]
-            self._features = [CopickFeatures(tomogram=self, meta=fm) for fm in feat_metas]
 
     def __repr__(self):
         lft = None if self._features is None else len(self._features)
