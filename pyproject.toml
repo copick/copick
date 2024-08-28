@@ -40,16 +40,16 @@ docs = "https://copick.github.io/copick/"
 documentation = "https://copick.github.io/copick/"
 
 [project.optional-dependencies]
-smb = ["smbprotocol==1.13.0"]
+smb = ["smbprotocol"]
 ssh = ["sshfs>=2024.6.0"]
-all = ["smbprotocol==1.13.0", "sshfs>=2024.6.0"]
-fledgeling = ["pooch", "smbprotocol==1.13.0", "sshfs>=2024.6.0"]
+all = ["smbprotocol", "sshfs>=2024.6.0"]
+fledgeling = ["pooch", "smbprotocol", "sshfs>=2024.6.0"]
 test = [
     "pytest",
     "pytest-cov",
     "pooch",
     "sshfs>=2024.6.0",
-    "smbprotocol==1.13.0",
+    "smbprotocol",
 ]
 dev = [
     "black",
@@ -137,7 +137,7 @@ test = "pytest {args:tests}"
 
 [tool.hatch.envs.test_extended]
 dependencies = [
-  "pytest", "pooch", "sshfs>=2024.6.0", "smbprotocol==1.13.0"
+  "pytest", "pooch", "sshfs>=2024.6.0", "smbprotocol"
 ]
 
 [tool.hatch.envs.test_extended.scripts]
