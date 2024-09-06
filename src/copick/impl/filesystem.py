@@ -554,7 +554,7 @@ class CopickRunFSSpec(CopickRunOverlay):
         sessions = [n.split("_")[1] for n in names]
         objects = [n.split("_")[2] for n in names]
 
-        # zip(strict=True) (replace once python 3.9 is EOL)
+        # TODO: zip(strict=True) (replace once python 3.9 is EOL)
         assert len(users) == len(sessions) == len(objects)
 
         return [
@@ -581,7 +581,7 @@ class CopickRunFSSpec(CopickRunOverlay):
         sessions = [n.split("_")[1] for n in names]
         objects = [n.split("_")[2] for n in names]
 
-        # zip(strict=True) (replace once python 3.9 is EOL)
+        # TODO: zip(strict=True) (replace once python 3.9 is EOL)
         assert len(users) == len(sessions) == len(objects)
 
         return [
@@ -611,7 +611,7 @@ class CopickRunFSSpec(CopickRunOverlay):
         sessions = [n.split("_")[1] for n in names]
         objects = [n.split("_")[2] for n in names]
 
-        # zip(strict=True) (replace once python 3.9 is EOL)
+        # TODO: zip(strict=True) (replace once python 3.9 is EOL)
         assert len(users) == len(sessions) == len(objects)
 
         return [
@@ -638,7 +638,7 @@ class CopickRunFSSpec(CopickRunOverlay):
         sessions = [n.split("_")[1] for n in names]
         objects = [n.split("_")[2] for n in names]
 
-        # zip(strict=True) (replace once python 3.9 is EOL)
+        # TODO: zip(strict=True) (replace once python 3.9 is EOL)
         assert len(users) == len(sessions) == len(objects)
 
         return [
