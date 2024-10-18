@@ -72,6 +72,9 @@ make_templates = "copick.cli.make_templates:create [docs]"
 #source = "copick/__init__.py"
 #fallback-version = "0.3.0"
 
+[tool.hatch.metadata]
+allow-direct-references = true
+
 [tool.black]
 line-length = 120
 target_version = ['py311']
