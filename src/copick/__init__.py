@@ -1,4 +1,4 @@
-__version__ = "0.3.0"
+__version__ = "0.5.7"
 
 from copick.ops.open import from_file
 
