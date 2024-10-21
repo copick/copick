@@ -360,7 +360,7 @@ class CopickTomogramMetaCDP(CopickTomogramMeta):
         return cls(
             tomo_type=f"{reconstruction_method}",
             portal_tomo_id=source.id,
-            portal_tomo_path=source.s3_omezarr_dir,
+            portal_tomo_path=source.s_3_omezarr_dir,
         )
 
 
