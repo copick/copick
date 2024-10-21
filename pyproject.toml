@@ -10,7 +10,7 @@ classifiers = [
     "License :: OSI Approved :: MIT License",
 ]
 #dynamic = ["version"]
-version = "0.5.7"
+version = "0.5.8"
 dependencies = [
     "click",
     "cryoet-data-portal @ git+https://github.com/chanzuckerberg/cryoet-data-portal.git@9c3ddff#egg=cryoet-data-portal&subdirectory=client/python/cryoet_data_portal",
