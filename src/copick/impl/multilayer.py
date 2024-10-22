@@ -6,14 +6,16 @@ from copick.models import CopickConfig, CopickRoot
 
 
 class CopickLayerConfig(BaseModel):
-    ...
+    readonly: Optional[bool] = True
 
 
 class FSSpecLayerConfig(CopickLayerConfig):
     """Base class for fsspec-based Copick storage layer.
 
     Attributes:
-
+        url (str): The URL to the storage location.
+        fs_args (Dict[str, Any]): Additional arguments to pass to the fsspec filesystem.
+        readonly (bool): Whether the layer is read-only.
     """
 
     url: str
@@ -29,7 +31,6 @@ class CDPLayerConfig(CopickLayerConfig):
     """
 
     dataset_ids: List[str]
-    readonly: Optional[bool] = True
 
 
 class CacheLayerConfig(CopickLayerConfig):
