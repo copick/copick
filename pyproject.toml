@@ -13,7 +13,7 @@ classifiers = [
 version = "0.5.8"
 dependencies = [
     "click",
-    "cryoet-data-portal @ git+https://github.com/chanzuckerberg/cryoet-data-portal.git@9c3ddff#egg=cryoet-data-portal&subdirectory=client/python/cryoet_data_portal",
+    "cryoet-data-portal @ git+https://github.com/chanzuckerberg/cryoet-data-portal.git@4b7837c#egg=cryoet-data-portal&subdirectory=client/python/cryoet_data_portal",
     "fsspec>=2024.6.0",
     "numpy",
     "ome-zarr",

@@ -115,7 +115,7 @@ class CopickPicksFileCDP(CopickPicksFile):
             user_id=user,
             session_id=session,
             portal_annotation_file_id=source.id,
-            portal_annotation_file_path=source.s_3_path,
+            portal_annotation_file_path=source.s3_path,
             portal_metadata=portal_meta,
             points=[],
         )
@@ -127,7 +127,7 @@ class CopickPicksFileCDP(CopickPicksFile):
 
         fs = s3fs.S3FileSystem(anon=True)
         vs = source.tomogram_voxel_spacing.voxel_spacing
-        with fs.open(source.s_3_path, "r") as f:
+        with fs.open(source.s3_path, "r") as f:
             for line in f:
                 data = json.loads(line)
                 x, y, z = data["location"]["x"] * vs, data["location"]["y"] * vs, data["location"]["z"] * vs
@@ -261,7 +261,7 @@ class CopickSegmentationMetaCDP(CopickSegmentationMeta):
             session_id=str(source.id),
             name=object_name,
             portal_annotation_file_id=source.id,
-            portal_annotation_file_path=source.s_3_path,
+            portal_annotation_file_path=source.s3_path,
             portal_metadata=portal_meta,
         )
 
@@ -360,7 +360,7 @@ class CopickTomogramMetaCDP(CopickTomogramMeta):
         return cls(
             tomo_type=f"{reconstruction_method}",
             portal_tomo_id=source.id,
-            portal_tomo_path=source.s_3_omezarr_dir,
+            portal_tomo_path=source.s3_omezarr_dir,
         )
 
 
