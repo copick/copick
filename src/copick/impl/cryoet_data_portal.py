@@ -62,7 +62,7 @@ class PortalAnnotationMeta(BaseModel):
 
     @classmethod
     def from_annotation(cls, source: cdp.AnnotationFile):
-        anno = source.annotation
+        anno = source.annotation_shape.annotation
         return cls(
             portal_metadata=_PortalAnnotation(**anno.to_dict()),
             portal_authors=[a.name for a in anno.authors],
@@ -100,7 +100,8 @@ class CopickPicksFileCDP(CopickPicksFile):
 
     @classmethod
     def from_portal(cls, source: cdp.AnnotationFile, name: Optional[str] = None):
-        anno = source.annotation
+        anno = source.annotation_shape.annotation
+        shape_type = source.annotation_shape.shape_type
 
         user = "data-portal"
         session = str(source.id)
@@ -119,20 +120,20 @@ class CopickPicksFileCDP(CopickPicksFile):
             points=[],
         )
 
-        if source.shape_type == "OrientedPoint":
+        if shape_type == "OrientedPoint":
             clz.trust_orientation = True
         else:
             clz.trust_orientation = False
 
         fs = s3fs.S3FileSystem(anon=True)
-        vs = anno.tomogram_voxel_spacing.voxel_spacing
+        vs = source.tomogram_voxel_spacing.voxel_spacing
         with fs.open(source.s3_path, "r") as f:
             for line in f:
                 data = json.loads(line)
                 x, y, z = data["location"]["x"] * vs, data["location"]["y"] * vs, data["location"]["z"] * vs
                 mat = np.eye(4, 4)
                 mat[:3, :3] = np.array(data["xyz_rotation_matrix"])
-                if source.shape_type == "OrientedPoint":
+                if shape_type == "OrientedPoint":
                     point = CopickPoint(
                         location=CopickLocation(x=x, y=y, z=z),
                         transformation_=mat.tolist(),
@@ -249,13 +250,13 @@ class CopickSegmentationMetaCDP(CopickSegmentationMeta):
 
     @classmethod
     def from_portal(cls, source: cdp.AnnotationFile, name: Optional[str] = None):
-        object_name = f"{name}" if name else f"{camel(source.annotation.object_name)}-{source.id}"
+        object_name = f"{name}" if name else f"{camel(source.annotation_shape.annotation.object_name)}-{source.id}"
 
         portal_meta = PortalAnnotationMeta.from_annotation(source)
 
         return cls(
             is_multilabel=False,
-            voxel_size=source.annotation.tomogram_voxel_spacing.voxel_spacing,
+            voxel_size=source.tomogram_voxel_spacing.voxel_spacing,
             user_id="data-portal",
             session_id=str(source.id),
             name=object_name,
@@ -615,16 +616,16 @@ class CopickRunCDP(CopickRunOverlay):
         point_annos = cdp.AnnotationFile.find(
             client,
             [
-                cdp.AnnotationFile.annotation.tomogram_voxel_spacing.run_id == self.portal_run_id,
-                cdp.AnnotationFile.shape_type._in(["Point", "OrientedPoint"]),  # noqa
-                cdp.AnnotationFile.annotation.object_id._in(go_map.keys()),  # noqa
+                cdp.AnnotationFile.annotation_shape.annotation.run_id == self.portal_run_id,
+                cdp.AnnotationFile.annotation_shape.shape_type._in(["Point", "OrientedPoint"]),  # noqa
+                cdp.AnnotationFile.annotation_shape.annotation.object_id._in(go_map.keys()),  # noqa
             ],
         )
 
         return [
             CopickPicksCDP(
                 run=self,
-                file=CopickPicksFileCDP.from_portal(af, name=go_map[af.annotation.object_id]),
+                file=CopickPicksFileCDP.from_portal(af, name=go_map[af.annotation_shape.annotation.object_id]),
                 read_only=True,
             )
             for af in point_annos
@@ -739,10 +740,10 @@ class CopickRunCDP(CopickRunOverlay):
         seg_annos = cdp.AnnotationFile.find(
             client,
             [  # noqa
-                cdp.AnnotationFile.annotation.tomogram_voxel_spacing.run_id == self.portal_run_id,
-                cdp.AnnotationFile.shape_type == "SegmentationMask",
+                cdp.AnnotationFile.annotation_shape.annotation.run_id == self.portal_run_id,
+                cdp.AnnotationFile.annotation_shape.shape_type == "SegmentationMask",
                 cdp.AnnotationFile.format == "zarr",
-                cdp.AnnotationFile.annotation.object_id._in(go_map.keys()),
+                cdp.AnnotationFile.annotation_shape.annotation.object_id._in(go_map.keys()),  # noqa
             ],
         )
 
@@ -750,7 +751,7 @@ class CopickRunCDP(CopickRunOverlay):
         clz, meta_clz = self._segmentation_factory()
 
         for af in seg_annos:
-            seg_meta = meta_clz.from_portal(af, name=go_map[af.annotation.object_id])
+            seg_meta = meta_clz.from_portal(af, name=go_map[af.annotation_shape.annotation.object_id])
             seg = clz(run=self, meta=seg_meta, read_only=True)
             segmentations.append(seg)
 
