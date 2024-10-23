@@ -5,6 +5,7 @@ import pytest
 import zarr
 from copick.impl.filesystem import CopickRootFSSpec
 from copick.models import CopickPicksFile
+from copick.util.ome import write_ome_zarr_3d
 from trimesh.parent import Geometry
 
 NUMERICAL_PRECISION = 1e-8
@@ -181,6 +182,32 @@ def test_object_zarr(test_payload: Dict[str, Any]):
     assert copick_object.zarr() is None, "Zarr should not exist for non-particle object"
 
 
+def test_object_read_numpy(test_payload: Dict[str, Any]):
+    # Setup
+    copick_root = test_payload["root"]
+
+    # Check metadata for proteasome object
+    copick_object = copick_root.get_object("proteasome")
+
+    # Check numpy is readable
+    array = copick_object.numpy()
+
+    # Full size
+    assert array.shape == (42, 36, 36), "Error getting numpy array, (incorrect shape)"
+    assert np.sum(array) == pytest.approx(
+        1029.290283203125,
+        abs=NUMERICAL_PRECISION,
+    ), "Error getting numpy array (incorrect sum)."
+
+    # Subregion
+    array = copick_object.numpy(x=slice(10, 20), y=slice(10, 20), z=slice(10, 20))
+    assert array.shape == (10, 10, 10), "Error getting numpy array, (incorrect shape)"
+    assert np.sum(array) == pytest.approx(
+        168.116912842,
+        abs=NUMERICAL_PRECISION,
+    ), "Error getting numpy array (incorrect sum)."
+
+
 def test_run_meta(test_payload: Dict[str, Any]):
     # Setup
     copick_root = test_payload["root"]
@@ -322,6 +349,171 @@ def test_run_get_picks(test_payload: Dict[str, Any]):
     assert picks[0].session_id == "0", "Incorrect session_id"
 
 
+def test_picks_read_numpy(test_payload: Dict[str, Any]):
+    # Setup
+    copick_root = test_payload["root"]
+
+    # Get run
+    copick_run = copick_root.get_run("TS_001")
+
+    # Get picks by object, user_id and session_id
+    picks = copick_run.get_picks(object_name="ribosome", user_id="gapstop", session_id="0")
+
+    POINTS = np.array(
+        [
+            [13.109512186388912, 74.71185201921038, 202.47507943202584],
+            [631.4709314294199, 216.35459177569777, 153.51979459358296],
+            [13.269106483949642, 493.1507625056122, 191.96928603555477],
+            [295.3857864878723, 48.00127558957804, 12.379751870875282],
+            [204.07695344548807, 363.70538811345045, 421.5631049171766],
+            [341.5641484136662, 583.1178654724652, 265.92234830389776],
+            [595.6901903739324, 152.54150479358174, 269.050095901217],
+            [414.749742830462, 33.87702343343186, 149.04501288274474],
+            [230.77112217392795, 158.07881774104047, 33.889195589406285],
+            [205.03836780107628, 191.17304087417068, 17.748902885347206],
+        ],
+    )
+
+    ORIENTATIONS = np.array(
+        [
+            [
+                [0.1802696888767692, 0.019475241487624584, 0.4632185264983446, 0.0],
+                [0.42020360458772743, 0.4854270981677824, 0.012780814590608647, 0.0],
+                [0.9418066523433661, 0.8507950893767787, 0.7299644702208186, 0.0],
+                [0.0, 0.0, 0.0, 1.0],
+            ],
+            [
+                [0.7589795881605054, 0.8182753578641435, 0.34462449095921743, 0.0],
+                [0.11166123199466038, 0.08395314332205706, 0.7127259356888429, 0.0],
+                [0.055673679585078406, 0.47979728165943036, 0.4016764806306522, 0.0],
+                [0.0, 0.0, 0.0, 1.0],
+            ],
+            [
+                [0.06368643077465541, 0.3646156429960411, 0.07002280262450244, 0.0],
+                [0.07038259510695688, 0.29026366713531204, 0.7901011234337895, 0.0],
+                [0.7926213850799262, 0.5618187101448784, 0.6160183850726514, 0.0],
+                [0.0, 0.0, 0.0, 1.0],
+            ],
+            [
+                [0.7346677209045017, 0.9329046271873459, 0.4003284329218084, 0.0],
+                [0.8065667909277211, 0.7644910965444714, 0.6526147399155839, 0.0],
+                [0.6422148587410551, 0.9574440528259551, 0.33387442145109236, 0.0],
+                [0.0, 0.0, 0.0, 1.0],
+            ],
+            [
+                [0.4527591644919976, 0.6228340076529896, 0.7399515177978947, 0.0],
+                [0.36761762506764994, 0.16902881059075237, 0.7938724066348071, 0.0],
+                [0.734212987305353, 0.8752945800236829, 0.6480564419758135, 0.0],
+                [0.0, 0.0, 0.0, 1.0],
+            ],
+            [
+                [0.31818719398704765, 0.21800337527051994, 0.8449385308721757, 0.0],
+                [0.43822067087734373, 0.09141458692565019, 0.30097916984093387, 0.0],
+                [0.34371330696030433, 0.7093010177714357, 0.9739682557652591, 0.0],
+                [0.0, 0.0, 0.0, 1.0],
+            ],
+            [
+                [0.5190077415876589, 0.9224502382708699, 0.723911262619614, 0.0],
+                [0.4974963527482624, 0.6487221982847005, 0.4477711603657113, 0.0],
+                [0.9711752036309947, 0.9324137189386374, 0.8406854303886448, 0.0],
+                [0.0, 0.0, 0.0, 1.0],
+            ],
+            [
+                [0.5954866904630542, 0.9321486216692217, 0.5388502918850757, 0.0],
+                [0.7129629202330348, 0.5215734913958031, 0.505473168619571, 0.0],
+                [0.14491946190451044, 0.9296051143502445, 0.9560582640482871, 0.0],
+                [0.0, 0.0, 0.0, 1.0],
+            ],
+            [
+                [0.055084832105785964, 0.8464969771473587, 0.9890811615793559, 0.0],
+                [0.05411530447521384, 0.9796933083190055, 0.7672162846141741, 0.0],
+                [0.47825664023283687, 0.9155030040986599, 0.35583007986260196, 0.0],
+                [0.0, 0.0, 0.0, 1.0],
+            ],
+            [
+                [0.07837980771565989, 0.9521754802942424, 0.7061476278277338, 0.0],
+                [0.8144408709150506, 0.19072161285288602, 0.1759034817259575, 0.0],
+                [0.29103797580332835, 0.7906135259730082, 0.17079014782816504, 0.0],
+                [0.0, 0.0, 0.0, 1.0],
+            ],
+        ],
+    )
+
+    pos, ori = picks[0].numpy()
+    assert np.allclose(pos, POINTS, atol=NUMERICAL_PRECISION), "Error getting numpy array (incorrect positions)."
+    assert np.allclose(
+        ori,
+        ORIENTATIONS,
+        atol=NUMERICAL_PRECISION,
+    ), "Error getting numpy array (incorrect orientations)."
+
+
+def test_picks_write_numpy(test_payload: Dict[str, Any]):
+    # Setup
+    copick_root = test_payload["root"]
+
+    # Get run
+    copick_run = copick_root.get_run("TS_001")
+
+    # Get picks by object, user_id and session_id
+    picks = copick_run.new_picks(object_name="ribosome", user_id="gapstop", session_id="1")
+
+    POINTS = np.array(
+        [
+            [1, 2, 3],
+            [4, 5, 6],
+        ],
+    )
+
+    POINTS_err = np.array(
+        [
+            [1, 2, 3],
+            [4, 5, 6],
+            [7, 8, 9],
+        ],
+    )
+
+    ORIENTATIONS = np.array(
+        [
+            [
+                [0.055084832105785964, 0.8464969771473587, 0.9890811615793559, 0.0],
+                [0.05411530447521384, 0.9796933083190055, 0.7672162846141741, 0.0],
+                [0.47825664023283687, 0.9155030040986599, 0.35583007986260196, 0.0],
+                [0.0, 0.0, 0.0, 1.0],
+            ],
+            [
+                [0.07837980771565989, 0.9521754802942424, 0.7061476278277338, 0.0],
+                [0.8144408709150506, 0.19072161285288602, 0.1759034817259575, 0.0],
+                [0.29103797580332835, 0.7906135259730082, 0.17079014782816504, 0.0],
+                [0.0, 0.0, 0.0, 1.0],
+            ],
+        ],
+    )
+
+    # Write picks
+    picks.from_numpy(POINTS, ORIENTATIONS)
+    del picks
+
+    # Compare with file contents
+    picks = copick_run.get_picks(object_name="ribosome", user_id="gapstop", session_id="1")[0]
+
+    assert len(picks.points) == 2, "Incorrect number of points."
+
+    for i, p in enumerate(picks.points):
+        assert p.transformation == pytest.approx(
+            ORIENTATIONS[i, :, :],
+            abs=NUMERICAL_PRECISION,
+        ), f"Incorrect position for point {i}."
+
+        assert [p.location.x, p.location.y, p.location.z] == pytest.approx(
+            POINTS[i, :],
+            abs=NUMERICAL_PRECISION,
+        ), f"Incorrect orientation for point {i}."
+
+    with pytest.raises(ValueError):
+        picks.from_numpy(POINTS_err, ORIENTATIONS)
+
+
 def test_run_get_meshes(test_payload: Dict[str, Any]):
     # Setup
     copick_root = test_payload["root"]
@@ -382,6 +574,90 @@ def test_run_get_segmentations(test_payload: Dict[str, Any]):
     assert len(segmentations) == 1, "Incorrect number of segmentations"
     assert segmentations[0].is_multilabel is True, "Incorrect segmentation"
     assert segmentations[0].session_id == "123", "Incorrect segmentation"
+
+
+def test_segmentation_zarr(test_payload: Dict[str, Any]):
+    # Setup
+    copick_root = test_payload["root"]
+
+    # Get run
+    copick_run = copick_root.get_run("TS_001")
+
+    # Get segmentations by object
+    segmentation = copick_run.get_segmentations(name="membrane")[0]
+
+    # Check zarr is readable
+    arrays = list(zarr.open(segmentation.zarr(), "r").arrays())
+    _, array = arrays[0]
+    assert array.shape == (64, 64, 64), "Error reading Zarr, (incorrect shape)"
+    assert np.sum(array) == pytest.approx(
+        24576,
+        abs=NUMERICAL_PRECISION,
+    ), "Error reading Zarr (incorrect sum)."
+
+
+def test_segmentation_read_numpy(test_payload: Dict[str, Any]):
+    # Setup
+    copick_root = test_payload["root"]
+
+    # Get run
+    copick_run = copick_root.get_run("TS_001")
+
+    # Get segmentations by object
+    segmentation = copick_run.get_segmentations(name="membrane")[0]
+
+    # Full volume
+    array = segmentation.numpy()
+    assert array.shape == (64, 64, 64), "Error getting numpy array, (incorrect shape)"
+    assert np.sum(array) == pytest.approx(
+        24576,
+        abs=NUMERICAL_PRECISION,
+    ), "Error getting numpy array (incorrect sum)."
+
+    # Subregion
+    array = segmentation.numpy(x=slice(20, 40), y=slice(20, 40), z=slice(20, 40))
+    assert array.shape == (20, 20, 20), "Error getting numpy array, (incorrect shape)"
+    assert np.sum(array) == pytest.approx(
+        426,
+        abs=NUMERICAL_PRECISION,
+    ), "Error getting numpy array (incorrect sum)."
+
+
+def test_segmentation_write_numpy(test_payload: Dict[str, Any]):
+    # Setup
+    copick_root = test_payload["root"]
+
+    # Get run
+    copick_run = copick_root.get_run("TS_001")
+
+    # Get new segmentation
+    segmentation = copick_run.new_segmentation(
+        name="ribosome",
+        user_id="pytom",
+        session_id="10",
+        is_multilabel=False,
+        voxel_size=10.000,
+    )
+
+    # Write numpy array
+    array = np.random.randint(low=0, high=50, size=(64, 64, 64)).astype(np.uint8)
+    segmentation.from_numpy(array)
+
+    # Check zarr contents
+    arrays = list(zarr.open(segmentation.zarr(), "r").arrays())
+    _, array2 = arrays[0]
+    assert np.allclose(array, array2), "Error writing numpy array"
+
+    # Write subregion
+    sub_array = np.random.rand(30, 30, 30).astype(np.uint8)
+    franken_array = array
+    franken_array[10:40, 10:40, 10:40] = sub_array
+    segmentation.set_region(sub_array, x=slice(10, 40), y=slice(10, 40), z=slice(10, 40))
+
+    # Check zarr contents
+    arrays = list(zarr.open(segmentation.zarr(), "r").arrays())
+    _, array2 = arrays[0]
+    assert np.allclose(franken_array, array2), "Error writing numpy array subregion"
 
 
 def test_run_new_voxel_spacing(test_payload: Dict[str, Any]):
@@ -592,16 +868,6 @@ def test_run_new_segmentations(test_payload: Dict[str, Any]):
             session_id="0",
             name="nucleus",
             is_multilabel=False,
-        )
-
-    # Add segmentation with voxel_spacing that does not exist
-    with pytest.raises(ValueError):
-        copick_run.new_segmentation(
-            voxel_size=30.000,
-            user_id="cellcanvas",
-            session_id="0",
-            name="prediction",
-            is_multilabel=True,
         )
 
     # Adding the first segmentation inits the _segmentations attribute as list of segmentations
@@ -977,6 +1243,58 @@ def test_tomogram_zarr(test_payload: Dict[str, Any]):
     zarr.array(np.random.rand(64, 64, 64), store=tomo.zarr(), chunks=(32, 32, 32))
 
 
+def test_tomogram_read_numpy(test_payload: Dict[str, Any]):
+    # Setup
+    copick_root = test_payload["root"]
+    copick_run = copick_root.get_run("TS_001")
+    vs = copick_run.get_voxel_spacing(10.000)
+    tomogram = vs.get_tomogram(tomo_type="denoised")
+
+    # Full array
+    array = tomogram.numpy()
+    assert array.shape == (64, 64, 64), "Error getting numpy array, (incorrect shape)"
+    assert np.sum(array) == pytest.approx(
+        8192.0,
+        abs=NUMERICAL_PRECISION,
+    ), "Error getting numpy array (incorrect sum)."
+
+    # Subregion
+    array = tomogram.numpy(x=slice(0, 30), y=slice(50, 60), z=slice(10, 40))
+    assert array.shape == (30, 10, 30), "Error getting numpy array, (incorrect shape)"
+    assert np.sum(array) == pytest.approx(
+        30.0,
+        abs=NUMERICAL_PRECISION,
+    ), "Error getting numpy array (incorrect sum)."
+
+
+def test_tomogram_write_numpy(test_payload: Dict[str, Any]):
+    # Setup
+    copick_root = test_payload["root"]
+    copick_run = copick_root.get_run("TS_001")
+    vs = copick_run.get_voxel_spacing(10.000)
+    tomogram = vs.new_tomogram(tomo_type="test")
+
+    # Write numpy array
+    array = np.random.rand(64, 64, 64)
+    tomogram.from_numpy(array)
+
+    # Check zarr contents
+    arrays = list(zarr.open(tomogram.zarr(), "r").arrays())
+    _, array2 = arrays[0]
+    assert np.allclose(array, array2), "Error writing numpy array"
+
+    # Write subregion
+    sub_array = np.random.rand(30, 30, 30)
+    franken_array = array
+    franken_array[10:40, 10:40, 10:40] = sub_array
+    tomogram.set_region(sub_array, x=slice(10, 40), y=slice(10, 40), z=slice(10, 40))
+
+    # Check zarr contents
+    arrays = list(zarr.open(tomogram.zarr(), "r").arrays())
+    _, array2 = arrays[0]
+    assert np.allclose(franken_array, array2), "Error writing numpy array subregion"
+
+
 def test_feature_meta(test_payload: Dict[str, Any]):
     # Setup
     copick_root = test_payload["root"]
@@ -1010,6 +1328,56 @@ def test_feature_zarr(test_payload: Dict[str, Any]):
     # Check zarr is writable
     feat = tomogram.new_features(feature_type="test")
     zarr.array(np.random.rand(64, 64, 64), store=feat.zarr(), chunks=(32, 32, 32))
+
+
+def test_feature_read_numpy(test_payload: Dict[str, Any]):
+    # Setup
+    copick_root = test_payload["root"]
+    copick_run = copick_root.get_run("TS_001")
+    vs = copick_run.get_voxel_spacing(10.000)
+    tomogram = vs.get_tomogram(tomo_type="wbp")
+    feature = tomogram.get_features(feature_type="sobel")
+
+    # Full volume
+    array = feature.numpy()
+    assert array.shape == (64, 64, 64), "Error getting numpy array, (incorrect shape)"
+    assert np.sum(array) == pytest.approx(
+        20619.8125,
+        abs=NUMERICAL_PRECISION,
+    ), "Error getting numpy array (incorrect sum)."
+
+    # Subregion
+    array = feature.numpy(slices=(slice(20, 40), slice(20, 40), slice(20, 40)))
+    assert array.shape == (20, 20, 20), "Error getting numpy array, (incorrect shape)"
+    assert np.sum(array) == pytest.approx(
+        563.36730957,
+        abs=NUMERICAL_PRECISION,
+    ), "Error getting numpy array (incorrect sum)."
+
+
+def test_feature_write_numpy(test_payload: Dict[str, Any]):
+    # Setup
+    copick_root = test_payload["root"]
+    copick_run = copick_root.get_run("TS_001")
+    vs = copick_run.get_voxel_spacing(10.000)
+    tomogram = vs.get_tomogram(tomo_type="wbp")
+    feat = tomogram.new_features(feature_type="test")
+
+    # Write zarr
+    array = np.random.rand(64, 64, 64)
+    pyramid = {10.000: array}
+    write_ome_zarr_3d(feat.zarr(), pyramid, (32, 32, 32))
+
+    # Write subregion
+    sub_array = np.random.rand(30, 30, 30)
+    franken_array = array
+    franken_array[10:40, 10:40, 10:40] = sub_array
+    feat.set_region(sub_array, slices=(slice(10, 40), slice(10, 40), slice(10, 40)))
+
+    # Check zarr contents
+    arrays = list(zarr.open(feat.zarr(), "r").arrays())
+    _, array2 = arrays[0]
+    assert np.allclose(franken_array, array2), "Error writing numpy array subregion"
 
 
 def test_mesh_meta(test_payload: Dict[str, Any]):

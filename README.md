@@ -17,7 +17,7 @@ provided through an object-oriented API that abstracts away the underlying stora
 
 ## Documentation
 
-For more information, see the [documentation](https://uermel.github.io/copick/).
+For more information, see the [documentation](https://copick.github.io/copick/).
 
 ## Installation
 
@@ -102,5 +102,6 @@ To test with the example dataset:
 
     # Access the data
     group = zarr.open(tomogram.zarr())
-    _, array = group.arrays()[0]
+    arrays = list(group.arrays())
+    _, array = arrays[0]
     ```

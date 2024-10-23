@@ -2,19 +2,12 @@ import json
 from typing import Dict, Iterable, List, Literal, MutableMapping, Optional, Tuple, Type, Union
 
 import numpy as np
-
-# Should work with pydantic 1 and 2
-import pydantic
 import trimesh
-
-if pydantic.VERSION.startswith("1"):
-    from pydantic import BaseModel, validator
-elif pydantic.VERSION.startswith("2"):
-    from pydantic.v1 import BaseModel, validator
-else:
-    raise ImportError(f"Unsupported pydantic version {pydantic.VERSION}.")
-
+import zarr
+from pydantic import BaseModel, field_validator
 from trimesh.parent import Geometry
+
+from copick.util.ome import fits_in_memory, segmentation_pyramid, volume_pyramid, write_ome_zarr_3d
 
 
 class PickableObject(BaseModel):
@@ -33,21 +26,23 @@ class PickableObject(BaseModel):
 
     name: str
     is_particle: bool
-    label: Optional[int]
-    color: Optional[Tuple[int, int, int, int]]
+    label: Optional[int] = 1
+    color: Optional[Tuple[int, int, int, int]] = (100, 100, 100, 255)
     emdb_id: Optional[str] = None
     pdb_id: Optional[str] = None
     go_id: Optional[str] = None
     map_threshold: Optional[float] = None
     radius: Optional[float] = None
 
-    @validator("label")
+    @field_validator("label")
+    @classmethod
     def validate_label(cls, v) -> int:
         """Validate the label."""
         assert v != 0, "Label 0 is reserved for background."
         return v
 
-    @validator("color")
+    @field_validator("color")
+    @classmethod
     def validate_color(cls, v) -> Tuple[int, int, int, int]:
         """Validate the color."""
         assert len(v) == 4, "Color must be a 4-tuple (RGBA)."
@@ -130,10 +125,12 @@ class CopickPoint(BaseModel):
     instance_id: Optional[int] = 0
     score: Optional[float] = 1.0
 
-    class Config:
-        arbitrary_types_allowed = True
+    model_config = {
+        "arbitrary_types_allowed": True,
+    }
 
-    @validator("transformation_")
+    @field_validator("transformation_")
+    @classmethod
     def validate_transformation(cls, v) -> List[List[float]]:
         """Validate the transformation matrix."""
         arr = np.array(v)
@@ -237,11 +234,81 @@ class CopickObject:
 
     def zarr(self) -> Union[None, MutableMapping]:
         """Override this method to return a zarr store for this object. Should return None if
-        CopickObject.is_particle is False."""
+        CopickObject.is_particle is False or there is no associated map."""
         if not self.is_particle:
             return None
 
         raise NotImplementedError("zarr method must be implemented for particle objects.")
+
+    def numpy(
+        self,
+        zarr_group: str = "0",
+        x: slice = slice(None, None),
+        y: slice = slice(None, None),
+        z: slice = slice(None, None),
+    ) -> Union[None, np.ndarray]:
+        """Returns the content of the Zarr-File for this object as a numpy array. Multiscale group and slices are
+        supported.
+
+        Args:
+            zarr_group: Zarr group to access.
+            x: Slice for the x-axis.
+            y: Slice for the y-axis.
+            z: Slice for the z-axis.
+
+        Returns:
+            np.ndarray: The object as a numpy array.
+        """
+
+        loc = self.zarr()
+        if loc is None:
+            return None
+
+        group = zarr.open(loc)[zarr_group]
+
+        fits, req, avail = fits_in_memory(group, (x, y, z))
+        if not fits:
+            raise ValueError(f"Requested region does not fit in memory. Requested: {req}, Available: {avail}.")
+
+        return group[z, y, x]
+
+    def from_numpy(
+        self,
+        data: np.ndarray,
+        voxel_size: float,
+        dtype: Optional[np.dtype] = np.float32,
+    ) -> None:
+        """Set the object from a numpy array.
+
+        Args:
+            data: The segmentation as a numpy array.
+            voxel_size: Voxel size of the object.
+            dtype: Data type of the segmentation. Default is `np.float32`.
+        """
+        loc = self.zarr()
+
+        pyramid = volume_pyramid(data, voxel_size, 1, dtype=dtype)
+        write_ome_zarr_3d(loc, pyramid)
+
+    def set_region(
+        self,
+        data: np.ndarray,
+        zarr_group: str = "0",
+        x: slice = slice(None, None),
+        y: slice = slice(None, None),
+        z: slice = slice(None, None),
+    ) -> None:
+        """Set a region of the object from a numpy array.
+
+        Args:
+            data: The object's subregion as a numpy array.
+            zarr_group: Zarr group to access.
+            x: Slice for the x-axis.
+            y: Slice for the y-axis.
+            z: Slice for the z-axis.
+        """
+        loc = self.zarr()
+        zarr.open(loc)[zarr_group][z, y, x] = data
 
 
 class CopickRoot:
@@ -587,7 +654,7 @@ class CopickRun:
             List[CopickPicks]: List of user-generated picks.
         """
         if self.root.config.user_id is None:
-            return [p for p in self.picks if p.session_id != "0"]
+            return [p for p in self.picks if p.from_user]
         else:
             return self.get_picks(user_id=self.root.config.user_id)
 
@@ -597,7 +664,7 @@ class CopickRun:
         Returns:
             List[CopickPicks]: List of tool-generated picks.
         """
-        return [p for p in self.picks if p.session_id == "0"]
+        return [p for p in self.picks if p.from_tool]
 
     def get_picks(
         self,
@@ -645,7 +712,7 @@ class CopickRun:
             List[CopickMesh]: List of user-generated meshes.
         """
         if self.root.config.user_id is None:
-            return [m for m in self.meshes if m.session_id != "0"]
+            return [m for m in self.meshes if m.from_user]
         else:
             return self.get_meshes(user_id=self.root.config.user_id)
 
@@ -655,7 +722,7 @@ class CopickRun:
         Returns:
             List[CopickMesh]: List of tool-generated meshes.
         """
-        return [m for m in self.meshes if m.session_id == "0"]
+        return [m for m in self.meshes if m.from_tool]
 
     def get_meshes(
         self,
@@ -703,7 +770,7 @@ class CopickRun:
             List[CopickSegmentation]: List of user-generated segmentations.
         """
         if self.root.config.user_id is None:
-            return [s for s in self.segmentations if s.session_id != "0"]
+            return [s for s in self.segmentations if s.from_user]
         else:
             return self.get_segmentations(user_id=self.root.config.user_id)
 
@@ -713,7 +780,7 @@ class CopickRun:
         Returns:
             List[CopickSegmentation]: List of tool-generated segmentations.
         """
-        return [s for s in self.segmentations if s.session_id == "0"]
+        return [s for s in self.segmentations if s.from_tool]
 
     def get_segmentations(
         self,
@@ -933,9 +1000,6 @@ class CopickRun:
         """
         if not is_multilabel and name not in [o.name for o in self.root.config.pickable_objects]:
             raise ValueError(f"Object name {name} not found in pickable objects.")
-
-        if voxel_size not in [vs.voxel_size for vs in self.voxel_spacings]:
-            raise ValueError(f"VoxelSpacing {voxel_size} not found in voxel spacings for run {self.name}.")
 
         uid = self.root.config.user_id
 
@@ -1268,6 +1332,73 @@ class CopickTomogram:
         doesn't exist."""
         raise NotImplementedError("zarr must be implemented for CopickTomogram.")
 
+    def numpy(
+        self,
+        zarr_group: str = "0",
+        x: slice = slice(None, None),
+        y: slice = slice(None, None),
+        z: slice = slice(None, None),
+    ) -> np.ndarray:
+        """Returns the content of the Zarr-File for this tomogram as a numpy array. Multiscale group and slices are
+        supported.
+
+        Args:
+            zarr_group: Zarr group to access.
+            x: Slice for the x-axis.
+            y: Slice for the y-axis.
+            z: Slice for the z-axis.
+
+        Returns:
+            np.ndarray: The tomogram as a numpy array.
+        """
+
+        loc = self.zarr()
+        group = zarr.open(loc)[zarr_group]
+
+        fits, req, avail = fits_in_memory(group, (x, y, z))
+        if not fits:
+            raise ValueError(f"Requested region does not fit in memory. Requested: {req}, Available: {avail}.")
+
+        return np.array(zarr.open(loc)[zarr_group][z, y, x])
+
+    def from_numpy(
+        self,
+        data: np.ndarray,
+        levels: int = 3,
+        dtype: Optional[np.dtype] = np.float32,
+    ) -> None:
+        """Set the tomogram from a numpy array and compute multiscale pyramid. By default, three levels of the pyramid
+        are computed.
+
+        Args:
+            data: The segmentation as a numpy array.
+            levels: Number of levels in the multiscale pyramid.
+            dtype: Data type of the segmentation. Default is `np.float32`.
+        """
+        loc = self.zarr()
+        pyramid = volume_pyramid(data, self.voxel_spacing.voxel_size, levels, dtype=dtype)
+        write_ome_zarr_3d(loc, pyramid)
+
+    def set_region(
+        self,
+        data: np.ndarray,
+        zarr_group: str = "0",
+        x: slice = slice(None, None),
+        y: slice = slice(None, None),
+        z: slice = slice(None, None),
+    ) -> None:
+        """Set a region of the tomogram from a numpy array.
+
+        Args:
+            data: The tomogram's subregion as a numpy array.
+            zarr_group: Zarr group to access.
+            x: Slice for the x-axis.
+            y: Slice for the y-axis.
+            z: Slice for the z-axis.
+        """
+        loc = self.zarr()
+        zarr.open(loc)[zarr_group][z, y, x] = data
+
 
 class CopickFeaturesMeta(BaseModel):
     """Data model for feature map metadata.
@@ -1317,6 +1448,52 @@ class CopickFeatures:
         doesn't exist."""
         raise NotImplementedError("zarr must be implemented for CopickFeatures.")
 
+    def numpy(
+        self,
+        zarr_group: str = "0",
+        slices: Tuple[slice, ...] = None,
+    ) -> np.ndarray:
+        """Returns the content of the Zarr-File for this feature map as a numpy array. Multiscale group and slices are
+        supported.
+
+        Args:
+            zarr_group: Zarr group to access.
+            slices: Tuple of slices for the axes.
+
+        Returns:
+            np.ndarray: The object as a numpy array.
+        """
+
+        loc = self.zarr()
+        group = zarr.open(loc)[zarr_group]
+        ndim = len(group.shape)
+
+        if slices is None:
+            slices = tuple(slice(None, None) for _ in range(ndim))
+
+        fits, req, avail = fits_in_memory(group, slices)
+        if not fits:
+            raise ValueError(f"Requested region does not fit in memory. Requested: {req}, Available: {avail}.")
+
+        return np.array(group[slices])
+
+    def set_region(
+        self,
+        data: np.ndarray,
+        zarr_group: str = "0",
+        slices: Tuple[slice, ...] = None,
+    ) -> None:
+        """Set the content of the Zarr-File for this feature map from a numpy array. Multiscale group and slices are
+        supported.
+
+        Args:
+            data: The data to set.
+            zarr_group: Zarr group to access.
+            slices: Tuple of slices for the axes.
+        """
+        loc = self.zarr()
+        zarr.open(loc)[zarr_group][slices] = data
+
 
 class CopickPicksFile(BaseModel):
     """Datamodel for a collection of locations, orientations and other metadata for one pickable object.
@@ -1337,8 +1514,8 @@ class CopickPicksFile(BaseModel):
     pickable_object_name: str
     user_id: str
     session_id: Union[str, Literal["0"]]
-    run_name: Optional[str]
-    voxel_spacing: Optional[float]
+    run_name: Optional[str] = None
+    voxel_spacing: Optional[float] = None
     unit: str = "angstrom"
     points: Optional[List[CopickPoint]] = None
     trust_orientation: Optional[bool] = True
@@ -1406,6 +1583,10 @@ class CopickPicks:
         return self.session_id == "0"
 
     @property
+    def from_user(self) -> bool:
+        return self.session_id != "0"
+
+    @property
     def pickable_object_name(self) -> str:
         return self.meta.pickable_object_name
 
@@ -1442,6 +1623,59 @@ class CopickPicks:
     def refresh(self) -> None:
         """Refresh the points from storage."""
         self.meta = self.load()
+
+    def numpy(self) -> Tuple[np.ndarray, np.ndarray]:
+        """Return the points as a [N, 3] numpy array (N, [x, y, z]) and the transforms as a [N, 4, 4] numpy array.
+        Format of the transforms is:
+                ```
+                [[rxx, rxy, rxz, tx],
+                 [ryx, ryy, ryz, ty],
+                 [rzx, rzy, rzz, tz],
+                 [  0,   0,   0,  1]]
+                ```
+
+        Returns:
+            Tuple[np.ndarray, np.ndarray]: The picks and transforms as numpy arrays.
+        """
+
+        points = np.zeros((len(self.points), 3))
+        transforms = np.zeros((len(self.points), 4, 4))
+
+        for i, p in enumerate(self.points):
+            points[i, :] = np.array([p.location.x, p.location.y, p.location.z])
+            transforms[i, :, :] = p.transformation
+
+        return points, transforms
+
+    def from_numpy(self, positions: np.ndarray, transforms: Optional[np.ndarray] = None) -> None:
+        """Set the points and transforms from numpy arrays.
+
+        Args:
+            positions: [N, 3] numpy array of positions (N, [x, y, z]).
+            transforms: [N, 4, 4] numpy array of orientations. If None, transforms will be set to the identity
+                matrix. Format of the transforms is:
+                ```
+                [[rxx, rxy, rxz, tx],
+                 [ryx, ryy, ryz, ty],
+                 [rzx, rzy, rzz, tz],
+                 [  0,   0,   0,  1]]
+                ```
+
+        """
+
+        if positions.shape[0] != transforms.shape[0]:
+            raise ValueError("Number of positions and transforms must be the same.")
+
+        points = []
+
+        for i in range(positions.shape[0]):
+            p = CopickPoint(location=CopickLocation(x=positions[i, 0], y=positions[i, 1], z=positions[i, 2]))
+            if transforms is not None:
+                p.transformation = transforms[i, :, :]
+            points.append(p)
+
+        self.points = points
+        self.store()
 
 
 class CopickMeshMeta(BaseModel):
@@ -1650,3 +1884,70 @@ class CopickSegmentation:
         """Override to return the Zarr store for this segmentation. Also needs to handle creating the store if it
         doesn't exist."""
         raise NotImplementedError("zarr must be implemented for CopickSegmentation.")
+
+    def numpy(
+        self,
+        zarr_group: str = "0",
+        x: slice = slice(None, None),
+        y: slice = slice(None, None),
+        z: slice = slice(None, None),
+    ) -> np.ndarray:
+        """Returns the content of the Zarr-File for this segmentation as a numpy array. Multiscale group and slices are
+        supported.
+
+        Args:
+            zarr_group: Zarr group to access.
+            x: Slice for the x-axis.
+            y: Slice for the y-axis.
+            z: Slice for the z-axis.
+
+        Returns:
+            np.ndarray: The segmentation as a numpy array.
+        """
+
+        loc = self.zarr()
+        group = zarr.open(loc)[zarr_group]
+
+        fits, req, avail = fits_in_memory(group, (x, y, z))
+        if not fits:
+            raise ValueError(f"Requested region does not fit in memory. Requested: {req}, Available: {avail}.")
+
+        return np.array(zarr.open(loc)[zarr_group][z, y, x])
+
+    def from_numpy(
+        self,
+        data: np.ndarray,
+        levels: int = 1,
+        dtype: Optional[np.dtype] = np.uint8,
+    ) -> None:
+        """Set the segmentation from a numpy array and compute multiscale pyramid. By default, no pyramid is computed
+        for segmentations.
+
+        Args:
+            data: The segmentation as a numpy array.
+            levels: Number of levels in the multiscale pyramid.
+            dtype: Data type of the segmentation. Default is `np.uint8`.
+        """
+        loc = self.zarr()
+        pyramid = segmentation_pyramid(data, self.voxel_size, levels, dtype=dtype)
+        write_ome_zarr_3d(loc, pyramid)
+
+    def set_region(
+        self,
+        data: np.ndarray,
+        zarr_group: str = "0",
+        x: slice = slice(None, None),
+        y: slice = slice(None, None),
+        z: slice = slice(None, None),
+    ) -> None:
+        """Set a region of the segmentation from a numpy array.
+
+        Args:
+            data: The segmentation's subregion as a numpy array.
+            zarr_group: Zarr group to access.
+            x: Slice for the x-axis.
+            y: Slice for the y-axis.
+            z: Slice for the z-axis.
+        """
+        loc = self.zarr()
+        zarr.open(loc)[zarr_group][z, y, x] = data

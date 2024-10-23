@@ -21,3 +21,5 @@ def from_file(path: str):
         return CopickRootFSSpec(CopickConfigFSSpec(**data))
     elif data["config_type"] == "cryoet_data_portal":
         return CopickRootCDP(CopickConfigCDP(**data))
+    # else:
+    #    raise ValueError(f"Unsupported config type: {data['config_type']}")
