@@ -1885,13 +1885,13 @@ install the ChimeraX-copick extension by running the following command in Chimer
 installation and install the requried solutions by running the following commands:</p>
 <div class="language-bash highlight"><pre><span></span><code><span id="__span-2-1"><a id="__codelineno-2-1" name="__codelineno-2-1" href="#__codelineno-2-1"></a>album<span class="w"> </span>add-catalog<span class="w"> </span>git@github.com:copick/copick-catalog.git
 </span><span id="__span-2-2"><a id="__codelineno-2-2" name="__codelineno-2-2" href="#__codelineno-2-2"></a>album<span class="w"> </span>update<span class="w"> </span><span class="o">&amp;&amp;</span><span class="w"> </span>album<span class="w"> </span>upgrade
-</span><span id="__span-2-3"><a id="__codelineno-2-3" name="__codelineno-2-3" href="#__codelineno-2-3"></a>album<span class="w"> </span>install<span class="w"> </span>copick:create_empty_picks:0.2.0
-</span><span id="__span-2-4"><a id="__codelineno-2-4" name="__codelineno-2-4" href="#__codelineno-2-4"></a>album<span class="w"> </span>install<span class="w"> </span>copick:fit_sample:0.7.0
-</span><span id="__span-2-5"><a id="__codelineno-2-5" name="__codelineno-2-5" href="#__codelineno-2-5"></a>album<span class="w"> </span>install<span class="w"> </span>copick:create_rec_limits:0.5.0
-</span><span id="__span-2-6"><a id="__codelineno-2-6" name="__codelineno-2-6" href="#__codelineno-2-6"></a>album<span class="w"> </span>install<span class="w"> </span>copick:intersect_mesh:0.5.0
-</span><span id="__span-2-7"><a id="__codelineno-2-7" name="__codelineno-2-7" href="#__codelineno-2-7"></a>album<span class="w"> </span>install<span class="w"> </span>copick:mesh_to_seg:0.7.0
-</span><span id="__span-2-8"><a id="__codelineno-2-8" name="__codelineno-2-8" href="#__codelineno-2-8"></a>album<span class="w"> </span>install<span class="w"> </span>copick:sample_mesh:0.5.0
-</span><span id="__span-2-9"><a id="__codelineno-2-9" name="__codelineno-2-9" href="#__codelineno-2-9"></a>album<span class="w"> </span>install<span class="w"> </span>copick:fit_sample_seg:0.9.0
+</span><span id="__span-2-3"><a id="__codelineno-2-3" name="__codelineno-2-3" href="#__codelineno-2-3"></a>album<span class="w"> </span>install<span class="w"> </span>copick:create_empty_picks:0.4.0
+</span><span id="__span-2-4"><a id="__codelineno-2-4" name="__codelineno-2-4" href="#__codelineno-2-4"></a>album<span class="w"> </span>install<span class="w"> </span>copick:fit_sample:0.8.0
+</span><span id="__span-2-5"><a id="__codelineno-2-5" name="__codelineno-2-5" href="#__codelineno-2-5"></a>album<span class="w"> </span>install<span class="w"> </span>copick:create_rec_limits:0.6.0
+</span><span id="__span-2-6"><a id="__codelineno-2-6" name="__codelineno-2-6" href="#__codelineno-2-6"></a>album<span class="w"> </span>install<span class="w"> </span>copick:intersect_mesh:0.6.0
+</span><span id="__span-2-7"><a id="__codelineno-2-7" name="__codelineno-2-7" href="#__codelineno-2-7"></a>album<span class="w"> </span>install<span class="w"> </span>copick:mesh_to_seg:0.8.0
+</span><span id="__span-2-8"><a id="__codelineno-2-8" name="__codelineno-2-8" href="#__codelineno-2-8"></a>album<span class="w"> </span>install<span class="w"> </span>copick:sample_mesh:0.6.0
+</span><span id="__span-2-9"><a id="__codelineno-2-9" name="__codelineno-2-9" href="#__codelineno-2-9"></a>album<span class="w"> </span>install<span class="w"> </span>copick:fit_sample_seg:0.10.0
 </span></code></pre></div>
 <h4 id="3-j-finder-for-segmentation">3. J-finder (for segmentation)</h4>
 <p>Download and install a copick-compatible version of deepfinder:</p>
@@ -2155,13 +2155,13 @@ of Bob).</p>
 <p>We will now use ChimeraX to annotate the top- and bottom- boundaries of the training set. In a first step we will create
 empty <code>CopickPicks</code> objects for the top- and bottom-layer in the training set. To do this we use the
 <code>create_empty_picks</code>-solution:</p>
-<div class="language-bash highlight"><pre><span></span><code><span id="__span-9-1"><a id="__codelineno-9-1" name="__codelineno-9-1" href="#__codelineno-9-1"></a>album<span class="w"> </span>run<span class="w"> </span>copick:create_empty_picks:0.2.0<span class="w"> </span><span class="se">\</span>
+<div class="language-bash highlight"><pre><span></span><code><span id="__span-9-1"><a id="__codelineno-9-1" name="__codelineno-9-1" href="#__codelineno-9-1"></a>album<span class="w"> </span>run<span class="w"> </span>copick:create_empty_picks:0.4.0<span class="w"> </span><span class="se">\</span>
 </span><span id="__span-9-2"><a id="__codelineno-9-2" name="__codelineno-9-2" href="#__codelineno-9-2"></a>--copick_config_path<span class="w"> </span>config_train.json<span class="w"> </span><span class="se">\</span>
 </span><span id="__span-9-3"><a id="__codelineno-9-3" name="__codelineno-9-3" href="#__codelineno-9-3"></a>--out_object<span class="w"> </span>top-layer<span class="w"> </span><span class="se">\</span>
 </span><span id="__span-9-4"><a id="__codelineno-9-4" name="__codelineno-9-4" href="#__codelineno-9-4"></a>--out_user<span class="w"> </span>bob<span class="w"> </span><span class="se">\</span>
 </span><span id="__span-9-5"><a id="__codelineno-9-5" name="__codelineno-9-5" href="#__codelineno-9-5"></a>--out_session<span class="w"> </span><span class="m">1</span>
 </span><span id="__span-9-6"><a id="__codelineno-9-6" name="__codelineno-9-6" href="#__codelineno-9-6"></a>
-</span><span id="__span-9-7"><a id="__codelineno-9-7" name="__codelineno-9-7" href="#__codelineno-9-7"></a>album<span class="w"> </span>run<span class="w"> </span>copick:create_empty_picks:0.2.0<span class="w"> </span><span class="se">\</span>
+</span><span id="__span-9-7"><a id="__codelineno-9-7" name="__codelineno-9-7" href="#__codelineno-9-7"></a>album<span class="w"> </span>run<span class="w"> </span>copick:create_empty_picks:0.4.0<span class="w"> </span><span class="se">\</span>
 </span><span id="__span-9-8"><a id="__codelineno-9-8" name="__codelineno-9-8" href="#__codelineno-9-8"></a>--copick_config_path<span class="w"> </span>config_train.json<span class="w"> </span><span class="se">\</span>
 </span><span id="__span-9-9"><a id="__codelineno-9-9" name="__codelineno-9-9" href="#__codelineno-9-9"></a>--out_object<span class="w"> </span>bottom-layer<span class="w"> </span><span class="se">\</span>
 </span><span id="__span-9-10"><a id="__codelineno-9-10" name="__codelineno-9-10" href="#__codelineno-9-10"></a>--out_user<span class="w"> </span>bob<span class="w"> </span><span class="se">\</span>
@@ -2237,7 +2237,7 @@ either of the detector axes, causing tomograms to have small regions of invalid 
 the <code>create_rec_limits</code>-solution, we can compute 3D meshes that describe the valid reconstruction area in each
 tomogram.</p>
 <p>In this case, we will assume an in-plane rotation of -6 degrees.</p>
-<div class="language-bash highlight"><pre><span></span><code><span id="__span-11-1"><a id="__codelineno-11-1" name="__codelineno-11-1" href="#__codelineno-11-1"></a>album<span class="w"> </span>run<span class="w"> </span>copick:create_rec_limits:0.5.0<span class="w"> </span><span class="se">\</span>
+<div class="language-bash highlight"><pre><span></span><code><span id="__span-11-1"><a id="__codelineno-11-1" name="__codelineno-11-1" href="#__codelineno-11-1"></a>album<span class="w"> </span>run<span class="w"> </span>copick:create_rec_limits:0.6.0<span class="w"> </span><span class="se">\</span>
 </span><span id="__span-11-2"><a id="__codelineno-11-2" name="__codelineno-11-2" href="#__codelineno-11-2"></a>--copick_config_path<span class="w"> </span>config_train.json<span class="w"> </span><span class="se">\</span>
 </span><span id="__span-11-3"><a id="__codelineno-11-3" name="__codelineno-11-3" href="#__codelineno-11-3"></a>--voxel_spacing<span class="w"> </span><span class="m">7</span>.84<span class="w"> </span><span class="se">\</span>
 </span><span id="__span-11-4"><a id="__codelineno-11-4" name="__codelineno-11-4" href="#__codelineno-11-4"></a>--tomo_type<span class="w"> </span>wbp<span class="w"> </span><span class="se">\</span>
@@ -2258,7 +2258,7 @@ and with (right) valid reconstruction area mesh overlayed.</figcaption>
 <p>Now, we will use the points created in <a href="#step-2-annotate-the-training-set">Step 2</a> to create a second 3D mesh that
 describes the sample boundaries. We do this, by fitting a plane defined by a cubic spline grid to the points using the
 <a href="https://github.com/teamtomo/torch-cubic-spline-grids">torch-cubic-spline-grid</a> package in the <code>fit_sample</code>-solution.</p>
-<div class="language-bash highlight"><pre><span></span><code><span id="__span-12-1"><a id="__codelineno-12-1" name="__codelineno-12-1" href="#__codelineno-12-1"></a>album<span class="w"> </span>run<span class="w"> </span>copick:fit_sample:0.7.0<span class="w"> </span><span class="se">\</span>
+<div class="language-bash highlight"><pre><span></span><code><span id="__span-12-1"><a id="__codelineno-12-1" name="__codelineno-12-1" href="#__codelineno-12-1"></a>album<span class="w"> </span>run<span class="w"> </span>copick:fit_sample:0.8.0<span class="w"> </span><span class="se">\</span>
 </span><span id="__span-12-2"><a id="__codelineno-12-2" name="__codelineno-12-2" href="#__codelineno-12-2"></a>--copick_config_path<span class="w"> </span>config_train.json<span class="w"> </span><span class="se">\</span>
 </span><span id="__span-12-3"><a id="__codelineno-12-3" name="__codelineno-12-3" href="#__codelineno-12-3"></a>--top_object<span class="w"> </span>top-layer<span class="w"> </span><span class="se">\</span>
 </span><span id="__span-12-4"><a id="__codelineno-12-4" name="__codelineno-12-4" href="#__codelineno-12-4"></a>--bottom_object<span class="w"> </span>bottom-layer<span class="w"> </span><span class="se">\</span>
@@ -2272,7 +2272,7 @@ describes the sample boundaries. We do this, by fitting a plane defined by a cub
 <h4 id="intersection">Intersection</h4>
 <p>Next, we will intersect the valid reconstruction area with the sample to create a new object that describes the valid
 sample area. We do this using the <code>intersect_mesh</code>-solution:</p>
-<p><div class="language-bash highlight"><pre><span></span><code><span id="__span-13-1"><a id="__codelineno-13-1" name="__codelineno-13-1" href="#__codelineno-13-1"></a>album<span class="w"> </span>run<span class="w"> </span>copick:intersect_mesh:0.5.0<span class="w"> </span><span class="se">\</span>
+<p><div class="language-bash highlight"><pre><span></span><code><span id="__span-13-1"><a id="__codelineno-13-1" name="__codelineno-13-1" href="#__codelineno-13-1"></a>album<span class="w"> </span>run<span class="w"> </span>copick:intersect_mesh:0.6.0<span class="w"> </span><span class="se">\</span>
 </span><span id="__span-13-2"><a id="__codelineno-13-2" name="__codelineno-13-2" href="#__codelineno-13-2"></a>--copick_config_path<span class="w"> </span>config_train.json<span class="w"> </span><span class="se">\</span>
 </span><span id="__span-13-3"><a id="__codelineno-13-3" name="__codelineno-13-3" href="#__codelineno-13-3"></a>--object_a<span class="w"> </span>valid-area<span class="w"> </span><span class="se">\</span>
 </span><span id="__span-13-4"><a id="__codelineno-13-4" name="__codelineno-13-4" href="#__codelineno-13-4"></a>--user_a<span class="w"> </span>bob<span class="w"> </span><span class="se">\</span>
@@ -2293,7 +2293,7 @@ You can now visualize the final 3D mesh for training in ChimeraX by restarting t
 <h4 id="training-data">Training data</h4>
 <p>Finally, we will create the training data for the sample boundary prediction. We will use the <code>mesh_to_seg</code>-solution to
 create a dense segmentation of the same size as the tomogram from the 3D meshes.</p>
-<div class="language-bash highlight"><pre><span></span><code><span id="__span-14-1"><a id="__codelineno-14-1" name="__codelineno-14-1" href="#__codelineno-14-1"></a>album<span class="w"> </span>run<span class="w"> </span>copick:mesh_to_seg:0.7.0<span class="w"> </span><span class="se">\</span>
+<div class="language-bash highlight"><pre><span></span><code><span id="__span-14-1"><a id="__codelineno-14-1" name="__codelineno-14-1" href="#__codelineno-14-1"></a>album<span class="w"> </span>run<span class="w"> </span>copick:mesh_to_seg:0.8.0<span class="w"> </span><span class="se">\</span>
 </span><span id="__span-14-2"><a id="__codelineno-14-2" name="__codelineno-14-2" href="#__codelineno-14-2"></a>--copick_config_path<span class="w"> </span>config_train.json<span class="w"> </span><span class="se">\</span>
 </span><span id="__span-14-3"><a id="__codelineno-14-3" name="__codelineno-14-3" href="#__codelineno-14-3"></a>--input_object<span class="w"> </span>valid-sample<span class="w"> </span><span class="se">\</span>
 </span><span id="__span-14-4"><a id="__codelineno-14-4" name="__codelineno-14-4" href="#__codelineno-14-4"></a>--input_user<span class="w"> </span>bob<span class="w"> </span><span class="se">\</span>
@@ -2305,7 +2305,7 @@ create a dense segmentation of the same size as the tomogram from the 3D meshes.
 of positive and negative samples in the training data. We will use the <code>sample_mesh</code>-solution to create a set of
 points sampled using poisson disk and rejection sampling. The solution allows to specify the number of points inside,
 on the surface and outside the mesh.</p>
-<div class="language-bash highlight"><pre><span></span><code><span id="__span-15-1"><a id="__codelineno-15-1" name="__codelineno-15-1" href="#__codelineno-15-1"></a>album<span class="w"> </span>run<span class="w"> </span>copick:sample_mesh:0.5.0<span class="w"> </span><span class="se">\</span>
+<div class="language-bash highlight"><pre><span></span><code><span id="__span-15-1"><a id="__codelineno-15-1" name="__codelineno-15-1" href="#__codelineno-15-1"></a>album<span class="w"> </span>run<span class="w"> </span>copick:sample_mesh:0.6.0<span class="w"> </span><span class="se">\</span>
 </span><span id="__span-15-2"><a id="__codelineno-15-2" name="__codelineno-15-2" href="#__codelineno-15-2"></a>--copick_config_path<span class="w"> </span>config_train.json<span class="w"> </span><span class="se">\</span>
 </span><span id="__span-15-3"><a id="__codelineno-15-3" name="__codelineno-15-3" href="#__codelineno-15-3"></a>--input_object<span class="w"> </span>valid-sample<span class="w"> </span><span class="se">\</span>
 </span><span id="__span-15-4"><a id="__codelineno-15-4" name="__codelineno-15-4" href="#__codelineno-15-4"></a>--input_user<span class="w"> </span>bob<span class="w"> </span><span class="se">\</span>
@@ -2384,7 +2384,7 @@ and selecting the <code>segmentation</code> object in the <code>Segmentation</co
 <p>Finally, we will post-process the segmentations to create the final sample boundaries. The segmentations can contain
 small isolated regions that are not part of the sample. We will use the <code>fit_sample_seg</code>-solution to fit a box with
 parallel sides to the segmentation.</p>
-<div class="language-bash highlight"><pre><span></span><code><span id="__span-19-1"><a id="__codelineno-19-1" name="__codelineno-19-1" href="#__codelineno-19-1"></a>album<span class="w"> </span>run<span class="w"> </span>copick:fit_sample_seg:0.9.0<span class="w"> </span><span class="se">\</span>
+<div class="language-bash highlight"><pre><span></span><code><span id="__span-19-1"><a id="__codelineno-19-1" name="__codelineno-19-1" href="#__codelineno-19-1"></a>album<span class="w"> </span>run<span class="w"> </span>copick:fit_sample_seg:0.10.0<span class="w"> </span><span class="se">\</span>
 </span><span id="__span-19-2"><a id="__codelineno-19-2" name="__codelineno-19-2" href="#__codelineno-19-2"></a>--copick_config_path<span class="w"> </span>config_evaluate.json<span class="w"> </span><span class="se">\</span>
 </span><span id="__span-19-3"><a id="__codelineno-19-3" name="__codelineno-19-3" href="#__codelineno-19-3"></a>--top_object<span class="w"> </span>top-layer<span class="w"> </span><span class="se">\</span>
 </span><span id="__span-19-4"><a id="__codelineno-19-4" name="__codelineno-19-4" href="#__codelineno-19-4"></a>--bottom_object<span class="w"> </span>bottom-layer<span class="w"> </span><span class="se">\</span>
