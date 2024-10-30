@@ -61,13 +61,13 @@ installation and install the requried solutions by running the following command
 ```bash
 album add-catalog git@github.com:copick/copick-catalog.git
 album update && album upgrade
-album install copick:create_empty_picks:0.2.0
-album install copick:fit_sample:0.7.0
-album install copick:create_rec_limits:0.5.0
-album install copick:intersect_mesh:0.5.0
-album install copick:mesh_to_seg:0.7.0
-album install copick:sample_mesh:0.5.0
-album install copick:fit_sample_seg:0.9.0
+album install copick:create_empty_picks:0.4.0
+album install copick:fit_sample:0.8.0
+album install copick:create_rec_limits:0.6.0
+album install copick:intersect_mesh:0.6.0
+album install copick:mesh_to_seg:0.8.0
+album install copick:sample_mesh:0.6.0
+album install copick:fit_sample_seg:0.10.0
 ```
 
 
@@ -349,13 +349,13 @@ empty `CopickPicks` objects for the top- and bottom-layer in the training set. T
 `create_empty_picks`-solution:
 
 ```bash
-album run copick:create_empty_picks:0.2.0 \
+album run copick:create_empty_picks:0.4.0 \
 --copick_config_path config_train.json \
 --out_object top-layer \
 --out_user bob \
 --out_session 1
 
-album run copick:create_empty_picks:0.2.0 \
+album run copick:create_empty_picks:0.4.0 \
 --copick_config_path config_train.json \
 --out_object bottom-layer \
 --out_user bob \
@@ -447,7 +447,7 @@ tomogram.
 In this case, we will assume an in-plane rotation of -6 degrees.
 
 ```bash
-album run copick:create_rec_limits:0.5.0 \
+album run copick:create_rec_limits:0.6.0 \
 --copick_config_path config_train.json \
 --voxel_spacing 7.84 \
 --tomo_type wbp \
@@ -474,7 +474,7 @@ describes the sample boundaries. We do this, by fitting a plane defined by a cub
 [torch-cubic-spline-grid](https://github.com/teamtomo/torch-cubic-spline-grids) package in the `fit_sample`-solution.
 
 ```bash
-album run copick:fit_sample:0.7.0 \
+album run copick:fit_sample:0.8.0 \
 --copick_config_path config_train.json \
 --top_object top-layer \
 --bottom_object bottom-layer \
@@ -492,7 +492,7 @@ Next, we will intersect the valid reconstruction area with the sample to create 
 sample area. We do this using the `intersect_mesh`-solution:
 
 ```bash
-album run copick:intersect_mesh:0.5.0 \
+album run copick:intersect_mesh:0.6.0 \
 --copick_config_path config_train.json \
 --object_a valid-area \
 --user_a bob \
@@ -519,7 +519,7 @@ Finally, we will create the training data for the sample boundary prediction. We
 create a dense segmentation of the same size as the tomogram from the 3D meshes.
 
 ```bash
-album run copick:mesh_to_seg:0.7.0 \
+album run copick:mesh_to_seg:0.8.0 \
 --copick_config_path config_train.json \
 --input_object valid-sample \
 --input_user bob \
@@ -534,7 +534,7 @@ points sampled using poisson disk and rejection sampling. The solution allows to
 on the surface and outside the mesh.
 
 ```bash
-album run copick:sample_mesh:0.5.0 \
+album run copick:sample_mesh:0.6.0 \
 --copick_config_path config_train.json \
 --input_object valid-sample \
 --input_user bob \
@@ -636,7 +636,7 @@ small isolated regions that are not part of the sample. We will use the `fit_sam
 parallel sides to the segmentation.
 
 ```bash
-album run copick:fit_sample_seg:0.9.0 \
+album run copick:fit_sample_seg:0.10.0 \
 --copick_config_path config_evaluate.json \
 --top_object top-layer \
 --bottom_object bottom-layer \
