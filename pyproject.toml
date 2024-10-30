@@ -42,6 +42,7 @@ documentation = "https://copick.github.io/copick/"
 
 [project.scripts]
 copick = "copick.cli.cli:cli"
+make_templates = "copick.cli.make_templates:create [docs]"
 
 [project.optional-dependencies]
 smb = ["smbprotocol"]
@@ -68,9 +69,6 @@ docs = [
     "mkdocs-autorefs",
     "mkdocs-material",
 ]
-
-[project.scripts]
-make_templates = "copick.cli.make_templates:create [docs]"
 
 #[tool.hatch.version]
 #source = "copick/__init__.py"
