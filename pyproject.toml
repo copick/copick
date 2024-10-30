@@ -10,10 +10,10 @@ classifiers = [
     "License :: OSI Approved :: MIT License",
 ]
 #dynamic = ["version"]
-version = "0.5.7"
+version = "0.6.0"
 dependencies = [
     "click",
-    "cryoet-data-portal==3.1.0",
+    "cryoet-data-portal==4.0.0",
     "fsspec>=2024.6.0",
     "numpy",
     "ome-zarr",
@@ -71,6 +71,9 @@ make_templates = "copick.cli.make_templates:create [docs]"
 #[tool.hatch.version]
 #source = "copick/__init__.py"
 #fallback-version = "0.3.0"
+
+[tool.hatch.metadata]
+allow-direct-references = true
 
 [tool.black]
 line-length = 120
