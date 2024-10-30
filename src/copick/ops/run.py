@@ -1,4 +1,4 @@
-from concurrent.futures import ThreadPoolExecutor
+from concurrent.futures import ThreadPoolExecutor, as_completed
 from typing import Any, Callable, Dict, Iterable, Union
 
 from copick.models import CopickRoot, CopickRun
@@ -37,10 +37,17 @@ def map_runs(
         # TODO: zip(..., strict=True)
         for run, rargs in zip(runs, run_args):
             if isinstance(run, str):
-                results[run] = executor.submit(_materialize_run, root, run, rargs, callback, **kwargs)
+                future = executor.submit(_materialize_run, root, run, rargs, callback, **kwargs)
+                results[future] = run
+                # results[run] = executor.submit(_materialize_run, root, run, rargs, callback, **kwargs)
             elif isinstance(run, CopickRun):
-                results[run] = executor.submit(callback, run, **rargs, **kwargs)
+                future = executor.submit(callback, run, **rargs, **kwargs)
+                results[future] = run.name
+                # results[run] = executor.submit(callback, run, **rargs, **kwargs)
             else:
                 raise ValueError(f"Invalid run type: {type(run)}")
 
-    return {run: result.result() for run, result in results.items()}
+    print("using it")
+    return {results[fut]: fut.result() for fut in as_completed(results)}
+    # return {run: result.result() for run, result in results.items()}
+    # return {run: result.result() for run, result in results.items()}
