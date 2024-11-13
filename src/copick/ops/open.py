@@ -5,9 +5,8 @@ from copick.impl.cryoet_data_portal import CopickConfigCDP, CopickRootCDP
 from copick.impl.filesystem import CopickConfigFSSpec, CopickRootFSSpec
 
 
-def from_file(path: str):
-    with open(path, "r") as f:
-        data = json.load(f)
+def from_string(data: str):
+    data = json.loads(data)
 
     if "config_type" not in data:
         data["config_type"] = "filesystem"
@@ -21,5 +20,10 @@ def from_file(path: str):
         return CopickRootFSSpec(CopickConfigFSSpec(**data))
     elif data["config_type"] == "cryoet_data_portal":
         return CopickRootCDP(CopickConfigCDP(**data))
-    # else:
-    #    raise ValueError(f"Unsupported config type: {data['config_type']}")
+
+
+def from_file(path: str):
+    with open(path, "r") as f:
+        data = f.read()
+
+    return from_string(data)
