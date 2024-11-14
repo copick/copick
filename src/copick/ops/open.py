@@ -8,9 +8,8 @@ from copick.impl.filesystem import CopickConfigFSSpec, CopickRootFSSpec
 from copick.util.portal import objects_from_datasets
 
 
-def from_file(path: str) -> Union[CopickRootFSSpec, CopickRootCDP]:
-    with open(path, "r") as f:
-        data = json.load(f)
+def from_string(data: str):
+    data = json.loads(data)
 
     if "config_type" not in data:
         data["config_type"] = "filesystem"
@@ -24,6 +23,13 @@ def from_file(path: str) -> Union[CopickRootFSSpec, CopickRootCDP]:
         return CopickRootFSSpec(CopickConfigFSSpec(**data))
     elif data["config_type"] == "cryoet_data_portal":
         return CopickRootCDP(CopickConfigCDP(**data))
+
+
+def from_file(path: str):
+    with open(path, "r") as f:
+        data = f.read()
+
+    return from_string(data)
 
 
 def from_czcdp_datasets(
