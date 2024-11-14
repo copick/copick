@@ -40,11 +40,13 @@ def objects_from_datasets(dataset_ids: List[int]) -> List[PickableObject]:
         is_particle = bool("point" in shapes or "orientedpoint" in shapes)
 
         # Has an EMD id?
-        emds = [pub for pub in anno.annotation_publication if pub.startswith("EMD")]
+        apubs = anno.annotation_publication.split(",")
+        apubs = [ap.strip() for ap in apubs]
+        emds = [pub for pub in apubs if pub.startswith("EMD")]
         emd_id = emds[0] if emds else None
 
         # Has a PDB id?
-        pdb_ids = [pub for pub in anno.annotation_publication if pub.startswith("PDB")]
+        pdb_ids = [pub for pub in apubs if pub.startswith("PDB")]
         pdb_id = pdb_ids[0] if pdb_ids else None
 
         # Overwrite all values but is_particle if the object is already in the dict
