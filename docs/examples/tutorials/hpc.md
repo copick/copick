@@ -33,7 +33,7 @@ We will store this information in a configuration file `copick_config.json` on t
             {
                 "name": "ribosome",
                 "is_particle": true,
-                "go_id": "GO:0022626",
+                "identifier": "GO:0022626",
                 "label": 1,
                 "color": [  0, 117, 220, 255],
                 "radius": 150
@@ -41,7 +41,7 @@ We will store this information in a configuration file `copick_config.json` on t
             {
                 "name": "atpase",
                 "is_particle": true,
-                "go_id": "GO:0045259",
+                "identifier": "GO:0045259",
                 "label": 2,
                 "color": [251, 192, 147, 255],
                 "radius": 150
@@ -49,7 +49,7 @@ We will store this information in a configuration file `copick_config.json` on t
             {
                 "name": "membrane",
                 "is_particle": false,
-                "go_id": "GO:0016020",
+                "identifier": "GO:0016020",
                 "label": 3,
                 "color": [200, 200, 200, 255],
                 "radius": 10
@@ -77,7 +77,7 @@ here, but will not be used in this tutorial.
             {
                 "name": "ribosome",
                 "is_particle": true,
-                "go_id": "GO:0022626",
+                "identifier": "GO:0022626",
                 "label": 1,
                 "color": [  0, 117, 220, 255],
                 "radius": 150
@@ -85,7 +85,7 @@ here, but will not be used in this tutorial.
             {
                 "name": "atpase",
                 "is_particle": true,
-                "go_id": "GO:0045259",
+                "identifier": "GO:0045259",
                 "label": 2,
                 "color": [251, 192, 147, 255],
                 "radius": 150
@@ -93,7 +93,7 @@ here, but will not be used in this tutorial.
             {
                 "name": "membrane",
                 "is_particle": false,
-                "go_id": "GO:0016020",
+                "identifier": "GO:0016020",
                 "label": 3,
                 "color": [200, 200, 200, 255],
                 "radius": 10
@@ -138,7 +138,7 @@ On our local machine, we create a new configuration file `copick_config_local.js
             {
                 "name": "ribosome",
                 "is_particle": true,
-                "go_id": "GO:0022626",
+                "identifier": "GO:0022626",
                 "label": 1,
                 "color": [  0, 117, 220, 255],
                 "radius": 150
@@ -146,7 +146,7 @@ On our local machine, we create a new configuration file `copick_config_local.js
             {
                 "name": "atpase",
                 "is_particle": true,
-                "go_id": "GO:0045259",
+                "identifier": "GO:0045259",
                 "label": 2,
                 "color": [251, 192, 147, 255],
                 "radius": 150
@@ -154,7 +154,7 @@ On our local machine, we create a new configuration file `copick_config_local.js
             {
                 "name": "membrane",
                 "is_particle": false,
-                "go_id": "GO:0016020",
+                "identifier": "GO:0016020",
                 "label": 3,
                 "color": [200, 200, 200, 255],
                 "radius": 10
@@ -183,7 +183,7 @@ used in this tutorial.
             {
                 "name": "ribosome",
                 "is_particle": true,
-                "go_id": "GO:0022626",
+                "identifier": "GO:0022626",
                 "label": 1,
                 "color": [  0, 117, 220, 255],
                 "radius": 150
@@ -191,7 +191,7 @@ used in this tutorial.
             {
                 "name": "atpase",
                 "is_particle": true,
-                "go_id": "GO:0045259",
+                "identifier": "GO:0045259",
                 "label": 2,
                 "color": [251, 192, 147, 255],
                 "radius": 150
@@ -199,7 +199,7 @@ used in this tutorial.
             {
                 "name": "membrane",
                 "is_particle": false,
-                "go_id": "GO:0016020",
+                "identifier": "GO:0016020",
                 "label": 3,
                 "color": [200, 200, 200, 255],
                 "radius": 10

@@ -98,7 +98,7 @@ OBJECTS = [
     PickableObject(
         name="ribosome",
         is_particle=True,
-        go_id="GO:0022626",
+        identifier="GO:0022626",
         label=1,
         color=[0, 117, 220, 255],
         radius=150,
@@ -106,7 +106,7 @@ OBJECTS = [
     PickableObject(
         name="atpase",
         is_particle=True,
-        go_id="GO:0045259",
+        identifier="GO:0045259",
         label=2,
         color=[251, 192, 147, 255],
         radius=150,
@@ -114,7 +114,7 @@ OBJECTS = [
     PickableObject(
         name="membrane",
         is_particle=False,
-        go_id="GO:0016020",
+        identifier="GO:0016020",
         label=3,
         color=[200, 200, 200, 255],
         radius=10,

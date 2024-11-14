@@ -938,7 +938,7 @@ class CopickRootCDP(CopickRoot):
 
     @property
     def go_map(self) -> Dict[str, str]:
-        return {po.go_id: po.name for po in self.pickable_objects if po.go_id is not None}
+        return {po.identifier: po.name for po in self.pickable_objects if po.identifier is not None}
 
     @classmethod
     def from_file(cls, path: str) -> "CopickRootCDP":
