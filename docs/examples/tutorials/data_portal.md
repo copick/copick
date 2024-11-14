@@ -27,7 +27,7 @@ general information about the project, such as the project name, description, an
 
 Next, we define the objects that can be accessed and created using the copick API. Dataset 10301 already contains
 annotations from multiple authors, which we can access from within copick. In order to make data portal annotations
-available, we need to include the [Gene Ontology IDs](https://geneontology.org/docs/ontology-documentation/) (`go_id`) of the objects we want to access. Any portal annotation
+available, we need to include the [Gene Ontology IDs](https://geneontology.org/docs/ontology-documentation/) or [UniProtKB accessions](https://www.uniprot.org/help/accession_numbers) (`identifier`) of the objects we want to access. Any portal annotation
 that has a matching GO ID will be available in the copick project.
 
 In this case, we will obtain pre-existing annotations for the ribosome, ATPase, and membrane. We will also create a new
@@ -39,7 +39,7 @@ object called "prohibitin" that will be stored in the overlay directory, but is 
     {
       "name": "ribosome",
       "is_particle": true,
-      "go_id": "GO:0022626",
+      "identifier": "GO:0022626",
       "label": 1,
       "color": [  0, 117, 220, 255],
       "radius": 150
@@ -47,7 +47,7 @@ object called "prohibitin" that will be stored in the overlay directory, but is 
     {
       "name": "atpase",
       "is_particle": true,
-      "go_id": "GO:0045259",
+      "identifier": "GO:0045259",
       "label": 2,
       "color": [251, 192, 147, 255],
       "radius": 150
@@ -55,7 +55,7 @@ object called "prohibitin" that will be stored in the overlay directory, but is 
     {
       "name": "membrane",
       "is_particle": false,
-      "go_id": "GO:0016020",
+      "identifier": "GO:0016020",
       "label": 3,
       "color": [200, 200, 200, 255],
       "radius": 10
@@ -96,7 +96,7 @@ on the CZ cryoET Data Portal.
             {
                 "name": "ribosome",
                 "is_particle": true,
-                "go_id": "GO:0022626",
+                "identifier": "GO:0022626",
                 "label": 1,
                 "color": [  0, 117, 220, 255],
                 "radius": 150
@@ -104,7 +104,7 @@ on the CZ cryoET Data Portal.
             {
                 "name": "atpase",
                 "is_particle": true,
-                "go_id": "GO:0045259",
+                "identifier": "GO:0045259",
                 "label": 2,
                 "color": [251, 192, 147, 255],
                 "radius": 150
@@ -112,7 +112,7 @@ on the CZ cryoET Data Portal.
             {
                 "name": "membrane",
                 "is_particle": false,
-                "go_id": "GO:0016020",
+                "identifier": "GO:0016020",
                 "label": 3,
                 "color": [200, 200, 200, 255],
                 "radius": 10

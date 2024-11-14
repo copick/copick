@@ -9,8 +9,7 @@ classifiers = [
     "Development Status :: 3 - Alpha",
     "License :: OSI Approved :: MIT License",
 ]
-#dynamic = ["version"]
-version = "0.6.0"
+dynamic = ["version"]
 dependencies = [
     "click",
     "cryoet-data-portal==4.0.0",
@@ -23,6 +22,7 @@ dependencies = [
     "scikit-image",
     "trimesh",
     "zarr",
+    "distinctipy",
 ]
 authors = [
   {name = "Utz H. Ermel", email = "utz.ermel@czii.org"},
@@ -68,9 +68,8 @@ docs = [
 [project.scripts]
 make_templates = "copick.cli.make_templates:create [docs]"
 
-#[tool.hatch.version]
-#source = "copick/__init__.py"
-#fallback-version = "0.3.0"
+[tool.hatch.version]
+path = "src/copick/__init__.py"
 
 [tool.hatch.metadata]
 allow-direct-references = true
