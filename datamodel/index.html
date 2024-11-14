@@ -1821,7 +1821,7 @@ the CopickObject API.</p>
 </span><span id="__span-2-3"><a id="__codelineno-2-3" name="__codelineno-2-3" href="#__codelineno-2-3"></a><span class="w">    </span><span class="nt">&quot;is_particle&quot;</span><span class="p">:</span><span class="w"> </span><span class="kc">true</span><span class="p">,</span>
 </span><span id="__span-2-4"><a id="__codelineno-2-4" name="__codelineno-2-4" href="#__codelineno-2-4"></a><span class="w">    </span><span class="nt">&quot;pdb_id&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;3J9I&quot;</span><span class="p">,</span>
 </span><span id="__span-2-5"><a id="__codelineno-2-5" name="__codelineno-2-5" href="#__codelineno-2-5"></a><span class="w">    </span><span class="nt">&quot;emdb_id&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;1234&quot;</span><span class="p">,</span>
-</span><span id="__span-2-6"><a id="__codelineno-2-6" name="__codelineno-2-6" href="#__codelineno-2-6"></a><span class="w">    </span><span class="nt">&quot;go_id&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;GO:0001234&quot;</span><span class="p">,</span>
+</span><span id="__span-2-6"><a id="__codelineno-2-6" name="__codelineno-2-6" href="#__codelineno-2-6"></a><span class="w">    </span><span class="nt">&quot;identifier&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;GO:0001234&quot;</span><span class="p">,</span>
 </span><span id="__span-2-7"><a id="__codelineno-2-7" name="__codelineno-2-7" href="#__codelineno-2-7"></a><span class="w">    </span><span class="nt">&quot;label&quot;</span><span class="p">:</span><span class="w"> </span><span class="mi">1</span><span class="p">,</span>
 </span><span id="__span-2-8"><a id="__codelineno-2-8" name="__codelineno-2-8" href="#__codelineno-2-8"></a><span class="w">    </span><span class="nt">&quot;color&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">[</span><span class="mi">255</span><span class="p">,</span><span class="w"> </span><span class="mi">0</span><span class="p">,</span><span class="w"> </span><span class="mi">0</span><span class="p">,</span><span class="w"> </span><span class="mi">255</span><span class="p">],</span>
 </span><span id="__span-2-9"><a id="__codelineno-2-9" name="__codelineno-2-9" href="#__codelineno-2-9"></a><span class="w">    </span><span class="nt">&quot;radius&quot;</span><span class="p">:</span><span class="w"> </span><span class="mi">60</span><span class="p">,</span>
@@ -1838,8 +1838,8 @@ the CopickObject API.</p>
 <p><code>pdb_id</code>: The PDB ID of the object, if available.</p>
 </li>
 <li><code>emdb_id</code>: The EMDB ID of the object, if available.</li>
-<li><code>go_id</code>: The GO ID of the object, if available. When using the data portal, this field is used to find matching
-    annotations in the data portal.</li>
+<li><code>identifier</code>: The GO ID of the object or a UniProtKB accession, if available. When using the data portal, this
+    field is used to find matching annotations in the data portal.</li>
 <li><code>label</code>: An integer that indicates which numeric label should be used in segmentations to represent this object.</li>
 <li><code>color</code>: An array of four integers that represent the RGBA color of the object when rendered in a 3D viewer.</li>
 <li><code>radius</code>: An integer that represents the radius of the object in angstroms. This is used to determine the size of the
