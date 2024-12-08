@@ -161,7 +161,8 @@ class CopickPicksFileCDP(CopickPicksFile):
                 data = json.loads(line)
                 x, y, z = data["location"]["x"] * vs, data["location"]["y"] * vs, data["location"]["z"] * vs
                 mat = np.eye(4, 4)
-                mat[:3, :3] = np.array(data["xyz_rotation_matrix"])
+                if shape_type == "OrientedPoint":
+                    mat[:3, :3] = np.array(data["xyz_rotation_matrix"])
                 if shape_type == "OrientedPoint":
                     point = CopickPoint(
                         location=CopickLocation(x=x, y=y, z=z),

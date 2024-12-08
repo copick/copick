@@ -4,7 +4,7 @@ from typing import Dict, List, Literal, MutableMapping, Optional, Tuple, Type, U
 import numpy as np
 import trimesh
 import zarr
-from pydantic import BaseModel, Field, field_validator
+from pydantic import AliasChoices, BaseModel, Field, field_validator
 from trimesh.parent import Geometry
 
 from copick.util.ome import fits_in_memory, segmentation_pyramid, volume_pyramid, write_ome_zarr_3d
@@ -31,7 +31,7 @@ class PickableObject(BaseModel):
     color: Optional[Tuple[int, int, int, int]] = (100, 100, 100, 255)
     emdb_id: Optional[str] = None
     pdb_id: Optional[str] = None
-    identifier: Optional[str] = Field(None, alias="go_id")
+    identifier: Optional[str] = Field(None, alias=AliasChoices("go_id", "identifier"))
     map_threshold: Optional[float] = None
     radius: Optional[float] = None
 

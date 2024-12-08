@@ -6,5 +6,6 @@ __all__ = [
     "from_file",
     "from_string",
     "from_czcdp_datasets",
+    "from_string",
     "__version__",
 ]
