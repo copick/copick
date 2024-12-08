@@ -1137,10 +1137,29 @@ class CopickVoxelSpacing:
         Returns:
             CopickTomogram: The tomogram with the given type, or `None` if not found.
         """
+        from warnings import warn
+
+        warn(
+            "get_tomogram is deprecated, use get_tomograms instead. Results may be incomplete",
+            DeprecationWarning,
+            stacklevel=2,
+        )
         for tomo in self.tomograms:
             if tomo.tomo_type == tomo_type:
                 return tomo
         return None
+
+    def get_tomograms(self, tomo_type: str) -> List["CopickTomogram"]:
+        """Get tomograms by type.
+
+        Args:
+            tomo_type: Type of the tomograms to retrieve.
+
+        Returns:
+            List[CopickTomogram]: The tomograms with the given type.
+        """
+        tomos = [tomo for tomo in self.tomograms if tomo.tomo_type == tomo_type]
+        return tomos
 
     def refresh_tomograms(self) -> None:
         """Refresh `CopickVoxelSpacing.tomograms` from storage."""

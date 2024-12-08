@@ -43,17 +43,18 @@ def camel(s: str) -> str:
     return "".join([s[0].lower(), s[1:]])
 
 
-_portal_types = Union[Type[cdp.Annotation], Type[cdp.AnnotationFile]]
+_portal_types = Union[Type[cdp.Annotation], Type[cdp.AnnotationFile], Type[cdp.Tomogram]]
 
 
 def _portal_to_model(clz: _portal_types, name: str) -> Type[BaseModel]:
     """Automatically create a Pydantic model from a CryoET Data Portal annotation class."""
     vals = clz.__annotations__
-    scalars = {k: (Optional[v], None) for k, v in vals.items() if v in [int, float, str, bool]}
+    scalars = {k: (Optional[v], None) for k, v in vals.items() if v in ["int", "float", "str", "bool"] and k[0] != "_"}
     return create_model(name, **scalars)
 
 
 _PortalAnnotation = _portal_to_model(cdp.Annotation, "_PortalAnnotation")
+_PortalTomogram = _portal_to_model(cdp.Tomogram, "_PortalTomogram")
 
 
 class PortalAnnotationMeta(BaseModel):
@@ -71,6 +72,34 @@ class PortalAnnotationMeta(BaseModel):
     def compare(self, meta: Dict[str, Any], authors: List[str]) -> bool:
         # To convert to proper format
         qpm = _PortalAnnotation(**meta)
+        qa = authors
+
+        # Select fields to compare
+        fields = list(qpm.model_fields_set)
+        test_fields = [f for f in fields if getattr(qpm, f) is not None]
+
+        # Check if all authors are in the list
+        author_condition = all(a in self.portal_authors for a in qa)
+        # Check if all fields are equal
+        meta_condition = all(getattr(self.portal_metadata, f) == getattr(qpm, f) for f in test_fields)
+
+        return author_condition and meta_condition
+
+
+class PortalTomogramMeta(BaseModel):
+    portal_metadata: Optional[_PortalTomogram] = _PortalTomogram()
+    portal_authors: Optional[List[str]] = []
+
+    @classmethod
+    def from_tomogram(cls, source: cdp.Tomogram):
+        return cls(
+            portal_metadata=_PortalTomogram(**source.to_dict()),
+            portal_authors=[a.name for a in source.authors],
+        )
+
+    def compare(self, meta: Dict[str, Any], authors: List[str]) -> bool:
+        # To convert to proper format
+        qpm = _PortalTomogram(**meta)
         qa = authors
 
         # Select fields to compare
@@ -353,15 +382,19 @@ class CopickFeaturesCDP(CopickFeaturesOverlay):
 class CopickTomogramMetaCDP(CopickTomogramMeta):
     portal_tomo_id: Optional[int] = None
     portal_tomo_path: Optional[str] = None
+    portal_metadata: Optional[PortalTomogramMeta] = PortalTomogramMeta()
 
     @classmethod
     def from_portal(cls, source: cdp.Tomogram):
         reconstruction_method = camel(source.reconstruction_method)
 
+        portal_meta = PortalTomogramMeta.from_tomogram(source)
+
         return cls(
             tomo_type=f"{reconstruction_method}",
             portal_tomo_id=source.id,
             portal_tomo_path=source.s3_omezarr_dir,
+            portal_metadata=portal_meta,
         )
 
 
@@ -537,6 +570,35 @@ class CopickVoxelSpacingCDP(CopickVoxelSpacingOverlay):
         else:
             return exists
 
+    def get_tomograms(
+        self,
+        tomo_type: str,
+        portal_meta_query: Dict[str, Any] = None,
+        portal_author_query: List[str] = None,
+    ) -> List["CopickTomogramCDP"]:
+        """Get a tomogram by type. Portal metadata are compared for equality. Authors are compared for inclusion.
+
+        Args:
+            tomo_type: The type of tomogram to get. For portal tomograms, this is
+                `cryoet_data_portal.Tomogram.reconstruction_method.`
+            portal_meta_query: Dictionary of values to compare against portal metadata of this tomogram. Allowed keys
+                are the scalar fields of [cryoet_data_portal.Tomogram](https://chanzuckerberg.github.io/cryoet-data-portal/api_reference.html#cryoet_data_portal.Tomogram)
+            portal_author_query: List of author names. Tomograms are included if this author is in the portal
+                annotation's author list.
+
+        Returns:
+            List[CopickTomogram]: The list of tomograms that match the query.
+        """
+        tomos = super().get_tomograms(tomo_type)
+
+        if portal_meta_query is None:
+            portal_meta_query = {}
+        if portal_author_query is None:
+            portal_author_query = []
+
+        # Compare portal metadata and authors
+        return [t for t in tomos if t.meta.portal_metadata.compare(portal_meta_query, portal_author_query)]
+
 
 class CopickRunMetaCDP(CopickRunMeta):
     portal_run_id: Optional[int] = None
@@ -675,7 +737,7 @@ class CopickRunCDP(CopickRunOverlay):
             user_id: User ID to search for.
             session_id: Session ID to search for.
             portal_meta_query: Dictionary of values to compare against portal metadata of this annotation. Allowed keys
-                are the scalar fields of [cryoet_data_portal.Annotation](https://chanzuckerberg.github.io/cryoet-data-portal/python-api.html#annotation)
+                are the scalar fields of [cryoet_data_portal.Annotation](https://chanzuckerberg.github.io/cryoet-data-portal/api_reference.html#cryoet_data_portal.Annotation)
             portal_author_query: List of author names. Segmentations are included if this author is in the portal
                 annotation's author list.
 
