@@ -132,7 +132,8 @@ class CopickPicksFileCDP(CopickPicksFile):
                 data = json.loads(line)
                 x, y, z = data["location"]["x"] * vs, data["location"]["y"] * vs, data["location"]["z"] * vs
                 mat = np.eye(4, 4)
-                mat[:3, :3] = np.array(data["xyz_rotation_matrix"])
+                if shape_type == "OrientedPoint":
+                    mat[:3, :3] = np.array(data["xyz_rotation_matrix"])
                 if shape_type == "OrientedPoint":
                     point = CopickPoint(
                         location=CopickLocation(x=x, y=y, z=z),
@@ -692,8 +693,6 @@ class CopickRunCDP(CopickRunOverlay):
 
         if portal_author_query is None:
             portal_author_query = []
-
-        print(picks)
 
         # Compare the metadata
         picks = [p for p in picks if p.meta.portal_metadata.compare(portal_meta_query, portal_author_query)]
