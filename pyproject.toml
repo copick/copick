@@ -21,7 +21,7 @@ dependencies = [
     "s3fs",
     "scikit-image",
     "trimesh",
-    "zarr",
+    "zarr<3",
     "distinctipy",
 ]
 authors = [
