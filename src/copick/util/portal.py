@@ -31,15 +31,25 @@ def objects_from_datasets(dataset_ids: List[int]) -> List[PickableObject]:
     """
     client = cdp.Client()
     annotations = cdp.Annotation.find(client, [cdp.Annotation.run.dataset.id._in(dataset_ids)])
+    annotation_shapes = cdp.AnnotationShape.find(
+        client,
+        [cdp.AnnotationShape.annotation.id._in([anno.id for anno in annotations])],
+    )
+    anno_id_to_shape = {}
+
+    for shape in annotation_shapes:
+        shapelist = anno_id_to_shape.get(shape.annotation_id, [])
+        shapelist.append(shape.shape_type.lower())
+        anno_id_to_shape[shape.annotation_id] = shapelist
 
     portal_objects = {}
     for anno in annotations:
-        shapes = [anno_shape.shape_type.lower() for anno_shape in anno.annotation_shapes]
+        shapes = anno_id_to_shape[anno.id]
 
         # Should be considered point?
         is_particle = bool("point" in shapes or "orientedpoint" in shapes)
 
-        # Has an EMD id?
+        # Has an EMD ID?
         apubs = anno.annotation_publication.split(",")
         apubs = [ap.strip() for ap in apubs]
         emds = [pub for pub in apubs if pub.startswith("EMD")]
