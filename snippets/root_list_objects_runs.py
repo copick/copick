@@ -6,7 +6,7 @@ import copick
 root = copick.from_file("path/to/config.json")
 
 # List all available objects
-obj_info = [(o.name, o.label) for o in root.objects.values()]
+obj_info = [(o.name, o.label) for o in root.pickable_objects]
 
 print("Pickable objects in this project:")
 for name, label in obj_info:
