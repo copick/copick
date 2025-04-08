@@ -473,7 +473,7 @@ class CopickTomogramMetaCDP(CopickTomogramMeta):
         portal_meta = PortalTomogramMeta.from_tomogram(source)
 
         return cls(
-            tomo_typxe=name,
+            tomo_type=name,
             portal_tomo_id=source.id,
             portal_tomo_path=source.s3_omezarr_dir,
             portal_metadata=portal_meta,
