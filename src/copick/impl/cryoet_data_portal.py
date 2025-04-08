@@ -473,7 +473,7 @@ class CopickTomogramMetaCDP(CopickTomogramMeta):
         portal_meta = PortalTomogramMeta.from_tomogram(source)
 
         return cls(
-            tomo_type=name,
+            tomo_typxe=name,
             portal_tomo_id=source.id,
             portal_tomo_path=source.s3_omezarr_dir,
             portal_metadata=portal_meta,
@@ -486,6 +486,16 @@ class CopickTomogramCDP(CopickTomogramOverlay):
 
     def _feature_factory(self) -> Tuple[Type[CopickFeaturesCDP], Type["CopickFeaturesMeta"]]:
         return CopickFeaturesCDP, CopickFeaturesMeta
+
+    @property
+    def tomogram(self) -> "CopickTomogramCDP":
+        """The type of tomogram. For data portal tomograms, this is derived as
+        `cryoet_data_portal.Tomogram.reconstruction_method + "-" + cryoet_data_portal.Tomogram.processing + ["-" +
+        cryoet_data_portal.Tomogram.processing_software + "-" + cryoet_data_portal.Tomogram.ctf_corrected`], where
+        `cryoet_data_portal.Tomogram.processing_software` and `cryoet_data_portal.Tomogram.ctf_corrected` are discarded
+        if null in the database.
+        """
+        return self.meta.tomo_type
 
     @property
     def static_path(self) -> str:
