@@ -9,7 +9,7 @@ import s3fs
 import trimesh
 import zarr
 from fsspec import AbstractFileSystem
-from pydantic import BaseModel, create_model
+from pydantic import BaseModel, create_model, field_validator
 from trimesh.parent import Geometry
 
 from copick.impl.overlay import (
@@ -54,20 +54,87 @@ def _portal_to_model(clz: _portal_types, name: str) -> Type[BaseModel]:
 
 
 _PortalAnnotation = _portal_to_model(cdp.Annotation, "_PortalAnnotation")
+_PortalAnnotationShape = _portal_to_model(cdp.AnnotationShape, "_PortalAnnotationShape")
+_PortalAnnotationFile = _portal_to_model(cdp.AnnotationFile, "_PortalAnnotationFile")
 _PortalTomogram = _portal_to_model(cdp.Tomogram, "_PortalTomogram")
 
 
 class PortalAnnotationMeta(BaseModel):
-    portal_metadata: Optional[_PortalAnnotation] = _PortalAnnotation()
-    portal_authors: Optional[List[str]] = []
+    """A class to hold the portal anotation file information and the associated annotation file and shape."""
+
+    portal_annotation: Optional[_PortalAnnotation] = _PortalAnnotation()
+    portal_annotation_shape: Optional[_PortalAnnotationShape] = _PortalAnnotationShape()
+    portal_annotation_file: Optional[_PortalAnnotationFile] = _PortalAnnotationFile()
+    voxel_spacing: Optional[float] = None
+
+    @field_validator("portal_annotation", mode="before")
+    @classmethod
+    def check_portal_annotation(cls, v: Union[_PortalAnnotation, cdp.Annotation]) -> _PortalAnnotation:
+        if isinstance(v, cdp.Annotation):
+            return _PortalAnnotation(**v.to_dict())
+        return v
+
+    @field_validator("portal_annotation_shape", mode="before")
+    @classmethod
+    def check_portal_annotation_shape(
+        cls,
+        v: Union[_PortalAnnotationShape, cdp.AnnotationShape],
+    ) -> _PortalAnnotationShape:
+        if isinstance(v, cdp.AnnotationShape):
+            return _PortalAnnotationShape(**v.to_dict())
+        return v
+
+    @field_validator("portal_annotation_file", mode="before")
+    @classmethod
+    def check_portal_annotation_file(cls, v: Union[_PortalAnnotationFile, cdp.AnnotationFile]) -> _PortalAnnotationFile:
+        if isinstance(v, cdp.AnnotationFile):
+            return _PortalAnnotationFile(**v.to_dict())
+        return v
 
     @classmethod
-    def from_annotation(cls, source: cdp.AnnotationFile):
-        anno = source.annotation_shape.annotation
+    def from_annotation_file(cls, source: cdp.AnnotationFile):
         return cls(
-            portal_metadata=_PortalAnnotation(**anno.to_dict()),
-            portal_authors=[a.name for a in anno.authors],
+            portal_annotation_file=_PortalAnnotationFile(**source.to_dict()),
+            portal_annotation_shape=_PortalAnnotationShape(**source.annotation_shape.to_dict()),
+            portal_annotation=_PortalAnnotation(**source.annotation_shape.annotation.to_dict()),
+            voxel_spacing=source.tomogram_voxel_spacing.voxel_spacing,
         )
+
+    @property
+    def annotation_id(self) -> int:
+        return self.portal_annotation.id
+
+    @property
+    def annotation_shape_id(self) -> int:
+        return self.portal_annotation_shape.id
+
+    @property
+    def annotation_file_id(self) -> int:
+        return self.portal_annotation_file.id
+
+    @property
+    def shape_type(self) -> str:
+        return self.portal_annotation_shape.shape_type
+
+    @property
+    def object_name(self) -> str:
+        return self.portal_annotation.object_name
+
+    @property
+    def object_id(self) -> int:
+        return self.portal_annotation.object_id
+
+    @property
+    def s3_path(self) -> str:
+        return self.portal_annotation_file.s3_path
+
+    @property
+    def voxel_spacing(self) -> float:
+        return self.voxel_spacing
+
+    @property
+    def portal_authors(self) -> List[str]:
+        return [a.name for a in self.portal_annotation.authors]
 
     def compare(self, meta: Dict[str, Any], authors: List[str]) -> bool:
         # To convert to proper format
@@ -81,7 +148,7 @@ class PortalAnnotationMeta(BaseModel):
         # Check if all authors are in the list
         author_condition = all(a in self.portal_authors for a in qa)
         # Check if all fields are equal
-        meta_condition = all(getattr(self.portal_metadata, f) == getattr(qpm, f) for f in test_fields)
+        meta_condition = all(getattr(self.portal_annotation, f) == getattr(qpm, f) for f in test_fields)
 
         return author_condition and meta_condition
 
@@ -123,29 +190,24 @@ class CopickConfigCDP(CopickConfig):
 
 
 class CopickPicksFileCDP(CopickPicksFile):
-    portal_annotation_file_id: Optional[int] = None
-    portal_annotation_file_path: Optional[str] = None
     portal_metadata: Optional[PortalAnnotationMeta] = PortalAnnotationMeta()
 
     @classmethod
-    def from_portal(cls, source: cdp.AnnotationFile, name: Optional[str] = None):
-        anno = source.annotation_shape.annotation
-        shape_type = source.annotation_shape.shape_type
+    def from_portal_container(cls, source: PortalAnnotationMeta, name: Optional[str] = None):
+        shape_type = source.shape_type
 
         user = "data-portal"
-        session = str(source.id)
+        session = str(source.annotation_file_id)
 
-        object_name = f"{name}" if name else f"{camel(anno.object_name)}-{source.id}"
-
-        portal_meta = PortalAnnotationMeta.from_annotation(source)
+        object_name = f"{name}" if name else f"{camel(source.object_name)}-{source.annotation_file_id}"
 
         clz = cls(
             pickable_object_name=object_name,
             user_id=user,
             session_id=session,
-            portal_annotation_file_id=source.id,
+            portal_annotation_file_id=source.annotation_file_id,
             portal_annotation_file_path=source.s3_path,
-            portal_metadata=portal_meta,
+            portal_metadata=source,
             points=[],
         )
 
@@ -155,7 +217,7 @@ class CopickPicksFileCDP(CopickPicksFile):
             clz.trust_orientation = False
 
         fs = s3fs.S3FileSystem(anon=True)
-        vs = source.tomogram_voxel_spacing.voxel_spacing
+        vs = source.voxel_spacing
         with fs.open(source.s3_path, "r") as f:
             for line in f:
                 data = json.loads(line)
@@ -173,6 +235,14 @@ class CopickPicksFileCDP(CopickPicksFile):
                 clz.points.append(point)
 
         return clz
+
+    @property
+    def portal_annotation_file_id(self) -> int:
+        return self.portal_metadata.portal_annotation_file_id
+
+    @property
+    def portal_annotation_file_path(self) -> str:
+        return self.portal_metadata.s3_path
 
 
 class CopickPicksCDP(CopickPicksOverlay):
@@ -207,9 +277,7 @@ class CopickPicksCDP(CopickPicksOverlay):
 
     def _load(self) -> CopickPicksFile:
         if self.read_only:
-            client = cdp.Client()
-            af = cdp.AnnotationFile.get_by_id(client, self.meta.portal_annotation_file_id)
-            return CopickPicksFileCDP.from_portal(af)
+            return self.meta
         else:
             if not self.fs.exists(self.path):
                 raise FileNotFoundError(f"File not found: {self.path}")
@@ -274,15 +342,13 @@ class CopickMeshCDP(CopickMeshOverlay):
 
 
 class CopickSegmentationMetaCDP(CopickSegmentationMeta):
-    portal_annotation_file_id: Optional[int] = None
-    portal_annotation_file_path: Optional[str] = None
     portal_metadata: Optional[PortalAnnotationMeta] = PortalAnnotationMeta()
 
     @classmethod
     def from_portal(cls, source: cdp.AnnotationFile, name: Optional[str] = None):
         object_name = f"{name}" if name else f"{camel(source.annotation_shape.annotation.object_name)}-{source.id}"
 
-        portal_meta = PortalAnnotationMeta.from_annotation(source)
+        portal_meta = PortalAnnotationMeta.from_annotation_file(source)
 
         return cls(
             is_multilabel=False,
@@ -290,10 +356,16 @@ class CopickSegmentationMetaCDP(CopickSegmentationMeta):
             user_id="data-portal",
             session_id=str(source.id),
             name=object_name,
-            portal_annotation_file_id=source.id,
-            portal_annotation_file_path=source.s3_path,
             portal_metadata=portal_meta,
         )
+
+    @property
+    def portal_annotation_file_id(self) -> int:
+        return self.portal_metadata.portal_annotation_file_id
+
+    @property
+    def portal_annotation_file_path(self) -> str:
+        return self.portal_metadata.s3_path
 
 
 class CopickSegmentationCDP(CopickSegmentationOverlay):
@@ -676,7 +748,7 @@ class CopickRunCDP(CopickRunOverlay):
         # Find all point annotations
         client = cdp.Client()
         go_map = self.root.go_map
-        point_annos = cdp.AnnotationFile.find(
+        point_anno_files = cdp.AnnotationFile.find(
             client,
             [
                 cdp.AnnotationFile.annotation_shape.annotation.run_id == self.portal_run_id,
@@ -684,14 +756,49 @@ class CopickRunCDP(CopickRunOverlay):
                 cdp.AnnotationFile.annotation_shape.annotation.object_id._in(go_map.keys()),  # noqa
             ],
         )
+        point_anno_shapes = cdp.AnnotationShape.find(
+            client,
+            [
+                cdp.AnnotationShape.annotation_files.id._in([af.id for af in point_anno_files]),  # noqa
+            ],
+        )
+        point_annos = cdp.Annotation.find(
+            client,
+            [
+                cdp.Annotation.id._in([ans.annotation_id for ans in point_anno_shapes]),  # noqa
+            ],
+        )
+        voxel_spacings = cdp.TomogramVoxelSpacing.find(
+            client,
+            [
+                cdp.TomogramVoxelSpacing.run.id == self.portal_run_id,
+                cdp.TomogramVoxelSpacing.id._in([af.tomogram_voxel_spacing_id for af in point_anno_files]),
+            ],
+        )
+
+        {af.id: af for af in point_anno_files}
+        id_to_annotation_shape = {ans.id: ans for ans in point_anno_shapes}
+        id_to_annotation = {an.id: an for an in point_annos}
+        id_to_voxel_spacing = {vs.id: vs for vs in voxel_spacings}
+
+        # Create a list of PortalAnnotationContainer objects
+        portal_meta = [
+            PortalAnnotationMeta(
+                portal_annotation_file=af,
+                portal_annotation_shape=id_to_annotation_shape[af.annotation_shape_id],
+                portal_annotation=id_to_annotation[id_to_annotation_shape[af.annotation_shape_id].annotation_id],
+                voxel_spacing=id_to_voxel_spacing[af.tomogram_voxel_spacing_id].voxel_spacing,
+            )
+            for af in point_anno_files
+        ]
 
         return [
             CopickPicksCDP(
                 run=self,
-                file=CopickPicksFileCDP.from_portal(af, name=go_map[af.annotation_shape.annotation.object_id]),
+                file=CopickPicksFileCDP.from_portal_container(pm, name=go_map[pm.object_id]),
                 read_only=True,
             )
-            for af in point_annos
+            for pm in portal_meta
         ]
 
     def _query_overlay_picks(self) -> List[CopickPicksCDP]:
