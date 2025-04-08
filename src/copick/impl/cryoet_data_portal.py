@@ -387,11 +387,21 @@ class CopickTomogramMetaCDP(CopickTomogramMeta):
     @classmethod
     def from_portal(cls, source: cdp.Tomogram):
         reconstruction_method = camel(source.reconstruction_method)
+        processing_method = camel(source.processing)
+        processing_tool = camel(source.processing_software) if source.processing_software else ""
+        ctf_status = "ctfdeconv" if source.ctf_corrected else ""
+
+        # Only include non-empty processing_tool and ctf_status
+        name = f"{reconstruction_method}-{processing_method}"
+        if processing_tool:
+            name += f"-{processing_tool}"
+        if ctf_status:
+            name += f"-{ctf_status}"
 
         portal_meta = PortalTomogramMeta.from_tomogram(source)
 
         return cls(
-            tomo_type=f"{reconstruction_method}",
+            tomo_type=name,
             portal_tomo_id=source.id,
             portal_tomo_path=source.s3_omezarr_dir,
             portal_metadata=portal_meta,
