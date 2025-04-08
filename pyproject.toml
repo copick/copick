@@ -22,7 +22,7 @@ dependencies = [
     "scikit-image",
     "trimesh",
     "zarr<3",
-    "numcodecs<0.15.0",
+    "numcodecs<0.16.0",
     "distinctipy",
 ]
 authors = [
