@@ -1,4 +1,4 @@
-__version__ = "1.0.0"
+__version__ = "1.0.1"
 
 from copick.ops.open import from_czcdp_datasets, from_file, from_string
 
