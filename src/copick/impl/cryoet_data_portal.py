@@ -459,11 +459,21 @@ class CopickTomogramMetaCDP(CopickTomogramMeta):
     @classmethod
     def from_portal(cls, source: cdp.Tomogram):
         reconstruction_method = camel(source.reconstruction_method)
+        processing_method = camel(source.processing)
+        processing_tool = camel(source.processing_software) if source.processing_software else ""
+        ctf_status = "ctfdeconv" if source.ctf_corrected else ""
+
+        # Only include non-empty processing_tool and ctf_status
+        name = f"{reconstruction_method}-{processing_method}"
+        if processing_tool:
+            name += f"-{processing_tool}"
+        if ctf_status:
+            name += f"-{ctf_status}"
 
         portal_meta = PortalTomogramMeta.from_tomogram(source)
 
         return cls(
-            tomo_type=f"{reconstruction_method}",
+            tomo_typxe=name,
             portal_tomo_id=source.id,
             portal_tomo_path=source.s3_omezarr_dir,
             portal_metadata=portal_meta,
@@ -476,6 +486,16 @@ class CopickTomogramCDP(CopickTomogramOverlay):
 
     def _feature_factory(self) -> Tuple[Type[CopickFeaturesCDP], Type["CopickFeaturesMeta"]]:
         return CopickFeaturesCDP, CopickFeaturesMeta
+
+    @property
+    def tomogram(self) -> "CopickTomogramCDP":
+        """The type of tomogram. For data portal tomograms, this is derived as
+        `cryoet_data_portal.Tomogram.reconstruction_method + "-" + cryoet_data_portal.Tomogram.processing + ["-" +
+        cryoet_data_portal.Tomogram.processing_software + "-" + cryoet_data_portal.Tomogram.ctf_corrected`], where
+        `cryoet_data_portal.Tomogram.processing_software` and `cryoet_data_portal.Tomogram.ctf_corrected` are discarded
+        if null in the database.
+        """
+        return self.meta.tomo_type
 
     @property
     def static_path(self) -> str:
