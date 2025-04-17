@@ -1,5 +1,6 @@
 import json
 import re
+import warnings
 from typing import Any, Dict, List, Optional, Tuple, Type, Union
 
 import cryoet_data_portal as cdp
@@ -1121,12 +1122,26 @@ class CopickRootCDP(CopickRoot):
         self.fs_overlay: AbstractFileSystem = fsspec.core.url_to_fs(config.overlay_root, **config.overlay_fs_args)[0]
         self.root_overlay: str = self.fs_overlay._strip_protocol(config.overlay_root)  # noqa
 
-        client = cdp.Client()
-        self.datasets = [cdp.Dataset.get_by_id(client, did) for did in config.dataset_ids]
+        cdp.Client()
 
     @property
     def go_map(self) -> Dict[str, str]:
         return {po.identifier: po.name for po in self.pickable_objects if po.identifier is not None}
+
+    @property
+    def datasets(self) -> List[cdp.Dataset]:
+        warnings.warn(
+            "CopickRootCDP.datasets will be deprecated in the next release. Use CopickRootCDP.dataset_ids instead.",
+            DeprecationWarning,
+            stacklevel=2,
+        )
+        client = cdp.Client()
+        datasets = cdp.Dataset.find(client, [cdp.Dataset.id._in(self.dataset_ids)])
+        return datasets
+
+    @property
+    def dataset_ids(self) -> List[int]:
+        return self.config.dataset_ids
 
     @classmethod
     def from_file(cls, path: str) -> "CopickRootCDP":
@@ -1143,7 +1158,7 @@ class CopickRootCDP(CopickRoot):
 
     def query(self) -> List[CopickRunCDP]:
         client = cdp.Client()
-        portal_runs = cdp.Run.find(client, [cdp.Run.dataset_id._in([d.id for d in self.datasets])])  # noqa
+        portal_runs = cdp.Run.find(client, [cdp.Run.dataset_id._in([self.dataset_ids])])  # noqa
 
         runs = []
         for pr in portal_runs:
