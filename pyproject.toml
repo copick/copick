@@ -24,6 +24,7 @@ dependencies = [
     "zarr<3",
     "numcodecs<0.16.0",
     "distinctipy",
+    "tqdm",
 ]
 authors = [
   {name = "Utz H. Ermel", email = "utz.ermel@czii.org"},
