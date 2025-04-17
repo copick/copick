@@ -1157,7 +1157,7 @@ class CopickRootCDP(CopickRoot):
 
     def query(self) -> List[CopickRunCDP]:
         client = cdp.Client()
-        portal_runs = cdp.Run.find(client, [cdp.Run.dataset_id._in([self.dataset_ids])])  # noqa
+        portal_runs = cdp.Run.find(client, [cdp.Run.dataset_id._in(self.dataset_ids)])  # noqa
 
         runs = []
         for pr in portal_runs:
