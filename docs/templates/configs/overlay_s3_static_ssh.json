@@ -1,0 +1,56 @@
+{
+    "name": "Example Project",
+    "description": "This is an example project, demonstrating overlaying a s3-backend ona project in a ssh-backend.",
+    "version": "0.5.0",
+    "pickable_objects": [
+        {
+            "name": "ribosome",
+            "is_particle": true,
+            "label": 1,
+            "color": [
+                0,
+                117,
+                220,
+                255
+            ],
+            "radius": 150.0
+        },
+        {
+            "name": "atpase",
+            "is_particle": true,
+            "label": 2,
+            "color": [
+                251,
+                192,
+                147,
+                255
+            ],
+            "radius": 150.0
+        },
+        {
+            "name": "membrane",
+            "is_particle": false,
+            "label": 3,
+            "color": [
+                200,
+                200,
+                200,
+                255
+            ],
+            "radius": 10.0
+        }
+    ],
+    "user_id": "example.user",
+    "config_type": "filesystem",
+    "overlay_root": "s3://bucket/copick_project/",
+    "static_root": "ssh:///hpc/storage/copick_project_static/",
+    "overlay_fs_args": {
+        "profile": "your_profile"
+    },
+    "static_fs_args": {
+        "username": "user.name",
+        "password": "1234",
+        "host": "hpc.example.com",
+        "port": 22
+    }
+}

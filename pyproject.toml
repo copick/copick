@@ -9,16 +9,21 @@ classifiers = [
     "Development Status :: 3 - Alpha",
     "License :: OSI Approved :: MIT License",
 ]
-#dynamic = ["version"]
-version = "0.4.0"
+dynamic = ["version"]
 dependencies = [
+    "click",
+    "cryoet-data-portal>=4.4.0",
     "fsspec>=2024.6.0",
-    "pydantic",
     "numpy",
-    "trimesh",
-    "zarr",
-    "cryoet-data-portal>=3.0.3",
+    "ome-zarr",
+    "psutil",
+    "pydantic>=2",
     "s3fs",
+    "scikit-image",
+    "trimesh",
+    "zarr<3",
+    "numcodecs<0.16.0",
+    "distinctipy",
 ]
 authors = [
   {name = "Utz H. Ermel", email = "utz.ermel@czii.org"},
@@ -31,8 +36,10 @@ keywords = ["cryoet", "cryo-et", "tomography", "annotation", "segmentation", "co
 
 
 [project.urls]
-Repository = "https://github.com/uermel/copick.git"
-Issues = "https://github.com/uermel/copick/issues"
+Repository = "https://github.com/copick/copick.git"
+Issues = "https://github.com/copick/copick/issues"
+docs = "https://copick.github.io/copick/"
+documentation = "https://copick.github.io/copick/"
 
 [project.scripts]
 copick = "copick.cli.cli:cli"
@@ -63,9 +70,14 @@ docs = [
     "mkdocs-material",
 ]
 
-#[tool.hatch.version]
-#source = "copick/__init__.py"
-#fallback-version = "0.3.0"
+[project.scripts]
+make_templates = "copick.cli.make_templates:create [docs]"
+
+[tool.hatch.version]
+path = "src/copick/__init__.py"
+
+[tool.hatch.metadata]
+allow-direct-references = true
 
 [tool.black]
 line-length = 120

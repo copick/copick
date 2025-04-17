@@ -45,7 +45,7 @@ class CopickConfigFSSpec(CopickConfig):
 
     config_type: str = "filesystem"
     overlay_root: str
-    static_root: Optional[str]
+    static_root: Optional[str] = None
 
     overlay_fs_args: Optional[Dict[str, Any]] = {}
     static_fs_args: Optional[Dict[str, Any]] = {}
@@ -554,7 +554,7 @@ class CopickRunFSSpec(CopickRunOverlay):
         sessions = [n.split("_")[1] for n in names]
         objects = [n.split("_")[2] for n in names]
 
-        # zip(strict=True) (replace once python 3.9 is EOL)
+        # TODO: zip(strict=True) (replace once python 3.9 is EOL)
         assert len(users) == len(sessions) == len(objects)
 
         return [
@@ -581,7 +581,7 @@ class CopickRunFSSpec(CopickRunOverlay):
         sessions = [n.split("_")[1] for n in names]
         objects = [n.split("_")[2] for n in names]
 
-        # zip(strict=True) (replace once python 3.9 is EOL)
+        # TODO: zip(strict=True) (replace once python 3.9 is EOL)
         assert len(users) == len(sessions) == len(objects)
 
         return [
@@ -611,7 +611,7 @@ class CopickRunFSSpec(CopickRunOverlay):
         sessions = [n.split("_")[1] for n in names]
         objects = [n.split("_")[2] for n in names]
 
-        # zip(strict=True) (replace once python 3.9 is EOL)
+        # TODO: zip(strict=True) (replace once python 3.9 is EOL)
         assert len(users) == len(sessions) == len(objects)
 
         return [
@@ -638,7 +638,7 @@ class CopickRunFSSpec(CopickRunOverlay):
         sessions = [n.split("_")[1] for n in names]
         objects = [n.split("_")[2] for n in names]
 
-        # zip(strict=True) (replace once python 3.9 is EOL)
+        # TODO: zip(strict=True) (replace once python 3.9 is EOL)
         assert len(users) == len(sessions) == len(objects)
 
         return [
@@ -802,6 +802,9 @@ class CopickObjectFSSpec(CopickObjectOverlay):
         if not self.is_particle:
             return None
 
+        if not self.fs.exists(self.path):
+            return None
+
         if self.read_only:
             mode = "r"
             create = False
@@ -879,7 +882,13 @@ class CopickRootFSSpec(CopickRoot):
         # Query location
         run_dir = f"{root}/ExperimentRuns/"
         paths = fs.glob(run_dir + "**", maxdepth=1, detail=True)
-        names = [p.rstrip("/").replace(run_dir, "") for p, details in paths.items() if details["type"] == "directory"]
+        names = [
+            p.rstrip("/").replace(run_dir, "")
+            for p, details in paths.items()
+            if (details.get("type", "") == "directory")
+            or (details.get("type", "") == "other" and details.get("islink", False))
+            or (details.get("type", "") == "link")
+        ]
 
         # Remove any hidden files
         names = [n for n in names if not n.startswith(".") and n != f"{root}/ExperimentRuns"]
