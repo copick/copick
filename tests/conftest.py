@@ -460,5 +460,40 @@ if importlib_util.find_spec("smbclient") and RUN_ALL:
     # COMMON_CASES.extend(["smb_overlay_only", "smb"])
 
 
+@pytest.fixture
+def cryoet_data_portal_payload(base_config_overlay_only):
+    # Copy project to temp directory
+    temp_dir = Path(tempfile.mkdtemp())
+    project_directory = temp_dir / "sample_project_overlay"
+    config = temp_dir / "local_overlay_only.json"
+
+    # Open baseline config
+    with open(base_config_overlay_only, "r") as f:
+        cfg = json.load(f)
+
+    # Set the overlay root to the sample project
+    cfg["overlay_root"] = "local://" + str(project_directory)
+    cfg["overlay_fs_args"] = {"auto_mkdir": True}
+    cfg["config_type"] = "cryoet_data_portal"
+    cfg["dataset_ids"] = [10000]
+
+    # Write the config to the local path
+    with open(config, "w") as f:
+        json.dump(cfg, f)
+
+    payload = {
+        "cfg_file": config,
+        "testfs_static": None,
+        "testpath_static": None,
+        "testfs_overlay": fsspec.filesystem("local"),
+        "testpath_overlay": PurePath(project_directory),
+    }
+
+    yield payload
+
+    if CLEANUP:
+        shutil.rmtree(temp_dir)
+
+
 def pytest_configure():
     pytest.common_cases = COMMON_CASES
