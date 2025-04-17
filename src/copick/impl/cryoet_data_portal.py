@@ -1129,7 +1129,8 @@ class CopickRootCDP(CopickRoot):
     @property
     def datasets(self) -> List[cdp.Dataset]:
         warnings.warn(
-            "CopickRootCDP.datasets will be deprecated in the next release. Use CopickRootCDP.dataset_ids instead.",
+            "CopickRootCDP.datasets will be deprecated in the next major release. Use "
+            "CopickRootCDP.dataset_ids instead.",
             DeprecationWarning,
             stacklevel=2,
         )
