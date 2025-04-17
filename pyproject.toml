@@ -9,11 +9,10 @@ classifiers = [
     "Development Status :: 3 - Alpha",
     "License :: OSI Approved :: MIT License",
 ]
-#dynamic = ["version"]
-version = "0.5.8"
+dynamic = ["version"]
 dependencies = [
     "click",
-    "cryoet-data-portal @ git+https://github.com/chanzuckerberg/cryoet-data-portal.git@4b7837c#egg=cryoet-data-portal&subdirectory=client/python/cryoet_data_portal",
+    "cryoet-data-portal>=4.4.0",
     "fsspec>=2024.6.0",
     "numpy",
     "ome-zarr",
@@ -22,7 +21,9 @@ dependencies = [
     "s3fs",
     "scikit-image",
     "trimesh",
-    "zarr",
+    "zarr<3",
+    "numcodecs<0.16.0",
+    "distinctipy",
 ]
 authors = [
   {name = "Utz H. Ermel", email = "utz.ermel@czii.org"},
@@ -32,7 +33,6 @@ description = "Definitions for a collaborative cryoET annotation tool."
 readme = "README.md"
 license = {file = "LICENSE"}
 keywords = ["cryoet", "cryo-et", "tomography", "annotation", "segmentation", "collaborative", "copick"]
-
 
 [project.urls]
 Repository = "https://github.com/copick/copick.git"
@@ -70,9 +70,8 @@ docs = [
     "mkdocs-material",
 ]
 
-#[tool.hatch.version]
-#source = "copick/__init__.py"
-#fallback-version = "0.3.0"
+[tool.hatch.version]
+path = "src/copick/__init__.py"
 
 [tool.hatch.metadata]
 allow-direct-references = true

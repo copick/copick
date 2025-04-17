@@ -1,7 +1,11 @@
-__version__ = "0.5.7"
+__version__ = "1.1.0"
 
-from copick.ops.open import from_file
+from copick.ops.open import from_czcdp_datasets, from_file, from_string
 
 __all__ = [
     "from_file",
+    "from_string",
+    "from_czcdp_datasets",
+    "from_string",
+    "__version__",
 ]

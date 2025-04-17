@@ -1,5 +1,6 @@
 import json
 import re
+import warnings
 from typing import Any, Dict, List, Optional, Tuple, Type, Union
 
 import cryoet_data_portal as cdp
@@ -9,7 +10,7 @@ import s3fs
 import trimesh
 import zarr
 from fsspec import AbstractFileSystem
-from pydantic import BaseModel, create_model
+from pydantic import BaseModel, create_model, field_validator
 from trimesh.parent import Geometry
 
 from copick.impl.overlay import (
@@ -43,34 +44,130 @@ def camel(s: str) -> str:
     return "".join([s[0].lower(), s[1:]])
 
 
-_portal_types = Union[Type[cdp.Annotation], Type[cdp.AnnotationFile]]
+_portal_types = Union[Type[cdp.Annotation], Type[cdp.AnnotationFile], Type[cdp.Tomogram]]
 
 
 def _portal_to_model(clz: _portal_types, name: str) -> Type[BaseModel]:
     """Automatically create a Pydantic model from a CryoET Data Portal annotation class."""
     vals = clz.__annotations__
-    scalars = {k: (Optional[v], None) for k, v in vals.items() if v in [int, float, str, bool]}
+    scalars = {k: (Optional[v], None) for k, v in vals.items() if v in ["int", "float", "str", "bool"] and k[0] != "_"}
     return create_model(name, **scalars)
 
 
 _PortalAnnotation = _portal_to_model(cdp.Annotation, "_PortalAnnotation")
+_PortalAnnotationShape = _portal_to_model(cdp.AnnotationShape, "_PortalAnnotationShape")
+_PortalAnnotationFile = _portal_to_model(cdp.AnnotationFile, "_PortalAnnotationFile")
+_PortalTomogram = _portal_to_model(cdp.Tomogram, "_PortalTomogram")
 
 
 class PortalAnnotationMeta(BaseModel):
-    portal_metadata: Optional[_PortalAnnotation] = _PortalAnnotation()
-    portal_authors: Optional[List[str]] = []
+    """A class to hold the portal anotation file information and the associated annotation file and shape."""
+
+    portal_annotation: Optional[_PortalAnnotation] = _PortalAnnotation()
+    portal_annotation_shape: Optional[_PortalAnnotationShape] = _PortalAnnotationShape()
+    portal_annotation_file: Optional[_PortalAnnotationFile] = _PortalAnnotationFile()
+    voxel_spacing: Optional[float] = None
+
+    @field_validator("portal_annotation", mode="before")
+    @classmethod
+    def check_portal_annotation(cls, v: Union[_PortalAnnotation, cdp.Annotation]) -> _PortalAnnotation:
+        if isinstance(v, cdp.Annotation):
+            return _PortalAnnotation(**v.to_dict())
+        return v
+
+    @field_validator("portal_annotation_shape", mode="before")
+    @classmethod
+    def check_portal_annotation_shape(
+        cls,
+        v: Union[_PortalAnnotationShape, cdp.AnnotationShape],
+    ) -> _PortalAnnotationShape:
+        if isinstance(v, cdp.AnnotationShape):
+            return _PortalAnnotationShape(**v.to_dict())
+        return v
+
+    @field_validator("portal_annotation_file", mode="before")
+    @classmethod
+    def check_portal_annotation_file(cls, v: Union[_PortalAnnotationFile, cdp.AnnotationFile]) -> _PortalAnnotationFile:
+        if isinstance(v, cdp.AnnotationFile):
+            return _PortalAnnotationFile(**v.to_dict())
+        return v
 
     @classmethod
-    def from_annotation(cls, source: cdp.AnnotationFile):
-        anno = source.annotation_shape.annotation
+    def from_annotation_file(cls, source: cdp.AnnotationFile):
         return cls(
-            portal_metadata=_PortalAnnotation(**anno.to_dict()),
-            portal_authors=[a.name for a in anno.authors],
+            portal_annotation_file=_PortalAnnotationFile(**source.to_dict()),
+            portal_annotation_shape=_PortalAnnotationShape(**source.annotation_shape.to_dict()),
+            portal_annotation=_PortalAnnotation(**source.annotation_shape.annotation.to_dict()),
+            voxel_spacing=source.tomogram_voxel_spacing.voxel_spacing,
         )
+
+    @property
+    def annotation_id(self) -> int:
+        return self.portal_annotation.id
+
+    @property
+    def annotation_shape_id(self) -> int:
+        return self.portal_annotation_shape.id
+
+    @property
+    def annotation_file_id(self) -> int:
+        return self.portal_annotation_file.id
+
+    @property
+    def shape_type(self) -> str:
+        return self.portal_annotation_shape.shape_type
+
+    @property
+    def object_name(self) -> str:
+        return self.portal_annotation.object_name
+
+    @property
+    def object_id(self) -> int:
+        return self.portal_annotation.object_id
+
+    @property
+    def s3_path(self) -> str:
+        return self.portal_annotation_file.s3_path
+
+    @property
+    def voxel_spacing(self) -> float:
+        return self.voxel_spacing
+
+    @property
+    def portal_authors(self) -> List[str]:
+        return [a.name for a in self.portal_annotation.authors]
 
     def compare(self, meta: Dict[str, Any], authors: List[str]) -> bool:
         # To convert to proper format
         qpm = _PortalAnnotation(**meta)
+        qa = authors
+
+        # Select fields to compare
+        fields = list(qpm.model_fields_set)
+        test_fields = [f for f in fields if getattr(qpm, f) is not None]
+
+        # Check if all authors are in the list
+        author_condition = all(a in self.portal_authors for a in qa)
+        # Check if all fields are equal
+        meta_condition = all(getattr(self.portal_annotation, f) == getattr(qpm, f) for f in test_fields)
+
+        return author_condition and meta_condition
+
+
+class PortalTomogramMeta(BaseModel):
+    portal_metadata: Optional[_PortalTomogram] = _PortalTomogram()
+    portal_authors: Optional[List[str]] = []
+
+    @classmethod
+    def from_tomogram(cls, source: cdp.Tomogram):
+        return cls(
+            portal_metadata=_PortalTomogram(**source.to_dict()),
+            portal_authors=[a.name for a in source.authors],
+        )
+
+    def compare(self, meta: Dict[str, Any], authors: List[str]) -> bool:
+        # To convert to proper format
+        qpm = _PortalTomogram(**meta)
         qa = authors
 
         # Select fields to compare
@@ -94,29 +191,24 @@ class CopickConfigCDP(CopickConfig):
 
 
 class CopickPicksFileCDP(CopickPicksFile):
-    portal_annotation_file_id: Optional[int] = None
-    portal_annotation_file_path: Optional[str] = None
     portal_metadata: Optional[PortalAnnotationMeta] = PortalAnnotationMeta()
 
     @classmethod
-    def from_portal(cls, source: cdp.AnnotationFile, name: Optional[str] = None):
-        anno = source.annotation_shape.annotation
-        shape_type = source.annotation_shape.shape_type
+    def from_portal_container(cls, source: PortalAnnotationMeta, name: Optional[str] = None):
+        shape_type = source.shape_type
 
         user = "data-portal"
-        session = str(source.id)
+        session = str(source.annotation_file_id)
 
-        object_name = f"{name}" if name else f"{camel(anno.object_name)}-{source.id}"
-
-        portal_meta = PortalAnnotationMeta.from_annotation(source)
+        object_name = f"{name}" if name else f"{camel(source.object_name)}-{source.annotation_file_id}"
 
         clz = cls(
             pickable_object_name=object_name,
             user_id=user,
             session_id=session,
-            portal_annotation_file_id=source.id,
+            portal_annotation_file_id=source.annotation_file_id,
             portal_annotation_file_path=source.s3_path,
-            portal_metadata=portal_meta,
+            portal_metadata=source,
             points=[],
         )
 
@@ -126,13 +218,14 @@ class CopickPicksFileCDP(CopickPicksFile):
             clz.trust_orientation = False
 
         fs = s3fs.S3FileSystem(anon=True)
-        vs = source.tomogram_voxel_spacing.voxel_spacing
+        vs = source.voxel_spacing
         with fs.open(source.s3_path, "r") as f:
             for line in f:
                 data = json.loads(line)
                 x, y, z = data["location"]["x"] * vs, data["location"]["y"] * vs, data["location"]["z"] * vs
                 mat = np.eye(4, 4)
-                mat[:3, :3] = np.array(data["xyz_rotation_matrix"])
+                if shape_type == "OrientedPoint":
+                    mat[:3, :3] = np.array(data["xyz_rotation_matrix"])
                 if shape_type == "OrientedPoint":
                     point = CopickPoint(
                         location=CopickLocation(x=x, y=y, z=z),
@@ -143,6 +236,14 @@ class CopickPicksFileCDP(CopickPicksFile):
                 clz.points.append(point)
 
         return clz
+
+    @property
+    def portal_annotation_file_id(self) -> int:
+        return self.portal_metadata.portal_annotation_file_id
+
+    @property
+    def portal_annotation_file_path(self) -> str:
+        return self.portal_metadata.s3_path
 
 
 class CopickPicksCDP(CopickPicksOverlay):
@@ -177,9 +278,7 @@ class CopickPicksCDP(CopickPicksOverlay):
 
     def _load(self) -> CopickPicksFile:
         if self.read_only:
-            client = cdp.Client()
-            af = cdp.AnnotationFile.get_by_id(client, self.meta.portal_annotation_file_id)
-            return CopickPicksFileCDP.from_portal(af)
+            return self.meta
         else:
             if not self.fs.exists(self.path):
                 raise FileNotFoundError(f"File not found: {self.path}")
@@ -244,15 +343,13 @@ class CopickMeshCDP(CopickMeshOverlay):
 
 
 class CopickSegmentationMetaCDP(CopickSegmentationMeta):
-    portal_annotation_file_id: Optional[int] = None
-    portal_annotation_file_path: Optional[str] = None
     portal_metadata: Optional[PortalAnnotationMeta] = PortalAnnotationMeta()
 
     @classmethod
     def from_portal(cls, source: cdp.AnnotationFile, name: Optional[str] = None):
         object_name = f"{name}" if name else f"{camel(source.annotation_shape.annotation.object_name)}-{source.id}"
 
-        portal_meta = PortalAnnotationMeta.from_annotation(source)
+        portal_meta = PortalAnnotationMeta.from_annotation_file(source)
 
         return cls(
             is_multilabel=False,
@@ -260,10 +357,16 @@ class CopickSegmentationMetaCDP(CopickSegmentationMeta):
             user_id="data-portal",
             session_id=str(source.id),
             name=object_name,
-            portal_annotation_file_id=source.id,
-            portal_annotation_file_path=source.s3_path,
             portal_metadata=portal_meta,
         )
+
+    @property
+    def portal_annotation_file_id(self) -> int:
+        return self.portal_metadata.portal_annotation_file_id
+
+    @property
+    def portal_annotation_file_path(self) -> str:
+        return self.portal_metadata.s3_path
 
 
 class CopickSegmentationCDP(CopickSegmentationOverlay):
@@ -352,15 +455,29 @@ class CopickFeaturesCDP(CopickFeaturesOverlay):
 class CopickTomogramMetaCDP(CopickTomogramMeta):
     portal_tomo_id: Optional[int] = None
     portal_tomo_path: Optional[str] = None
+    portal_metadata: Optional[PortalTomogramMeta] = PortalTomogramMeta()
 
     @classmethod
     def from_portal(cls, source: cdp.Tomogram):
         reconstruction_method = camel(source.reconstruction_method)
+        processing_method = camel(source.processing)
+        processing_tool = camel(source.processing_software) if source.processing_software else ""
+        ctf_status = "ctfdeconv" if source.ctf_corrected else ""
+
+        # Only include non-empty processing_tool and ctf_status
+        name = f"{reconstruction_method}-{processing_method}"
+        if processing_tool:
+            name += f"-{processing_tool}"
+        if ctf_status:
+            name += f"-{ctf_status}"
+
+        portal_meta = PortalTomogramMeta.from_tomogram(source)
 
         return cls(
-            tomo_type=f"{reconstruction_method}",
+            tomo_type=name,
             portal_tomo_id=source.id,
             portal_tomo_path=source.s3_omezarr_dir,
+            portal_metadata=portal_meta,
         )
 
 
@@ -370,6 +487,16 @@ class CopickTomogramCDP(CopickTomogramOverlay):
 
     def _feature_factory(self) -> Tuple[Type[CopickFeaturesCDP], Type["CopickFeaturesMeta"]]:
         return CopickFeaturesCDP, CopickFeaturesMeta
+
+    @property
+    def tomogram(self) -> "CopickTomogramCDP":
+        """The type of tomogram. For data portal tomograms, this is derived as
+        `cryoet_data_portal.Tomogram.reconstruction_method + "-" + cryoet_data_portal.Tomogram.processing + ["-" +
+        cryoet_data_portal.Tomogram.processing_software + "-" + cryoet_data_portal.Tomogram.ctf_corrected`], where
+        `cryoet_data_portal.Tomogram.processing_software` and `cryoet_data_portal.Tomogram.ctf_corrected` are discarded
+        if null in the database.
+        """
+        return self.meta.tomo_type
 
     @property
     def static_path(self) -> str:
@@ -536,6 +663,35 @@ class CopickVoxelSpacingCDP(CopickVoxelSpacingOverlay):
         else:
             return exists
 
+    def get_tomograms(
+        self,
+        tomo_type: str,
+        portal_meta_query: Dict[str, Any] = None,
+        portal_author_query: List[str] = None,
+    ) -> List["CopickTomogramCDP"]:
+        """Get a tomogram by type. Portal metadata are compared for equality. Authors are compared for inclusion.
+
+        Args:
+            tomo_type: The type of tomogram to get. For portal tomograms, this is
+                `cryoet_data_portal.Tomogram.reconstruction_method.`
+            portal_meta_query: Dictionary of values to compare against portal metadata of this tomogram. Allowed keys
+                are the scalar fields of [cryoet_data_portal.Tomogram](https://chanzuckerberg.github.io/cryoet-data-portal/api_reference.html#cryoet_data_portal.Tomogram)
+            portal_author_query: List of author names. Tomograms are included if this author is in the portal
+                annotation's author list.
+
+        Returns:
+            List[CopickTomogram]: The list of tomograms that match the query.
+        """
+        tomos = super().get_tomograms(tomo_type)
+
+        if portal_meta_query is None:
+            portal_meta_query = {}
+        if portal_author_query is None:
+            portal_author_query = []
+
+        # Compare portal metadata and authors
+        return [t for t in tomos if t.meta.portal_metadata.compare(portal_meta_query, portal_author_query)]
+
 
 class CopickRunMetaCDP(CopickRunMeta):
     portal_run_id: Optional[int] = None
@@ -613,7 +769,7 @@ class CopickRunCDP(CopickRunOverlay):
         # Find all point annotations
         client = cdp.Client()
         go_map = self.root.go_map
-        point_annos = cdp.AnnotationFile.find(
+        point_anno_files = cdp.AnnotationFile.find(
             client,
             [
                 cdp.AnnotationFile.annotation_shape.annotation.run_id == self.portal_run_id,
@@ -621,14 +777,49 @@ class CopickRunCDP(CopickRunOverlay):
                 cdp.AnnotationFile.annotation_shape.annotation.object_id._in(go_map.keys()),  # noqa
             ],
         )
+        point_anno_shapes = cdp.AnnotationShape.find(
+            client,
+            [
+                cdp.AnnotationShape.annotation_files.id._in([af.id for af in point_anno_files]),  # noqa
+            ],
+        )
+        point_annos = cdp.Annotation.find(
+            client,
+            [
+                cdp.Annotation.id._in([ans.annotation_id for ans in point_anno_shapes]),  # noqa
+            ],
+        )
+        voxel_spacings = cdp.TomogramVoxelSpacing.find(
+            client,
+            [
+                cdp.TomogramVoxelSpacing.run.id == self.portal_run_id,
+                cdp.TomogramVoxelSpacing.id._in([af.tomogram_voxel_spacing_id for af in point_anno_files]),
+            ],
+        )
+
+        {af.id: af for af in point_anno_files}
+        id_to_annotation_shape = {ans.id: ans for ans in point_anno_shapes}
+        id_to_annotation = {an.id: an for an in point_annos}
+        id_to_voxel_spacing = {vs.id: vs for vs in voxel_spacings}
+
+        # Create a list of PortalAnnotationContainer objects
+        portal_meta = [
+            PortalAnnotationMeta(
+                portal_annotation_file=af,
+                portal_annotation_shape=id_to_annotation_shape[af.annotation_shape_id],
+                portal_annotation=id_to_annotation[id_to_annotation_shape[af.annotation_shape_id].annotation_id],
+                voxel_spacing=id_to_voxel_spacing[af.tomogram_voxel_spacing_id].voxel_spacing,
+            )
+            for af in point_anno_files
+        ]
 
         return [
             CopickPicksCDP(
                 run=self,
-                file=CopickPicksFileCDP.from_portal(af, name=go_map[af.annotation_shape.annotation.object_id]),
+                file=CopickPicksFileCDP.from_portal_container(pm, name=go_map[pm.object_id]),
                 read_only=True,
             )
-            for af in point_annos
+            for pm in portal_meta
         ]
 
     def _query_overlay_picks(self) -> List[CopickPicksCDP]:
@@ -674,7 +865,7 @@ class CopickRunCDP(CopickRunOverlay):
             user_id: User ID to search for.
             session_id: Session ID to search for.
             portal_meta_query: Dictionary of values to compare against portal metadata of this annotation. Allowed keys
-                are the scalar fields of [cryoet_data_portal.Annotation](https://chanzuckerberg.github.io/cryoet-data-portal/python-api.html#annotation)
+                are the scalar fields of [cryoet_data_portal.Annotation](https://chanzuckerberg.github.io/cryoet-data-portal/api_reference.html#cryoet_data_portal.Annotation)
             portal_author_query: List of author names. Segmentations are included if this author is in the portal
                 annotation's author list.
 
@@ -692,8 +883,6 @@ class CopickRunCDP(CopickRunOverlay):
 
         if portal_author_query is None:
             portal_author_query = []
-
-        print(picks)
 
         # Compare the metadata
         picks = [p for p in picks if p.meta.portal_metadata.compare(portal_meta_query, portal_author_query)]
@@ -933,12 +1122,25 @@ class CopickRootCDP(CopickRoot):
         self.fs_overlay: AbstractFileSystem = fsspec.core.url_to_fs(config.overlay_root, **config.overlay_fs_args)[0]
         self.root_overlay: str = self.fs_overlay._strip_protocol(config.overlay_root)  # noqa
 
-        client = cdp.Client()
-        self.datasets = [cdp.Dataset.get_by_id(client, did) for did in config.dataset_ids]
-
     @property
     def go_map(self) -> Dict[str, str]:
-        return {po.go_id: po.name for po in self.pickable_objects if po.go_id is not None}
+        return {po.identifier: po.name for po in self.pickable_objects if po.identifier is not None}
+
+    @property
+    def datasets(self) -> List[cdp.Dataset]:
+        warnings.warn(
+            "CopickRootCDP.datasets will be deprecated in the next major release. Use "
+            "CopickRootCDP.dataset_ids instead.",
+            DeprecationWarning,
+            stacklevel=2,
+        )
+        client = cdp.Client()
+        datasets = cdp.Dataset.find(client, [cdp.Dataset.id._in(self.dataset_ids)])
+        return datasets
+
+    @property
+    def dataset_ids(self) -> List[int]:
+        return self.config.dataset_ids
 
     @classmethod
     def from_file(cls, path: str) -> "CopickRootCDP":
@@ -955,7 +1157,7 @@ class CopickRootCDP(CopickRoot):
 
     def query(self) -> List[CopickRunCDP]:
         client = cdp.Client()
-        portal_runs = cdp.Run.find(client, [cdp.Run.dataset_id._in([d.id for d in self.datasets])])  # noqa
+        portal_runs = cdp.Run.find(client, [cdp.Run.dataset_id._in(self.dataset_ids)])  # noqa
 
         runs = []
         for pr in portal_runs:

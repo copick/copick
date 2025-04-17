@@ -43,7 +43,7 @@ label, color, radius, and other properties.
         "is_particle": true,
         "pdb_id": "3J9I",
         "emdb_id": "1234",
-        "go_id": "GO:0001234",
+        "identifier": "GO:0001234",
         "label": 1,
         "color": [255, 0, 0, 255],
         "radius": 60,
@@ -57,8 +57,8 @@ label, color, radius, and other properties.
 
     - `pdb_id`: The PDB ID of the object, if available.
     - `emdb_id`: The EMDB ID of the object, if available.
-    - `go_id`: The GO ID of the object, if available. When using the data portal, this field is used to find matching
-        annotations in the data portal.
+    - `identifier`: The GO ID of the object or a UniProtKB accession, if available. When using the data portal, this
+        field is used to find matching annotations in the data portal.
     - `label`: An integer that indicates which numeric label should be used in segmentations to represent this object.
     - `color`: An array of four integers that represent the RGBA color of the object when rendered in a 3D viewer.
     - `radius`: An integer that represents the radius of the object in angstroms. This is used to determine the size of the

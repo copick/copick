@@ -4,7 +4,7 @@ from typing import Dict, Iterable, List, Literal, MutableMapping, Optional, Tupl
 import numpy as np
 import trimesh
 import zarr
-from pydantic import BaseModel, field_validator
+from pydantic import AliasChoices, BaseModel, Field, field_validator
 from trimesh.parent import Geometry
 
 from copick.util.ome import fits_in_memory, segmentation_pyramid, volume_pyramid, write_ome_zarr_3d
@@ -20,6 +20,7 @@ class PickableObject(BaseModel):
         color: RGBA color for the object.
         emdb_id: EMDB ID for the object.
         pdb_id: PDB ID for the object.
+        identifier: Identifier for the object (e.g. Gene Ontology ID or UniProtKB accession).
         map_threshold: Threshold to apply to the map when rendering the isosurface.
         radius: Radius of the particle, when displaying as a sphere.
     """
@@ -30,9 +31,17 @@ class PickableObject(BaseModel):
     color: Optional[Tuple[int, int, int, int]] = (100, 100, 100, 255)
     emdb_id: Optional[str] = None
     pdb_id: Optional[str] = None
-    go_id: Optional[str] = None
+    identifier: Optional[str] = Field(None, alias=AliasChoices("go_id", "identifier"))
     map_threshold: Optional[float] = None
     radius: Optional[float] = None
+
+    @property
+    def go_id(self):
+        return self.identifier
+
+    @go_id.setter
+    def go_id(self, value: str) -> None:
+        self.identifier = value
 
     @field_validator("label")
     @classmethod
@@ -188,11 +197,12 @@ class CopickObject:
         color = self.color if self.color is not None else "None"
         emdb_id = self.emdb_id if self.emdb_id is not None else "None"
         pdb_id = self.pdb_id if self.pdb_id is not None else "None"
+        identifier = self.identifier if self.identifier is not None else "None"
         map_threshold = self.map_threshold if self.map_threshold is not None else "None"
 
         ret = (
             f"CopickObject(name={self.name}, is_particle={self.is_particle}, label={label}, color={color}, "
-            f"emdb_id={emdb_id}, pdb_id={pdb_id}, threshold={map_threshold}) at {hex(id(self))}"
+            f"emdb_id={emdb_id}, pdb_id={pdb_id}, identifier={identifier} threshold={map_threshold}) at {hex(id(self))}"
         )
         return ret
 
@@ -221,8 +231,8 @@ class CopickObject:
         return self.meta.pdb_id
 
     @property
-    def go_id(self) -> Union[str, None]:
-        return self.meta.go_id
+    def identifier(self) -> Union[str, None]:
+        return self.meta.identifier
 
     @property
     def map_threshold(self) -> Union[float, None]:
@@ -1147,10 +1157,29 @@ class CopickVoxelSpacing:
         Returns:
             CopickTomogram: The tomogram with the given type, or `None` if not found.
         """
+        from warnings import warn
+
+        warn(
+            "get_tomogram is deprecated, use get_tomograms instead. Results may be incomplete",
+            DeprecationWarning,
+            stacklevel=2,
+        )
         for tomo in self.tomograms:
             if tomo.tomo_type == tomo_type:
                 return tomo
         return None
+
+    def get_tomograms(self, tomo_type: str) -> List["CopickTomogram"]:
+        """Get tomograms by type.
+
+        Args:
+            tomo_type: Type of the tomograms to retrieve.
+
+        Returns:
+            List[CopickTomogram]: The tomograms with the given type.
+        """
+        tomos = [tomo for tomo in self.tomograms if tomo.tomo_type == tomo_type]
+        return tomos
 
     def refresh_tomograms(self) -> None:
         """Refresh `CopickVoxelSpacing.tomograms` from storage."""
