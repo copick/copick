@@ -37,6 +37,9 @@ from copick.models import (
     CopickVoxelSpacingMeta,
     PickableObject,
 )
+from copick.util.log import get_logger
+
+logger = get_logger(__name__)
 
 
 def camel(s: str) -> str:
@@ -281,6 +284,7 @@ class CopickPicksCDP(CopickPicksOverlay):
             return self.meta
         else:
             if not self.fs.exists(self.path):
+                logger.critical(f"File not found: {self.path}")
                 raise FileNotFoundError(f"File not found: {self.path}")
 
             with self.fs.open(self.path, "r") as f:
@@ -327,6 +331,7 @@ class CopickMeshCDP(CopickMeshOverlay):
 
     def _load(self) -> Union[Geometry, None]:
         if not self.fs.exists(self.path):
+            logger.critical(f"File not found: {self.path}")
             raise FileNotFoundError(f"File not found: {self.path}")
 
         with self.fs.open(self.path, "rb") as f:
@@ -427,6 +432,7 @@ class CopickFeaturesCDP(CopickFeaturesOverlay):
     @property
     def path(self) -> str:
         if self.read_only:
+            logger.critical("Data portal does not support features (yet).")
             raise NotImplementedError("Data portal does not support features (yet).")
         else:
             return f"{self.tomogram.overlay_stem}_{self.feature_type}_features.zarr"
@@ -437,6 +443,7 @@ class CopickFeaturesCDP(CopickFeaturesOverlay):
 
     def zarr(self) -> zarr.storage.FSStore:
         if self.read_only:
+            logger.critical("Data portal does not support features (yet).")
             raise NotImplementedError("Data portal does not support features (yet).")
         else:
             mode = "w"
