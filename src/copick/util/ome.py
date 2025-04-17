@@ -6,6 +6,10 @@ import zarr
 from ome_zarr.writer import write_multiscale
 from skimage.transform import downscale_local_mean, rescale
 
+from copick.util.log import get_logger
+
+logger = get_logger(__name__)
+
 
 def _ome_zarr_axes() -> List[Dict[str, str]]:
     return [
