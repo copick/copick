@@ -71,8 +71,6 @@ docs = [
     "mkdocs-material",
 ]
 
-[project.scripts]
-make_templates = "copick.cli.make_templates:create [docs]"
 
 [tool.hatch.version]
 path = "src/copick/__init__.py"
