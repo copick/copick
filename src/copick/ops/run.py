@@ -1,7 +1,12 @@
-from concurrent.futures import ThreadPoolExecutor, as_completed
-from typing import Any, Callable, Dict, Iterable, Union
+from concurrent.futures import ProcessPoolExecutor, ThreadPoolExecutor, as_completed
+from typing import Any, Callable, Dict, Iterable, Literal, Union
+
+from tqdm.auto import tqdm
 
 from copick.models import CopickRoot, CopickRun
+from copick.util.log import get_logger
+
+logger = get_logger(__name__)
 
 
 def _materialize_run(root: CopickRoot, run: str, run_args: Dict[str, Any], callback: Callable, **kwargs) -> Any:
@@ -14,7 +19,10 @@ def map_runs(
     root: CopickRoot,
     runs: Union[Iterable[str], Iterable[CopickRun]],
     workers: int = 8,
+    parallelism: Literal["thread", "process"] = "thread",
     run_args: Iterable[Dict[str, Any]] = None,
+    show_progress: bool = True,
+    task_desc: str = None,
     **kwargs,
 ) -> Dict[str, Any]:
     """Execute a callback function on a list of runs in parallel.
@@ -33,21 +41,42 @@ def map_runs(
         run_args = [{} for _ in runs]
 
     results = {}
-    with ThreadPoolExecutor(max_workers=workers) as executor:
+
+    if parallelism == "thread":
+        executor_class = ThreadPoolExecutor
+    elif parallelism == "process":
+        executor_class = ProcessPoolExecutor
+
+    with executor_class(max_workers=workers) as executor:
         # TODO: zip(..., strict=True)
+        if len(runs) != len(run_args):
+            logger.critical("Length of runs and run_args must be the same.")
+            raise ValueError("Length of runs and run_args must be the same.")
+
         for run, rargs in zip(runs, run_args):
             if isinstance(run, str):
                 future = executor.submit(_materialize_run, root, run, rargs, callback, **kwargs)
                 results[future] = run
-                # results[run] = executor.submit(_materialize_run, root, run, rargs, callback, **kwargs)
             elif isinstance(run, CopickRun):
                 future = executor.submit(callback, run, **rargs, **kwargs)
                 results[future] = run.name
-                # results[run] = executor.submit(callback, run, **rargs, **kwargs)
             else:
+                logger.critical(f"Invalid run type: {type(run)}")
                 raise ValueError(f"Invalid run type: {type(run)}")
 
-    print("using it")
-    return {results[fut]: fut.result() for fut in as_completed(results)}
-    # return {run: result.result() for run, result in results.items()}
-    # return {run: result.result() for run, result in results.items()}
+        ret = {}
+        for fut in tqdm(
+            as_completed(results),
+            total=len(results),
+            desc=task_desc,
+            unit="runs",
+            disable=not show_progress,
+        ):
+            run_name = results[fut]
+            try:
+                ret[run_name] = fut.result()
+            except Exception as e:
+                logger.error(f"Error processing run {run_name}", exc_info=e)
+                ret[run_name] = None
+
+    return ret
