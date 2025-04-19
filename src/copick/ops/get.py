@@ -41,6 +41,7 @@ def get_segmentations(
     voxel_size: Union[float, Iterable[float], None] = None,
     parallel: bool = False,
     workers: Optional[int] = 8,
+    show_progress: bool = True,
 ) -> Union[List[CopickSegmentation], None]:
     """Query segmentations from a Copick project.
 
@@ -54,6 +55,7 @@ def get_segmentations(
         voxel_size: The voxel size of the segmentation. If `None`, query all segmentations.
         parallel: Whether to query segmentations in parallel. Default is `False`.
         workers: The number of workers to use. Default is `8`.
+        show_progress: Whether to show progress. Default is `True`.
     """
 
     if isinstance(root, str):
@@ -77,6 +79,7 @@ def get_segmentations(
             is_multilabel=is_multilabel,
             name=name,
             voxel_size=voxel_size,
+            show_progress=show_progress,
         )
         return [seg for seglist in res.values() for seg in seglist]
     else:
@@ -90,6 +93,7 @@ def get_segmentations(
             is_multilabel=is_multilabel,
             name=name,
             voxel_size=voxel_size,
+            show_progress=show_progress,
         )
         return [seg for seglist in res.values() for seg in seglist]
 
@@ -111,6 +115,7 @@ def get_meshes(
     object_name: Union[str, Iterable[str], None] = None,
     parallel: bool = False,
     workers: Optional[int] = 8,
+    show_progress: bool = True,
 ) -> Union[List[CopickMesh], None]:
     """Query meshes from a Copick project.
 
@@ -122,6 +127,7 @@ def get_meshes(
         object_name: The pickable object of the meshes. If `None`, query all meshes.
         parallel: Whether to query meshes in parallel. Default is `False`.
         workers: The number of workers to use. Default is `8`.
+        show_progress: Whether to show progress. Default is `True`.
 
     Returns:
         A list of meshes.
@@ -146,6 +152,7 @@ def get_meshes(
             user_id=user_id,
             session_id=session_id,
             object_name=object_name,
+            show_progress=show_progress,
         )
         return [mesh for meshlist in res.values() for mesh in meshlist]
     else:
@@ -169,6 +176,7 @@ def get_picks(
     object_name: Union[str, Iterable[str], None] = None,
     parallel: bool = False,
     workers: Optional[int] = 8,
+    show_progress: bool = True,
 ) -> Union[List[CopickPicks], None]:
     """Query picks from a Copick project.
 
@@ -180,6 +188,7 @@ def get_picks(
         object_name: The pickable object of the picks. If `None`, query all picks.
         parallel: Whether to query picks in parallel. Default is `False`.
         workers: The number of workers to use. Default is `8`.
+        show_progress: Whether to show progress. Default is `True`.
 
     Returns:
         A list of picks.
@@ -204,6 +213,7 @@ def get_picks(
             user_id=user_id,
             session_id=session_id,
             object_name=object_name,
+            show_progress=show_progress,
         )
         return [pick for picklist in res.values() for pick in picklist]
     else:
@@ -228,6 +238,7 @@ def get_voxelspacings(
     voxel_size: Union[float, Iterable[float], None] = None,
     parallel: bool = False,
     workers: Optional[int] = 8,
+    show_progress: bool = True,
 ) -> Union[List[CopickVoxelSpacing], None]:
     """Query voxel spacings from a Copick project.
 
@@ -237,6 +248,7 @@ def get_voxelspacings(
         voxel_size: The voxel size of the voxel spacings. If `None`, query all voxel spacings.
         parallel: Whether to query voxel spacings in parallel. Default is `False`.
         workers: The number of workers to use. Default is `8`.
+        show_progress: Whether to show progress. Default is `True`.
 
     Returns:
         A list of voxel spacings.
@@ -259,6 +271,7 @@ def get_voxelspacings(
             runs,
             workers=workers,
             voxel_size=voxel_size,
+            show_progress=show_progress,
         )
         return [vs for vslist in res.values() for vs in vslist]
     else:
@@ -290,6 +303,7 @@ def get_tomograms(
     tomo_type: Union[str, Iterable[str], None] = None,
     parallel: bool = False,
     workers: Optional[int] = 8,
+    show_progress: bool = True,
 ) -> List[CopickTomogram]:
     """Query tomograms from a Copick project.
 
@@ -300,6 +314,7 @@ def get_tomograms(
         tomo_type: The type of the tomograms. If `None`, query all tomograms.
         parallel: Whether to query tomograms in parallel. Default is `False`.
         workers: The number of workers to use. Default is `8`.
+        show_progress: Whether to show progress. Default is `True`.
 
     Returns:
         A list of tomograms.
@@ -323,6 +338,7 @@ def get_tomograms(
             workers=workers,
             voxel_size=voxel_size,
             tomo_type=tomo_type,
+            show_progress=show_progress,
         )
         return [tomo for tomolist in res.values() for tomo in tomolist]
     else:
@@ -356,6 +372,7 @@ def get_features(
     feature_type: Union[str, Iterable[str], None] = None,
     parallel: bool = False,
     workers: Optional[int] = 8,
+    show_progress: bool = True,
 ) -> List[CopickFeatures]:
     """Query features from a Copick project.
 
@@ -367,6 +384,7 @@ def get_features(
         feature_type: The type of the features. If `None`, query all features.
         parallel: Whether to query features in parallel. Default is `False`.
         workers: The number of workers to use. Default is `8`.
+        show_progress: Whether to show progress. Default is `True`.
 
     Returns:
         A list of features.
@@ -391,6 +409,7 @@ def get_features(
             voxel_size=voxel_size,
             tomo_type=tomo_type,
             feature_type=feature_type,
+            show_progress=show_progress,
         )
         return [feat for featlist in res.values() for feat in featlist]
     else:
