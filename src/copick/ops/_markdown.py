@@ -52,7 +52,8 @@ def object_to_md(pickable_object: PickableObject) -> str:
     md += f"* Type: {typ}\n"
 
     md += f"* Label: {pickable_object.label}\n"
-    md += f"* Color: {pickable_object.color}\n"
+    col = pickable_object.color
+    md += f"* Color: {col} | #{col[0]:02x}{col[1]:02x}{col[2]:02x}{col[3]:02x}\n"
     md += f"* Map Threshold: {pickable_object.map_threshold}\n"
     md += f"* Radius: {pickable_object.radius}\n"
 
@@ -141,7 +142,8 @@ def segmentation_to_md(segmentation: CopickSegmentation) -> str:
     md += f"* User/Tool: {segmentation.user_id}\n"
     md += f"* Session: {segmentation.session_id}\n"
     md += f"* is_multilabel: {segmentation.is_multilabel}\n"
-    md += f"* Color: {segmentation.color}\n"
+    col = segmentation.color
+    md += f"* Color: {col} | #{col[0]:02x}{col[1]:02x}{col[2]:02x}{col[3]:02x}\n"
 
     if isinstance(segmentation.run, CopickRunCDP) and isinstance(segmentation, CopickSegmentationCDP):
         md += f"* cryoET Data portal: [Segmentation {segmentation.meta.portal_annotation_id}](https://cryoetdataportal.czscience.com/runs/{segmentation.run.portal_run_id}?table-tab=Annotations)\n"
@@ -159,7 +161,8 @@ def picks_to_md(picks: CopickPicks) -> str:
     md += f"* Session: {picks.session_id}\n"
     md += f"* Count: {len(picks.points)}\n"
     md += f"* trust_orientation: {picks.trust_orientation}\n"
-    md += f"* Color: {picks.color}\n"
+    col = picks.color
+    md += f"* Color: {col} | #{col[0]:02x}{col[1]:02x}{col[2]:02x}{col[3]:02x}\n"
 
     if isinstance(picks.run, CopickRunCDP) and isinstance(picks, CopickPicksCDP):
         md += f"* cryoET Data portal: [Picks {picks.meta.portal_annotation_id}](https://cryoetdataportal.czscience.com/runs/{picks.run.portal_run_id}?table-tab=Annotations)\n"
@@ -175,8 +178,10 @@ def mesh_to_md(mesh: CopickMesh) -> str:
     md += f"* Name: {mesh.pickable_object_name}\n"
     md += f"* User/Tool: {mesh.user_id}\n"
     md += f"* Session: {mesh.session_id}\n"
-    md += f"* Color: {mesh.color}\n"
+    col = mesh.color
+    md += f"* Color: {col} | #{col[0]:02x}{col[1]:02x}{col[2]:02x}{col[3]:02x}\n"
 
+    # TODO: Add portal mesh metadata
     # if isinstance(mesh.run, CopickRunCDP) and isinstance(mesh, CopickMeshCDP):
     #     md += f"* cryoET Data portal: [Mesh {mesh.meta.portal_annotation_file_id}](https://cryoetdataportal.czscience.com/runs/{mesh.run.portal_run_id}?table-tab=Annotations)\n"
 

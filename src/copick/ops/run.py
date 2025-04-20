@@ -46,10 +46,13 @@ def map_runs(
         executor_class = ThreadPoolExecutor
     elif parallelism == "process":
         executor_class = ProcessPoolExecutor
+    else:
+        logger.critical(f"Invalid parallelism type: {parallelism}, must be 'thread' or 'process'")
+        raise ValueError(f"Invalid parallelism type: {parallelism}, must be 'thread' or 'process'")
 
     with executor_class(max_workers=workers) as executor:
         # TODO: zip(..., strict=True)
-        if len(runs) != len(run_args):
+        if len(list(runs)) != len(run_args):
             logger.critical("Length of runs and run_args must be the same.")
             raise ValueError("Length of runs and run_args must be the same.")
 

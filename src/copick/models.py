@@ -2203,3 +2203,16 @@ class CopickSegmentation:
         """
         loc = self.zarr()
         zarr.open(loc)[zarr_group][z, y, x] = data
+
+
+COPICK_TYPES = (
+    CopickRun,
+    CopickRun,
+    CopickVoxelSpacing,
+    CopickTomogram,
+    CopickFeatures,
+    CopickPicks,
+    CopickMesh,
+    CopickSegmentation,
+    CopickObject,
+)
