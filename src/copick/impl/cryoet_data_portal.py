@@ -235,8 +235,12 @@ class CopickPicksFileCDP(CopickPicksFile):
         return clz
 
     @property
+    def portal_annotation_id(self) -> int:
+        return self.portal_metadata.annotation_id
+
+    @property
     def portal_annotation_file_id(self) -> int:
-        return self.portal_metadata.portal_annotation_file_id
+        return self.portal_metadata.annotation_file_id
 
     @property
     def portal_annotation_file_path(self) -> str:
@@ -372,8 +376,12 @@ class CopickSegmentationMetaCDP(CopickSegmentationMeta):
         )
 
     @property
+    def portal_annotation_id(self) -> int:
+        return self.portal_metadata.annotation_id
+
+    @property
     def portal_annotation_file_id(self) -> int:
-        return self.portal_metadata.portal_annotation_file_id
+        return self.portal_metadata.annotation_file_id
 
     @property
     def portal_annotation_file_path(self) -> str:
@@ -522,6 +530,11 @@ class CopickTomogramCDP(CopickTomogramOverlay):
         if null in the database.
         """
         return self.meta.tomo_type
+
+    @property
+    def portal_tomo(self) -> bool:
+        """Whether this tomogram is from the portal or not."""
+        return self.meta.portal_tomo_id is not None
 
     @property
     def static_path(self) -> str:
@@ -835,11 +848,10 @@ class CopickRunCDP(CopickRunOverlay):
             client,
             [
                 cdp.TomogramVoxelSpacing.run.id == self.portal_run_id,
-                cdp.TomogramVoxelSpacing.id._in([af.tomogram_voxel_spacing_id for af in point_anno_files]),
+                cdp.TomogramVoxelSpacing.id._in([af.tomogram_voxel_spacing_id for af in point_anno_files]),  # noqa
             ],
         )
 
-        {af.id: af for af in point_anno_files}
         id_to_annotation_shape = {ans.id: ans for ans in point_anno_shapes}
         id_to_annotation = {an.id: an for an in point_annos}
         id_to_voxel_spacing = {vs.id: vs for vs in voxel_spacings}
