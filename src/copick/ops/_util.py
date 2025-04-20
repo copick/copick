@@ -34,8 +34,7 @@ def volume_pyramid(
     levels: int,
 ) -> Dict[float, np.ndarray]:
     pyramid = {voxel_size: volume}
-    # axes = ome_zarr_axes()
-    # scales = ome_zarr_transforms(voxel_size)
+
 
     vs = voxel_size
 
@@ -43,9 +42,8 @@ def volume_pyramid(
         array = pyramid[vs]
         vs *= 2
         pyramid[vs] = downscale_local_mean(array, (2, 2, 2))
-        # scales.extend(ome_zarr_transforms(vs))
 
-    return pyramid  # , axes, scales
+    return pyramid
 
 
 def ome_metadata(pyramid: Dict[float, np.ndarray]) -> Dict[str, Any]:
