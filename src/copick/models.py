@@ -464,6 +464,20 @@ class CopickRoot:
 
         return run
 
+    def delete_run(self, name: str) -> None:
+        """Delete a run by name.
+
+        Args:
+            name: Name of the run to delete.
+        """
+        if self._runs is None:
+            return
+
+        for i, run in enumerate(self._runs):
+            if run.name == name:
+                del self._runs[i]
+                break
+
     def _run_factory(self) -> Tuple[Type["CopickRun"], Type["CopickRunMeta"]]:
         """Override this method to return the run class and run metadata class."""
         return CopickRun, CopickRunMeta
@@ -1089,6 +1103,10 @@ class CopickRun:
             bool: True if the run record exists, False otherwise.
         """
         raise NotImplementedError("ensure must be implemented for CopickRun.")
+
+    def delete(self):
+        """Delete the run record."""
+        raise NotImplementedError("delete must be implemented for CopickRun.")
 
 
 class CopickVoxelSpacingMeta(BaseModel):
@@ -1980,3 +1998,16 @@ class CopickSegmentation:
         """
         loc = self.zarr()
         zarr.open(loc)[zarr_group][z, y, x] = data
+
+
+COPICK_TYPES = (
+    CopickRun,
+    CopickRun,
+    CopickVoxelSpacing,
+    CopickTomogram,
+    CopickFeatures,
+    CopickPicks,
+    CopickMesh,
+    CopickSegmentation,
+    CopickObject,
+)
