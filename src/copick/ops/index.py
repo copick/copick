@@ -3,13 +3,14 @@ import logging
 import os
 import sys
 import termios
-from typing import Union
+from typing import List, Union
 
 from rich.highlighter import ReprHighlighter
 from rich.text import Text
 from textual.app import App, ComposeResult
+from textual.containers import Horizontal
 from textual.logging import TextualHandler
-from textual.widgets import Footer, Header, Tree
+from textual.widgets import Footer, Header, Markdown, Tree
 from textual.widgets.tree import TreeNode
 
 import copick
@@ -24,6 +25,7 @@ from copick.models import (
     CopickTomogram,
     CopickVoxelSpacing,
 )
+from copick.ops._markdown import ENTITY_TO_MD
 
 logging.basicConfig(
     level="DEBUG",
@@ -42,6 +44,7 @@ _copick_types = Union[
     CopickObject,
 ]
 
+
 # Emoji icons for different entities
 ICONS = {
     "root": "🗂",  # Card Index Dividers
@@ -53,6 +56,7 @@ ICONS = {
     "mesh": "🕸",  # Spider Web
     "segmentation": "🖌",  # Paint Brush
     "object": "🦠",  # Microbe
+    "folder": "📁",  # File Folder
 }
 
 
@@ -64,19 +68,22 @@ def copick_to_label(entity: _copick_types, include_metadata: bool = True) -> Tex
     elif isinstance(entity, CopickRun):
         label = Text.assemble(Text(ICONS["run"]), Text.from_markup(f" [b]Run[/b] {entity.name}:"))
     elif isinstance(entity, CopickVoxelSpacing):
-        label = Text.assemble(Text(ICONS["voxel_spacing"]), Text.from_markup(" [b]Voxel Spacing[/b]:"))
+        label = Text.assemble(
+            Text(ICONS["voxel_spacing"]),
+            Text.from_markup(f" [b]Voxel Spacing[/b] {entity.voxel_size}"),
+        )
     elif isinstance(entity, CopickTomogram):
-        label = Text.assemble(Text(ICONS["tomogram"]), Text.from_markup(" [b]Tomogram[/b]:"))
+        label = Text.assemble(Text(ICONS["tomogram"]), Text.from_markup(f" [b]Tomogram[/b] {entity.tomo_type}:"))
     elif isinstance(entity, CopickFeatures):
-        label = Text.assemble(Text(ICONS["feature"]), Text.from_markup(" [b]Features[/b]:"))
+        label = Text.assemble(Text(ICONS["feature"]), Text.from_markup(f" [b]Features[/b] {entity.feature_type}:"))
     elif isinstance(entity, CopickSegmentation):
-        label = Text.assemble(Text(ICONS["segmentation"]), Text.from_markup(" [b]Segmentation[/b]:"))
+        label = Text.assemble(Text(ICONS["segmentation"]), Text.from_markup(f" [b]Segmentation[/b] {entity.name}:"))
     elif isinstance(entity, CopickMesh):
         label = Text.assemble(Text(ICONS["mesh"]), Text.from_markup(" [b]Mesh[/b]:"))
     elif isinstance(entity, CopickPicks):
         label = Text.assemble(Text(ICONS["pick"]), Text.from_markup(" [b]Picks[/b]:"))
     elif isinstance(entity, CopickObject):
-        label = Text.assemble(Text(ICONS["object"]), Text.from_markup(" [b]Object[/b]:"))
+        label = Text.assemble(Text(ICONS["object"]), Text.from_markup(f" [b]Object[/b] {entity.name}"))
 
     if include_metadata:
         metadata = entity.meta if hasattr(entity, "meta") else None
@@ -87,6 +94,15 @@ def copick_to_label(entity: _copick_types, include_metadata: bool = True) -> Tex
 
 
 class CopickTreeApp(App):
+    DEFAULT_CSS = """
+       Tree {
+           width: 2fr; /* 75% of the space */
+       }
+       Markdown {
+           width: 1fr; /* 25% of the space */
+       }
+       """
+
     BINDINGS = [
         ("a", "add", "Add node"),
         ("c", "clear", "Clear"),
@@ -101,7 +117,9 @@ class CopickTreeApp(App):
     def compose(self) -> ComposeResult:
         yield Header()
         yield Footer()
-        yield Tree("Copick Project")
+        with Horizontal():
+            yield Tree("Copick Project")
+            yield Markdown()
 
     @classmethod
     def add_json(cls, node: TreeNode, json_data: object) -> None:
@@ -136,43 +154,82 @@ class CopickTreeApp(App):
 
     def on_mount(self) -> None:
         """Initialize the tree with the root node."""
+        # Initialize the Tree
         tree = self.query_one(Tree)
-        tree.root.tree_node_id = "root"
-        self.add_objects_node(tree.root)
+        tree.root.data = ("root", self.copick_root)
+        self.add_object_folder_node(tree.root, self.copick_root.pickable_objects)
         self.add_runs_node(tree.root)
+
+        # Initialize the DataTable
+        # datatable = self.query_one(DataTable)
+        # datatable.add_columns("Column 1", "Column 2", "Column 3")  # Example columns
+        # datatable.add_row("Row 1, Col 1", "Row 1, Col 2", "Row 1, Col 3")  # Example row
+        self.markdown = self.query_one(Markdown)
+        self.markdown.update(ENTITY_TO_MD["root"](self.copick_root))
 
     def on_tree_node_expanded(self, event: Tree.NodeExpanded) -> None:
         """Handle the tree node expanded event to load data lazily."""
         node = event.node
-        node_id = node.tree_node_id
-        if node_id in self.node_data:
-            data_type, data = self.node_data[node_id]
-            if data_type == "run":
-                self.add_run_data_nodes(node, data)
-            elif data_type == "voxel_parent":
-                self.add_voxel_spacing_parent_nodes(node, data)
-            elif data_type == "voxel":
-                self.add_tomogram_data_nodes(node, data)
-            elif data_type == "tomogram":
-                self.add_features_data_nodes(node, data)
-            elif data_type == "segmentation":
-                self.add_segmentation_data_nodes(node, data)
+        data_type, data = node.data
+
+        if data_type == "run":
+            self.add_run_data_nodes(node, data)
+        elif data_type == "voxel_parent":
+            self.add_voxel_spacing_parent_nodes(node, data)
+        elif data_type == "voxel":
+            self.add_tomogram_data_nodes(node, data)
+        elif data_type == "tomogram":
+            self.add_features_data_nodes(node, data)
+        elif data_type == "segmentation":
+            self.add_segmentation_data_nodes(node, data)
+        elif data_type == "objects_parent":
+            self.add_object_data_node(node, data)
+
+    def on_tree_node_selected(self, event: Tree.NodeSelected) -> None:
+        """Handle the tree node selected event to display data."""
+        node = event.node
+        data_type, data = node.data
+
+        if data_type == "root":
+            self.markdown.update(ENTITY_TO_MD["root"](data))
+        elif data_type == "run":
+            self.markdown.update(ENTITY_TO_MD["run"](data))
+        elif data_type == "voxel_parent":
+            self.markdown.update("ENTITY_TO_MD['voxel_parent'](node.data)")
+        elif data_type == "voxel":
+            self.markdown.update(ENTITY_TO_MD["voxelspacing"](data))
+        elif data_type == "tomogram":
+            self.markdown.update(ENTITY_TO_MD["tomogram"](data))
+        elif data_type == "segmentation":
+            self.markdown.update(ENTITY_TO_MD["segmentation"](data))
+        elif data_type == "objects_parent":
+            self.markdown.update("ENTITY_TO_MD['objects_parent'](node.data)")
+
+    def add_object_folder_node(self, root_node: TreeNode, objects: List[CopickObject]) -> None:
+        """Add voxel spacings, picks, meshes, and segmentations nodes to the run node."""
+        already_present = []
+        for child in root_node.children:
+            already_present.append(child.label.plain)
+
+        if f"{ICONS['folder']} Objects" not in already_present:
+            objects_node = root_node.add(f"{ICONS['folder']} Objects")
+            objects_node.data = ("objects_parent", objects)
+
+    def add_object_data_node(self, objects_node: TreeNode, objects) -> None:
+        """Add objects node to the objects folder node."""
+        if len(objects) == len(list(objects_node.children)):
+            # Already added
+            return
+
+        for _i, obj in enumerate(objects):
+            obj_node = objects_node.add_leaf(copick_to_label(obj))
+            obj_node.data = ("object", obj)
 
     def add_runs_node(self, root_node: TreeNode) -> None:
         """Add runs node to the root node."""
-        for i, run in enumerate(self.copick_root.runs):
+        for _i, run in enumerate(self.copick_root.runs):
             run_node = root_node.add(copick_to_label(run))
-            run_node_id = f"run_{i}"
-            run_node.tree_node_id = run_node_id
-            self.node_data[run_node_id] = ("run", run)
-
-    def add_objects_node(self, root_node: TreeNode) -> None:
-        """Add objects node to the root node."""
-        for i, obj in enumerate(self.copick_root.pickable_objects):
-            obj_node = root_node.add(copick_to_label(obj))
-            obj_node_id = f"object_{i}"
-            obj_node.tree_node_id = obj_node_id
-            self.node_data[obj_node_id] = ("object", obj)
+            run_node.data = ("run", run)
 
     def add_run_data_nodes(self, run_node: TreeNode, run) -> None:
         """Add voxel spacings, picks, meshes, and segmentations nodes to the run node."""
@@ -182,39 +239,35 @@ class CopickTreeApp(App):
 
         if f"{ICONS['voxel_spacing']} Voxel Spacings" not in already_present:
             voxel_node = run_node.add(f"{ICONS['voxel_spacing']} Voxel Spacings")
-            voxel_node_id = f"voxel_{run.meta}"
-            voxel_node.tree_node_id = voxel_node_id
-            self.node_data[voxel_node_id] = ("voxel_parent", run.voxel_spacings)
+            voxel_node.data = ("voxel_parent", run.voxel_spacings)
+            # self.node_data[voxel_node_id] = ("voxel_parent", run.voxel_spacings)
 
         if f"{ICONS['pick']} Picks" not in already_present:
             picks_node = run_node.add(f"{ICONS['pick']} Picks")
-            picks_node_id = f"picks_{run.meta}"
-            picks_node.tree_node_id = picks_node_id
-            self.node_data[picks_node_id] = ("picks", run.picks)
+            picks_node.data = ("picks", run.picks)
+            # self.node_data[picks_node_id] = ("picks", run.picks)
 
         if f"{ICONS['mesh']} Meshes" not in already_present:
             meshes_node = run_node.add(f"{ICONS['mesh']} Meshes")
-            meshes_node_id = f"meshes_{run.meta}"
-            meshes_node.tree_node_id = meshes_node_id
-            self.node_data[meshes_node_id] = ("meshes", run.meshes)
+            meshes_node.data = ("meshes", run.meshes)
+            # self.node_data[meshes_node_id] = ("meshes", run.meshes)
 
         if f"{ICONS['segmentation']} Segmentations" not in already_present:
             segmentations_node = run_node.add(f"{ICONS['segmentation']} Segmentations")
-            segmentations_node_id = f"segmentation_{run.meta}"
-            segmentations_node.tree_node_id = segmentations_node_id
-            self.node_data[segmentations_node_id] = ("segmentation", run.segmentations)
+            segmentations_node.data = ("segmentation", run.segmentations)
+            # self.node_data[segmentations_node_id] = ("segmentation", run.segmentations)
 
-    def add_voxel_spacing_parent_nodes(self, voxel_node: TreeNode, voxel_spacings) -> None:
+    def add_voxel_spacing_parent_nodes(self, voxel_node: TreeNode, voxel_spacings: List[CopickVoxelSpacing]) -> None:
         """Add tomograms node to the voxel spacing node."""
         if len(voxel_spacings) == len(list(voxel_node.children)):
             # Already added
             return
+        else:
+            voxel_node.remove_children()
 
-        for i, voxel_spacing in enumerate(voxel_spacings):
+        for _i, voxel_spacing in enumerate(voxel_spacings):
             spacing_node = voxel_node.add(label=copick_to_label(voxel_spacing))
-            spacing_node_id = f"tomogram_{i}"
-            spacing_node.tree_node_id = spacing_node_id
-            self.node_data[spacing_node_id] = ("voxel", voxel_spacing.tomograms)
+            spacing_node.data = ("voxel", voxel_spacing.tomograms)
 
     # def add_voxel_spacing_data_nodes(self, voxel_node: TreeNode, tomograms) -> None:
     #     """Add tomograms node to the voxel spacing node."""
@@ -229,23 +282,24 @@ class CopickTreeApp(App):
         if len(tomograms) == len(list(voxel_node.children)):
             # Already added
             return
+        else:
+            voxel_node.remove_children()
 
-        for i, tomogram in enumerate(tomograms):
+        for _i, tomogram in enumerate(tomograms):
             tomogram_node = voxel_node.add(label=copick_to_label(tomogram))
-            tomogram_node_id = f"tomogram_{i}"
-            tomogram_node.tree_node_id = tomogram_node_id
-            self.node_data[tomogram_node_id] = ("tomogram", tomogram.features)
+            tomogram_node.data = ("tomogram", tomogram.features)
 
     def add_features_data_nodes(self, tomogram_node: TreeNode, features) -> None:
         """Add features node to the tomogram node."""
         if len(features) == len(list(tomogram_node.children)):
             # Already added
             return
-        for i, feature in enumerate(features):
+        else:
+            tomogram_node.remove_children()
+
+        for _i, feature in enumerate(features):
             feature_node = tomogram_node.add(label=copick_to_label(feature))
-            feature_node_id = f"feature_{i}"
-            feature_node.tree_node_id = feature_node_id
-            self.node_data[feature_node_id] = ("feature", feature)
+            feature_node.data = ("feature", feature)
 
     def add_segmentation_data_nodes(self, segmentation_node: TreeNode, segmentations) -> None:
         """Add segmentation details to the segmentation node."""
