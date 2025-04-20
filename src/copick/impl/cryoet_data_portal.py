@@ -47,7 +47,7 @@ def camel(s: str) -> str:
     return "".join([s[0].lower(), s[1:]])
 
 
-_portal_types = Union[Type[cdp.Annotation], Type[cdp.AnnotationFile], Type[cdp.Tomogram]]
+_portal_types = Union[Type[cdp.Annotation], Type[cdp.AnnotationFile], Type[cdp.Tomogram], Type[cdp.AnnotationShape]]
 
 
 def _portal_to_model(clz: _portal_types, name: str) -> Type[BaseModel]:
@@ -133,10 +133,6 @@ class PortalAnnotationMeta(BaseModel):
         return self.portal_annotation_file.s3_path
 
     @property
-    def voxel_spacing(self) -> float:
-        return self.voxel_spacing
-
-    @property
     def portal_authors(self) -> List[str]:
         return [a.name for a in self.portal_annotation.authors]
 
@@ -209,8 +205,6 @@ class CopickPicksFileCDP(CopickPicksFile):
             pickable_object_name=object_name,
             user_id=user,
             session_id=session,
-            portal_annotation_file_id=source.annotation_file_id,
-            portal_annotation_file_path=source.s3_path,
             portal_metadata=source,
             points=[],
         )
@@ -297,7 +291,7 @@ class CopickPicksCDP(CopickPicksOverlay):
             self.fs.makedirs(self.directory, exist_ok=True)
 
         with self.fs.open(self.path, "w") as f:
-            json.dump(self.meta.dict(), f, indent=4)
+            json.dump(self.meta.model_dump(), f, indent=4)
 
 
 class CopickMeshCDP(CopickMeshOverlay):
@@ -496,7 +490,7 @@ class CopickTomogramCDP(CopickTomogramOverlay):
         return CopickFeaturesCDP, CopickFeaturesMeta
 
     @property
-    def tomogram(self) -> "CopickTomogramCDP":
+    def tomo_type(self) -> str:
         """The type of tomogram. For data portal tomograms, this is derived as
         `cryoet_data_portal.Tomogram.reconstruction_method + "-" + cryoet_data_portal.Tomogram.processing + ["-" +
         cryoet_data_portal.Tomogram.processing_software + "-" + cryoet_data_portal.Tomogram.ctf_corrected`], where
@@ -702,10 +696,11 @@ class CopickVoxelSpacingCDP(CopickVoxelSpacingOverlay):
 
 class CopickRunMetaCDP(CopickRunMeta):
     portal_run_id: Optional[int] = None
+    portal_run_name: Optional[str] = None
 
     @classmethod
     def from_portal(cls, source: cdp.Run):
-        return cls(name=f"{source.id}", portal_run_id=source.id)
+        return cls(name=f"{source.id}", portal_run_id=source.id, portal_run_name=source.name)
 
 
 class CopickRunCDP(CopickRunOverlay):
@@ -735,6 +730,10 @@ class CopickRunCDP(CopickRunOverlay):
     @property
     def portal_run_id(self) -> int:
         return self.meta.portal_run_id
+
+    @property
+    def portal_run_name(self) -> str:
+        return self.meta.name
 
     def _query_static_voxel_spacings(self) -> List[CopickVoxelSpacingCDP]:
         # VoxelSpacings only added on overlay
