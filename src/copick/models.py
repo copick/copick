@@ -1475,7 +1475,7 @@ class CopickTomogram:
         """
         if feat := self.get_features(feature_type):
             if exist_ok:
-                pass
+                return feat
             else:
                 raise ValueError(f"Feature type {feature_type} already exists for this tomogram.")
         else:
