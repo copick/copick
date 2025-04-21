@@ -482,20 +482,12 @@ class CopickRoot:
         Args:
             name: Name of the run to delete.
         """
-        if self._runs is None:
+        run = self.get_run(name)
+
+        if run is None:
             return
 
-        to_delete = None
-        for i, run in enumerate(self.runs):
-            if run.name == name:
-                to_delete = i
-                break
-
-        if to_delete is None:
-            return
-
-        # Delete the run
-        run = self._runs.pop(to_delete)
+        self._runs.remove(run)
         run.delete()
         del run
 
@@ -1136,12 +1128,17 @@ class CopickRun:
         """
         raise NotImplementedError("ensure must be implemented for CopickRun.")
 
+    def _delete_data(self):
+        """Override this method to delete the root data."""
+        raise NotImplementedError("_delete_data method must be implemented for CopickRun.")
+
     def delete(self) -> None:
         """Delete the run record."""
         self.delete_voxel_spacings()
         self.delete_picks()
         self.delete_meshes()
         self.delete_segmentations()
+        self._delete_data()
 
     def delete_voxel_spacings(self, voxel_size: float = None) -> None:
         """Delete a voxel spacing by voxel size.
@@ -1363,9 +1360,14 @@ class CopickVoxelSpacing:
         """
         raise NotImplementedError("ensure must be implemented for CopickVoxelSpacing.")
 
+    def _delete_data(self):
+        """Override this method to delete the voxel spacing data."""
+        raise NotImplementedError("_delete_data method must be implemented for CopickVoxelSpacing.")
+
     def delete(self) -> None:
         """Delete the voxel spacing record."""
         self.delete_tomograms()
+        self._delete_data()
 
     def delete_tomograms(self, tomo_type: str = None) -> None:
         """Delete a tomogram by type.
