@@ -25,15 +25,16 @@ dependencies = [
     "numcodecs<0.16.0",
     "distinctipy",
     "tqdm",
-    "textual"
+    "textual",
+    "mrcfile"
 ]
 authors = [
-  {name = "Utz H. Ermel", email = "utz.ermel@czii.org"},
-  {name = "Kyle I. S. Harrington", email = "kyle@kyleharrington.com"},
+    { name = "Utz H. Ermel", email = "utz.ermel@czii.org" },
+    { name = "Kyle I. S. Harrington", email = "kyle@kyleharrington.com" },
 ]
 description = "Definitions for a collaborative cryoET annotation tool."
 readme = "README.md"
-license = {file = "LICENSE"}
+license = { file = "LICENSE" }
 keywords = ["cryoet", "cryo-et", "tomography", "annotation", "segmentation", "collaborative", "copick"]
 
 
@@ -87,32 +88,32 @@ target_version = ['py311']
 
 [tool.ruff]
 select = [
-    "E", "W",  # pycodestyle
-    "F",       # pyflakes
-    "B",       # bugbear
-    "I",       # isort
-    "N",       # pep8-naming
-    "ASYNC",   # async
-    "COM",     # commas
-    "C4",      # comprehensions
-    "DTZ",     # datetimez
-    "ISC",     # implicit-str-concat
-    "G",       # logging-format
-    "T20",     # print
-    "SIM",     # simplify
+    "E", "W", # pycodestyle
+    "F", # pyflakes
+    "B", # bugbear
+    "I", # isort
+    "N", # pep8-naming
+    "ASYNC", # async
+    "COM", # commas
+    "C4", # comprehensions
+    "DTZ", # datetimez
+    "ISC", # implicit-str-concat
+    "G", # logging-format
+    "T20", # print
+    "SIM", # simplify
 ]
 ignore = [
-    "G004",   # logging format
-    "W293",   # blank line contains whitespace
-    "B008",   # Do not perform calls in argument defaults
-    "B905",   # `zip()` without an explicit `strict=` parameter
-    "N802",   # Function name should be lowercase
-    "N805",   # First argument of a method should be named `self`
-    "N806",   # Variable in function should be lowercase
-    "N999",   # Invalid module name
-    "E501",   # line too long
-    "C408",   # rewrite empty built-ins as literals
-    "T201",   # print statements.
+    "G004", # logging format
+    "W293", # blank line contains whitespace
+    "B008", # Do not perform calls in argument defaults
+    "B905", # `zip()` without an explicit `strict=` parameter
+    "N802", # Function name should be lowercase
+    "N805", # First argument of a method should be named `self`
+    "N806", # Variable in function should be lowercase
+    "N999", # Invalid module name
+    "E501", # line too long
+    "C408", # rewrite empty built-ins as literals
+    "T201", # print statements.
     "DTZ007", # Datetime objects without timezones.
     "DTZ005", # More datetimes without timezones.
 ]
@@ -123,7 +124,7 @@ exclude = [
 ]
 
 [tool.ruff.isort]
-known-first-party =["common"]
+known-first-party = ["common"]
 
 [tool.ruff.flake8-quotes]
 docstring-quotes = "double"
@@ -134,12 +135,12 @@ ignore_missing_imports = true
 warn_unreachable = true
 strict = true
 plugins = [
-  "pydantic.mypy"
+    "pydantic.mypy"
 ]
 
 [tool.hatch.envs.test]
 dependencies = [
-  "pytest", "pooch",
+    "pytest", "pooch",
 ]
 
 [tool.hatch.envs.test.scripts]
@@ -147,7 +148,7 @@ test = "pytest {args:tests}"
 
 [tool.hatch.envs.test_extended]
 dependencies = [
-  "pytest", "pooch", "sshfs>=2024.6.0", "smbprotocol"
+    "pytest", "pooch", "sshfs>=2024.6.0", "smbprotocol"
 ]
 
 [tool.hatch.envs.test_extended.scripts]

@@ -19,7 +19,7 @@ from copick.ops._util import ome_metadata, volume_pyramid
 def add_run(
     root: CopickRoot,
     name: str,
-    overwrite: bool = False,
+    exist_ok: bool = False,
     log: bool = False,
 ) -> CopickRun:
     """Import a run into copick.
@@ -27,10 +27,10 @@ def add_run(
     Args:
         root (CopickRoot): The copick root object.
         name (str): The name of the run.
-        overwrite (bool, optional): Overwrite the object if it exists. Defaults to False.
+        exist_ok (bool, optional): If True, do not raise an error if the run already exists. Defaults to False.
         log (bool, optional): Log the operation. Defaults to False.
     """
-    run = root.new_run(name)  # , overwrite=overwrite)
+    run = root.new_run(name, exist_ok)  # , overwrite=overwrite)
 
     if log:
         logging.log(logging.INFO, f"Added run {name}.")
@@ -50,7 +50,7 @@ def get_or_create_run(
     # If the run does not exist, create it if requested
     if run is None:
         if create:
-            run = add_run(root, name, overwrite=False, log=log)
+            run = add_run(root, name, exist_ok=False, log=log)
         else:
             e = ValueError(f"Could not find run {name}.")
             if log:
@@ -65,7 +65,7 @@ def add_voxelspacing(
     run: str,
     voxel_spacing: float,
     create: bool = True,
-    overwrite: bool = False,
+    exist_ok: bool = False,
     log: bool = False,
 ) -> CopickVoxelSpacing:
     """Import a voxel spacing into copick.
@@ -75,11 +75,11 @@ def add_voxelspacing(
         run (str): The name of the run.
         voxel_spacing (float): The voxel spacing of the run.
         create (bool, optional): Create the object if it does not exist. Defaults to True.
-        overwrite (bool, optional): Overwrite the object if it exists. Defaults to False.
+        exist_ok (bool, optional): If True, do not raise an error if the voxel spacing already exists. Defaults to False.
         log (bool, optional): Log the operation. Defaults to False.
     """
     run = get_or_create_run(root, run, create=create, log=log)
-    vs = run.new_voxel_spacing(voxel_spacing)  # , overwrite=overwrite)
+    vs = run.new_voxel_spacing(voxel_spacing, exist_ok)
 
     if log:
         logging.log(logging.INFO, f"Added voxel spacing {voxel_spacing} to run {run.name}.")
@@ -122,6 +122,7 @@ def add_tomogram(
     volume: Union[np.ndarray, Dict[float, np.ndarray]],
     voxel_spacing: float = None,
     create: bool = True,
+    exist_ok: bool = False,
     overwrite: bool = False,
     create_pyramid: bool = False,
     pyramid_levels: int = 3,
@@ -135,6 +136,7 @@ def add_tomogram(
         root (CopickRoot): The copick root object.
         volume (Dict[float, np.ndarray]): Multi-scale pyramid of the tomogram. Keys are the voxel size in Angstroms.
         create (bool, optional): Create the object if it does not exist. Defaults to True.
+        exist_ok (bool, optional): If True, do not raise an error if the volume already exists. Defaults to False.
         overwrite (bool, optional): Overwrite the object if it exists. Defaults to False.
         run (str, optional): The run the tomogram is part of. Default: Name of the input file.
     """
@@ -172,7 +174,7 @@ def add_tomogram(
     vsobj = get_or_create_voxelspacing(runobj, voxel_spacing, create=create)
 
     # Create the tomogram
-    tomogram = vsobj.new_tomogram(tomo_type)  # , overwrite=overwrite)
+    tomogram = vsobj.new_tomogram(tomo_type, exist_ok=exist_ok)
 
     # Get the store
     loc = tomogram.zarr()
@@ -202,6 +204,7 @@ def _add_tomogram_mrc(
     volume_file: str,
     voxel_spacing: float = None,
     create: bool = True,
+    exist_ok: bool = False,
     overwrite: bool = False,
     create_pyramid: bool = False,
     pyramid_levels: int = 3,
@@ -215,6 +218,7 @@ def _add_tomogram_mrc(
         root (CopickRoot): The copick root object.
         volume_file (str): The path to the volume file.
         create (bool, optional): Create the object if it does not exist. Defaults to True.
+        exist_ok (bool, optional): If True, do not raise an error if the volume already exists. Defaults to False.
         overwrite (bool, optional): Overwrite the object if it exists. Defaults to False.
         run (str, optional): The run the tomogram is part of. Default: Name of the input file.
     """
@@ -233,6 +237,7 @@ def _add_tomogram_mrc(
         volume,
         voxel_spacing=voxel_size,
         create=create,
+        exist_ok=exist_ok,
         overwrite=overwrite,
         create_pyramid=create_pyramid,
         pyramid_levels=pyramid_levels,
@@ -249,6 +254,7 @@ def _add_tomogram_zarr(
     volume_file: str,
     voxel_spacing: float = None,
     create: bool = True,
+    exist_ok: bool = False,
     overwrite: bool = False,
     create_pyramid: bool = False,
     pyramid_levels: int = 3,
@@ -262,6 +268,7 @@ def _add_tomogram_zarr(
         root (CopickRoot): The copick root object.
         volume_file (str): The path to the volume file.
         create (bool, optional): Create the object if it does not exist. Defaults to True.
+        exist_ok (bool, optional): If True, do not raise an error if the volume already exists. Defaults to False.
         overwrite (bool, optional): Overwrite the object if it exists. Defaults to False.
         run (str, optional): The run the tomogram is part of. Default: Name of the input file.
     """
@@ -276,6 +283,7 @@ def _add_tomogram_zarr(
         volume,
         voxel_spacing=voxel_spacing,
         create=create,
+        exist_ok=exist_ok,
         overwrite=overwrite,
         create_pyramid=create_pyramid,
         pyramid_levels=pyramid_levels,
@@ -292,6 +300,7 @@ def add_features(
     tomo_type: str,
     feature_type: str,
     features_vol: np.ndarray,
+    exist_ok: bool = False,
     overwrite: bool = False,
     chunks: Tuple[int, int, int] = (256, 256, 256),
     meta: Dict[str, Any] = None,
@@ -303,6 +312,7 @@ def add_features(
         root (CopickRoot): The copick root object.
         features (Dict[str, Any]): The features to add.
         run (str): The run the features are part of.
+        exist_ok (bool, optional): If True, do not raise an error if the features already exist. Defaults to False.
         overwrite (bool, optional): Overwrite the object if it exists. Defaults to False.
         log (bool, optional): Log the operation. Defaults to False.
     """
@@ -317,7 +327,7 @@ def add_features(
         raise e
 
     # Create the features
-    features = tomogram.new_features(feature_type)  # , overwrite=overwrite)
+    features = tomogram.new_features(feature_type, exist_ok=exist_ok)
 
     # Multiscale metadata
     ome_meta = ome_metadata({voxel_spacing: features_vol})
