@@ -55,7 +55,7 @@ def objects_from_datasets(dataset_ids: List[int]) -> List[PickableObject]:
             is_particle = is_particle or po["is_particle"]
 
         portal_objects[anno.object_id] = {
-            "name": sanitize_name(anno.object_name),
+            "name": sanitize_name(anno.object_name).lower(),
             "is_particle": is_particle,
             "emdb_id": emd_id,
             "pdb_id": pdb_id,
