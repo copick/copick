@@ -96,6 +96,12 @@ class CopickPicksFSSpec(CopickPicksOverlay):
         with self.fs.open(self.path, "w") as f:
             json.dump(self.meta.dict(), f, indent=4)
 
+    def _delete_data(self) -> None:
+        if self.fs.exists(self.path):
+            self.fs.rm(self.path)
+        else:
+            raise FileNotFoundError(f"File not found: {self.path}")
+
 
 class CopickMeshFSSpec(CopickMeshOverlay):
     """CopickMesh class backed by fspec storage.
@@ -141,6 +147,12 @@ class CopickMeshFSSpec(CopickMeshOverlay):
 
         with self.fs.open(self.path, "wb") as f:
             _ = self._mesh.export(f, file_type="glb")
+
+    def _delete_data(self) -> None:
+        if self.fs.exists(self.path):
+            self.fs.rm(self.path)
+        else:
+            raise FileNotFoundError(f"File not found: {self.path}")
 
 
 class CopickSegmentationFSSpec(CopickSegmentationOverlay):
@@ -194,6 +206,13 @@ class CopickSegmentationFSSpec(CopickSegmentationOverlay):
             create=create,
         )
 
+    def _delete_data(self) -> None:
+        # Remove the segmentation folder
+        if self.fs.exists(self.path):
+            self.fs.rm(self.path, recursive=True)
+        else:
+            raise FileNotFoundError(f"File not found: {self.path}")
+
 
 class CopickFeaturesFSSpec(CopickFeaturesOverlay):
     """CopickFeatures class backed by fsspec storage.
@@ -237,6 +256,13 @@ class CopickFeaturesFSSpec(CopickFeaturesOverlay):
             dimension_separator="/",
             create=create,
         )
+
+    def _delete_data(self) -> None:
+        # Remove the features folder
+        if self.fs.exists(self.path):
+            self.fs.rm(self.path, recursive=True)
+        else:
+            raise FileNotFoundError(f"File not found: {self.path}")
 
 
 class CopickTomogramFSSpec(CopickTomogramOverlay):
@@ -358,6 +384,13 @@ class CopickTomogramFSSpec(CopickTomogramOverlay):
             create=create,
         )
 
+    def _delete_data(self) -> None:
+        # Remove the tomogram folder
+        if self.fs_overlay.exists(self.overlay_path):
+            self.fs_overlay.rm(self.overlay_path, recursive=True)
+        else:
+            raise FileNotFoundError(f"File not found: {self.overlay_path}")
+
 
 class CopickVoxelSpacingFSSpec(CopickVoxelSpacingOverlay):
     """CopickVoxelSpacing class backed by fsspec storage.
@@ -462,6 +495,13 @@ class CopickVoxelSpacingFSSpec(CopickVoxelSpacingOverlay):
             return True
         else:
             return exists
+
+    def _delete_data(self) -> None:
+        # Remove the voxel spacing folder
+        if self.fs_overlay.exists(self.overlay_path):
+            self.fs_overlay.rm(self.overlay_path, recursive=True)
+        else:
+            raise FileNotFoundError(f"File not found: {self.overlay_path}")
 
 
 class CopickRunFSSpec(CopickRunOverlay):
@@ -773,6 +813,13 @@ class CopickRunFSSpec(CopickRunOverlay):
             return True
         else:
             return exists
+
+    def _delete_data(self) -> None:
+        # Remove the run folder
+        if self.fs_overlay.exists(self.overlay_path):
+            self.fs_overlay.rm(self.overlay_path, recursive=True)
+        else:
+            raise FileNotFoundError(f"File not found: {self.overlay_path}")
 
 
 class CopickObjectFSSpec(CopickObjectOverlay):

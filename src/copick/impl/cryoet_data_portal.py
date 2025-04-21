@@ -295,6 +295,12 @@ class CopickPicksCDP(CopickPicksOverlay):
         with self.fs.open(self.path, "w") as f:
             json.dump(self.meta.dict(), f, indent=4)
 
+    def _delete_data(self) -> None:
+        if self.fs.exists(self.path):
+            self.fs.rm(self.path)
+        else:
+            raise FileNotFoundError(f"File not found: {self.path}")
+
 
 class CopickMeshCDP(CopickMeshOverlay):
     run: "CopickRunCDP"
@@ -340,6 +346,12 @@ class CopickMeshCDP(CopickMeshOverlay):
 
         with self.fs.open(self.path, "wb") as f:
             _ = self._mesh.export(f, file_type="glb")
+
+    def _delete_data(self):
+        if self.fs.exists(self.path):
+            self.fs.rm(self.path)
+        else:
+            raise FileNotFoundError(f"File not found: {self.path}")
 
 
 class CopickSegmentationMetaCDP(CopickSegmentationMeta):
@@ -420,6 +432,12 @@ class CopickSegmentationCDP(CopickSegmentationOverlay):
             create=create,
         )
 
+    def _delete_data(self) -> None:
+        if self.fs.exists(self.path):
+            self.fs.rm(self.path, recursive=True)
+        else:
+            raise FileNotFoundError(f"File not found: {self.path}")
+
 
 class CopickFeaturesCDP(CopickFeaturesOverlay):
     tomogram: "CopickTomogramCDP"
@@ -450,6 +468,12 @@ class CopickFeaturesCDP(CopickFeaturesOverlay):
             dimension_separator="/",
             create=create,
         )
+
+    def _delete_data(self) -> None:
+        if self.fs.exists(self.path):
+            self.fs.rm(self.path, recursive=True)
+        else:
+            raise FileNotFoundError(f"File not found: {self.path}")
 
 
 class CopickTomogramMetaCDP(CopickTomogramMeta):
@@ -565,6 +589,12 @@ class CopickTomogramCDP(CopickTomogramOverlay):
             dimension_separator="/",
             create=create,
         )
+
+    def _delete_data(self) -> None:
+        if self.fs_overlay.exists(self.overlay_path):
+            self.fs_overlay.rm(self.overlay_path, recursive=True)
+        else:
+            raise FileNotFoundError(f"File not found: {self.overlay_path}")
 
 
 class CopickVoxelSpacingMetaCDP(CopickVoxelSpacingMeta):
@@ -691,6 +721,12 @@ class CopickVoxelSpacingCDP(CopickVoxelSpacingOverlay):
 
         # Compare portal metadata and authors
         return [t for t in tomos if t.meta.portal_metadata.compare(portal_meta_query, portal_author_query)]
+
+    def _delete_data(self) -> None:
+        if self.fs_overlay.exists(self.overlay_path):
+            self.fs_overlay.rm(self.overlay_path, recursive=True)
+        else:
+            raise FileNotFoundError(f"File not found: {self.overlay_path}")
 
 
 class CopickRunMetaCDP(CopickRunMeta):
@@ -1076,6 +1112,12 @@ class CopickRunCDP(CopickRunOverlay):
         else:
             return exists
 
+    def _delete_data(self) -> None:
+        if self.fs_overlay.exists(self.overlay_path):
+            self.fs_overlay.rm(self.overlay_path, recursive=True)
+        else:
+            raise FileNotFoundError(f"File not found: {self.overlay_path}")
+
 
 class CopickObjectCDP(CopickObjectOverlay):
     root: "CopickRootCDP"
@@ -1111,6 +1153,12 @@ class CopickObjectCDP(CopickObjectOverlay):
             dimension_separator="/",
             create=create,
         )
+
+    def _delete_data(self) -> None:
+        if self.fs.exists(self.path):
+            self.fs.rm(self.path, recursive=True)
+        else:
+            raise FileNotFoundError(f"File not found: {self.path}")
 
 
 class CopickRootCDP(CopickRoot):
