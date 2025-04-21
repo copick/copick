@@ -4,19 +4,7 @@ import cryoet_data_portal as cdp
 import distinctipy
 
 from copick.models import PickableObject
-
-
-def escape_name(name: str) -> str:
-    """
-    Escape a name to be compatible with copick.
-
-    Args:
-        name: The name to escape.
-
-    Returns:
-        str: The escaped name.
-    """
-    return name.lower().replace(" ", "-").replace("-", "-")
+from copick.util.escape import sanitize_name
 
 
 def objects_from_datasets(dataset_ids: List[int]) -> List[PickableObject]:
@@ -67,7 +55,7 @@ def objects_from_datasets(dataset_ids: List[int]) -> List[PickableObject]:
             is_particle = is_particle or po["is_particle"]
 
         portal_objects[anno.object_id] = {
-            "name": escape_name(anno.object_name),
+            "name": sanitize_name(anno.object_name),
             "is_particle": is_particle,
             "emdb_id": emd_id,
             "pdb_id": pdb_id,
