@@ -1171,7 +1171,7 @@ class CopickRun:
             del p
 
     def delete_meshes(self, object_name: str = None, user_id: str = None, session_id: str = None) -> None:
-        """Delete meshesby name, user_id or session_id (or combinations).
+        """Delete meshes by name, user_id or session_id (or combinations).
 
         Args:
             object_name: Name of the object to delete.
