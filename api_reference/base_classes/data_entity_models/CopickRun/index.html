@@ -16,7 +16,7 @@
       
       
       <link rel="icon" href="../../../../assets/images/favicon.png">
-      <meta name="generator" content="mkdocs-1.6.1, mkdocs-material-9.6.11">
+      <meta name="generator" content="mkdocs-1.6.1, mkdocs-material-9.6.12">
     
     
       
@@ -24,7 +24,7 @@
       
     
     
-      <link rel="stylesheet" href="../../../../assets/stylesheets/main.4af4bdda.min.css">
+      <link rel="stylesheet" href="../../../../assets/stylesheets/main.2afb09e1.min.css">
       
         
         <link rel="stylesheet" href="../../../../assets/stylesheets/palette.06af60db.min.css">
@@ -1238,6 +1238,15 @@
   
 </li>
         
+          <li class="md-nav__item">
+  <a href="#copick.models.CopickRun.delete" class="md-nav__link">
+    <span class="md-ellipsis">
+      <code class="doc-symbol doc-symbol-toc doc-symbol-method"></code>&nbsp;delete
+    </span>
+  </a>
+  
+</li>
+        
       </ul>
     </nav>
   
@@ -2031,6 +2040,15 @@
   
 </li>
         
+          <li class="md-nav__item">
+  <a href="#copick.models.CopickRun.delete" class="md-nav__link">
+    <span class="md-ellipsis">
+      <code class="doc-symbol doc-symbol-toc doc-symbol-method"></code>&nbsp;delete
+    </span>
+  </a>
+  
+</li>
+        
       </ul>
     </nav>
   
@@ -2389,7 +2407,7 @@ loaded when CopickRun.segmentations is accessed <strong>for the first time</stro
 
 
 <h3 id="copick.models.CopickRun.get_picks" class="doc doc-heading">
-<code class="doc-symbol doc-symbol-heading doc-symbol-method"></code>            <code class="highlight language-python"><span class="n">get_picks</span><span class="p">(</span><span class="n">object_name</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span> <span class="n">user_id</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span> <span class="n">session_id</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="kc">None</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">List</span><span class="p">[</span><span class="n">CopickPicks</span><span class="p">]</span></code>
+<code class="doc-symbol doc-symbol-heading doc-symbol-method"></code>            <code class="highlight language-python"><span class="n">get_picks</span><span class="p">(</span><span class="n">object_name</span><span class="p">:</span> <span class="n">Union</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Iterable</span><span class="p">[</span><span class="nb">str</span><span class="p">]]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span> <span class="n">user_id</span><span class="p">:</span> <span class="n">Union</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Iterable</span><span class="p">[</span><span class="nb">str</span><span class="p">]]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span> <span class="n">session_id</span><span class="p">:</span> <span class="n">Union</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Iterable</span><span class="p">[</span><span class="nb">str</span><span class="p">]]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">List</span><span class="p">[</span><span class="n">CopickPicks</span><span class="p">]</span></code>
 
 </h3>
 
@@ -2403,7 +2421,7 @@ loaded when CopickRun.segmentations is accessed <strong>for the first time</stro
     <ul>
         <li class="doc-section-item field-body">
             <b><code>object_name</code></b>
-              (<code><span title="str">str</span></code>, default:
+              (<code><span title="typing.Union">Union</span>[<span title="str">str</span>, <span title="typing.Iterable">Iterable</span>[<span title="str">str</span>]]</code>, default:
                   <code>None</code>
 )
           –
@@ -2413,7 +2431,7 @@ loaded when CopickRun.segmentations is accessed <strong>for the first time</stro
         </li>
         <li class="doc-section-item field-body">
             <b><code>user_id</code></b>
-              (<code><span title="str">str</span></code>, default:
+              (<code><span title="typing.Union">Union</span>[<span title="str">str</span>, <span title="typing.Iterable">Iterable</span>[<span title="str">str</span>]]</code>, default:
                   <code>None</code>
 )
           –
@@ -2423,7 +2441,7 @@ loaded when CopickRun.segmentations is accessed <strong>for the first time</stro
         </li>
         <li class="doc-section-item field-body">
             <b><code>session_id</code></b>
-              (<code><span title="str">str</span></code>, default:
+              (<code><span title="typing.Union">Union</span>[<span title="str">str</span>, <span title="typing.Iterable">Iterable</span>[<span title="str">str</span>]]</code>, default:
                   <code>None</code>
 )
           –
@@ -2514,7 +2532,7 @@ loaded when CopickRun.segmentations is accessed <strong>for the first time</stro
 
 
 <h3 id="copick.models.CopickRun.get_meshes" class="doc doc-heading">
-<code class="doc-symbol doc-symbol-heading doc-symbol-method"></code>            <code class="highlight language-python"><span class="n">get_meshes</span><span class="p">(</span><span class="n">object_name</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span> <span class="n">user_id</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span> <span class="n">session_id</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="kc">None</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">List</span><span class="p">[</span><span class="n">CopickMesh</span><span class="p">]</span></code>
+<code class="doc-symbol doc-symbol-heading doc-symbol-method"></code>            <code class="highlight language-python"><span class="n">get_meshes</span><span class="p">(</span><span class="n">object_name</span><span class="p">:</span> <span class="n">Union</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Iterable</span><span class="p">[</span><span class="nb">str</span><span class="p">]]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span> <span class="n">user_id</span><span class="p">:</span> <span class="n">Union</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Iterable</span><span class="p">[</span><span class="nb">str</span><span class="p">]]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span> <span class="n">session_id</span><span class="p">:</span> <span class="n">Union</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Iterable</span><span class="p">[</span><span class="nb">str</span><span class="p">]]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">List</span><span class="p">[</span><span class="n">CopickMesh</span><span class="p">]</span></code>
 
 </h3>
 
@@ -2528,7 +2546,7 @@ loaded when CopickRun.segmentations is accessed <strong>for the first time</stro
     <ul>
         <li class="doc-section-item field-body">
             <b><code>object_name</code></b>
-              (<code><span title="str">str</span></code>, default:
+              (<code><span title="typing.Union">Union</span>[<span title="str">str</span>, <span title="typing.Iterable">Iterable</span>[<span title="str">str</span>]]</code>, default:
                   <code>None</code>
 )
           –
@@ -2538,7 +2556,7 @@ loaded when CopickRun.segmentations is accessed <strong>for the first time</stro
         </li>
         <li class="doc-section-item field-body">
             <b><code>user_id</code></b>
-              (<code><span title="str">str</span></code>, default:
+              (<code><span title="typing.Union">Union</span>[<span title="str">str</span>, <span title="typing.Iterable">Iterable</span>[<span title="str">str</span>]]</code>, default:
                   <code>None</code>
 )
           –
@@ -2548,7 +2566,7 @@ loaded when CopickRun.segmentations is accessed <strong>for the first time</stro
         </li>
         <li class="doc-section-item field-body">
             <b><code>session_id</code></b>
-              (<code><span title="str">str</span></code>, default:
+              (<code><span title="typing.Union">Union</span>[<span title="str">str</span>, <span title="typing.Iterable">Iterable</span>[<span title="str">str</span>]]</code>, default:
                   <code>None</code>
 )
           –
@@ -2639,7 +2657,7 @@ loaded when CopickRun.segmentations is accessed <strong>for the first time</stro
 
 
 <h3 id="copick.models.CopickRun.get_segmentations" class="doc doc-heading">
-<code class="doc-symbol doc-symbol-heading doc-symbol-method"></code>            <code class="highlight language-python"><span class="n">get_segmentations</span><span class="p">(</span><span class="n">user_id</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span> <span class="n">session_id</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span> <span class="n">is_multilabel</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span> <span class="n">name</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span> <span class="n">voxel_size</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="kc">None</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">List</span><span class="p">[</span><span class="n">CopickSegmentation</span><span class="p">]</span></code>
+<code class="doc-symbol doc-symbol-heading doc-symbol-method"></code>            <code class="highlight language-python"><span class="n">get_segmentations</span><span class="p">(</span><span class="n">user_id</span><span class="p">:</span> <span class="n">Union</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Iterable</span><span class="p">[</span><span class="nb">str</span><span class="p">]]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span> <span class="n">session_id</span><span class="p">:</span> <span class="n">Union</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Iterable</span><span class="p">[</span><span class="nb">str</span><span class="p">]]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span> <span class="n">is_multilabel</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span> <span class="n">name</span><span class="p">:</span> <span class="n">Union</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Iterable</span><span class="p">[</span><span class="nb">str</span><span class="p">]]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span> <span class="n">voxel_size</span><span class="p">:</span> <span class="n">Union</span><span class="p">[</span><span class="nb">float</span><span class="p">,</span> <span class="n">Iterable</span><span class="p">[</span><span class="nb">float</span><span class="p">]]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">List</span><span class="p">[</span><span class="n">CopickSegmentation</span><span class="p">]</span></code>
 
 </h3>
 
@@ -2653,7 +2671,7 @@ loaded when CopickRun.segmentations is accessed <strong>for the first time</stro
     <ul>
         <li class="doc-section-item field-body">
             <b><code>user_id</code></b>
-              (<code><span title="str">str</span></code>, default:
+              (<code><span title="typing.Union">Union</span>[<span title="str">str</span>, <span title="typing.Iterable">Iterable</span>[<span title="str">str</span>]]</code>, default:
                   <code>None</code>
 )
           –
@@ -2663,7 +2681,7 @@ loaded when CopickRun.segmentations is accessed <strong>for the first time</stro
         </li>
         <li class="doc-section-item field-body">
             <b><code>session_id</code></b>
-              (<code><span title="str">str</span></code>, default:
+              (<code><span title="typing.Union">Union</span>[<span title="str">str</span>, <span title="typing.Iterable">Iterable</span>[<span title="str">str</span>]]</code>, default:
                   <code>None</code>
 )
           –
@@ -2683,7 +2701,7 @@ loaded when CopickRun.segmentations is accessed <strong>for the first time</stro
         </li>
         <li class="doc-section-item field-body">
             <b><code>name</code></b>
-              (<code><span title="str">str</span></code>, default:
+              (<code><span title="typing.Union">Union</span>[<span title="str">str</span>, <span title="typing.Iterable">Iterable</span>[<span title="str">str</span>]]</code>, default:
                   <code>None</code>
 )
           –
@@ -2693,7 +2711,7 @@ loaded when CopickRun.segmentations is accessed <strong>for the first time</stro
         </li>
         <li class="doc-section-item field-body">
             <b><code>voxel_size</code></b>
-              (<code><span title="float">float</span></code>, default:
+              (<code><span title="typing.Union">Union</span>[<span title="float">float</span>, <span title="typing.Iterable">Iterable</span>[<span title="float">float</span>]]</code>, default:
                   <code>None</code>
 )
           –
@@ -3164,6 +3182,24 @@ voxel spacings, or if the user ID is not set in the root config or supplied.</p>
           </div>
         </li>
     </ul>
+
+
+    </div>
+
+</div>
+
+<div class="doc doc-object doc-function">
+
+
+<h3 id="copick.models.CopickRun.delete" class="doc doc-heading">
+<code class="doc-symbol doc-symbol-heading doc-symbol-method"></code>            <code class="highlight language-python"><span class="n">delete</span><span class="p">()</span></code>
+
+</h3>
+
+
+    <div class="doc doc-contents ">
+
+        <p>Delete the run record.</p>
 
 
     </div>

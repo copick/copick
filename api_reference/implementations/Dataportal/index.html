@@ -14,7 +14,7 @@
       
       
       <link rel="icon" href="../../../assets/images/favicon.png">
-      <meta name="generator" content="mkdocs-1.6.1, mkdocs-material-9.6.11">
+      <meta name="generator" content="mkdocs-1.6.1, mkdocs-material-9.6.12">
     
     
       
@@ -22,7 +22,7 @@
       
     
     
-      <link rel="stylesheet" href="../../../assets/stylesheets/main.4af4bdda.min.css">
+      <link rel="stylesheet" href="../../../assets/stylesheets/main.2afb09e1.min.css">
       
         
         <link rel="stylesheet" href="../../../assets/stylesheets/palette.06af60db.min.css">
@@ -1680,9 +1680,18 @@
       <ul class="md-nav__list">
         
           <li class="md-nav__item">
-  <a href="#copick.impl.cryoet_data_portal.CopickTomogramCDP.tomogram" class="md-nav__link">
+  <a href="#copick.impl.cryoet_data_portal.CopickTomogramCDP.tomo_type" class="md-nav__link">
     <span class="md-ellipsis">
-      <code class="doc-symbol doc-symbol-toc doc-symbol-attribute"></code>&nbsp;tomogram
+      <code class="doc-symbol doc-symbol-toc doc-symbol-attribute"></code>&nbsp;tomo_type
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#copick.impl.cryoet_data_portal.CopickTomogramCDP.portal_tomo" class="md-nav__link">
+    <span class="md-ellipsis">
+      <code class="doc-symbol doc-symbol-toc doc-symbol-attribute"></code>&nbsp;portal_tomo
     </span>
   </a>
   
@@ -1908,9 +1917,18 @@
       <ul class="md-nav__list">
         
           <li class="md-nav__item">
-  <a href="#copick.impl.cryoet_data_portal.CopickTomogramCDP.tomogram" class="md-nav__link">
+  <a href="#copick.impl.cryoet_data_portal.CopickTomogramCDP.tomo_type" class="md-nav__link">
     <span class="md-ellipsis">
-      <code class="doc-symbol doc-symbol-toc doc-symbol-attribute"></code>&nbsp;tomogram
+      <code class="doc-symbol doc-symbol-toc doc-symbol-attribute"></code>&nbsp;tomo_type
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#copick.impl.cryoet_data_portal.CopickTomogramCDP.portal_tomo" class="md-nav__link">
+    <span class="md-ellipsis">
+      <code class="doc-symbol doc-symbol-toc doc-symbol-attribute"></code>&nbsp;portal_tomo
     </span>
   </a>
   
@@ -2719,8 +2737,8 @@ annotation's author list.</p>
 
 
 
-<h3 id="copick.impl.cryoet_data_portal.CopickTomogramCDP.tomogram" class="doc doc-heading">
-<code class="doc-symbol doc-symbol-heading doc-symbol-attribute"></code>            <code class="highlight language-python"><span class="n">tomogram</span><span class="p">:</span> <span class="n">CopickTomogramCDP</span></code>
+<h3 id="copick.impl.cryoet_data_portal.CopickTomogramCDP.tomo_type" class="doc doc-heading">
+<code class="doc-symbol doc-symbol-heading doc-symbol-attribute"></code>            <code class="highlight language-python"><span class="n">tomo_type</span><span class="p">:</span> <span class="nb">str</span></code>
 
 </h3>
 
@@ -2732,6 +2750,24 @@ annotation's author list.</p>
 cryoet_data_portal.Tomogram.processing_software + "-" + cryoet_data_portal.Tomogram.ctf_corrected</code>], where
 <code>cryoet_data_portal.Tomogram.processing_software</code> and <code>cryoet_data_portal.Tomogram.ctf_corrected</code> are discarded
 if null in the database.</p>
+
+    </div>
+
+</div>
+
+<div class="doc doc-object doc-attribute">
+
+
+
+<h3 id="copick.impl.cryoet_data_portal.CopickTomogramCDP.portal_tomo" class="doc doc-heading">
+<code class="doc-symbol doc-symbol-heading doc-symbol-attribute"></code>            <code class="highlight language-python"><span class="n">portal_tomo</span><span class="p">:</span> <span class="nb">bool</span></code>
+
+</h3>
+
+
+    <div class="doc doc-contents ">
+
+        <p>Whether this tomogram is from the portal or not.</p>
 
     </div>
 
