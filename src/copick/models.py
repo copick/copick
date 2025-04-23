@@ -1,5 +1,5 @@
 import json
-from typing import Dict, List, Literal, MutableMapping, Optional, Tuple, Type, Union
+from typing import Dict, Iterable, List, Literal, MutableMapping, Optional, Tuple, Type, Union
 
 import numpy as np
 import trimesh
@@ -464,6 +464,20 @@ class CopickRoot:
 
         return run
 
+    def delete_run(self, name: str) -> None:
+        """Delete a run by name.
+
+        Args:
+            name: Name of the run to delete.
+        """
+        if self._runs is None:
+            return
+
+        for i, run in enumerate(self._runs):
+            if run.name == name:
+                del self._runs[i]
+                break
+
     def _run_factory(self) -> Tuple[Type["CopickRun"], Type["CopickRunMeta"]]:
         """Override this method to return the run class and run metadata class."""
         return CopickRun, CopickRunMeta
@@ -676,7 +690,12 @@ class CopickRun:
         """
         return [p for p in self.picks if p.from_tool]
 
-    def get_picks(self, object_name: str = None, user_id: str = None, session_id: str = None) -> List["CopickPicks"]:
+    def get_picks(
+        self,
+        object_name: Union[str, Iterable[str]] = None,
+        user_id: Union[str, Iterable[str]] = None,
+        session_id: Union[str, Iterable[str]] = None,
+    ) -> List["CopickPicks"]:
         """Get picks by name, user_id or session_id (or combinations).
 
         Args:
@@ -690,13 +709,16 @@ class CopickRun:
         ret = self.picks
 
         if object_name is not None:
-            ret = [p for p in ret if p.pickable_object_name == object_name]
+            object_name = [object_name] if isinstance(object_name, str) else object_name
+            ret = [p for p in ret if p.pickable_object_name in object_name]
 
         if user_id is not None:
-            ret = [p for p in ret if p.user_id == user_id]
+            user_id = [user_id] if isinstance(user_id, str) else user_id
+            ret = [p for p in ret if p.user_id in user_id]
 
         if session_id is not None:
-            ret = [p for p in ret if p.session_id == session_id]
+            session_id = [session_id] if isinstance(session_id, str) else session_id
+            ret = [p for p in ret if p.session_id in session_id]
 
         return ret
 
@@ -726,7 +748,12 @@ class CopickRun:
         """
         return [m for m in self.meshes if m.from_tool]
 
-    def get_meshes(self, object_name: str = None, user_id: str = None, session_id: str = None) -> List["CopickMesh"]:
+    def get_meshes(
+        self,
+        object_name: Union[str, Iterable[str]] = None,
+        user_id: Union[str, Iterable[str]] = None,
+        session_id: Union[str, Iterable[str]] = None,
+    ) -> List["CopickMesh"]:
         """Get meshes by name, user_id or session_id (or combinations).
 
         Args:
@@ -740,13 +767,16 @@ class CopickRun:
         ret = self.meshes
 
         if object_name is not None:
-            ret = [m for m in ret if m.pickable_object_name == object_name]
+            object_name = [object_name] if isinstance(object_name, str) else object_name
+            ret = [m for m in ret if m.pickable_object_name in object_name]
 
         if user_id is not None:
-            ret = [m for m in ret if m.user_id == user_id]
+            user_id = [user_id] if isinstance(user_id, str) else user_id
+            ret = [m for m in ret if m.user_id in user_id]
 
         if session_id is not None:
-            ret = [m for m in ret if m.session_id == session_id]
+            session_id = [session_id] if isinstance(session_id, str) else session_id
+            ret = [m for m in ret if m.session_id in session_id]
 
         return ret
 
@@ -778,11 +808,11 @@ class CopickRun:
 
     def get_segmentations(
         self,
-        user_id: str = None,
-        session_id: str = None,
+        user_id: Union[str, Iterable[str]] = None,
+        session_id: Union[str, Iterable[str]] = None,
         is_multilabel: bool = None,
-        name: str = None,
-        voxel_size: float = None,
+        name: Union[str, Iterable[str]] = None,
+        voxel_size: Union[float, Iterable[float]] = None,
     ) -> List["CopickSegmentation"]:
         """Get segmentations by user_id, session_id, name, type or voxel_size (or combinations).
 
@@ -799,19 +829,23 @@ class CopickRun:
         ret = self.segmentations
 
         if user_id is not None:
-            ret = [s for s in ret if s.user_id == user_id]
+            user_id = [user_id] if isinstance(user_id, str) else user_id
+            ret = [s for s in ret if s.user_id in user_id]
 
         if session_id is not None:
-            ret = [s for s in ret if s.session_id == session_id]
+            session_id = [session_id] if isinstance(session_id, str) else session_id
+            ret = [s for s in ret if s.session_id in session_id]
 
         if is_multilabel is not None:
             ret = [s for s in ret if s.is_multilabel == is_multilabel]
 
         if name is not None:
-            ret = [s for s in ret if s.name == name]
+            name = [name] if isinstance(name, str) else name
+            ret = [s for s in ret if s.name in name]
 
         if voxel_size is not None:
-            ret = [s for s in ret if s.voxel_size == voxel_size]
+            voxel_size = [voxel_size] if isinstance(voxel_size, float) else voxel_size
+            ret = [s for s in ret if s.voxel_size in voxel_size]
 
         return ret
 
@@ -1069,6 +1103,10 @@ class CopickRun:
             bool: True if the run record exists, False otherwise.
         """
         raise NotImplementedError("ensure must be implemented for CopickRun.")
+
+    def delete(self):
+        """Delete the run record."""
+        raise NotImplementedError("delete must be implemented for CopickRun.")
 
 
 class CopickVoxelSpacingMeta(BaseModel):
@@ -1960,3 +1998,16 @@ class CopickSegmentation:
         """
         loc = self.zarr()
         zarr.open(loc)[zarr_group][z, y, x] = data
+
+
+COPICK_TYPES = (
+    CopickRun,
+    CopickRun,
+    CopickVoxelSpacing,
+    CopickTomogram,
+    CopickFeatures,
+    CopickPicks,
+    CopickMesh,
+    CopickSegmentation,
+    CopickObject,
+)

@@ -19,6 +19,9 @@ from copick.models import (
     CopickVoxelSpacing,
     PickableObject,
 )
+from copick.util.log import get_logger
+
+logger = get_logger(__name__)
 
 
 class CopickPicksOverlay(CopickPicks):

@@ -24,6 +24,8 @@ dependencies = [
     "zarr<3",
     "numcodecs<0.16.0",
     "distinctipy",
+    "tqdm",
+    "textual"
 ]
 authors = [
   {name = "Utz H. Ermel", email = "utz.ermel@czii.org"},
@@ -34,11 +36,16 @@ readme = "README.md"
 license = {file = "LICENSE"}
 keywords = ["cryoet", "cryo-et", "tomography", "annotation", "segmentation", "collaborative", "copick"]
 
+
 [project.urls]
 Repository = "https://github.com/copick/copick.git"
 Issues = "https://github.com/copick/copick/issues"
 docs = "https://copick.github.io/copick/"
 documentation = "https://copick.github.io/copick/"
+
+[project.scripts]
+copick = "copick.cli.cli:cli"
+make_templates = "copick.cli.make_templates:create [docs]"
 
 [project.optional-dependencies]
 smb = ["smbprotocol"]
@@ -58,6 +65,7 @@ dev = [
     "pre-commit",
     "ruff",
     "notebook",
+    "textual-dev"
 ]
 docs = [
     "mkdocs",
@@ -66,8 +74,6 @@ docs = [
     "mkdocs-material",
 ]
 
-[project.scripts]
-make_templates = "copick.cli.make_templates:create [docs]"
 
 [tool.hatch.version]
 path = "src/copick/__init__.py"
@@ -96,6 +102,7 @@ select = [
     "SIM",     # simplify
 ]
 ignore = [
+    "G004",   # logging format
     "W293",   # blank line contains whitespace
     "B008",   # Do not perform calls in argument defaults
     "B905",   # `zip()` without an explicit `strict=` parameter

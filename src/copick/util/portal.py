@@ -4,6 +4,9 @@ import cryoet_data_portal as cdp
 import distinctipy
 
 from copick.models import PickableObject
+from copick.util.log import get_logger
+
+logger = get_logger(__name__)
 
 
 def escape_name(name: str) -> str:

@@ -31,6 +31,9 @@ from copick.models import (
     CopickVoxelSpacingMeta,
     PickableObject,
 )
+from copick.util.log import get_logger
+
+logger = get_logger(__name__)
 
 
 class CopickConfigFSSpec(CopickConfig):
@@ -82,6 +85,7 @@ class CopickPicksFSSpec(CopickPicksOverlay):
 
     def _load(self) -> CopickPicksFile:
         if not self.fs.exists(self.path):
+            logger.critical(f"File not found: {self.path}")
             raise FileNotFoundError(f"File not found: {self.path}")
 
         with self.fs.open(self.path, "r") as f:
@@ -128,6 +132,7 @@ class CopickMeshFSSpec(CopickMeshOverlay):
 
     def _load(self) -> Geometry:
         if not self.fs.exists(self.path):
+            logger.critical(f"File not found: {self.path}")
             raise FileNotFoundError(f"File not found: {self.path}")
 
         with self.fs.open(self.path, "rb") as f:
