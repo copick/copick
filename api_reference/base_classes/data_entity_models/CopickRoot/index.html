@@ -1998,7 +1998,7 @@
 
 
 <h3 id="copick.models.CopickRoot.new_run" class="doc doc-heading">
-<code class="doc-symbol doc-symbol-heading doc-symbol-method"></code>            <code class="highlight language-python"><span class="n">new_run</span><span class="p">(</span><span class="n">name</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">CopickRun</span></code>
+<code class="doc-symbol doc-symbol-heading doc-symbol-method"></code>            <code class="highlight language-python"><span class="n">new_run</span><span class="p">(</span><span class="n">name</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">exist_ok</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">CopickRun</span></code>
 
 </h3>
 
@@ -2016,6 +2016,16 @@
           –
           <div class="doc-md-description">
             <p>Name of the run to create.</p>
+          </div>
+        </li>
+        <li class="doc-section-item field-body">
+            <b><code>exist_ok</code></b>
+              (<code><span title="bool">bool</span></code>, default:
+                  <code>False</code>
+)
+          –
+          <div class="doc-md-description">
+            <p>Whether to raise an error if the run already exists.</p>
           </div>
         </li>
         <li class="doc-section-item field-body">

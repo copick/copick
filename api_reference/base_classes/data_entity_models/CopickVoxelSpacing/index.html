@@ -1117,6 +1117,24 @@
   
 </li>
         
+          <li class="md-nav__item">
+  <a href="#copick.models.CopickVoxelSpacing.delete" class="md-nav__link">
+    <span class="md-ellipsis">
+      <code class="doc-symbol doc-symbol-toc doc-symbol-method"></code>&nbsp;delete
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#copick.models.CopickVoxelSpacing.delete_tomograms" class="md-nav__link">
+    <span class="md-ellipsis">
+      <code class="doc-symbol doc-symbol-toc doc-symbol-method"></code>&nbsp;delete_tomograms
+    </span>
+  </a>
+  
+</li>
+        
       </ul>
     </nav>
   
@@ -1743,6 +1761,24 @@
   
 </li>
         
+          <li class="md-nav__item">
+  <a href="#copick.models.CopickVoxelSpacing.delete" class="md-nav__link">
+    <span class="md-ellipsis">
+      <code class="doc-symbol doc-symbol-toc doc-symbol-method"></code>&nbsp;delete
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#copick.models.CopickVoxelSpacing.delete_tomograms" class="md-nav__link">
+    <span class="md-ellipsis">
+      <code class="doc-symbol doc-symbol-toc doc-symbol-method"></code>&nbsp;delete_tomograms
+    </span>
+  </a>
+  
+</li>
+        
       </ul>
     </nav>
   
@@ -2031,7 +2067,7 @@ when CopickVoxelSpacing.tomograms is accessed <strong>for the first time</strong
 
 
 <h3 id="copick.models.CopickVoxelSpacing.new_tomogram" class="doc doc-heading">
-<code class="doc-symbol doc-symbol-heading doc-symbol-method"></code>            <code class="highlight language-python"><span class="n">new_tomogram</span><span class="p">(</span><span class="n">tomo_type</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">CopickTomogram</span></code>
+<code class="doc-symbol doc-symbol-heading doc-symbol-method"></code>            <code class="highlight language-python"><span class="n">new_tomogram</span><span class="p">(</span><span class="n">tomo_type</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">exist_ok</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">CopickTomogram</span></code>
 
 </h3>
 
@@ -2049,6 +2085,16 @@ when CopickVoxelSpacing.tomograms is accessed <strong>for the first time</strong
           –
           <div class="doc-md-description">
             <p>Type of the tomogram to create.</p>
+          </div>
+        </li>
+        <li class="doc-section-item field-body">
+            <b><code>exist_ok</code></b>
+              (<code><span title="bool">bool</span></code>, default:
+                  <code>False</code>
+)
+          –
+          <div class="doc-md-description">
+            <p>Whether to raise an error if the tomogram already exists.</p>
           </div>
         </li>
         <li class="doc-section-item field-body">
@@ -2125,6 +2171,57 @@ when CopickVoxelSpacing.tomograms is accessed <strong>for the first time</strong
 )          –
           <div class="doc-md-description">
             <p>True if the voxel spacing record exists, False otherwise.</p>
+          </div>
+        </li>
+    </ul>
+
+
+    </div>
+
+</div>
+
+<div class="doc doc-object doc-function">
+
+
+<h3 id="copick.models.CopickVoxelSpacing.delete" class="doc doc-heading">
+<code class="doc-symbol doc-symbol-heading doc-symbol-method"></code>            <code class="highlight language-python"><span class="n">delete</span><span class="p">()</span> <span class="o">-&gt;</span> <span class="kc">None</span></code>
+
+</h3>
+
+
+    <div class="doc doc-contents ">
+
+        <p>Delete the voxel spacing record.</p>
+
+
+    </div>
+
+</div>
+
+<div class="doc doc-object doc-function">
+
+
+<h3 id="copick.models.CopickVoxelSpacing.delete_tomograms" class="doc doc-heading">
+<code class="doc-symbol doc-symbol-heading doc-symbol-method"></code>            <code class="highlight language-python"><span class="n">delete_tomograms</span><span class="p">(</span><span class="n">tomo_type</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="kc">None</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span></code>
+
+</h3>
+
+
+    <div class="doc doc-contents ">
+
+        <p>Delete a tomogram by type.</p>
+
+
+<p><span class="doc-section-title">Parameters:</span></p>
+    <ul>
+        <li class="doc-section-item field-body">
+            <b><code>tomo_type</code></b>
+              (<code><span title="str">str</span></code>, default:
+                  <code>None</code>
+)
+          –
+          <div class="doc-md-description">
+            <p>Type of the tomogram to delete.</p>
           </div>
         </li>
     </ul>
