@@ -5,7 +5,10 @@ from typing import Any, Dict, List, Union
 from copick import __version__
 from copick.impl.cryoet_data_portal import CopickConfigCDP, CopickRootCDP
 from copick.impl.filesystem import CopickConfigFSSpec, CopickRootFSSpec
+from copick.util.log import get_logger
 from copick.util.portal import objects_from_datasets
+
+logger = get_logger(__name__)
 
 
 def from_string(data: str):

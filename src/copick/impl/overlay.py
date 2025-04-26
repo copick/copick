@@ -19,6 +19,9 @@ from copick.models import (
     CopickVoxelSpacing,
     PickableObject,
 )
+from copick.util.log import get_logger
+
+logger = get_logger(__name__)
 
 
 class CopickPicksOverlay(CopickPicks):
@@ -38,6 +41,13 @@ class CopickPicksOverlay(CopickPicks):
             raise PermissionError("Cannot store picks in a read-only source.")
         self._store()
 
+    def delete(self):
+        """Delete the picks, making sure the source is writable."""
+        if self.read_only:
+            raise PermissionError("Cannot delete picks in a read-only source.")
+
+        super().delete()
+
 
 class CopickMeshOverlay(CopickMesh):
     """CopickMesh class that keeps track of whether the mesh is read-only.
@@ -56,6 +66,13 @@ class CopickMeshOverlay(CopickMesh):
             raise PermissionError("Cannot store mesh in a read-only source.")
         self._store()
 
+    def delete(self):
+        """Delete the mesh, making sure the source is writable."""
+        if self.read_only:
+            raise PermissionError("Cannot delete mesh in a read-only source.")
+
+        super().delete()
+
 
 class CopickSegmentationOverlay(CopickSegmentation):
     """CopickSegmentation class that keeps track of whether the segmentation is read-only.
@@ -67,6 +84,13 @@ class CopickSegmentationOverlay(CopickSegmentation):
     def __init__(self, run: CopickRun, meta: CopickSegmentationMeta, read_only: bool = False):
         super().__init__(run, meta)
         self.read_only = read_only
+
+    def delete(self):
+        """Delete the segmentation, making sure the source is writable."""
+        if self.read_only:
+            raise PermissionError("Cannot delete segmentation in a read-only source.")
+
+        super().delete()
 
 
 class CopickObjectOverlay(CopickObject):
@@ -80,6 +104,13 @@ class CopickObjectOverlay(CopickObject):
         super().__init__(root, meta)
         self.read_only = read_only
 
+    def delete(self):
+        """Delete the object, making sure the source is writable."""
+        if self.read_only:
+            raise PermissionError("Cannot delete object in a read-only source.")
+
+        super().delete()
+
 
 class CopickFeaturesOverlay(CopickFeatures):
     """CopickFeatures class that keeps track of whether the features are read-only.
@@ -91,6 +122,13 @@ class CopickFeaturesOverlay(CopickFeatures):
     def __init__(self, tomogram: CopickTomogram, meta: CopickFeaturesMeta, read_only: bool = False):
         super().__init__(tomogram, meta)
         self.read_only = read_only
+
+    def delete(self):
+        """Delete the features, making sure the source is writable."""
+        if self.read_only:
+            raise PermissionError("Cannot delete features in a read-only source.")
+
+        super().delete()
 
 
 class CopickTomogramOverlay(CopickTomogram):
@@ -134,6 +172,13 @@ class CopickTomogramOverlay(CopickTomogram):
             assert f.read_only, "Features from static source must be read-only."
 
         return static + overlay
+
+    def delete(self) -> None:
+        """Delete the tomogram, making sure the source is writable."""
+        if self.read_only:
+            raise PermissionError("Cannot delete tomogram in a read-only source.")
+
+        super().delete()
 
 
 class CopickVoxelSpacingOverlay(CopickVoxelSpacing):

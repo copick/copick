@@ -5,6 +5,9 @@ import distinctipy
 
 from copick.models import PickableObject
 from copick.util.escape import sanitize_name
+from copick.util.log import get_logger
+
+logger = get_logger(__name__)
 
 
 def objects_from_datasets(dataset_ids: List[int]) -> List[PickableObject]:

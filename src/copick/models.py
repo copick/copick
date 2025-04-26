@@ -1,5 +1,5 @@
 import json
-from typing import Dict, List, Literal, MutableMapping, Optional, Tuple, Type, Union
+from typing import Dict, Iterable, List, Literal, MutableMapping, Optional, Tuple, Type, Union
 
 import numpy as np
 import trimesh
@@ -349,6 +349,14 @@ class CopickObject:
         loc = self.zarr()
         zarr.open(loc)[zarr_group][z, y, x] = data
 
+    def delete(self) -> None:
+        """Delete the object."""
+        self._delete_data()
+
+    def _delete_data(self) -> None:
+        """Override this method to delete the object data."""
+        raise NotImplementedError("_delete_data method must be implemented for CopickObject.")
+
 
 class CopickRoot:
     """Root of a copick project. Contains references to the runs and pickable objects.
@@ -463,11 +471,12 @@ class CopickRoot:
         """Refresh the list of runs."""
         self._runs = self.query()
 
-    def new_run(self, name: str, **kwargs) -> "CopickRun":
+    def new_run(self, name: str, exist_ok: bool = False, **kwargs) -> "CopickRun":
         """Create a new run.
 
         Args:
             name: Name of the run to create.
+            exist_ok: Whether to raise an error if the run already exists.
             **kwargs: Additional keyword arguments for the run metadata.
 
         Returns:
@@ -477,21 +486,39 @@ class CopickRoot:
             ValueError: If a run with the given name already exists.
         """
         if name in [r.name for r in self.runs]:
-            raise ValueError(f"Run name {name} already exists.")
+            if exist_ok:
+                run = self.get_run(name)
+            else:
+                raise ValueError(f"Run name {name} already exists.")
+        else:
+            clz, meta_clz = self._run_factory()
+            rm = meta_clz(name=name, **kwargs)
+            run = clz(self, meta=rm)
 
-        clz, meta_clz = self._run_factory()
-        rm = meta_clz(name=name, **kwargs)
-        run = clz(self, meta=rm)
+            # Append the run
+            if self._runs is None:
+                self._runs = []
+            self._runs.append(run)
 
-        # Append the run
-        if self._runs is None:
-            self._runs = []
-        self._runs.append(run)
-
-        # Ensure the run record exists
-        run.ensure(create=True)
+            # Ensure the run record exists
+            run.ensure(create=True)
 
         return run
+
+    def delete_run(self, name: str) -> None:
+        """Delete a run by name.
+
+        Args:
+            name: Name of the run to delete.
+        """
+        run = self.get_run(name)
+
+        if run is None:
+            return
+
+        self._runs.remove(run)
+        run.delete()
+        del run
 
     def _run_factory(self) -> Tuple[Type["CopickRun"], Type["CopickRunMeta"]]:
         """Override this method to return the run class and run metadata class."""
@@ -705,7 +732,12 @@ class CopickRun:
         """
         return [p for p in self.picks if p.from_tool]
 
-    def get_picks(self, object_name: str = None, user_id: str = None, session_id: str = None) -> List["CopickPicks"]:
+    def get_picks(
+        self,
+        object_name: Union[str, Iterable[str]] = None,
+        user_id: Union[str, Iterable[str]] = None,
+        session_id: Union[str, Iterable[str]] = None,
+    ) -> List["CopickPicks"]:
         """Get picks by name, user_id or session_id (or combinations).
 
         Args:
@@ -719,13 +751,16 @@ class CopickRun:
         ret = self.picks
 
         if object_name is not None:
-            ret = [p for p in ret if p.pickable_object_name == object_name]
+            object_name = [object_name] if isinstance(object_name, str) else object_name
+            ret = [p for p in ret if p.pickable_object_name in object_name]
 
         if user_id is not None:
-            ret = [p for p in ret if p.user_id == user_id]
+            user_id = [user_id] if isinstance(user_id, str) else user_id
+            ret = [p for p in ret if p.user_id in user_id]
 
         if session_id is not None:
-            ret = [p for p in ret if p.session_id == session_id]
+            session_id = [session_id] if isinstance(session_id, str) else session_id
+            ret = [p for p in ret if p.session_id in session_id]
 
         return ret
 
@@ -755,7 +790,12 @@ class CopickRun:
         """
         return [m for m in self.meshes if m.from_tool]
 
-    def get_meshes(self, object_name: str = None, user_id: str = None, session_id: str = None) -> List["CopickMesh"]:
+    def get_meshes(
+        self,
+        object_name: Union[str, Iterable[str]] = None,
+        user_id: Union[str, Iterable[str]] = None,
+        session_id: Union[str, Iterable[str]] = None,
+    ) -> List["CopickMesh"]:
         """Get meshes by name, user_id or session_id (or combinations).
 
         Args:
@@ -769,13 +809,16 @@ class CopickRun:
         ret = self.meshes
 
         if object_name is not None:
-            ret = [m for m in ret if m.pickable_object_name == object_name]
+            object_name = [object_name] if isinstance(object_name, str) else object_name
+            ret = [m for m in ret if m.pickable_object_name in object_name]
 
         if user_id is not None:
-            ret = [m for m in ret if m.user_id == user_id]
+            user_id = [user_id] if isinstance(user_id, str) else user_id
+            ret = [m for m in ret if m.user_id in user_id]
 
         if session_id is not None:
-            ret = [m for m in ret if m.session_id == session_id]
+            session_id = [session_id] if isinstance(session_id, str) else session_id
+            ret = [m for m in ret if m.session_id in session_id]
 
         return ret
 
@@ -807,11 +850,11 @@ class CopickRun:
 
     def get_segmentations(
         self,
-        user_id: str = None,
-        session_id: str = None,
+        user_id: Union[str, Iterable[str]] = None,
+        session_id: Union[str, Iterable[str]] = None,
         is_multilabel: bool = None,
-        name: str = None,
-        voxel_size: float = None,
+        name: Union[str, Iterable[str]] = None,
+        voxel_size: Union[float, Iterable[float]] = None,
     ) -> List["CopickSegmentation"]:
         """Get segmentations by user_id, session_id, name, type or voxel_size (or combinations).
 
@@ -828,27 +871,32 @@ class CopickRun:
         ret = self.segmentations
 
         if user_id is not None:
-            ret = [s for s in ret if s.user_id == user_id]
+            user_id = [user_id] if isinstance(user_id, str) else user_id
+            ret = [s for s in ret if s.user_id in user_id]
 
         if session_id is not None:
-            ret = [s for s in ret if s.session_id == session_id]
+            session_id = [session_id] if isinstance(session_id, str) else session_id
+            ret = [s for s in ret if s.session_id in session_id]
 
         if is_multilabel is not None:
             ret = [s for s in ret if s.is_multilabel == is_multilabel]
 
         if name is not None:
-            ret = [s for s in ret if s.name == name]
+            name = [name] if isinstance(name, str) else name
+            ret = [s for s in ret if s.name in name]
 
         if voxel_size is not None:
-            ret = [s for s in ret if s.voxel_size == voxel_size]
+            voxel_size = [voxel_size] if isinstance(voxel_size, float) else voxel_size
+            ret = [s for s in ret if s.voxel_size in voxel_size]
 
         return ret
 
-    def new_voxel_spacing(self, voxel_size: float, **kwargs) -> "CopickVoxelSpacing":
+    def new_voxel_spacing(self, voxel_size: float, exist_ok: bool = False, **kwargs) -> "CopickVoxelSpacing":
         """Create a new voxel spacing object.
 
         Args:
             voxel_size: Voxel size value for the contained tomograms.
+            exist_ok: Whether to raise an error if the voxel spacing already exists.
             **kwargs: Additional keyword arguments for the voxel spacing metadata.
 
         Returns:
@@ -858,20 +906,23 @@ class CopickRun:
             ValueError: If a voxel spacing with the given voxel size already exists for this run.
         """
         if voxel_size in [vs.voxel_size for vs in self.voxel_spacings]:
-            raise ValueError(f"VoxelSpacing {voxel_size} already exists for this run.")
+            if exist_ok:
+                vs = self.get_voxel_spacing(voxel_size)
+            else:
+                raise ValueError(f"VoxelSpacing {voxel_size} already exists for this run.")
+        else:
+            clz, meta_clz = self._voxel_spacing_factory()
 
-        clz, meta_clz = self._voxel_spacing_factory()
+            vm = meta_clz(voxel_size=voxel_size, **kwargs)
+            vs = clz(run=self, meta=vm)
 
-        vm = meta_clz(voxel_size=voxel_size, **kwargs)
-        vs = clz(run=self, meta=vm)
+            # Append the voxel spacing
+            if self._voxel_spacings is None:
+                self._voxel_spacings = []
+            self._voxel_spacings.append(vs)
 
-        # Append the voxel spacing
-        if self._voxel_spacings is None:
-            self._voxel_spacings = []
-        self._voxel_spacings.append(vs)
-
-        # Ensure the voxel spacing record exists
-        vs.ensure(create=True)
+            # Ensure the voxel spacing record exists
+            vs.ensure(create=True)
 
         return vs
 
@@ -879,13 +930,20 @@ class CopickRun:
         """Override this method to return the voxel spacing class and voxel spacing metadata class."""
         return CopickVoxelSpacing, CopickVoxelSpacingMeta
 
-    def new_picks(self, object_name: str, session_id: str, user_id: Optional[str] = None) -> "CopickPicks":
+    def new_picks(
+        self,
+        object_name: str,
+        session_id: str,
+        user_id: Optional[str] = None,
+        exist_ok: bool = False,
+    ) -> "CopickPicks":
         """Create a new picks object.
 
         Args:
             object_name: Name of the object to pick.
             session_id: Session ID for the picks.
             user_id: User ID for the picks.
+            exist_ok: Whether to raise an error if the picks already exists.
 
         Returns:
             CopickPicks: The newly created picks object.
@@ -910,26 +968,29 @@ class CopickRun:
         if uid is None:
             raise ValueError("User ID must be set in the root config or supplied to new_picks.")
 
-        if self.get_picks(object_name=object_name, session_id=session_id, user_id=uid):
-            raise ValueError(f"Picks for {object_name} by user/tool {uid} already exist in session {session_id}.")
+        if picks := self.get_picks(object_name=object_name, session_id=session_id, user_id=uid):
+            if exist_ok:
+                picks = picks[0]
+            else:
+                raise ValueError(f"Picks for {object_name} by user/tool {uid} already exist in session {session_id}.")
+        else:
+            pm = CopickPicksFile(
+                pickable_object_name=object_name,
+                user_id=uid,
+                session_id=session_id,
+                run_name=self.name,
+            )
 
-        pm = CopickPicksFile(
-            pickable_object_name=object_name,
-            user_id=uid,
-            session_id=session_id,
-            run_name=self.name,
-        )
+            clz = self._picks_factory()
 
-        clz = self._picks_factory()
+            picks = clz(run=self, file=pm)
 
-        picks = clz(run=self, file=pm)
+            if self._picks is None:
+                self._picks = []
+            self._picks.append(picks)
 
-        if self._picks is None:
-            self._picks = []
-        self._picks.append(picks)
-
-        # Create the picks file
-        picks.store()
+            # Create the picks file
+            picks.store()
 
         return picks
 
@@ -937,13 +998,21 @@ class CopickRun:
         """Override this method to return the picks class."""
         return CopickPicks
 
-    def new_mesh(self, object_name: str, session_id: str, user_id: Optional[str] = None, **kwargs) -> "CopickMesh":
+    def new_mesh(
+        self,
+        object_name: str,
+        session_id: str,
+        user_id: Optional[str] = None,
+        exist_ok: bool = False,
+        **kwargs,
+    ) -> "CopickMesh":
         """Create a new mesh object.
 
         Args:
             object_name: Name of the object to mesh.
             session_id: Session ID for the mesh.
             user_id: User ID for the mesh.
+            exist_ok: Whether to raise an error if the mesh already exists.
             **kwargs: Additional keyword arguments for the mesh metadata.
 
         Returns:
@@ -969,30 +1038,33 @@ class CopickRun:
         if uid is None:
             raise ValueError("User ID must be set in the root config or supplied to new_mesh.")
 
-        if self.get_meshes(object_name=object_name, session_id=session_id, user_id=uid):
-            raise ValueError(f"Mesh for {object_name} by user/tool {uid} already exist in session {session_id}.")
+        if mesh := self.get_meshes(object_name=object_name, session_id=session_id, user_id=uid):
+            if exist_ok:
+                mesh = mesh[0]
+            else:
+                raise ValueError(f"Mesh for {object_name} by user/tool {uid} already exist in session {session_id}.")
+        else:
+            clz, meta_clz = self._mesh_factory()
 
-        clz, meta_clz = self._mesh_factory()
+            mm = meta_clz(
+                pickable_object_name=object_name,
+                user_id=uid,
+                session_id=session_id,
+                **kwargs,
+            )
 
-        mm = meta_clz(
-            pickable_object_name=object_name,
-            user_id=uid,
-            session_id=session_id,
-            **kwargs,
-        )
+            # Need to create an empty trimesh.Trimesh object first, because empty scenes can't be exported.
+            tmesh = trimesh.Trimesh()
+            scene = tmesh.scene()
 
-        # Need to create an empty trimesh.Trimesh object first, because empty scenes can't be exported.
-        tmesh = trimesh.Trimesh()
-        scene = tmesh.scene()
+            mesh = clz(run=self, meta=mm, mesh=scene)
 
-        mesh = clz(run=self, meta=mm, mesh=scene)
+            if self._meshes is None:
+                self._meshes = []
+            self._meshes.append(mesh)
 
-        if self._meshes is None:
-            self._meshes = []
-        self._meshes.append(mesh)
-
-        # Create the mesh file
-        mesh.store()
+            # Create the mesh file
+            mesh.store()
 
         return mesh
 
@@ -1007,6 +1079,7 @@ class CopickRun:
         session_id: str,
         is_multilabel: bool,
         user_id: Optional[str] = None,
+        exist_ok: bool = False,
         **kwargs,
     ) -> "CopickSegmentation":
         """Create a new segmentation object.
@@ -1017,6 +1090,7 @@ class CopickRun:
             session_id: Session ID for the segmentation.
             is_multilabel: Whether the segmentation is multilabel or not.
             user_id: User ID for the segmentation.
+            exist_ok: Whether to raise an error if the segmentation already exists.
             **kwargs: Additional keyword arguments for the segmentation metadata.
 
         Returns:
@@ -1043,36 +1117,40 @@ class CopickRun:
         if uid is None:
             raise ValueError("User ID must be set in the root config or supplied to new_segmentation.")
 
-        if self.get_segmentations(
+        if seg := self.get_segmentations(
             session_id=session_id,
             user_id=uid,
             name=name,
             is_multilabel=is_multilabel,
             voxel_size=voxel_size,
         ):
-            raise ValueError(
-                f"Segmentation by user/tool {uid} already exist in session {session_id} with name {name}, voxel size of {voxel_size}, and has a multilabel flag of {is_multilabel}.",
+            if exist_ok:
+                seg = seg[0]
+            else:
+                raise ValueError(
+                    f"Segmentation by user/tool {uid} already exist in session {session_id} with name {name}, "
+                    f"voxel size of {voxel_size}, and has a multilabel flag of {is_multilabel}.",
+                )
+        else:
+            clz, meta_clz = self._segmentation_factory()
+
+            sm = meta_clz(
+                is_multilabel=is_multilabel,
+                voxel_size=voxel_size,
+                user_id=uid,
+                session_id=session_id,
+                name=name,
+                **kwargs,
             )
+            seg = clz(run=self, meta=sm)
 
-        clz, meta_clz = self._segmentation_factory()
+            if self._segmentations is None:
+                self._segmentations = []
 
-        sm = meta_clz(
-            is_multilabel=is_multilabel,
-            voxel_size=voxel_size,
-            user_id=uid,
-            session_id=session_id,
-            name=name,
-            **kwargs,
-        )
-        seg = clz(run=self, meta=sm)
+            self._segmentations.append(seg)
 
-        if self._segmentations is None:
-            self._segmentations = []
-
-        self._segmentations.append(seg)
-
-        # Create the zarr store for this segmentation
-        _ = seg.zarr()
+            # Create the zarr store for this segmentation
+            _ = seg.zarr()
 
         return seg
 
@@ -1113,6 +1191,89 @@ class CopickRun:
             bool: True if the run record exists, False otherwise.
         """
         raise NotImplementedError("ensure must be implemented for CopickRun.")
+
+    def _delete_data(self):
+        """Override this method to delete the root data."""
+        raise NotImplementedError("_delete_data method must be implemented for CopickRun.")
+
+    def delete(self) -> None:
+        """Delete the run record."""
+        self.delete_voxel_spacings()
+        self.delete_picks()
+        self.delete_meshes()
+        self.delete_segmentations()
+        self._delete_data()
+
+    def delete_voxel_spacings(self, voxel_size: float = None) -> None:
+        """Delete a voxel spacing by voxel size.
+
+        Args:
+            voxel_size: Voxel size to delete.
+        """
+        if voxel_size is not None:
+            vs = self.get_voxel_spacing(voxel_size=voxel_size)
+            self._voxel_spacings.remove(vs)
+            vs.delete()
+            del vs
+        else:
+            for vs in self.voxel_spacings:
+                self._voxel_spacings.remove(vs)
+                vs.delete()
+                del vs
+
+    def delete_picks(self, object_name: str = None, user_id: str = None, session_id: str = None) -> None:
+        """Delete picks by name, user_id or session_id (or combinations).
+
+        Args:
+            object_name: Name of the object to delete.
+            user_id: User ID to delete.
+            session_id: Session ID to delete.
+        """
+        for p in self.get_picks(object_name=object_name, user_id=user_id, session_id=session_id):
+            self._picks.remove(p)
+            p.delete()
+            del p
+
+    def delete_meshes(self, object_name: str = None, user_id: str = None, session_id: str = None) -> None:
+        """Delete meshes by name, user_id or session_id (or combinations).
+
+        Args:
+            object_name: Name of the object to delete.
+            user_id: User ID to delete.
+            session_id: Session ID to delete.
+        """
+        for m in self.get_meshes(object_name=object_name, user_id=user_id, session_id=session_id):
+            self._meshes.remove(m)
+            m.delete()
+            del m
+
+    def delete_segmentations(
+        self,
+        user_id: str = None,
+        session_id: str = None,
+        is_multilabel: bool = None,
+        name: str = None,
+        voxel_size: float = None,
+    ) -> None:
+        """Delete segmentation by name, user_id or session_id (or combinations).
+
+        Args:
+            user_id: User ID to delete.
+            session_id: Session ID to delete.
+            is_multilabel: Whether the segmentation is multilabel or not.
+            name: Name of the segmentation to delete.
+            voxel_size: Voxel size to delete.
+        """
+        for s in self.get_segmentations(
+            user_id=user_id,
+            session_id=session_id,
+            is_multilabel=is_multilabel,
+            name=name,
+            voxel_size=voxel_size,
+        ):
+            self._segmentations.remove(s)
+            s.delete()
+            del s
 
 
 class CopickVoxelSpacingMeta(BaseModel):
@@ -1213,11 +1374,12 @@ class CopickVoxelSpacing:
         """Refresh `CopickVoxelSpacing.tomograms` from storage."""
         self.refresh_tomograms()
 
-    def new_tomogram(self, tomo_type: str, **kwargs) -> "CopickTomogram":
+    def new_tomogram(self, tomo_type: str, exist_ok: bool = False, **kwargs) -> "CopickTomogram":
         """Create a new tomogram object, also creates the Zarr-store in the storage backend.
 
         Args:
             tomo_type: Type of the tomogram to create.
+            exist_ok: Whether to raise an error if the tomogram already exists.
             **kwargs: Additional keyword arguments for the tomogram metadata.
 
         Returns:
@@ -1226,24 +1388,26 @@ class CopickVoxelSpacing:
         Raises:
             ValueError: If a tomogram with the given type already exists for this voxel spacing.
         """
-
         tomo_type = sanitize_name(tomo_type)
 
-        if tomo_type in [tomo.tomo_type for tomo in self.tomograms]:
-            raise ValueError(f"Tomogram type {tomo_type} already exists for this voxel spacing.")
+        if tomo := self.get_tomograms(tomo_type):
+            if exist_ok:
+                tomo = tomo[0]
+            else:
+                raise ValueError(f"Tomogram type {tomo_type} already exists for this voxel spacing.")
+        else:
+            clz, meta_clz = self._tomogram_factory()
 
-        clz, meta_clz = self._tomogram_factory()
+            tm = meta_clz(tomo_type=tomo_type, **kwargs)
+            tomo = clz(voxel_spacing=self, meta=tm)
 
-        tm = meta_clz(tomo_type=tomo_type, **kwargs)
-        tomo = clz(voxel_spacing=self, meta=tm)
+            # Append the tomogram
+            if self._tomograms is None:
+                self._tomograms = []
+            self._tomograms.append(tomo)
 
-        # Append the tomogram
-        if self._tomograms is None:
-            self._tomograms = []
-        self._tomograms.append(tomo)
-
-        # Create the zarr store for this tomogram
-        _ = tomo.zarr()
+            # Create the zarr store for this tomogram
+            _ = tomo.zarr()
 
         return tomo
 
@@ -1261,6 +1425,32 @@ class CopickVoxelSpacing:
             bool: True if the voxel spacing record exists, False otherwise.
         """
         raise NotImplementedError("ensure must be implemented for CopickVoxelSpacing.")
+
+    def _delete_data(self):
+        """Override this method to delete the voxel spacing data."""
+        raise NotImplementedError("_delete_data method must be implemented for CopickVoxelSpacing.")
+
+    def delete(self) -> None:
+        """Delete the voxel spacing record."""
+        self.delete_tomograms()
+        self._delete_data()
+
+    def delete_tomograms(self, tomo_type: str = None) -> None:
+        """Delete a tomogram by type.
+
+        Args:
+            tomo_type: Type of the tomogram to delete.
+        """
+        if tomo_type is not None:
+            for t in self.get_tomograms(tomo_type=tomo_type):
+                self._tomograms.remove(t)
+                t.delete()
+                del t
+        else:
+            for t in self.tomograms:
+                self._tomograms.remove(t)
+                t.delete()
+                del t
 
 
 class CopickTomogramMeta(BaseModel):
@@ -1335,11 +1525,12 @@ class CopickTomogram:
                 return feat
         return None
 
-    def new_features(self, feature_type: str, **kwargs) -> "CopickFeatures":
+    def new_features(self, feature_type: str, exist_ok: bool = False, **kwargs) -> "CopickFeatures":
         """Create a new feature map object. Also creates the Zarr-store for the map in the storage backend.
 
         Args:
             feature_type: Type of the feature map to create.
+            exist_ok: Whether to raise an error if the feature map already exists.
             **kwargs: Additional keyword arguments for the feature map metadata.
 
         Returns:
@@ -1350,22 +1541,25 @@ class CopickTomogram:
         """
         feature_type = sanitize_name(feature_type)
 
-        if feature_type in [f.feature_type for f in self.features]:
-            raise ValueError(f"Feature type {feature_type} already exists for this tomogram.")
+        if feat := self.get_features(feature_type):
+            if exist_ok:
+                return feat
+            else:
+                raise ValueError(f"Feature type {feature_type} already exists for this tomogram.")
+        else:
+            clz, meta_clz = self._feature_factory()
 
-        clz, meta_clz = self._feature_factory()
+            fm = meta_clz(tomo_type=self.tomo_type, feature_type=feature_type, **kwargs)
+            feat = clz(tomogram=self, meta=fm)
 
-        fm = meta_clz(tomo_type=self.tomo_type, feature_type=feature_type, **kwargs)
-        feat = clz(tomogram=self, meta=fm)
+            # Append the feature set
+            if self._features is None:
+                self._features = []
 
-        # Append the feature set
-        if self._features is None:
-            self._features = []
+            self._features.append(feat)
 
-        self._features.append(feat)
-
-        # Create the zarr store for this feature set
-        _ = feat.zarr()
+            # Create the zarr store for this feature set
+            _ = feat.zarr()
 
         return feat
 
@@ -1384,6 +1578,22 @@ class CopickTomogram:
     def refresh(self) -> None:
         """Refresh `CopickTomogram.features` from storage."""
         self.refresh_features()
+
+    def delete(self) -> None:
+        """Delete the tomogram record."""
+        self.delete_features()
+        self._delete_data()
+
+    def delete_features(self) -> None:
+        """Delete all features for this tomogram."""
+        for f in self.features:
+            self._features.remove(f)
+            f.delete()
+            del f
+
+    def _delete_data(self) -> None:
+        """Delete the tomogram data."""
+        raise NotImplementedError("_delete_data must be implemented for CopickTomogram.")
 
     def zarr(self) -> MutableMapping:
         """Override to return the Zarr store for this tomogram. Also needs to handle creating the store if it
@@ -1500,6 +1710,14 @@ class CopickFeatures:
     @property
     def feature_type(self) -> str:
         return self.meta.feature_type
+
+    def delete(self):
+        """Delete the feature map record."""
+        self._delete_data()
+
+    def _delete_data(self):
+        """Delete the feature map data."""
+        raise NotImplementedError("_delete_data must be implemented for CopickFeatures.")
 
     def zarr(self) -> MutableMapping:
         """Override to return the Zarr store for this feature set. Also needs to handle creating the store if it
@@ -1682,6 +1900,14 @@ class CopickPicks:
         """Refresh the points from storage."""
         self.meta = self.load()
 
+    def delete(self) -> None:
+        """Delete the pick record."""
+        self._delete_data()
+
+    def _delete_data(self) -> None:
+        """Delete the pick data."""
+        raise NotImplementedError("_delete_data must be implemented for CopickPicks.")
+
     def numpy(self) -> Tuple[np.ndarray, np.ndarray]:
         """Return the points as a [N, 3] numpy array (N, [x, y, z]) and the transforms as a [N, 4, 4] numpy array.
         Format of the transforms is:
@@ -1845,6 +2071,14 @@ class CopickMesh:
         """Refresh `CopickMesh.mesh` from storage."""
         self._mesh = self.load()
 
+    def delete(self) -> None:
+        """Delete the mesh record."""
+        self._delete_data()
+
+    def _delete_data(self) -> None:
+        """Delete the mesh data."""
+        raise NotImplementedError("_delete_data must be implemented for CopickMesh.")
+
 
 class CopickSegmentationMeta(BaseModel):
     """Datamodel for segmentation metadata.
@@ -1938,6 +2172,14 @@ class CopickSegmentation:
         else:
             return self.run.root.get_object(self.name).color
 
+    def delete(self) -> None:
+        """Delete the segmentation record."""
+        self._delete_data()
+
+    def _delete_data(self) -> None:
+        """Delete the segmentation data."""
+        raise NotImplementedError("_delete_data must be implemented for CopickSegmentation.")
+
     def zarr(self) -> MutableMapping:
         """Override to return the Zarr store for this segmentation. Also needs to handle creating the store if it
         doesn't exist."""
@@ -2009,3 +2251,16 @@ class CopickSegmentation:
         """
         loc = self.zarr()
         zarr.open(loc)[zarr_group][z, y, x] = data
+
+
+COPICK_TYPES = (
+    CopickRun,
+    CopickRun,
+    CopickVoxelSpacing,
+    CopickTomogram,
+    CopickFeatures,
+    CopickPicks,
+    CopickMesh,
+    CopickSegmentation,
+    CopickObject,
+)
