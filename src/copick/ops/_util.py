@@ -35,7 +35,6 @@ def volume_pyramid(
 ) -> Dict[float, np.ndarray]:
     pyramid = {voxel_size: volume}
 
-
     vs = voxel_size
 
     for _ in range(1, levels):

@@ -25,17 +25,17 @@ dependencies = [
     "numcodecs<0.16.0",
     "distinctipy",
     "tqdm",
-    "textual"
+    "textual",
+    "mrcfile"
 ]
 authors = [
-  {name = "Utz H. Ermel", email = "utz.ermel@czii.org"},
-  {name = "Kyle I. S. Harrington", email = "kyle@kyleharrington.com"},
+    { name = "Utz H. Ermel", email = "utz.ermel@czii.org" },
+    { name = "Kyle I. S. Harrington", email = "kyle@kyleharrington.com" },
 ]
 description = "Definitions for a collaborative cryoET annotation tool."
 readme = "README.md"
-license = {file = "LICENSE"}
+license = { file = "LICENSE" }
 keywords = ["cryoet", "cryo-et", "tomography", "annotation", "segmentation", "collaborative", "copick"]
-
 
 [project.urls]
 Repository = "https://github.com/copick/copick.git"
