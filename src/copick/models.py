@@ -324,6 +324,10 @@ class CopickObject:
         """Delete the object."""
         self._delete_data()
 
+        # Remove the object from the root
+        if self.root._objects is not None:
+            self.root._objects.remove(self)
+
     def _delete_data(self) -> None:
         """Override this method to delete the object data."""
         raise NotImplementedError("_delete_data method must be implemented for CopickObject.")
@@ -1160,6 +1164,10 @@ class CopickRun:
         self.delete_segmentations()
         self._delete_data()
 
+        # Remove the run from the root
+        if self in self.root.runs:
+            self.root._runs.remove(self)
+
     def delete_voxel_spacings(self, voxel_size: float = None) -> None:
         """Delete a voxel spacing by voxel size.
 
@@ -1389,6 +1397,10 @@ class CopickVoxelSpacing:
         self.delete_tomograms()
         self._delete_data()
 
+        # Remove the voxel spacing from the run
+        if self in self.run.voxel_spacings:
+            self.run._voxel_spacings.remove(self)
+
     def delete_tomograms(self, tomo_type: str = None) -> None:
         """Delete a tomogram by type.
 
@@ -1536,6 +1548,10 @@ class CopickTomogram:
         self.delete_features()
         self._delete_data()
 
+        # Remove the tomogram from the voxel spacing
+        if self in self.voxel_spacing.tomograms:
+            self.voxel_spacing._tomograms.remove(self)
+
     def delete_features(self) -> None:
         """Delete all features for this tomogram."""
         for f in self.features:
@@ -1666,6 +1682,10 @@ class CopickFeatures:
     def delete(self):
         """Delete the feature map record."""
         self._delete_data()
+
+        # Remove the feature map from the tomogram
+        if self in self.tomogram.features:
+            self.tomogram._features.remove(self)
 
     def _delete_data(self):
         """Delete the feature map data."""
@@ -1856,6 +1876,10 @@ class CopickPicks:
         """Delete the pick record."""
         self._delete_data()
 
+        # Remove the pick from the run
+        if self in self.run.picks:
+            self.run._picks.remove(self)
+
     def _delete_data(self) -> None:
         """Delete the pick data."""
         raise NotImplementedError("_delete_data must be implemented for CopickPicks.")
@@ -2027,6 +2051,10 @@ class CopickMesh:
         """Delete the mesh record."""
         self._delete_data()
 
+        # Remove the mesh from the run
+        if self in self.run.meshes:
+            self.run._meshes.remove(self)
+
     def _delete_data(self) -> None:
         """Delete the mesh data."""
         raise NotImplementedError("_delete_data must be implemented for CopickMesh.")
@@ -2127,6 +2155,10 @@ class CopickSegmentation:
     def delete(self) -> None:
         """Delete the segmentation record."""
         self._delete_data()
+
+        # Remove the segmentation from the run
+        if self in self.run.segmentations:
+            self.run._segmentations.remove(self)
 
     def _delete_data(self) -> None:
         """Delete the segmentation data."""
