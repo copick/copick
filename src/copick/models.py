@@ -7,6 +7,7 @@ import zarr
 from pydantic import AliasChoices, BaseModel, Field, field_validator
 from trimesh.parent import Geometry
 
+from copick.util.escape import sanitize_name
 from copick.util.ome import fits_in_memory, segmentation_pyramid, volume_pyramid, write_ome_zarr_3d
 
 
@@ -58,6 +59,14 @@ class PickableObject(BaseModel):
         assert all(0 <= c <= 255 for c in v), "Color values must be in the range [0, 255]."
         return v
 
+    @field_validator("name")
+    @classmethod
+    def validate_name(cls, v) -> Optional[str]:
+        """Validate the name."""
+        if v != sanitize_name(v):
+            raise ValueError(f"Name '{v}' contains invalid characters. Use copick.escape.sanitize_name() to clean it.")
+        return v
+
 
 class CopickConfig(BaseModel):
     """Configuration for a copick project. Defines the available objects, user_id and optionally an index for runs.
@@ -98,6 +107,26 @@ class CopickConfig(BaseModel):
         """
         with open(filename) as f:
             return cls(**json.load(f))
+
+    @field_validator("user_id")
+    @classmethod
+    def validate_user_id(cls, v) -> Optional[str]:
+        """Validate the user_id."""
+        if v is not None and v != sanitize_name(v):
+            raise ValueError(
+                f"user_id '{v}' contains invalid characters. Use copick.escape.sanitize_name() to clean it.",
+            )
+        return v
+
+    @field_validator("session_id")
+    @classmethod
+    def validate_session_id(cls, v) -> Optional[str]:
+        """Validate the session_id."""
+        if v is not None and v != sanitize_name(v):
+            raise ValueError(
+                f"session_id '{v}' contains invalid characters. Use copick.escape.sanitize_name() to clean it.",
+            )
+        return v
 
 
 class CopickLocation(BaseModel):
@@ -923,6 +952,11 @@ class CopickRun:
             ValueError: If picks for the given object name, session ID and user ID already exist, if the object name
                 is not found in the pickable objects, or if the user ID is not set in the root config or supplied.
         """
+        object_name = sanitize_name(object_name)
+        session_id = sanitize_name(session_id)
+        if user_id is not None:
+            user_id = sanitize_name(user_id)
+
         if object_name not in [o.name for o in self.root.config.pickable_objects]:
             raise ValueError(f"Object name {object_name} not found in pickable objects.")
 
@@ -988,6 +1022,11 @@ class CopickRun:
             ValueError: If a mesh for the given object name, session ID and user ID already exist, if the object name
                 is not found in the pickable objects, or if the user ID is not set in the root config or supplied.
         """
+        object_name = sanitize_name(object_name)
+        session_id = sanitize_name(session_id)
+        if user_id is not None:
+            user_id = sanitize_name(user_id)
+
         if object_name not in [o.name for o in self.root.config.pickable_objects]:
             raise ValueError(f"Object name {object_name} not found in pickable objects.")
 
@@ -1062,6 +1101,11 @@ class CopickRun:
                 exist, if the object name is not found in the pickable objects, if the voxel size is not found in the
                 voxel spacings, or if the user ID is not set in the root config or supplied.
         """
+        name = sanitize_name(name)
+        session_id = sanitize_name(session_id)
+        if user_id is not None:
+            user_id = sanitize_name(user_id)
+
         if not is_multilabel and name not in [o.name for o in self.root.config.pickable_objects]:
             raise ValueError(f"Object name {name} not found in pickable objects.")
 
@@ -1344,6 +1388,8 @@ class CopickVoxelSpacing:
         Raises:
             ValueError: If a tomogram with the given type already exists for this voxel spacing.
         """
+        tomo_type = sanitize_name(tomo_type)
+
         if tomo := self.get_tomograms(tomo_type):
             if exist_ok:
                 tomo = tomo[0]
@@ -1493,6 +1539,8 @@ class CopickTomogram:
         Raises:
             ValueError: If a feature map with the given type already exists for this tomogram.
         """
+        feature_type = sanitize_name(feature_type)
+
         if feat := self.get_features(feature_type):
             if exist_ok:
                 return feat
