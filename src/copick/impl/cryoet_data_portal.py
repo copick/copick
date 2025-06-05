@@ -10,7 +10,7 @@ import s3fs
 import trimesh
 import zarr
 from fsspec import AbstractFileSystem
-from pydantic import BaseModel, create_model, field_validator
+from pydantic import BaseModel, Field, create_model, field_validator
 from trimesh.parent import Geometry
 
 from copick.impl.overlay import (
@@ -69,6 +69,7 @@ class PortalAnnotationMeta(BaseModel):
     portal_annotation: Optional[_PortalAnnotation] = _PortalAnnotation()
     portal_annotation_shape: Optional[_PortalAnnotationShape] = _PortalAnnotationShape()
     portal_annotation_file: Optional[_PortalAnnotationFile] = _PortalAnnotationFile()
+    portal_authors: Optional[List[str]] = Field(default_factory=list)
     voxel_spacing: Optional[float] = None
 
     @field_validator("portal_annotation", mode="before")
@@ -96,12 +97,33 @@ class PortalAnnotationMeta(BaseModel):
         return v
 
     @classmethod
-    def from_annotation_file(cls, source: cdp.AnnotationFile):
+    def from_annotation_file(cls, source: cdp.AnnotationFile) -> "PortalAnnotationMeta":
+        shape = source.annotation_shape
+        anno = shape.annotation
+        authors = [a.name for a in anno.authors]
         return cls(
             portal_annotation_file=_PortalAnnotationFile(**source.to_dict()),
-            portal_annotation_shape=_PortalAnnotationShape(**source.annotation_shape.to_dict()),
-            portal_annotation=_PortalAnnotation(**source.annotation_shape.annotation.to_dict()),
+            portal_annotation_shape=_PortalAnnotationShape(**shape.to_dict()),
+            portal_annotation=_PortalAnnotation(**anno.to_dict()),
+            portal_authors=authors,
             voxel_spacing=source.tomogram_voxel_spacing.voxel_spacing,
+        )
+
+    @classmethod
+    def from_portal_objects(
+        cls,
+        annotation_file: cdp.AnnotationFile,
+        annotation_shape: cdp.AnnotationShape,
+        annotation: cdp.Annotation,
+        voxel_spacing: float,
+    ) -> "PortalAnnotationMeta":
+        authors = [a.name for a in annotation.authors]
+        return cls(
+            portal_annotation_file=_PortalAnnotationFile(**annotation_file.to_dict()),
+            portal_annotation_shape=_PortalAnnotationShape(**annotation_shape.to_dict()),
+            portal_annotation=_PortalAnnotation(**annotation.to_dict()),
+            portal_authors=authors,
+            voxel_spacing=voxel_spacing,
         )
 
     @property
@@ -131,10 +153,6 @@ class PortalAnnotationMeta(BaseModel):
     @property
     def s3_path(self) -> str:
         return self.portal_annotation_file.s3_path
-
-    @property
-    def portal_authors(self) -> List[str]:
-        return [a.name for a in self.portal_annotation.authors]
 
     def compare(self, meta: Dict[str, Any], authors: List[str]) -> bool:
         # To convert to proper format
@@ -858,10 +876,10 @@ class CopickRunCDP(CopickRunOverlay):
 
         # Create a list of PortalAnnotationContainer objects
         portal_meta = [
-            PortalAnnotationMeta(
-                portal_annotation_file=af,
-                portal_annotation_shape=id_to_annotation_shape[af.annotation_shape_id],
-                portal_annotation=id_to_annotation[id_to_annotation_shape[af.annotation_shape_id].annotation_id],
+            PortalAnnotationMeta.from_portal_objects(
+                annotation_file=af,
+                annotation_shape=id_to_annotation_shape[af.annotation_shape_id],
+                annotation=id_to_annotation[id_to_annotation_shape[af.annotation_shape_id].annotation_id],
                 voxel_spacing=id_to_voxel_spacing[af.tomogram_voxel_spacing_id].voxel_spacing,
             )
             for af in point_anno_files
