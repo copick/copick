@@ -18,7 +18,7 @@ dependencies = [
     "ome-zarr",
     "psutil",
     "pydantic>=2",
-    "s3fs",
+    "s3fs>=2025.2.0",
     "scikit-image",
     "trimesh",
     "zarr<3",
