@@ -12,13 +12,13 @@ classifiers = [
 dynamic = ["version"]
 dependencies = [
     "click",
-    "cryoet-data-portal>=4.4.0",
-    "fsspec>=2024.6.0",
+    "cryoet-data-portal>=4.4.1",
+    "fsspec>=2025.5.1",
     "numpy",
     "ome-zarr",
     "psutil",
     "pydantic>=2",
-    "s3fs>=2025.2.0",
+    "s3fs>=2025.5.1",
     "scikit-image",
     "trimesh",
     "zarr<3",
