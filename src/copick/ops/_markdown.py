@@ -159,7 +159,7 @@ def picks_to_md(picks: CopickPicks) -> str:
     md += f"* Name: {picks.pickable_object_name}\n"
     md += f"* User/Tool: {picks.user_id}\n"
     md += f"* Session: {picks.session_id}\n"
-    md += f"* Count: {len(picks.points)}\n"
+    md += f"* Count: {len(picks.points) if picks.points else 0}\n"
     md += f"* trust_orientation: {picks.trust_orientation}\n"
     col = picks.color
     md += f"* Color: {col} | #{col[0]:02x}{col[1]:02x}{col[2]:02x}{col[3]:02x}\n"

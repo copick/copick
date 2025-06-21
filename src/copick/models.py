@@ -1813,7 +1813,7 @@ class CopickPicksFile(BaseModel):
     run_name: Optional[str] = None
     voxel_spacing: Optional[float] = None
     unit: str = "angstrom"
-    points: Optional[List[CopickPoint]] = None
+    points: Optional[List[CopickPoint]] = Field(default_factory=list)
     trust_orientation: Optional[bool] = True
 
 
@@ -1896,7 +1896,7 @@ class CopickPicks:
 
     @property
     def points(self) -> List[CopickPoint]:
-        if self.meta.points is None:
+        if self.meta.points is None or len(self.meta.points) == 0:
             self.meta = self.load()
 
         return self.meta.points
