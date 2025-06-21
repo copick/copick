@@ -11,22 +11,22 @@ classifiers = [
 ]
 dynamic = ["version"]
 dependencies = [
-    "click",
-    "cryoet-data-portal>=4.4.0",
-    "fsspec>=2024.6.0",
-    "numpy",
-    "ome-zarr",
-    "psutil",
-    "pydantic>=2",
-    "s3fs",
-    "scikit-image",
-    "trimesh",
-    "zarr<3",
+    "click>=8.1.8",
+    "cryoet-data-portal>=4.4.1",
+    "distinctipy>=1.3.4",
+    "fsspec>=2025.5.1",
+    "mrcfile>=1.5.4",
     "numcodecs<0.16.0",
-    "distinctipy",
-    "tqdm",
-    "textual",
-    "mrcfile"
+    "numpy>=2.0.2",
+    "ome-zarr>=0.10.2",
+    "psutil>=7.0.0",
+    "pydantic>=2",
+    "s3fs>=2025.5.1",
+    "scikit-image>=0.24.0",
+    "textual>=3.5.0",
+    "tqdm>=4.67.1",
+    "trimesh>=4.6.12",
+    "zarr<3",
 ]
 authors = [
     { name = "Utz H. Ermel", email = "utz.ermel@czii.org" },
@@ -48,32 +48,42 @@ copick = "copick.cli.cli:cli"
 make_templates = "copick.cli.make_templates:create [docs]"
 
 [project.optional-dependencies]
-smb = ["smbprotocol"]
-ssh = ["sshfs>=2024.6.0"]
-all = ["smbprotocol", "sshfs>=2024.6.0"]
-fledgeling = ["pooch", "smbprotocol", "sshfs>=2024.6.0"]
-test = [
-    "pytest",
-    "pytest-cov",
-    "pooch",
+smb = [
+    "smbprotocol>=1.15.0",
+]
+ssh = [
+    "sshfs>=2025.2.0",
+]
+all = [
+    "smbprotocol>=1.15.0",
     "sshfs>=2024.6.0",
-    "smbprotocol",
+]
+fledgeling = [
+    "pooch>=1.8.2",
+    "smbprotocol>=1.15.0",
+    "sshfs>=2024.6.0",
+]
+test = [
+    "pooch>=1.8.2",
+    "pytest>=8.4.1",
+    "pytest-cov>=6.2.1",
+    "smbprotocol>=1.15.0",
+    "sshfs>=2025.2.0",
 ]
 dev = [
-    "black",
-    "ipython",
-    "pre-commit",
-    "ruff",
-    "notebook",
-    "textual-dev"
+    "black>=25.1.0",
+    "ipython>=8.18.1",
+    "notebook>=7.4.3",
+    "pre-commit>=4.2.0",
+    "ruff>=0.12.0",
+    "textual-dev>=1.7.0",
 ]
 docs = [
-    "mkdocs",
-    "mkdocstrings[python]",
-    "mkdocs-autorefs",
-    "mkdocs-material",
+    "mkdocs>=1.6.1",
+    "mkdocs-autorefs>=1.4.2",
+    "mkdocs-material>=9.6.14",
+    "mkdocstrings[python]>=0.29.1",
 ]
-
 
 [tool.hatch.version]
 path = "src/copick/__init__.py"
@@ -127,31 +137,6 @@ known-first-party =["common"]
 
 [tool.ruff.flake8-quotes]
 docstring-quotes = "double"
-
-[tool.mypy]
-show_error_codes = true
-ignore_missing_imports = true
-warn_unreachable = true
-strict = true
-plugins = [
-  "pydantic.mypy"
-]
-
-[tool.hatch.envs.test]
-dependencies = [
-  "pytest", "pooch",
-]
-
-[tool.hatch.envs.test.scripts]
-test = "pytest {args:tests}"
-
-[tool.hatch.envs.test_extended]
-dependencies = [
-  "pytest", "pooch", "sshfs>=2024.6.0", "smbprotocol"
-]
-
-[tool.hatch.envs.test_extended.scripts]
-test = "pytest {args:tests}"
 
 # https://docs.pytest.org/en/latest/reference/customize.html
 [tool.pytest.ini_options]
