@@ -1813,7 +1813,7 @@ class CopickPicksFile(BaseModel):
     run_name: Optional[str] = None
     voxel_spacing: Optional[float] = None
     unit: str = "angstrom"
-    points: Optional[List[CopickPoint]] = Field(default_factory=list)
+    points: Optional[List[CopickPoint]]
     trust_orientation: Optional[bool] = True
 
 
