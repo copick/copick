@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.4.0](https://github.com/copick/copick/compare/copick-v1.3.0...copick-v1.4.0) (2025-06-21)
+
+
+### ✨ Features
+
+* Add utility to generate empty-picks for a new copick project ([#79](https://github.com/copick/copick/issues/79)) ([d5d5030](https://github.com/copick/copick/commit/d5d50307b82bf230b9dfbe81a09b7c9416b63a79))
+
 ## [1.3.0](https://github.com/copick/copick/compare/copick-v1.2.0...copick-v1.3.0) (2025-06-21)
 
 
