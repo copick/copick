@@ -1,5 +1,16 @@
 # copick
 
+<div align="center">
+    
+[![License: MIT](https://img.shields.io/badge/License-MIT-green.svg)](https://opensource.org/licenses/MIT) 
+[![PyPI version](https://badge.fury.io/py/copick.svg)](https://badge.fury.io/py/copick) 
+[![Python](https://img.shields.io/badge/python-3.9%20|%203.10%20|%203.11%20|%203.12%20|%203.13-green)](https://pypi.org/project/copick/) 
+[![Tests](https://github.com/copick/copick/workflows/tests/badge.svg)](https://github.com/copick/copick/actions/workflows/test.yml)
+[![codecov](https://codecov.io/gh/copick/copick/branch/main/graph/badge.svg)](https://codecov.io/gh/copick/copick) 
+[![Docs](https://github.com/copick/copick/workflows/docs/badge.svg)](https://copick.github.io/copick/)
+
+</div>
+
 **copick** is a cross-platform, storage-agnostic and server-less dataset API for cryoET datasets. Access to the data is
 provided through an object-oriented API that abstracts away the underlying storage using the
 [fsspec](https://filesystem-spec.readthedocs.io/en/latest/)-family of libraries.
@@ -27,6 +38,10 @@ implementations from the fsspec family (`local`, `s3fs`, `smb`, `sshfs`). Separa
 ```shell
 pip install "copick[all]"
 ```
+
+> [!NOTE]  
+> `copick==1.2.0` will fail to install with `pip>=25`. We recommend using [`uv pip`](https://docs.astral.sh/uv/pip/) or `pip<=25` when installing copick.
+
 
 ## Example dataset
 

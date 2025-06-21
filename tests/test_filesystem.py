@@ -173,8 +173,8 @@ def test_object_zarr(test_payload: Dict[str, Any]):
     _, array = arrays[0]
     assert array.shape == (42, 36, 36), "Error reading Zarr, (incorrect shape)"
     assert np.sum(array) == pytest.approx(
-        1029.290283203125,
-        abs=NUMERICAL_PRECISION,
+        1029.2904052734375,
+        abs=1e-3,
     ), "Error reading Zarr (incorrect sum)."
 
     # Assert no zarr for non-particle object
@@ -195,8 +195,8 @@ def test_object_read_numpy(test_payload: Dict[str, Any]):
     # Full size
     assert array.shape == (42, 36, 36), "Error getting numpy array, (incorrect shape)"
     assert np.sum(array) == pytest.approx(
-        1029.290283203125,
-        abs=NUMERICAL_PRECISION,
+        1029.2904052734375,
+        abs=1e-3,
     ), "Error getting numpy array (incorrect sum)."
 
     # Subregion

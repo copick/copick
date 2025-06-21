@@ -42,6 +42,7 @@ def objects_from_datasets(dataset_ids: List[int]) -> List[PickableObject]:
 
         # Has an EMD ID?
         emd_id = None
+        apubs = []
         if anno.annotation_publication is not None:
             apubs = anno.annotation_publication.split(",")
             apubs = [ap.strip() for ap in apubs]
@@ -49,8 +50,10 @@ def objects_from_datasets(dataset_ids: List[int]) -> List[PickableObject]:
             emd_id = emds[0] if emds else None
 
         # Has a PDB id?
-        pdb_ids = [pub for pub in apubs if pub.startswith("PDB")]
-        pdb_id = pdb_ids[0] if pdb_ids else None
+        pdb_id = None
+        if apubs:
+            pdb_ids = [pub for pub in apubs if pub.startswith("PDB")]
+            pdb_id = pdb_ids[0] if pdb_ids else None
 
         # Overwrite all values but is_particle if the object is already in the dict
         po = portal_objects.get(anno.object_id, None)
