@@ -12,16 +12,16 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
 
-      - name: Set up Python
-        uses: actions/setup-python@v3
+      - name: Install uv
+        uses: astral-sh/setup-uv@v6
         with:
-          python-version: "3.10"
+          version: "0.7.13"
+          python-version: "3.12"
 
-      - name: Install dependencies
-        run: |
-          pip install -e ".[docs]"
+      - name: Install copick
+        run: uv sync --locked --extra docs
 
       # Build the book
       - name: Build the book
@@ -30,7 +30,7 @@ jobs:
 
       # Push the site to github-pages
       - name: GitHub Pages action
-        uses: peaceiris/actions-gh-pages@v3
+        uses: peaceiris/actions-gh-pages@v4
         with:
           publish_dir: ./site
           github_token: ${{ secrets.GITHUB_TOKEN }}
