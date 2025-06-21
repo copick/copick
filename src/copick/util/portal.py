@@ -73,8 +73,7 @@ def objects_from_datasets(dataset_ids: List[int]) -> List[PickableObject]:
     colors = distinctipy.get_colors(len(portal_objects), rng=42)
 
     copick_objects = []
-    # TODO: zip(_,_,strict=True) when 3.9 support is dropped
-    for idx, ((identifier, vals), col) in enumerate(zip(portal_objects.items(), colors)):
+    for idx, ((identifier, vals), col) in enumerate(zip(portal_objects.items(), colors, strict=True)):
         col = tuple([int(c * 255) for c in col] + [255])
         copick_objects.append(
             PickableObject(

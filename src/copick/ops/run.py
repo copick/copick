@@ -51,12 +51,11 @@ def map_runs(
         raise ValueError(f"Invalid parallelism type: {parallelism}, must be 'thread' or 'process'")
 
     with executor_class(max_workers=workers) as executor:
-        # TODO: zip(..., strict=True)
         if len(list(runs)) != len(run_args):
             logger.critical("Length of runs and run_args must be the same.")
             raise ValueError("Length of runs and run_args must be the same.")
 
-        for run, rargs in zip(runs, run_args):
+        for run, rargs in zip(runs, run_args, strict=True):
             if isinstance(run, str):
                 future = executor.submit(_materialize_run, root, run, rargs, callback, **kwargs)
                 results[future] = run
