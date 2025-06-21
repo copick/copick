@@ -15,6 +15,7 @@
   "packages": {
     ".": {
       "package-name": "copick",
+      "tag-prefix": "copick ",
       "release-type": "python",
       "separate-pull-requests": true,
       "changelog-path": "CHANGELOG.md",
