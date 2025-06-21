@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.5.0](https://github.com/copick/copick/compare/copick-v1.4.0...copick-v1.5.0) (2025-06-21)
+
+
+### ✨ Features
+
+* Generate Config Files for the Dataportal Through CLI ([#77](https://github.com/copick/copick/issues/77)) ([7b1daaf](https://github.com/copick/copick/commit/7b1daafc10c8a39e839e577786cf5619902d9246))
+
 ## [1.4.0](https://github.com/copick/copick/compare/copick-v1.3.0...copick-v1.4.0) (2025-06-21)
 
 
