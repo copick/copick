@@ -14,14 +14,14 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v3
 
-      - name: Set up Python
-        uses: actions/setup-python@v3
+      - name: Install uv
+        uses: astral-sh/setup-uv@v5
         with:
-          python-version: "3.10"
+          version: "0.7.13"
+          python-version: "3.12"
 
-      - name: Install dependencies
-        run: |
-          pip install -e ".[docs]"
+      - name: Install copick
+        run: uv sync --locked --extra docs
 
       # Build the book
       - name: Build the book
