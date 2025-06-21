@@ -31,7 +31,7 @@ pip install "copick[all]"
 ```
 
 > [!NOTE]  
-> copick==1.2.0 will fail to install with `pip>=25`. We recommend using [`uv pip`](https://docs.astral.sh/uv/pip/) or `pip<=25` when installing copick.
+> `copick==1.2.0` will fail to install with `pip>=25`. We recommend using [`uv pip`](https://docs.astral.sh/uv/pip/) or `pip<=25` when installing copick.
 
 
 ## Example dataset
