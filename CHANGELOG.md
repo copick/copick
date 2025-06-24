@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.5.1](https://github.com/copick/copick/compare/copick-v1.5.0...copick-v1.5.1) (2025-06-24)
+
+
+### 🐞 Bug Fixes
+
+* Bump chanzuckerberg/github-actions from 1.5.0 to 6.4.0 ([#91](https://github.com/copick/copick/issues/91)) ([2e225d9](https://github.com/copick/copick/commit/2e225d9bee80d045d38751e69e4a323e020af899))
+
 ## [1.5.0](https://github.com/copick/copick/compare/copick-v1.4.0...copick-v1.5.0) (2025-06-21)
 
 
