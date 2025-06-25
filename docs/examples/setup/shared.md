@@ -4,21 +4,21 @@
   <figcaption>copick project setup with SMB shared drive.</figcaption>
 </figure>
 
-There are four ways of setting up local **copick** projects via SMB share:
+In copick, a project has an overlay and (optionally) a static part. The overlay is where all user-created entities are stored and is writable. The static part is read-only and contains the input data. There are four ways of setting up **copick** projects via SMB share:
 
 <div class="grid cards" markdown>
 
--   :fontawesome-solid-hard-drive:{ .lg .middle }   __Option 1__: overlay-only
+-   :fontawesome-solid-hard-drive:{ .lg .middle }   __Option 1__: SMB overlay-only
 
     ---
 
     Using this method, there will be a single, shared project directory, all entities in the copick project
     will be writable.
 
-    [:octicons-arrow-right-24: Get config template](#option-1-setting-up-an-overlay-only-copick-project)
+    [:octicons-arrow-right-24: Get config template](#option-1-a-smb-overlay-only-copick-project)
 
 
--   :fontawesome-solid-hard-drive:{ .lg .middle }   __Option 2__: static/overlay
+-   :fontawesome-solid-hard-drive:{ .lg .middle }   __Option 2__: SMB overlay, SMB static
 
     ---
 
@@ -26,9 +26,9 @@ There are four ways of setting up local **copick** projects via SMB share:
     in the "static"-project directory will be read-only within copick, while files in the "overlay"-directory will be
     writeable. This is a good choice if you want to maintain the input data.
 
-    [:octicons-arrow-right-24: Get config template](#option-2-setting-up-a-staticoverlay-copick-project)
+    [:octicons-arrow-right-24: Get config template](#option-2-a-smb-overlay-smb-static-copick-project)
 
--   :fontawesome-solid-arrows-split-up-and-left:{ .lg .middle } __Option 3__: overlay/other static
+-   :fontawesome-solid-arrows-split-up-and-left:{ .lg .middle } __Option 3__: SMB overlay, other static
 
     ---
 
@@ -36,20 +36,20 @@ There are four ways of setting up local **copick** projects via SMB share:
     tomograms and baseline annotations) are stored in a different storage backend. This will be useful when multiple
     users are curating a dataset and have access to local copies of the static data.
 
-    [:octicons-arrow-right-24: Get config templates](#option-3-smb-overlay-other-static-backend)
+    [:octicons-arrow-right-24: Get config templates](#option-3-a-smb-overlay-other-static-copick-project)
 
--   :fontawesome-solid-arrows-split-up-and-left:{ .lg .middle } __Option 4__: other overlay/static
+-   :fontawesome-solid-arrows-split-up-and-left:{ .lg .middle } __Option 4__: other overlay, SMB static
 
     ---
 
     Using this method, the static part of the project will be stored in a shared directory, while new copick entities
     are written to another storage backend. This could be useful when curating a large set of data with a group.
 
-    [:octicons-arrow-right-24: Get config templates](#option-4-other-overlay-smb-static-backend)
+    [:octicons-arrow-right-24: Get config templates](#option-4-an-other-overlay-smb-static-copick-project)
 </div>
 ---
 
-## Option 1: Setting up an overlay-only copick project
+## Option 1: A SMB overlay-only copick project
 
 ### Set up your project root directory
 
@@ -77,7 +77,7 @@ The project is now set up, you can now add objects, add tomograms or store annot
 
 ---
 
-## Option 2: Setting up a static/overlay copick project
+## Option 2: A SMB overlay, SMB static copick project
 
 ### Set up your project root directory
 
@@ -103,9 +103,9 @@ vi copick_config.json
 
 ---
 
-## Option 3: SMB overlay, other static backend
+## Option 3: A SMB overlay, other static copick project
 
-Choose your static backend:
+Choose your other static backend:
 
 === "CZ cryoET Data Portal"
     ??? example "Cofiguration Template"
@@ -150,9 +150,9 @@ Choose your static backend:
 
 ---
 
-## Option 4: Other overlay, SMB static backend
+## Option 4: An other overlay, SMB static copick project
 
-Choose your overlay backend:
+Choose your other overlay backend:
 
 === "Local"
     ??? example "Cofiguration Template"
