@@ -4,11 +4,11 @@
   <figcaption>copick project setup with local storage.</figcaption>
 </figure>
 
-There are four ways of setting up local **copick** projects:
+In copick, a project has an overlay and (optionally) a static part. The overlay is where all user-created entities are stored and is writable. The static part is read-only and contains the input data. There are four ways of setting up local **copick** projects:
 
 <div class="grid cards" markdown>
 
--   :fontawesome-solid-hard-drive:{ .lg .middle }   __Option 1__: overlay-only
+-   :fontawesome-solid-hard-drive:{ .lg .middle }   __Option 1__: local overlay-only
 
     ---
 
@@ -16,10 +16,10 @@ There are four ways of setting up local **copick** projects:
     will be writable. This is a good choice for test environments or projects you're working on alone on your own
     machine.
 
-    [:octicons-arrow-right-24: Get config template](#option-1-setting-up-an-overlay-only-copick-project)
+    [:octicons-arrow-right-24: Get config template](#option-1-a-local-overlay-only-copick-project)
 
 
--   :fontawesome-solid-hard-drive:{ .lg .middle }   __Option 2__: static/overlay
+-   :fontawesome-solid-hard-drive:{ .lg .middle }   __Option 2__: local overlay, local static
 
     ---
 
@@ -27,9 +27,9 @@ There are four ways of setting up local **copick** projects:
     in the "static"-project directory will be read-only within copick, while files in the "overlay"-directory will be
     writeable. This is a good choice if you want to maintain the input data.
 
-    [:octicons-arrow-right-24: Get config template](#option-2-setting-up-a-staticoverlay-copick-project)
+    [:octicons-arrow-right-24: Get config template](#option-2-a-local-overlay-local-static-copick-project)
 
--   :fontawesome-solid-arrows-split-up-and-left:{ .lg .middle } __Option 3__: overlay/other static
+-   :fontawesome-solid-arrows-split-up-and-left:{ .lg .middle } __Option 3__: local overlay, other static
 
     ---
 
@@ -37,9 +37,9 @@ There are four ways of setting up local **copick** projects:
     tomograms and baseline annotations) are stored in a different storage backend. This will be useful when multiple
     users are curating a dataset that is available on a shared drive, in the cloud, via ssh or on the data portal.
 
-    [:octicons-arrow-right-24: Get config templates](#option-3-local-overlay-other-static-backend)
+    [:octicons-arrow-right-24: Get config templates](#option-3-a-local-overlay-other-static-copick-project)
 
--   :fontawesome-solid-arrows-split-up-and-left:{ .lg .middle } __Option 4__: other overlay/static
+-   :fontawesome-solid-arrows-split-up-and-left:{ .lg .middle } __Option 4__: other overlay, local static
 
     ---
 
@@ -47,11 +47,11 @@ There are four ways of setting up local **copick** projects:
     another storage backend. This could be useful when results should be uploaded to a common storage server, but a local
     copy of the data exists.
 
-    [:octicons-arrow-right-24: Get config templates](#option-4-other-overlay-local-static-backend)
+    [:octicons-arrow-right-24: Get config templates](#option-4-an-other-overlay-local-static-copick-project)
 </div>
 ---
 
-## Option 1: Setting up an overlay-only copick project
+## Option 1: A local overlay-only copick project
 
 ### Set up your project root directory
 
@@ -83,7 +83,7 @@ The project is now set up, you can now add objects, add tomograms or store annot
 
 ---
 
-## Option 2: Setting up a static/overlay copick project
+## Option 2: A local overlay, local static copick project
 
 ### Set up your project root directory
 
@@ -115,9 +115,9 @@ vi copick_config.json
 
 ---
 
-## Option 3: Local overlay, other static backend
+## Option 3: A local overlay, other static copick project
 
-Choose your static backend:
+Choose your other static backend:
 
 === "CZ cryoET Data Portal"
     ??? example "Cofiguration Template"
@@ -162,9 +162,9 @@ Choose your static backend:
 
 ---
 
-## Option 4: Other overlay, local static backend
+## Option 4: An other overlay, local static copick project
 
-Choose your overlay backend:
+Choose your other overlay backend:
 
 === "SMB Share"
     ??? example "Cofiguration Template"
