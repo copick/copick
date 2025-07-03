@@ -1,6 +1,8 @@
+import json
+import os
 from typing import List
 
-import click, json, os
+import click
 
 import copick
 from copick.cli.util import add_debug_option
@@ -12,6 +14,7 @@ from copick.util.log import get_logger
 def config(ctx):
     """Manage copick configuration files."""
     pass
+
 
 def parse_object(ctx, param, value):
     """Parse the --objects input manually"""
@@ -30,8 +33,8 @@ def parse_object(ctx, param, value):
             if len(parts) >= 3:
                 try:
                     radius = int(parts[2])
-                except ValueError:
-                    raise click.BadParameter(f"Invalid radius value in --objects: {parts[2]}")
+                except ValueError as err:
+                    raise click.BadParameter(f"Invalid radius value in --objects: {parts[2]}") from err
             if len(parts) >= 4:
                 pdb_id = parts[3].strip()
 
@@ -98,25 +101,40 @@ def dataportal(
 
 @config.command(context_settings={"show_default": True}, short_help="Set up a configuration file for a local project.")
 @click.pass_context
-@click.option('--overlay-root', type=str, required=True, 
-              help='Overlay root path.')
-@click.option('--objects', type=str, multiple=True, callback=parse_object, required=True,
-              help="List of desired objects in the format: name,is_particle,[radius],[pdb_id]. Repeat this option for multiple objects.")
-@click.option('--config', type=str, required=False, default="config.json",  
-              help='Path to the output JSON configuration file.')
-@click.option('--proj-name', type=str, required=False, default="project", 
-              help='Name of the project configuration.')
-@click.option('--proj-description', type=str, required=False, default="Config Project for SessionXXa", 
-              help='Description of the project configuration.')
+@click.option("--overlay-root", type=str, required=True, help="Overlay root path.")
+@click.option(
+    "--objects",
+    type=str,
+    multiple=True,
+    callback=parse_object,
+    required=True,
+    help="List of desired objects in the format: name,is_particle,[radius],[pdb_id]. Repeat this option for multiple objects.",
+)
+@click.option(
+    "--config",
+    type=str,
+    required=False,
+    default="config.json",
+    help="Path to the output JSON configuration file.",
+)
+@click.option("--proj-name", type=str, required=False, default="project", help="Name of the project configuration.")
+@click.option(
+    "--proj-description",
+    type=str,
+    required=False,
+    default="Config Project for SessionXXa",
+    help="Description of the project configuration.",
+)
 @add_debug_option
 def filesystem(
-    ctx, 
-    config: str, 
-    proj_name: str, 
-    proj_description: str, 
-    overlay_root: str, 
-    objects: List[str], 
-    debug: bool = False):
+    ctx,
+    config: str,
+    proj_name: str,
+    proj_description: str,
+    overlay_root: str,
+    objects: List[str],
+    debug: bool = False,
+):
     """
     Generate a configuration file for a local project directory.
 
@@ -136,20 +154,16 @@ copick config filesystem \
         name, is_particle, radius, pdb_id = obj
 
         # Check if the name contains an underscore
-        if '_' in name:
+        if "_" in name:
             raise ValueError(f"The protein name ({name}) should not contain the '_' character!")
 
-        obj_dict = {
-            "name": name,
-            "is_particle": is_particle,
-            "label": label_counter
-        }
+        obj_dict = {"name": name, "is_particle": is_particle, "label": label_counter}
 
         if is_particle and radius is not None:
             obj_dict["radius"] = radius
             if pdb_id:
                 obj_dict["pdb_id"] = pdb_id
-        
+
         pickable_objects.append(obj_dict)
         label_counter += 1
 
@@ -157,20 +171,18 @@ copick config filesystem \
         "config_type": "filesystem",
         "name": proj_name,
         "description": proj_description,
-        "version": "0.1.6",     # TODO: Update this to the actual version - how to do this automatically?
+        "version": "0.1.6",  # TODO: Update this to the actual version - how to do this automatically?
         "pickable_objects": pickable_objects,
         "overlay_root": "local://" + os.path.join(overlay_root, "static"),
-        "overlay_fs_args": {
-            "auto_mkdir": True
-        }
+        "overlay_fs_args": {"auto_mkdir": True},
     }
 
     # Only create the directory if it is non-empty (i.e., the file is not in the current directory)
     directory = os.path.dirname(config)
-    if directory:   
+    if directory:
         os.makedirs(directory, exist_ok=True)
-    # Write the JSON data to the file        
-    with open(config, 'w') as f:
+    # Write the JSON data to the file
+    with open(config, "w") as f:
         json.dump(config_data, f, indent=4)
-    
+
     logger.info(f"Generated configuration file at {config}.")
