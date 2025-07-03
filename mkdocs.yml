@@ -80,6 +80,8 @@ nav:
       - Run: "api_reference/functional/run.md"
       - Browser: "api_reference/functional/browser.md"
 
+  - Contributing: contributing.md
+
 plugins:
   - search
   - autorefs

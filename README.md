@@ -197,11 +197,17 @@ Copick supports a plugin system that allows external Python packages to register
    ```python
    import click
 
+   from copick.cli.util import add_config_option, add_debug_option
+   from copick.util.log import get_logger
+
    @click.command()
-   @click.option('--config', help='Path to copick config file')
-   def my_command(config):
+   @add_config_option
+   @add_debug_option
+   @click.pass_context
+   def my_command(ctx, config: str, debug: bool):
        """My custom copick command."""
-       click.echo(f"Running my command with config: {config}")
+       logger = get_logger(__name__, debug=debug)
+       logger.info(f"Running my command with config: {config}")
    ```
 
 3. After installing your package, the command will be available via:
