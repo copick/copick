@@ -21,7 +21,7 @@ def new(ctx):
 @click.option("--particle-name", type=str, required=True, help="Name of the particle to create picks for")
 @click.option("--out-user", type=str, required=False, default="copick", help="User ID to write picks to")
 @click.option("--out-session", type=str, required=False, default="0", help="Session ID to write picks to")
-@click.option("--overwrite", type=bool, required=False, default=False, help="Overwrite existing picks")
+@click.option("--overwrite/--no-overwrite", is_flag=True, default=False, help="Overwrite existing picks")
 @add_debug_option
 @click.pass_context
 def picks(
