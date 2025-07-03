@@ -9,7 +9,9 @@ from copick.util.log import get_logger
 
 
 @click.group()
+@click.pass_context
 def add(ctx):
+    """Add entities to copick projects."""
     pass
 
 
@@ -80,7 +82,9 @@ def add(ctx):
     type=str,
     metavar="PATH",
 )
+@click.pass_context
 def tomogram(
+    ctx,
     config: str,
     run: str,
     tomo_type: str,
@@ -95,56 +99,60 @@ def tomogram(
     debug: bool,
 ):
     """
-    Add a tomogram to a run.
+    Add a tomogram to the project.
 
     PATH: Path to the tomogram file (MRC or Zarr format).
     """
-    get_logger(__name__, debug=debug)
+    logger = get_logger(__name__, debug=debug)
 
-    # Get root
-    root = copick.from_file(config)
+    try:
+        # Get root
+        root = copick.from_file(config)
 
-    # Get run name
-    if run == "":
-        run = path.split("/")[-1].rsplit(".", 1)[0]
+        # Get run name
+        if run == "":
+            run = path.split("/")[-1].rsplit(".", 1)[0]
 
-    # Get file type
-    if file_type is None:
-        if path.endswith(".mrc"):
-            file_type = "mrc"
-        elif path.endswith(".zarr"):
-            file_type = "zarr"
-        else:
-            raise ValueError(f"Could not determine file type from path: {path}")
+        # Get file type
+        if file_type is None:
+            if path.endswith(".mrc"):
+                file_type = "mrc"
+            elif path.endswith(".zarr"):
+                file_type = "zarr"
+            else:
+                ctx.fail(f"Could not determine file type from path: {path}")
 
-    # Convert chunk arg
-    chunk_size: Tuple[int, int, int] = tuple(map(int, chunk_size.split(",")[:3]))
+        # Convert chunk arg
+        chunk_size: Tuple[int, int, int] = tuple(map(int, chunk_size.split(",")[:3]))
 
-    if file_type == "mrc":
-        _add_tomogram_mrc(
-            root,
-            run,
-            tomo_type,
-            path,
-            voxel_spacing=voxel_size,
-            create_pyramid=create_pyramid,
-            pyramid_levels=pyramid_levels,
-            chunks=chunk_size,
-            create=create,
-            overwrite=overwrite,
-            log=debug,
-        )
-    elif file_type == "zarr":
-        _add_tomogram_zarr(
-            root,
-            run,
-            tomo_type,
-            path,
-            voxel_spacing=voxel_size,
-            create_pyramid=create_pyramid,
-            pyramid_levels=pyramid_levels,
-            chunks=chunk_size,
-            create=create,
-            overwrite=overwrite,
-            log=debug,
-        )
+        if file_type == "mrc":
+            _add_tomogram_mrc(
+                root,
+                run,
+                tomo_type,
+                path,
+                voxel_spacing=voxel_size,
+                create_pyramid=create_pyramid,
+                pyramid_levels=pyramid_levels,
+                chunks=chunk_size,
+                create=create,
+                overwrite=overwrite,
+                log=debug,
+            )
+        elif file_type == "zarr":
+            _add_tomogram_zarr(
+                root,
+                run,
+                tomo_type,
+                path,
+                voxel_spacing=voxel_size,
+                create_pyramid=create_pyramid,
+                pyramid_levels=pyramid_levels,
+                chunks=chunk_size,
+                create=create,
+                overwrite=overwrite,
+                log=debug,
+            )
+    except Exception as e:
+        logger.critical(f"Failed to add tomogram: {e}")
+        ctx.fail(f"Error adding tomogram: {e}")

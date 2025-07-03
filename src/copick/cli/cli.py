@@ -13,7 +13,7 @@ logger = get_logger(__name__)
 
 
 @click.group()
-@click.version_option(version=copick.__version__, message="%(prog)s %(version)s")
+@click.version_option(version=copick.__version__, message="copick %(version)s")
 @click.pass_context
 def _cli(ctx):
     text = f"copick {copick.__version__}"
@@ -66,6 +66,11 @@ def main():
     cli = add_plugin_commands(cli)
 
     cli(prog_name="copick")
+
+
+# Create a CLI instance that can be used by tests
+cli = add_core_commands(_cli)
+cli = add_plugin_commands(cli)
 
 
 if __name__ == "__main__":

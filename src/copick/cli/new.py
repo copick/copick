@@ -12,6 +12,7 @@ from copick.util.log import get_logger
 @click.group(short_help="Create copick entities.")
 @click.pass_context
 def new(ctx):
+    """Create copick entities."""
     pass
 
 
@@ -87,7 +88,7 @@ def run(
     name: str,
 ) -> int:
     """
-    Create a new run in the Copick project.
+    Create an empty run with the given name.
 
     NAME: The name of the new run to be created.
     """
@@ -114,7 +115,7 @@ def voxelspacing(
     debug: bool,
 ):
     """
-    Add voxel spacing to a run in the Copick project.
+    Create an empty voxelspacing with the given name.
 
     VOXEL_SPACING: The voxel spacing in Angstrom to be added to the run.
     """
