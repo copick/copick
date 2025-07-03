@@ -43,7 +43,7 @@ nav:
     - Snippets: "examples/snippets.md"
 
   - Tools: tools.md
-  #- Tools: tools.md
+  - CLI Reference: cli.md
   - API Reference:
     - API Overview: "api_reference/api.md"
     - Base Classes:
@@ -125,3 +125,6 @@ markdown_extensions:
   - pymdownx.snippets:
       check_paths: true
       base_path: [ docs/snippets, docs/templates, "." ]
+
+extra_css:
+  - stylesheets/extra.css
