@@ -18,7 +18,7 @@ UNITFACTOR = {
     "decimeter": 1e9,
     "exameter": 1e28,
     "femtometer": 1e-5,
-    "foot": 3.048e-9,
+    "foot": 3.048e9,
     "gigameter": 1e19,
     "hectometer": 1e12,
     "inch": 2.54e8,
