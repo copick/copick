@@ -1,6 +1,7 @@
 import click
 
 import copick
+from copick.cli.add import add
 from copick.cli.browse import browse
 from copick.cli.config import config
 from copick.cli.ext import load_plugin_commands
@@ -31,6 +32,7 @@ def add_core_commands(cmd: click.Command) -> click.Command:
         cmd (click.Command): The command object with core commands added.
     """
 
+    cmd.add_command(add)
     cmd.add_command(browse)
     cmd.add_command(config)
     cmd.add_command(info)

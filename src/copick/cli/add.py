@@ -78,7 +78,7 @@ def add(ctx):
     "path",
     required=True,
     type=str,
-    help="Path to the tomogram file.",
+    metavar="PATH",
 )
 def tomogram(
     config: str,
@@ -96,6 +96,8 @@ def tomogram(
 ):
     """
     Add a tomogram to a run.
+
+    PATH: Path to the tomogram file (MRC or Zarr format).
     """
     get_logger(__name__, debug=debug)
 
