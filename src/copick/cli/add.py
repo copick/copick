@@ -1,3 +1,4 @@
+import os
 from typing import Tuple
 
 import click
@@ -111,7 +112,9 @@ def tomogram(
 
         # Get run name
         if run == "":
-            run = path.split("/")[-1].rsplit(".", 1)[0]
+            # Use os.path.basename for cross-platform compatibility
+            filename = os.path.basename(path)
+            run = filename.rsplit(".", 1)[0]
 
         # Get file type
         if file_type is None:

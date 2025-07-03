@@ -1,3 +1,4 @@
+import contextlib
 import os
 import tempfile
 from pathlib import Path
@@ -44,9 +45,10 @@ def sample_mrc_file():
 
         yield tmp.name
 
-        # Cleanup
-        if os.path.exists(tmp.name):
-            os.unlink(tmp.name)
+        # Cleanup - handle Windows file locking issues
+        with contextlib.suppress(PermissionError, OSError):
+            if os.path.exists(tmp.name):
+                os.unlink(tmp.name)
 
 
 @pytest.fixture
@@ -316,7 +318,9 @@ class TestCLIAdd:
 
             assert result.exit_code != 0, "Command should fail with unrecognized file type"
 
-            os.unlink(tmp.name)
+            # Cleanup - handle Windows file locking issues
+            with contextlib.suppress(PermissionError, OSError):
+                os.unlink(tmp.name)
 
     def test_add_tomogram_zarr_unit_conversion(self, test_payload, runner, sample_zarr_file_nanometer):
         """Test adding a Zarr tomogram with unit conversion from nanometer to angstrom."""
