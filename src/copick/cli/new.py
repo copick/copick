@@ -76,16 +76,20 @@ def picks(
 @add_config_option
 @add_create_overwrite_options
 @add_debug_option
-@click.argument("name", required=True, type=str, help="Name of the new run.", metavar="NAME")
+@click.argument("name", required=True, type=str, metavar="NAME")
+@click.pass_context
 def run(
+    ctx: click.Context,
     config: str,
-    name: str,
     create: bool,
     overwrite: bool,
     debug: bool,
+    name: str,
 ) -> int:
     """
     Create a new run in the Copick project.
+
+    NAME: The name of the new run to be created.
     """
     get_logger(__name__, debug=debug)
 
@@ -97,10 +101,10 @@ def run(
 
 @new.command(short_help="Create an empty voxelspacing with the given name.", context_settings={"show_default": True})
 @add_config_option
-@click.option("run", required=True, type=str, help="Name of the run to add voxel spacing to.", metavar="RUN")
+@click.option("--run", required=True, type=str, help="Name of the run to add voxel spacing to.", metavar="RUN")
 @add_create_overwrite_options
 @add_debug_option
-@click.argument("voxel_spacing", required=True, type=float)
+@click.argument("voxel_spacing", required=True, type=float, metavar="VOXEL_SPACING")
 def voxelspacing(
     config: str,
     run: str,
@@ -108,9 +112,11 @@ def voxelspacing(
     create: bool,
     overwrite: bool,
     debug: bool,
-) -> int:
+):
     """
     Add voxel spacing to a run in the Copick project.
+
+    VOXEL_SPACING: The voxel spacing in Angstrom to be added to the run.
     """
     get_logger(__name__, debug=debug)
 
