@@ -44,7 +44,7 @@ docs = "https://copick.github.io/copick/"
 documentation = "https://copick.github.io/copick/"
 
 [project.scripts]
-copick = "copick.cli.cli:cli"
+copick = "copick.cli.cli:main"
 make_templates = "copick.cli.make_templates:create [docs]"
 
 [project.optional-dependencies]

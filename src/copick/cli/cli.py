@@ -1,144 +1,70 @@
-import os
 import click
+
 import copick
-from tqdm import tqdm
-from copick.ops.browser import launch_app
+from copick.cli.browse import browse
+from copick.cli.config import config
+from copick.cli.ext import load_plugin_commands
+from copick.cli.info import info
+from copick.cli.new import new
 from copick.util.log import get_logger
 
 logger = get_logger(__name__)
 
 
 @click.group()
+@click.version_option(version=copick.__version__, message="%(prog)s %(version)s")
 @click.pass_context
-def cli(ctx):
-    pass
+def _cli(ctx):
+    text = f"copick {copick.__version__}"
+    logger.info(text)
+    logger.info(f"{'-'*len(text)}")
 
 
-@cli.command(context_settings={"show_default": True})
-@click.option(
-    "-c",
-    "--config",
-    type=str,
-    help="Path to the configuration file.",
-    required=False,
-    metavar="PATH",
-    envvar="COPICK_CONFIG",
-    show_envvar=True,
-)
-@click.option(
-    "-ds",
-    "--dataset-ids",
-    type=int,
-    multiple=True,
-    help="Dataset IDs to include in the project (multiple inputs possible).",
-    metavar="ID",
-)
-@click.pass_context
-def browse(
-    ctx,
-    config: str = None,
-    dataset_ids: list[int] = None,
-):
-    if config and dataset_ids:
-        logger.critical("You cannot specify both a config and dataset IDs.")
-        ctx.fail("Either --config or --dataset-ids must be provided, not both.")
-
-    if config:
-        project = copick.from_file(config)
-        launch_app(copick_root=project)
-    elif dataset_ids:
-        project = copick.from_czcdp_datasets(
-            dataset_ids=dataset_ids,
-            overlay_root="/tmp/overlay_root",
-            overlay_fs_args={},
-        )
-        launch_app(copick_root=project)
-    else:
-        logger.critical("You must specify either a config or a dataset.")
-        ctx.fail("Either --config or --dataset-ids must be provided.")
-
-@cli.command(context_settings={"show_default": True})
-@click.option(
-    '-ds',
-    '--dataset-id',
-    type=int, 
-    required=True, 
-    help="Dataset ID from the CryoET Data Portal to include in the configuration")
-@click.option(
-    '--overlay',
-    type=str, 
-    required=True, 
-    help='Path to the local overlay directory where intermediate files will be stored or read.')
-@click.option(
-    '--output', 
-    default='config.json',
-    type=str, 
-    required=False, 
-    help='Path to save the generated configuration file.')
-@click.pass_context
-def generate_dataportal_config(
-    ctx,
-    dataset_id: str,
-    overlay: str, 
-    output: str):
+def add_core_commands(cmd: click.Command) -> click.Command:
     """
-    Generate a configuration file from a CZDP dataset ID and local overlay directory
+    Add core commands to the CLI.
+
+    Args
+        cmd (click.Command): The command object to which core commands will be added.
+
+    Returns:
+        cmd (click.Command): The command object with core commands added.
     """
 
-    # Generate Config for the Given Directory
-    copick.from_czcdp_datasets(
-        [dataset_id], 
-        overlay_root = overlay, 
-        output_path = output,
-        overlay_fs_args = {"auto_mkdir": True})
+    cmd.add_command(browse)
+    cmd.add_command(config)
+    cmd.add_command(info)
+    cmd.add_command(new)
 
-@cli.command(context_settings={"show_default": True})
-@click.option('--config', type=str, required=True, help='Path to the config file to write tomograms to')
-@click.option('--particle-name', type=str, required=True, help='Name of the particle to create picks for')
-@click.option('--out-user', type=str, required=False, default='copick', help='User ID to write picks to')
-@click.option('--out-session', type=str, required=False, default='0', help='Session ID to write picks to')
-@click.option('--overwrite', type=bool, required=False, default=False, help='Overwrite existing picks')
-def empty_picks(
-    config,
-    particle_name,
-    out_user,
-    out_session,
-    overwrite = False
-):
+    return cmd
+
+
+def add_plugin_commands(cmd: click.Command) -> click.Command:
     """
-    Create empty picks for a given particle name.
+    Add plugin commands to the CLI.
 
-    Taken from https://github.com/copick/copick-catalog/blob/main/solutions/copick/create_empty_picks/solution.py
+    Args:
+        cmd (click.Command): The command object to which plugin commands will be added.
+
+    Returns:
+        cmd (click.Command): The command object with plugin commands added.
     """
 
-    # Load Copick Project
-    if os.path.exists(config):
-        root = copick.from_file(config)
-    else:
-        raise ValueError('Config file not found')
+    for command in load_plugin_commands():
+        cmd.add_command(command)
 
-    # Create picks
-    for run in tqdm(root.runs):
+    return cmd
 
-        picks = run.get_picks(
-            object_name=particle_name, user_id=out_user, session_id=out_session
-        )
 
-        if len(picks) == 0:
-            picks = run.new_picks(
-                object_name=particle_name, user_id=out_user, session_id=out_session
-            )
-        else:
-            if overwrite:
-                picks = picks[0]
-            else:
-                raise ValueError(
-                    f"Picks already exist for {run.name}. Set overwrite to True to overwrite."
-                )
+def main():
+    """
+    Main entry point for the Copick CLI.
+    """
+    cli = add_core_commands(_cli)
+    cli = add_plugin_commands(cli)
 
-        picks.points = []
-        picks.store()
+    cli(prog_name="copick")
 
 
 if __name__ == "__main__":
-    cli()
+    main()
