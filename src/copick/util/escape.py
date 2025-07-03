@@ -2,7 +2,7 @@ import re
 import warnings
 
 
-def sanitize_name(input_str: str, suppress_warnings=True) -> str:
+def sanitize_name(input_str: str, suppress_warnings=False) -> str:
     """
     Replace invalid characters in a string that is intended for use as a copick object name, user_id or session_id.
     Raises ValueError if the input is invalid, and issues a warning if the input is modified.
