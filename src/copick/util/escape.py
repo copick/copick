@@ -9,7 +9,7 @@ def sanitize_name(input_str: str, suppress_warnings=False) -> str:
 
     Args:
         input_str: The input string.
-        suppress_warnings: If True, suppress warnings about sanitization. Defaults to True.
+        suppress_warnings: If True, suppress warnings about sanitization. Defaults to False.
 
     Returns:
         str: The sanitized input.
