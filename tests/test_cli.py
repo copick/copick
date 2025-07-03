@@ -1,4 +1,5 @@
 import contextlib
+import json
 import os
 import tempfile
 from pathlib import Path
@@ -391,12 +392,76 @@ class TestCLIConfig:
             # Verify the config file was created
             assert config_path.exists(), "Configuration file should be created"
 
-    def test_config_filesystem_not_implemented(self, runner):
-        """Test filesystem config command (currently not implemented)."""
-        result = runner.invoke(config, ["filesystem"])
+    def test_config_filesystem(self, runner):
+        """Test filesystem config command implementation."""
+        with tempfile.TemporaryDirectory() as tmpdir:
+            overlay_path = Path(tmpdir) / "overlay"
+            config_path = Path(tmpdir) / "test_filesystem_config.json"
 
-        # Should succeed but not do anything (TODO: implement)
-        assert result.exit_code == 0
+            result = runner.invoke(
+                config,
+                [
+                    "filesystem",
+                    "--overlay-root",
+                    str(overlay_path),
+                    "--objects",
+                    "ribosome,True,120,4V9D",
+                    "--objects",
+                    "membrane,False",
+                    "--config",
+                    str(config_path),
+                    "--proj-name",
+                    "test_project",
+                    "--proj-description",
+                    "Test filesystem configuration",
+                ],
+            )
+
+            assert result.exit_code == 0, f"Command failed: {result.output}"
+
+            # Verify the config file was created
+            assert config_path.exists(), "Configuration file should be created"
+
+            # Verify config file contents
+            with open(config_path, "r") as f:
+                config_data = json.load(f)
+
+            assert config_data["config_type"] == "filesystem"
+            assert config_data["name"] == "test_project"
+            assert config_data["description"] == "Test filesystem configuration"
+            assert len(config_data["pickable_objects"]) == 2
+
+            # Check ribosome object
+            ribosome = next(obj for obj in config_data["pickable_objects"] if obj["name"] == "ribosome")
+            assert ribosome["is_particle"] is True
+            assert ribosome["radius"] == 120
+            assert ribosome["pdb_id"] == "4V9D"
+            assert ribosome["label"] == 1
+
+            # Check membrane object
+            membrane = next(obj for obj in config_data["pickable_objects"] if obj["name"] == "membrane")
+            assert membrane["is_particle"] is False
+            assert membrane["label"] == 2
+            assert "radius" not in membrane
+            assert "pdb_id" not in membrane
+
+    def test_config_filesystem_invalid_objects(self, runner):
+        """Test filesystem config command with invalid object format."""
+        with tempfile.TemporaryDirectory() as tmpdir:
+            result = runner.invoke(
+                config,
+                [
+                    "filesystem",
+                    "--overlay-root",
+                    str(tmpdir),
+                    "--objects",
+                    "invalid_format",  # Missing is_particle flag
+                    "--config",
+                    "test.json",
+                ],
+            )
+
+            assert result.exit_code != 0, "Command should fail with invalid object format"
 
 
 class TestCLINew:

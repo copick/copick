@@ -98,13 +98,46 @@ copick config filesystem [OPTIONS]
 
 | Option | Type | Description | Default |
 |--------|------|-------------|---------|
+| `--overlay-root TEXT` | Path | Overlay root path (required) | None |
+| `--objects TEXT` | String | List of desired objects in the format: `name,is_particle,[radius],[pdb_id]` (required, multiple allowed) | None |
+| `--config TEXT` | Path | Path to the output JSON configuration file | `config.json` |
+| `--proj-name TEXT` | String | Name of the project configuration | `project` |
+| `--proj-description TEXT` | String | Description of the project configuration | `Config Project for SessionXXa` |
 | `--debug / --no-debug` | Boolean | Enable debug logging | `no-debug` |
+
+**Object Format:**
+Objects are specified using the format: `name,is_particle,[radius],[pdb_id]`
+
+- `name`: The name of the object (required, cannot contain underscores)
+- `is_particle`: `True` or `False` indicating if this is a particle (required)
+- `radius`: Radius in pixels for particles (optional, only for particles)
+- `pdb_id`: PDB ID for the particle structure (optional, only for particles)
 
 **Examples:**
 
 ```bash
-# Generate config for local filesystem
-copick config filesystem
+# Basic filesystem config with membrane and ribosome
+copick config filesystem \
+    --overlay-root /path/to/project \
+    --objects membrane,False \
+    --objects ribosome,True,120,4V9D \
+    --config my_project.json
+
+# Complex project with multiple particles
+copick config filesystem \
+    --overlay-root /mnt/data/experiment \
+    --objects membrane,False \
+    --objects ribosome,True,120,4V9D \
+    --objects proteasome,True,80,6MSB \
+    --objects apoferritin,True,60,4V1W \
+    --proj-name "Cellular_Tomography" \
+    --proj-description "Cellular structures from cryo-ET experiment" \
+    --config cellular_config.json
+
+# Minimal config
+copick config filesystem \
+    --overlay-root ./data \
+    --objects virus,True,150
 ```
 
 ---
