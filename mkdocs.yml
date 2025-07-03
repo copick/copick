@@ -73,6 +73,13 @@ nav:
       - File System: "api_reference/implementations/Filesystem.md"
       - Data Portal: "api_reference/implementations/Dataportal.md"
 
+    - Functional API:
+      - Add: "api_reference/functional/add.md"
+      - Get: "api_reference/functional/get.md"
+      - Open: "api_reference/functional/open.md"
+      - Run: "api_reference/functional/run.md"
+      - Browser: "api_reference/functional/browser.md"
+
 plugins:
   - search
   - autorefs
@@ -102,6 +109,8 @@ plugins:
             # Signatures
             show_signature_annotations: true
             signature_crossrefs: false
+            separate_signature: true
+            line_length: 60
 
 
 markdown_extensions:
