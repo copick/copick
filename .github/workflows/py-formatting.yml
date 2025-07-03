@@ -19,5 +19,5 @@ jobs:
         with:
           tool_versions: |
             action-validator 0.6.0
-      - name: check backend
+      - name: check linting
         uses: pre-commit/action@v3.0.1
