@@ -24,7 +24,8 @@ def add(ctx):
     "--run",
     required=False,
     type=str,
-    help="The name of the run. If not specified, will use the name of the file (stripping extension).",
+    help="The name of the run. If not specified, will use the name of the file (stripping extension), "
+    "ignored if PATH is glob pattern.",
     show_default=True,
     default="",
 )
@@ -112,25 +113,34 @@ def tomogram(
     root = copick.from_file(config)
 
     if "*" in path:
+        # If glob pattern is used, the run name can not be used
+        if run:
+            logger.warning("Run name is ignored when using glob patterns.")
+            run = ""
+
         # Handle glob patterns
         paths = glob.glob(path)
         if not paths:
             logger.error(f"No files found matching pattern: {path}")
             ctx.fail(f"No files found matching pattern: {path}")
+
     else:
         # Single file path
         paths = [path]
 
     # Convert chunk arg
     chunk_size: Tuple[int, int, int] = tuple(map(int, chunk_size.split(",")[:3]))
+    input_run = run
 
     for path in tqdm.tqdm(paths, desc="Adding tomograms", unit="file", total=len(paths)):
         try:
             # Get run name
-            if run == "":
+            if input_run == "":
                 # Use os.path.basename for cross-platform compatibility
                 filename = os.path.basename(path)
                 run = filename.rsplit(".", 1)[0]
+            else:
+                run = input_run
 
             # Get file type
             ft = file_type.lower() if file_type else None
