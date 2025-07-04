@@ -10,6 +10,36 @@ from copick.util.log import get_logger
 
 logger = get_logger(__name__)
 
+# Unit conversion factors to Angstrom
+UNITFACTOR = {
+    "angstrom": 1.0,
+    "attometer": 1e-8,
+    "centimeter": 1e8,
+    "decimeter": 1e9,
+    "exameter": 1e28,
+    "femtometer": 1e-5,
+    "foot": 3.048e9,
+    "gigameter": 1e19,
+    "hectometer": 1e12,
+    "inch": 2.54e8,
+    "kilometer": 1e13,
+    "megameter": 1e16,
+    "meter": 1e10,
+    "micrometer": 1e4,
+    "mile": 1.609e13,
+    "millimeter": 1e7,
+    "nanometer": 1e1,
+    "parsec": 3.086e26,
+    "petameter": 1e25,
+    "picometer": 1e-2,
+    "yard": 9.144e9,
+    "yoctometer": 1e-14,
+    "yottameter": 1e34,
+    "terameter": 1e22,
+    "zeptometer": 1e-11,
+    "zettameter": 1e31,
+}
+
 
 def _ome_zarr_axes() -> List[Dict[str, str]]:
     return [
@@ -31,8 +61,12 @@ def _ome_zarr_axes() -> List[Dict[str, str]]:
     ]
 
 
-def _ome_zarr_transforms(voxel_size: float) -> List[Dict[str, Any]]:
-    return [{"scale": [voxel_size, voxel_size, voxel_size], "type": "scale"}]
+def _ome_zarr_transforms(voxel_size: float) -> Dict[str, Any]:
+    return {
+        "scale": [voxel_size, voxel_size, voxel_size],
+        "type": "scale",
+        "unit": "angstrom",
+    }
 
 
 def volume_pyramid(
@@ -102,7 +136,7 @@ def segmentation_pyramid(
 def ome_metadata(pyramid: Dict[float, np.ndarray]) -> Dict[str, Any]:
     return {
         "axes": _ome_zarr_axes(),
-        "transforms": [_ome_zarr_transforms(voxel_size) for voxel_size in pyramid],
+        "coordinate_transformations": [[_ome_zarr_transforms(voxel_size)] for voxel_size in pyramid],
     }
 
 
@@ -125,11 +159,41 @@ def write_ome_zarr_3d(
         list(pyramid.values()),
         group=root_group,
         axes=ome_meta["axes"],
-        coordinate_transformations=ome_meta["transforms"],
+        coordinate_transformations=ome_meta["coordinate_transformations"],
         storage_options=dict(chunks=chunk_size, overwrite=True),
         compute=True,
         metadata={},
     )
+
+
+def get_voxel_size_from_zarr(zarr_group: zarr.Group) -> float:
+    """Extract voxel size from OME-Zarr coordinate transformations.
+
+    Args:
+        zarr_group: The zarr group containing OME-Zarr metadata.
+
+    Returns:
+        The voxel size in Angstrom from the coordinate transformations.
+    """
+    multiscales = zarr_group.attrs["multiscales"]
+    datasets = multiscales[0]["datasets"]
+    first_dataset = datasets[0]
+    coord_transforms = first_dataset["coordinateTransformations"]
+
+    # Find the scale transformation
+    for transform in coord_transforms:
+        if transform["type"] == "scale":
+            scale_value = float(transform["scale"][0])
+
+            # Handle unit conversion
+            unit = transform.get("unit", "angstrom")  # Default to angstrom if no unit specified
+            conversion_factor = UNITFACTOR.get(unit, 1.0)  # Default to 1.0 if unknown unit
+
+            # Convert to Angstrom
+            return scale_value * conversion_factor
+
+    # If no scale transformation found, raise an error
+    raise ValueError("No scale transformation found in coordinate transformations")
 
 
 def fits_in_memory(array: zarr.Group, slices: Tuple[slice, ...]) -> Tuple[bool, int, int]:

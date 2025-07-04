@@ -43,7 +43,7 @@ nav:
     - Snippets: "examples/snippets.md"
 
   - Tools: tools.md
-  #- Tools: tools.md
+  - CLI Reference: cli.md
   - API Reference:
     - API Overview: "api_reference/api.md"
     - Base Classes:
@@ -72,6 +72,15 @@ nav:
       - Overlay: "api_reference/implementations/Overlay.md"
       - File System: "api_reference/implementations/Filesystem.md"
       - Data Portal: "api_reference/implementations/Dataportal.md"
+
+    - Functional API:
+      - Add: "api_reference/functional/add.md"
+      - Get: "api_reference/functional/get.md"
+      - Open: "api_reference/functional/open.md"
+      - Run: "api_reference/functional/run.md"
+      - Browser: "api_reference/functional/browser.md"
+
+  - Contributing: contributing.md
 
 plugins:
   - search
@@ -102,6 +111,8 @@ plugins:
             # Signatures
             show_signature_annotations: true
             signature_crossrefs: false
+            separate_signature: true
+            line_length: 60
 
 
 markdown_extensions:
@@ -125,3 +136,6 @@ markdown_extensions:
   - pymdownx.snippets:
       check_paths: true
       base_path: [ docs/snippets, docs/templates, "." ]
+
+extra_css:
+  - stylesheets/extra.css

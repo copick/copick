@@ -44,7 +44,7 @@ docs = "https://copick.github.io/copick/"
 documentation = "https://copick.github.io/copick/"
 
 [project.scripts]
-copick = "copick.cli.cli:cli"
+copick = "copick.cli.cli:main"
 make_templates = "copick.cli.make_templates:create [docs]"
 
 [project.optional-dependencies]
@@ -96,6 +96,13 @@ line-length = 120
 target_version = ['py311']
 
 [tool.ruff]
+line-length = 120
+target-version = "py311"
+exclude = [
+    "mkdocs.yml",
+]
+
+[tool.ruff.lint]
 select = [
     "E", "W",  # pycodestyle
     "F",       # pyflakes
@@ -126,16 +133,11 @@ ignore = [
     "DTZ007", # Datetime objects without timezones.
     "DTZ005", # More datetimes without timezones.
 ]
-line-length = 120
-target-version = "py311"
-exclude = [
-    "mkdocs.yml",
-]
 
-[tool.ruff.isort]
+[tool.ruff.lint.isort]
 known-first-party =["common"]
 
-[tool.ruff.flake8-quotes]
+[tool.ruff.lint.flake8-quotes]
 docstring-quotes = "double"
 
 # https://docs.pytest.org/en/latest/reference/customize.html

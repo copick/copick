@@ -4,22 +4,28 @@ import sys
 
 def get_logger(
     name: str,
-    level=logging.INFO,
-    log_format="%(asctime)s - %(name)s - %(levelname)s - %(message)s",
-    date_format="%Y-%m-%d %H:%M:%S",
+    debug: bool = False,
 ):
     """
     Configure basic console logging using basicConfig.
 
     Args:
         name: Name of the logger
-        level: Logging level (default: INFO)
-        log_format: Format string for log messages
-        date_format: Format string for timestamps
+        debug: If True, set the logging level to DEBUG; otherwise, set it to INFO.
 
     Returns:
         The root logger
     """
+
+    date_format = "%Y-%m-%d %H:%M:%S"
+
+    if debug:
+        level = logging.DEBUG
+        log_format = "%(asctime)s - %(name)s - %(levelname)s - %(message)s"
+    else:
+        level = logging.INFO
+        log_format = "%(message)s"
+
     # Configure the root logger with basicConfig
     logging.basicConfig(
         level=level,
