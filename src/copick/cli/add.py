@@ -121,6 +121,9 @@ def tomogram(
         # Single file path
         paths = [path]
 
+    # Convert chunk arg
+    chunk_size: Tuple[int, int, int] = tuple(map(int, chunk_size.split(",")[:3]))
+
     for path in tqdm.tqdm(paths, desc="Adding tomograms", unit="file", total=len(paths)):
         try:
             # Get run name
@@ -130,18 +133,16 @@ def tomogram(
                 run = filename.rsplit(".", 1)[0]
 
             # Get file type
-            if file_type is None:
+            ft = file_type.lower() if file_type else None
+            if ft is None:
                 if path.endswith(".mrc"):
-                    file_type = "mrc"
+                    ft = "mrc"
                 elif path.endswith(".zarr"):
-                    file_type = "zarr"
+                    ft = "zarr"
                 else:
                     ctx.fail(f"Could not determine file type from path: {path}")
 
-            # Convert chunk arg
-            chunk_size: Tuple[int, int, int] = tuple(map(int, chunk_size.split(",")[:3]))
-
-            if file_type == "mrc":
+            if ft == "mrc":
                 _add_tomogram_mrc(
                     root,
                     run,
@@ -155,7 +156,7 @@ def tomogram(
                     overwrite=overwrite,
                     log=debug,
                 )
-            elif file_type == "zarr":
+            elif ft == "zarr":
                 _add_tomogram_zarr(
                     root,
                     run,
