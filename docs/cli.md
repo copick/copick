@@ -152,7 +152,7 @@ Add entities to Copick projects.
 
 #### :material-cube: `copick add tomogram`
 
-Add a tomogram to the project from MRC or Zarr files.
+Add one or more tomograms to the project from MRC or Zarr files.
 
 **Usage:**
 ```bash
@@ -163,7 +163,7 @@ copick add tomogram [OPTIONS] PATH
 
 | Argument | Type | Description |
 |----------|------|-------------|
-| `PATH` | Path | Path to the tomogram file (MRC or Zarr format) |
+| `PATH` | Path | Path to tomogram file(s) (MRC or Zarr format) or glob pattern (e.g., `*.mrc`) |
 
 **Options:**
 
@@ -181,20 +181,35 @@ copick add tomogram [OPTIONS] PATH
 | `--create / --no-create` | Boolean | Create the object if it does not exist | `create` |
 | `--debug / --no-debug` | Boolean | Enable debug logging | `no-debug` |
 
+!!! tip "Batch Processing with Glob Patterns"
+    You can add multiple tomograms at once using glob patterns. When using glob patterns, run names are automatically derived from filenames, and a progress bar shows the processing status.
+
 **Examples:**
 
 ```bash
-# Add MRC tomogram with default settings
+# Add single MRC tomogram with default settings
 copick add tomogram --config config.json --run TS_001 data/tomogram.mrc
+
+# Add multiple tomograms using glob pattern (auto-detects run names from filenames)
+copick add tomogram --config config.json data/tomograms/*.mrc
+
+# Add all MRC files in current directory
+copick add tomogram --config config.json *.mrc
+
+# Add tomograms with specific naming pattern
+copick add tomogram --config config.json "data/TS_*_recon.mrc"
 
 # Add Zarr tomogram with custom voxel size and pyramid levels
 copick add tomogram --config config.json --voxel_size 10.0 --pyramid-levels 4 data/tomogram.zarr
 
-# Add tomogram without pyramid generation
-copick add tomogram --config config.json --no-create-pyramid data/tomogram.mrc
+# Add multiple Zarr files without pyramid generation (faster)
+copick add tomogram --config config.json --no-create-pyramid data/*.zarr
 
 # Add tomogram with custom chunk size
 copick add tomogram --config config.json --chunk-size "128,128,128" data/tomogram.mrc
+
+# Add multiple tomograms with custom settings
+copick add tomogram --config config.json --tomo-type "denoised" --voxel_size 8.0 data/processed_*.mrc
 ```
 
 ---
@@ -405,8 +420,11 @@ copick browse
 Add tomograms and create annotation templates:
 
 ```bash
-# Add a tomogram
+# Add a single tomogram
 copick add tomogram --run TS_001 data/tomogram.mrc
+
+# Add multiple tomograms using glob pattern
+copick add tomogram data/tomograms/*.mrc
 
 # Create empty picks for annotation
 copick new picks --particle-name ribosome

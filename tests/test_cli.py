@@ -357,6 +357,79 @@ class TestCLIAdd:
         tomogram = voxel_spacing.get_tomograms("wbp")[0]
         assert tomogram is not None, "Tomogram should be created"
 
+    def test_add_tomogram_glob_pattern(self, test_payload, runner):
+        """Test adding multiple tomograms using glob pattern."""
+        config_file = test_payload["cfg_file"]
+
+        # Create multiple MRC files to test glob pattern
+        with tempfile.TemporaryDirectory() as tmpdir:
+            tmpdir_path = Path(tmpdir)
+
+            # Create 3 test MRC files
+            mrc_files = []
+            for i in range(3):
+                mrc_path = tmpdir_path / f"test_tomo_{i:02d}.mrc"
+
+                # Create minimal MRC file
+                np.random.seed(42 + i)  # Different seed for each file
+                volume = np.random.randn(32, 32, 32).astype(np.float32)
+
+                with mrcfile.new(str(mrc_path), overwrite=True) as mrc:
+                    mrc.set_data(volume)
+                    mrc.voxel_size = 10.0
+
+                mrc_files.append(mrc_path)
+
+            # Test glob pattern
+            glob_pattern = str(tmpdir_path / "test_tomo_*.mrc")
+
+            result = runner.invoke(
+                add,
+                [
+                    "tomogram",
+                    "--config",
+                    str(config_file),
+                    "--tomo-type",
+                    "wbp",
+                    "--no-create-pyramid",  # Skip pyramid for faster testing
+                    glob_pattern,
+                ],
+            )
+
+            assert result.exit_code == 0, f"Command failed: {result.output}"
+
+            # Verify all tomograms were added
+            root = CopickRootFSSpec.from_file(config_file)
+
+            for mrc_file in mrc_files:
+                expected_run_name = mrc_file.stem
+                test_run = root.get_run(expected_run_name)
+                assert test_run is not None, f"Run {expected_run_name} should be created"
+
+                voxel_spacing = test_run.get_voxel_spacing(10.0)
+                assert voxel_spacing is not None, f"Voxel spacing should be created for {expected_run_name}"
+
+                tomograms = voxel_spacing.get_tomograms("wbp")
+                assert len(tomograms) > 0, f"Tomogram should be created for {expected_run_name}"
+
+    def test_add_tomogram_glob_pattern_no_matches(self, test_payload, runner):
+        """Test glob pattern with no matching files."""
+        config_file = test_payload["cfg_file"]
+
+        # Use a glob pattern that won't match any files
+        result = runner.invoke(
+            add,
+            [
+                "tomogram",
+                "--config",
+                str(config_file),
+                "nonexistent_pattern_*.mrc",
+            ],
+        )
+
+        assert result.exit_code != 0, "Command should fail when no files match the pattern"
+        assert "No files found matching pattern" in result.output
+
 
 class TestCLIConfig:
     """Test cases for the CLI config module."""
