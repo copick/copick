@@ -167,19 +167,19 @@ copick add tomogram [OPTIONS] PATH
 
 **Options:**
 
-| Option | Type | Description | Default |
-|--------|------|-------------|---------|
-| `-c, --config PATH` | Path | Path to the configuration file | Uses `COPICK_CONFIG` env var |
-| `--run TEXT` | String | The name of the run (uses filename if not specified) | `""` |
-| `--tomo-type TEXT` | String | The name of the tomogram (e.g. wbp) | `wbp` |
-| `--file-type TEXT` | String | The file type ('mrc' or 'zarr') | Auto-detected |
-| `--voxel_size FLOAT` | Float | Voxel size in Angstrom (overrides header value) | None |
-| `--create-pyramid / --no-create-pyramid` | Boolean | Compute the multiscale pyramid | `create-pyramid` |
-| `--pyramid-levels INTEGER` | Integer | Number of pyramid levels (each level is 2x downscaling) | `3` |
-| `--chunk-size TEXT` | String | Chunk size for the output Zarr file | `256,256,256` |
-| `--overwrite / --no-overwrite` | Boolean | Overwrite the object if it exists | `no-overwrite` |
-| `--create / --no-create` | Boolean | Create the object if it does not exist | `create` |
-| `--debug / --no-debug` | Boolean | Enable debug logging | `no-debug` |
+| Option | Type | Description                                                                                                                  | Default |
+|--------|------|------------------------------------------------------------------------------------------------------------------------------|---------|
+| `-c, --config PATH` | Path | Path to the configuration file                                                                                               | Uses `COPICK_CONFIG` env var |
+| `--run TEXT` | String | The name of the run. If not specified, will use the name of the file (stripping extension), ignored if PATH is glob pattern. | `""` |
+| `--tomo-type TEXT` | String | The name of the tomogram (e.g. wbp)                                                                                          | `wbp` |
+| `--file-type TEXT` | String | The file type ('mrc' or 'zarr')                                                                                              | Auto-detected |
+| `--voxel_size FLOAT` | Float | Voxel size in Angstrom (overrides header value)                                                                              | None |
+| `--create-pyramid / --no-create-pyramid` | Boolean | Compute the multiscale pyramid                                                                                               | `create-pyramid` |
+| `--pyramid-levels INTEGER` | Integer | Number of pyramid levels (each level is 2x downscaling)                                                                      | `3` |
+| `--chunk-size TEXT` | String | Chunk size for the output Zarr file                                                                                          | `256,256,256` |
+| `--overwrite / --no-overwrite` | Boolean | Overwrite the object if it exists                                                                                            | `no-overwrite` |
+| `--create / --no-create` | Boolean | Create the object if it does not exist                                                                                       | `create` |
+| `--debug / --no-debug` | Boolean | Enable debug logging                                                                                                         | `no-debug` |
 
 !!! tip "Batch Processing with Glob Patterns"
     You can add multiple tomograms at once using glob patterns. When using glob patterns, run names are automatically derived from filenames, and a progress bar shows the processing status.
