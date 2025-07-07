@@ -356,3 +356,58 @@ def add_features(
         logging.log(logging.INFO, f"Added features {feature_type} to tomogram {tomo_type} in run {run}.")
 
     return features
+
+
+def add_segmentation(
+    root: CopickRoot,
+    run: str,
+    mask_path: str,
+    voxel_spacing: float,
+    name: str,
+    user_id: str,
+    session_id: str,
+    multilabel: bool = False,
+    create: bool = True,
+    exist_ok: bool = False,
+    overwrite: bool = False,
+    log: bool = False,
+):
+    """
+    Add a segmentation to a copick run.
+
+    Args:
+        root (CopickRoot): The copick root object.
+        segmentation_file (str): The path to the segmentation file.
+        create (bool, optional): Create the object if it does not exist. Defaults to True.
+        exist_ok (bool, optional): If True, do not raise an error if the segmentation already exists. Defaults to False.
+        overwrite (bool, optional): Overwrite the object if it exists. Defaults to False.
+    """
+
+    # Read the Segmentation Mask
+    if mask_path.endswith(".mrc"):
+        with mrcfile.open(mask_path) as mrc:
+            volume = mrc.data
+    else:
+        raise ValueError(f"Unsupported file type: {mask_path}")
+
+    # Attempt to get run and voxel spacing
+    runobj = get_or_create_run(root, run, create=create)
+
+    # Create a new segmentation
+    segmentation = runobj.new_segmentation(
+        name=name,
+        user_id=user_id,
+        is_multilabel=multilabel,
+        voxel_size=voxel_spacing,
+        session_id=session_id,
+        exist_ok=exist_ok,
+        overwrite=overwrite,
+    )
+
+    # Write the segmentation data
+    segmentation.from_numpy(volume)
+
+    if log:
+        logging.log(logging.INFO, f"Added segmentation {name} to run {runobj.name}.")
+
+    return segmentation
