@@ -13,7 +13,7 @@ from copick.models import (
     CopickTomogram,
     CopickVoxelSpacing,
 )
-from copick.ops._util import ome_metadata, volume_pyramid
+from copick.util.ome import get_voxel_size_from_zarr, ome_metadata, volume_pyramid
 
 
 def add_run(
@@ -185,7 +185,7 @@ def add_tomogram(
         list(pyramid.values()),
         group=root_group,
         axes=ome_meta["axes"],
-        coordinate_transformations=ome_meta["transforms"],
+        coordinate_transformations=ome_meta["coordinate_transformations"],
         storage_options=dict(chunks=chunks, overwrite=overwrite),
         compute=True,
         metadata=meta,
@@ -223,9 +223,9 @@ def _add_tomogram_mrc(
         run (str, optional): The run the tomogram is part of. Default: Name of the input file.
     """
 
-    with mrcfile.open("tests/test_data/EMD-3197.map") as mrc:
+    with mrcfile.open(volume_file) as mrc:
         volume = mrc.data
-        voxel_size = mrc.voxel_size.x
+        voxel_size = float(mrc.voxel_size.x)
 
     if voxel_spacing:
         voxel_size = voxel_spacing
@@ -273,15 +273,20 @@ def _add_tomogram_zarr(
         run (str, optional): The run the tomogram is part of. Default: Name of the input file.
     """
 
-    volume = zarr.open(volume_file)
-    voxel_spacing = volume.attrs["voxel_size"]
+    zarr_group = zarr.open(volume_file)
+    # Get the first level data (level 0)
+    volume = np.array(zarr_group["0"])
+    voxel_size = get_voxel_size_from_zarr(zarr_group)
+
+    if voxel_spacing:
+        voxel_size = voxel_spacing
 
     return add_tomogram(
         root,
         run,
         tomo_type,
         volume,
-        voxel_spacing=voxel_spacing,
+        voxel_spacing=voxel_size,
         create=create,
         exist_ok=exist_ok,
         overwrite=overwrite,
@@ -340,7 +345,7 @@ def add_features(
         [features_vol],
         group=root_group,
         axes=ome_meta["axes"],
-        coordinate_transformations=ome_meta["transforms"],
+        coordinate_transformations=ome_meta["coordinate_transformations"],
         storage_options=dict(chunks=chunks, overwrite=overwrite),
         compute=True,
         metadata=meta,
@@ -351,3 +356,58 @@ def add_features(
         logging.log(logging.INFO, f"Added features {feature_type} to tomogram {tomo_type} in run {run}.")
 
     return features
+
+
+def add_segmentation(
+    root: CopickRoot,
+    run: str,
+    mask_path: str,
+    voxel_spacing: float,
+    name: str,
+    user_id: str,
+    session_id: str,
+    multilabel: bool = False,
+    create: bool = True,
+    exist_ok: bool = False,
+    overwrite: bool = False,
+    log: bool = False,
+):
+    """
+    Add a segmentation to a copick run.
+
+    Args:
+        root (CopickRoot): The copick root object.
+        segmentation_file (str): The path to the segmentation file.
+        create (bool, optional): Create the object if it does not exist. Defaults to True.
+        exist_ok (bool, optional): If True, do not raise an error if the segmentation already exists. Defaults to False.
+        overwrite (bool, optional): Overwrite the object if it exists. Defaults to False.
+    """
+
+    # Read the Segmentation Mask
+    if mask_path.endswith(".mrc"):
+        with mrcfile.open(mask_path) as mrc:
+            volume = mrc.data
+    else:
+        raise ValueError(f"Unsupported file type: {mask_path}")
+
+    # Attempt to get run and voxel spacing
+    runobj = get_or_create_run(root, run, create=create)
+
+    # Create a new segmentation
+    segmentation = runobj.new_segmentation(
+        name=name,
+        user_id=user_id,
+        is_multilabel=multilabel,
+        voxel_size=voxel_spacing,
+        session_id=session_id,
+        exist_ok=exist_ok,
+        overwrite=overwrite,
+    )
+
+    # Write the segmentation data
+    segmentation.from_numpy(volume)
+
+    if log:
+        logging.log(logging.INFO, f"Added segmentation {name} to run {runobj.name}.")
+
+    return segmentation

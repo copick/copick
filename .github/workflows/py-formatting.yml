@@ -1,0 +1,23 @@
+name: Python Linting
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+
+jobs:
+  pre_commit_checks:
+    name: pre-commit checks
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+      - uses: actions/setup-python@v4
+        with:
+          python-version: "3.12.5"
+      - name: Install action-validator with asdf
+        uses: asdf-vm/actions/install@v3
+        with:
+          tool_versions: |
+            action-validator 0.6.0
+      - name: check linting
+        uses: pre-commit/action@v3.0.1

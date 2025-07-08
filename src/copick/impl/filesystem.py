@@ -98,7 +98,7 @@ class CopickPicksFSSpec(CopickPicksOverlay):
             self.fs.makedirs(self.directory, exist_ok=True)
 
         with self.fs.open(self.path, "w") as f:
-            json.dump(self.meta.dict(), f, indent=4)
+            json.dump(self.meta.model_dump(), f, indent=4)
 
     def _delete_data(self) -> None:
         if self.fs.exists(self.path):

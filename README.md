@@ -1,12 +1,12 @@
 # copick
 
 <div align="center">
-    
-[![License: MIT](https://img.shields.io/badge/License-MIT-green.svg)](https://opensource.org/licenses/MIT) 
-[![PyPI version](https://badge.fury.io/py/copick.svg)](https://badge.fury.io/py/copick) 
-[![Python](https://img.shields.io/badge/python-3.9%20|%203.10%20|%203.11%20|%203.12%20|%203.13-green)](https://pypi.org/project/copick/) 
+
+[![License: MIT](https://img.shields.io/badge/License-MIT-green.svg)](https://opensource.org/licenses/MIT)
+[![PyPI version](https://badge.fury.io/py/copick.svg)](https://badge.fury.io/py/copick)
+[![Python](https://img.shields.io/badge/python-3.9%20|%203.10%20|%203.11%20|%203.12%20|%203.13-green)](https://pypi.org/project/copick/)
 [![Tests](https://github.com/copick/copick/workflows/tests/badge.svg)](https://github.com/copick/copick/actions/workflows/test.yml)
-[![codecov](https://codecov.io/gh/copick/copick/branch/main/graph/badge.svg)](https://codecov.io/gh/copick/copick) 
+[![codecov](https://codecov.io/gh/copick/copick/branch/main/graph/badge.svg)](https://codecov.io/gh/copick/copick)
 [![Docs](https://github.com/copick/copick/workflows/docs/badge.svg)](https://copick.github.io/copick/)
 
 </div>
@@ -39,7 +39,7 @@ implementations from the fsspec family (`local`, `s3fs`, `smb`, `sshfs`). Separa
 pip install "copick[all]"
 ```
 
-> [!NOTE]  
+> [!NOTE]
 > `copick==1.2.0` will fail to install with `pip>=25`. We recommend using [`uv pip`](https://docs.astral.sh/uv/pip/) or `pip<=25` when installing copick.
 
 
@@ -120,6 +120,102 @@ To test with the example dataset:
     arrays = list(group.arrays())
     _, array = arrays[0]
     ```
+
+## Contributing
+
+We welcome contributions to copick! Here's how to get started:
+
+### Development Setup
+
+1. Clone the repository and install with development dependencies:
+   ```bash
+   git clone https://github.com/copick/copick.git
+   cd copick
+   pip install -e ".[dev,test]"
+   ```
+
+2. Install pre-commit hooks:
+   ```bash
+   pre-commit install
+   ```
+
+3. Run tests to ensure everything is working:
+   ```bash
+   pytest
+   ```
+
+### Code Quality
+
+We use several tools to maintain code quality:
+
+- **Black** for code formatting
+- **Ruff** for linting and import sorting
+- **Pre-commit hooks** to enforce standards
+
+Before submitting a PR, ensure your code passes all checks:
+```bash
+black src/ tests/
+ruff check --fix src/ tests/
+pytest
+```
+
+### Conventional Commits
+
+All pull requests must use [Conventional Commits](https://www.conventionalcommits.org/) for commit messages. This helps us automatically generate changelogs and determine version bumps.
+
+Examples:
+- `feat: add support for new tomogram format`
+- `fix: resolve memory leak in zarr loading`
+- `docs: update installation instructions`
+- `test: add unit tests for mesh operations`
+
+### Adding CLI Commands from External Packages
+
+Copick supports a plugin system that allows external Python packages to register CLI commands. To add a command from your package:
+
+1. In your package's `setup.py` or `pyproject.toml`, add an entry point in the `copick.commands` group:
+
+   **setup.py**:
+   ```python
+   setup(
+       name="my-copick-plugin",
+       entry_points={
+           "copick.commands": [
+               "my-command=my_package.cli:my_command",
+           ],
+       },
+   )
+   ```
+
+   **pyproject.toml**:
+   ```toml
+   [project.entry-points."copick.commands"]
+   my-command = "my_package.cli:my_command"
+   ```
+
+2. Create a Click command in your package:
+   ```python
+   import click
+
+   from copick.cli.util import add_config_option, add_debug_option
+   from copick.util.log import get_logger
+
+   @click.command()
+   @add_config_option
+   @add_debug_option
+   @click.pass_context
+   def my_command(ctx, config: str, debug: bool):
+       """My custom copick command."""
+       logger = get_logger(__name__, debug=debug)
+       logger.info(f"Running my command with config: {config}")
+   ```
+
+3. After installing your package, the command will be available via:
+   ```bash
+   copick my-command --config path/to/config.json
+   ```
+
+The plugin system automatically discovers and loads all commands registered in the `copick.commands` entry point group.
 
 ## Code of Conduct
 
