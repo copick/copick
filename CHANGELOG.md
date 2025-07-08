@@ -1,5 +1,14 @@
 # Changelog
 
+## [1.6.1](https://github.com/copick/copick/compare/copick-v1.6.0...copick-v1.6.1) (2025-07-08)
+
+
+### 🐞 Bug Fixes
+
+* bump actions/checkout from 3 to 4 ([#96](https://github.com/copick/copick/issues/96)) ([8f43b4a](https://github.com/copick/copick/commit/8f43b4a29841637d4be4f8be9a435b8d9418cd67))
+* bump actions/setup-python from 4 to 5 ([#95](https://github.com/copick/copick/issues/95)) ([08cae6c](https://github.com/copick/copick/commit/08cae6c06cd7f73dc012ec3e32670507916526da))
+* bump asdf-vm/actions from 3 to 4 ([#97](https://github.com/copick/copick/issues/97)) ([422969e](https://github.com/copick/copick/commit/422969eb4427145cc11a140450cb58699f0df29c))
+
 ## [1.6.0](https://github.com/copick/copick/compare/copick-v1.5.0...copick-v1.6.0) (2025-07-08)
 
 
