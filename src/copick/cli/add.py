@@ -46,7 +46,7 @@ def add(ctx):
     help="The file type of the tomogram ('mrc' or 'zarr'). Will guess type based on extension if omitted.",
 )
 @click.option(
-    "--voxel_size",
+    "--voxel-size",
     required=False,
     type=float,
     default=None,
