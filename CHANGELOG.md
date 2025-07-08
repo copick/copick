@@ -1,5 +1,22 @@
 # Changelog
 
+## [1.6.0](https://github.com/copick/copick/compare/copick-v1.5.0...copick-v1.6.0) (2025-07-08)
+
+
+### ✨ Features
+
+* Improved CLI setup. ([#94](https://github.com/copick/copick/issues/94)) ([cce061a](https://github.com/copick/copick/commit/cce061af908a03fe3e76fd9ee817afc63ade9289))
+
+
+### 🐞 Bug Fixes
+
+* Bump chanzuckerberg/github-actions from 1.5.0 to 6.4.0 ([#91](https://github.com/copick/copick/issues/91)) ([2e225d9](https://github.com/copick/copick/commit/2e225d9bee80d045d38751e69e4a323e020af899))
+
+
+### 📝 Documentation
+
+* improve setup docs  ([#93](https://github.com/copick/copick/issues/93)) ([4644a2f](https://github.com/copick/copick/commit/4644a2f3cdb9f29b2adbef3ee2afee66f4f99c6c))
+
 ## [1.5.0](https://github.com/copick/copick/compare/copick-v1.4.0...copick-v1.5.0) (2025-06-21)
 
 
