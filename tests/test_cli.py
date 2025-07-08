@@ -245,7 +245,7 @@ class TestCLIAdd:
                 str(config_file),
                 "--run",
                 "test_custom_voxel",
-                "--voxel_size",
+                "--voxel-size",
                 "5.0",
                 sample_mrc_file,
             ],
