@@ -107,7 +107,7 @@ def dataportal(
     type=str,
     multiple=True,
     callback=parse_object,
-    required=True,
+    required=False,
     help="List of desired objects in the format: name,is_particle,[radius],[pdb_id]. Repeat this option for multiple objects.",
 )
 @click.option(
