@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.6.2](https://github.com/copick/copick/compare/copick-v1.6.1...copick-v1.6.2) (2025-07-10)
+
+
+### 🐞 Bug Fixes
+
+* remove requirement for providing objects when generating a local config project ([#99](https://github.com/copick/copick/issues/99)) ([7a0045d](https://github.com/copick/copick/commit/7a0045d61a42d59e8f6502b4c76f360c7f313bf6))
+
 ## [1.6.1](https://github.com/copick/copick/compare/copick-v1.6.0...copick-v1.6.1) (2025-07-08)
 
 
