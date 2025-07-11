@@ -7,7 +7,7 @@ import tqdm
 
 import copick
 from copick.cli.util import add_config_option, add_create_overwrite_options, add_debug_option
-from copick.ops.add import _add_tomogram_mrc, _add_tomogram_zarr, add_segmentation
+from copick.ops.add import _add_tomogram_mrc, _add_tomogram_zarr, add_object, add_object_volume, add_segmentation
 from copick.util.log import get_logger
 
 
@@ -306,3 +306,276 @@ def segmentation(
         except Exception as e:
             logger.critical(f"Failed to add tomogram: {e}")
             ctx.fail(f"Error adding tomogram: {e}")
+
+
+@add.command(short_help="Add a pickable object to the project configuration.")
+@add_config_option
+@click.option(
+    "--name",
+    type=str,
+    required=True,
+    help="Name of the object to add.",
+)
+@click.option(
+    "--object-type",
+    type=click.Choice(["particle", "segmentation"], case_sensitive=False),
+    default="particle",
+    help="Type of object: 'particle' for point annotations or 'segmentation' for mask annotations.",
+    show_default=True,
+)
+@click.option(
+    "--label",
+    type=int,
+    default=None,
+    help="Numeric label/id for the object. If not provided, will use the next available label.",
+    show_default=True,
+)
+@click.option(
+    "--color",
+    type=str,
+    default=None,
+    help="RGBA color for the object as comma-separated values (e.g. '255,0,0,255' for red).",
+    metavar="R,G,B,A",
+)
+@click.option(
+    "--emdb-id",
+    type=str,
+    default=None,
+    help="EMDB ID for the object.",
+)
+@click.option(
+    "--pdb-id",
+    type=str,
+    default=None,
+    help="PDB ID for the object.",
+)
+@click.option(
+    "--identifier",
+    type=str,
+    default=None,
+    help="Identifier for the object (e.g. Gene Ontology ID or UniProtKB accession).",
+)
+@click.option(
+    "--map-threshold",
+    type=float,
+    default=None,
+    help="Threshold to apply to the map when rendering the isosurface.",
+)
+@click.option(
+    "--radius",
+    type=float,
+    default=None,
+    help="Radius of the particle, when displaying as a sphere.",
+)
+@click.option(
+    "--volume",
+    type=str,
+    default=None,
+    help="Path to volume file to associate with the object.",
+    metavar="PATH",
+)
+@click.option(
+    "--volume-format",
+    type=click.Choice(["mrc", "zarr"], case_sensitive=False),
+    default=None,
+    help="Format of the volume file ('mrc' or 'zarr'). Will guess from extension if not provided.",
+    show_default=True,
+)
+@click.option(
+    "--voxel-size",
+    type=float,
+    default=None,
+    help="Voxel size for the volume data. Required if volume is provided.",
+)
+@add_debug_option
+@click.pass_context
+def object_definition(
+    ctx,
+    config: str,
+    name: str,
+    object_type: str,
+    label: int,
+    color: str,
+    emdb_id: str,
+    pdb_id: str,
+    identifier: str,
+    map_threshold: float,
+    radius: float,
+    volume: str,
+    volume_format: str,
+    voxel_size: float,
+    debug: bool,
+):
+    """
+    Add a pickable object to the project configuration.
+    """
+    logger = get_logger(__name__, debug=debug)
+
+    # Get root
+    root = copick.from_file(config)
+
+    # Convert object type to is_particle boolean
+    is_particle = object_type.lower() == "particle"
+
+    # Parse color if provided
+    color_tuple = None
+    if color:
+        try:
+            color_values = [int(x.strip()) for x in color.split(",")]
+            if len(color_values) != 4:
+                ctx.fail("Color must be provided as four comma-separated values (R,G,B,A).")
+            color_tuple = tuple(color_values)
+        except ValueError:
+            ctx.fail("Color values must be integers between 0 and 255.")
+
+    # Load volume if provided
+    volume_data = None
+    if volume:
+        if voxel_size is None:
+            ctx.fail("Voxel size must be provided when adding volume data.")
+
+        # Determine format
+        if volume_format:
+            fmt = volume_format.lower()
+        elif volume.endswith(".mrc"):
+            fmt = "mrc"
+        elif volume.endswith(".zarr"):
+            fmt = "zarr"
+        else:
+            ctx.fail("Could not determine volume format from extension. Please specify --volume-format.")
+
+        try:
+            if fmt == "mrc":
+                import mrcfile
+
+                with mrcfile.open(volume) as mrc:
+                    volume_data = mrc.data
+            elif fmt == "zarr":
+                import zarr
+
+                zarr_group = zarr.open(volume)
+                volume_data = zarr_group["0"][:]
+            else:
+                ctx.fail(f"Unsupported volume format: {fmt}")
+        except Exception as e:
+            logger.critical(f"Failed to load volume: {e}")
+            ctx.fail(f"Error loading volume: {e}")
+
+    try:
+        # Add object
+        obj = add_object(
+            root=root,
+            name=name,
+            is_particle=is_particle,
+            label=label,
+            color=color_tuple,
+            emdb_id=emdb_id,
+            pdb_id=pdb_id,
+            identifier=identifier,
+            map_threshold=map_threshold,
+            radius=radius,
+            volume=volume_data,
+            voxel_size=voxel_size,
+            exist_ok=False,
+            save_config=True,
+            config_path=config,
+            log=debug,
+        )
+
+        logger.info(f"Successfully added {object_type} object '{name}' with label {obj.label}")
+
+    except Exception as e:
+        logger.critical(f"Failed to add object: {e}")
+        ctx.fail(f"Error adding object: {e}")
+
+
+@add.command(short_help="Add volume data to an existing pickable object.")
+@add_config_option
+@click.option(
+    "--object-name",
+    type=str,
+    required=True,
+    help="Name of the existing object.",
+)
+@click.option(
+    "--volume-path",
+    type=str,
+    required=True,
+    help="Path to the volume file.",
+    metavar="PATH",
+)
+@click.option(
+    "--volume-format",
+    type=click.Choice(["mrc", "zarr"], case_sensitive=False),
+    default=None,
+    help="Format of the volume file ('mrc' or 'zarr'). Will guess from extension if not provided.",
+    show_default=True,
+)
+@click.option(
+    "--voxel-size",
+    type=float,
+    required=True,
+    help="Voxel size of the volume data in Angstrom.",
+)
+@add_debug_option
+@click.pass_context
+def object_volume(
+    ctx,
+    config: str,
+    object_name: str,
+    volume_path: str,
+    volume_format: str,
+    voxel_size: float,
+    debug: bool,
+):
+    """
+    Add volume data to an existing pickable object.
+    """
+    logger = get_logger(__name__, debug=debug)
+
+    # Get root
+    root = copick.from_file(config)
+
+    # Determine format
+    if volume_format:
+        fmt = volume_format.lower()
+    elif volume_path.endswith(".mrc"):
+        fmt = "mrc"
+    elif volume_path.endswith(".zarr"):
+        fmt = "zarr"
+    else:
+        ctx.fail("Could not determine volume format from extension. Please specify --volume-format.")
+
+    # Load volume
+    try:
+        if fmt == "mrc":
+            import mrcfile
+
+            with mrcfile.open(volume_path) as mrc:
+                volume_data = mrc.data
+        elif fmt == "zarr":
+            import zarr
+
+            zarr_group = zarr.open(volume_path)
+            volume_data = zarr_group["0"][:]
+        else:
+            ctx.fail(f"Unsupported volume format: {fmt}")
+    except Exception as e:
+        logger.critical(f"Failed to load volume: {e}")
+        ctx.fail(f"Error loading volume: {e}")
+
+    try:
+        # Add volume to object
+        add_object_volume(
+            root=root,
+            object_name=object_name,
+            volume=volume_data,
+            voxel_size=voxel_size,
+            log=debug,
+        )
+
+        logger.info(f"Successfully added volume data to object '{object_name}'")
+
+    except Exception as e:
+        logger.critical(f"Failed to add volume to object: {e}")
+        ctx.fail(f"Error adding volume to object: {e}")
