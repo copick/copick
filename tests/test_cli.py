@@ -829,3 +829,425 @@ class TestCLIIntegration:
         # Check picks exist
         picks_list = test_run.get_picks(object_name="ribosome", user_id="copick", session_id="0")
         assert len(picks_list) > 0
+
+
+class TestCLIAddObject:
+    """Test cases for the CLI add object commands."""
+
+    def test_add_object_definition_particle(self, test_payload, runner):
+        """Test adding a particle object definition via CLI."""
+        config_file = test_payload["cfg_file"]
+
+        result = runner.invoke(
+            add,
+            [
+                "object-definition",
+                "--config",
+                str(config_file),
+                "--name",
+                "test-particle",
+                "--object-type",
+                "particle",
+                "--label",
+                "100",
+                "--color",
+                "255,0,0,255",
+                "--radius",
+                "50.0",
+                "--pdb-id",
+                "1ABC",
+            ],
+        )
+
+        assert result.exit_code == 0, f"Command failed: {result.output}"
+
+        # Verify the object was added to config
+        root = CopickRootFSSpec.from_file(config_file)
+        obj = root.get_object("test-particle")
+        assert obj is not None, "Object should be created"
+        assert obj.is_particle is True
+        assert obj.label == 100
+        assert obj.color == (255, 0, 0, 255)
+        assert obj.radius == 50.0
+        assert obj.pdb_id == "1ABC"
+
+    def test_add_object_definition_segmentation(self, test_payload, runner):
+        """Test adding a segmentation object definition via CLI."""
+        config_file = test_payload["cfg_file"]
+
+        result = runner.invoke(
+            add,
+            [
+                "object-definition",
+                "--config",
+                str(config_file),
+                "--name",
+                "test-segmentation",
+                "--object-type",
+                "segmentation",
+                "--emdb-id",
+                "EMD-1234",
+                "--map-threshold",
+                "0.5",
+            ],
+        )
+
+        assert result.exit_code == 0, f"Command failed: {result.output}"
+
+        # Verify the object was added to config
+        root = CopickRootFSSpec.from_file(config_file)
+        obj = root.get_object("test-segmentation")
+        assert obj is not None, "Object should be created"
+        assert obj.is_particle is False
+        assert obj.emdb_id == "EMD-1234"
+        assert obj.map_threshold == 0.5
+
+    def test_add_object_definition_with_volume_mrc(self, test_payload, runner, sample_mrc_file):
+        """Test adding object definition with MRC volume via CLI."""
+        config_file = test_payload["cfg_file"]
+
+        result = runner.invoke(
+            add,
+            [
+                "object-definition",
+                "--config",
+                str(config_file),
+                "--name",
+                "test-particle-with-volume",
+                "--object-type",
+                "particle",
+                "--volume",
+                sample_mrc_file,
+                "--voxel-size",
+                "10.0",
+            ],
+        )
+
+        assert result.exit_code == 0, f"Command failed: {result.output}"
+
+        # Verify the object was added with volume
+        root = CopickRootFSSpec.from_file(config_file)
+        obj = root.get_object("test-particle-with-volume")
+        assert obj is not None, "Object should be created"
+        assert obj.is_particle is True
+
+        # Check that volume data was stored
+        assert obj.zarr() is not None, "Object should have volume data"
+
+    def test_add_object_definition_with_volume_zarr(self, test_payload, runner, sample_zarr_file):
+        """Test adding object definition with Zarr volume via CLI."""
+        config_file = test_payload["cfg_file"]
+
+        result = runner.invoke(
+            add,
+            [
+                "object-definition",
+                "--config",
+                str(config_file),
+                "--name",
+                "test-particle-zarr",
+                "--object-type",
+                "particle",
+                "--volume",
+                sample_zarr_file,
+                "--voxel-size",
+                "10.0",
+            ],
+        )
+
+        assert result.exit_code == 0, f"Command failed: {result.output}"
+
+        # Verify the object was added with volume
+        root = CopickRootFSSpec.from_file(config_file)
+        obj = root.get_object("test-particle-zarr")
+        assert obj is not None, "Object should be created"
+
+    def test_add_object_definition_with_volume_format_override(self, test_payload, runner, sample_mrc_file):
+        """Test adding object definition with explicit volume format."""
+        config_file = test_payload["cfg_file"]
+
+        result = runner.invoke(
+            add,
+            [
+                "object-definition",
+                "--config",
+                str(config_file),
+                "--name",
+                "test-format-override",
+                "--volume",
+                sample_mrc_file,
+                "--volume-format",
+                "mrc",
+                "--voxel-size",
+                "10.0",
+            ],
+        )
+
+        assert result.exit_code == 0, f"Command failed: {result.output}"
+
+        # Verify the object was added
+        root = CopickRootFSSpec.from_file(config_file)
+        obj = root.get_object("test-format-override")
+        assert obj is not None, "Object should be created"
+
+    def test_add_object_definition_auto_label(self, test_payload, runner):
+        """Test adding object definition with automatic label assignment."""
+        config_file = test_payload["cfg_file"]
+
+        # Add first object
+        result1 = runner.invoke(
+            add,
+            [
+                "object-definition",
+                "--config",
+                str(config_file),
+                "--name",
+                "auto-label-1",
+            ],
+        )
+        assert result1.exit_code == 0
+
+        # Add second object
+        result2 = runner.invoke(
+            add,
+            [
+                "object-definition",
+                "--config",
+                str(config_file),
+                "--name",
+                "auto-label-2",
+            ],
+        )
+        assert result2.exit_code == 0
+
+        # Verify automatic label assignment
+        root = CopickRootFSSpec.from_file(config_file)
+        obj1 = root.get_object("auto-label-1")
+        obj2 = root.get_object("auto-label-2")
+
+        assert obj1.label != obj2.label, "Objects should have different labels"
+        assert obj1.label > 0 and obj2.label > 0, "Labels should be positive"
+
+    def test_add_object_volume_to_existing(self, test_payload, runner, sample_mrc_file):
+        """Test adding volume to existing object via CLI."""
+        config_file = test_payload["cfg_file"]
+
+        # First add an object without volume
+        result1 = runner.invoke(
+            add,
+            [
+                "object-definition",
+                "--config",
+                str(config_file),
+                "--name",
+                "test-existing-object",
+                "--object-type",
+                "particle",
+            ],
+        )
+        assert result1.exit_code == 0
+
+        # Then add volume to existing object
+        result2 = runner.invoke(
+            add,
+            [
+                "object-volume",
+                "--config",
+                str(config_file),
+                "--object-name",
+                "test-existing-object",
+                "--volume-path",
+                sample_mrc_file,
+                "--voxel-size",
+                "10.0",
+            ],
+        )
+
+        assert result2.exit_code == 0, f"Command failed: {result2.output}"
+
+        # Verify volume was added
+        root = CopickRootFSSpec.from_file(config_file)
+        obj = root.get_object("test-existing-object")
+        assert obj is not None, "Object should exist"
+        assert obj.zarr() is not None, "Object should have volume data"
+
+    def test_add_object_volume_with_format_override(self, test_payload, runner, sample_zarr_file):
+        """Test adding volume with explicit format override."""
+        config_file = test_payload["cfg_file"]
+
+        # First add an object
+        result1 = runner.invoke(
+            add,
+            [
+                "object-definition",
+                "--config",
+                str(config_file),
+                "--name",
+                "test-format-object",
+                "--object-type",
+                "particle",
+            ],
+        )
+        assert result1.exit_code == 0
+
+        # Add volume with format override
+        result2 = runner.invoke(
+            add,
+            [
+                "object-volume",
+                "--config",
+                str(config_file),
+                "--object-name",
+                "test-format-object",
+                "--volume-path",
+                sample_zarr_file,
+                "--volume-format",
+                "zarr",
+                "--voxel-size",
+                "10.0",
+            ],
+        )
+
+        assert result2.exit_code == 0, f"Command failed: {result2.output}"
+
+    def test_add_object_definition_volume_without_voxel_size(self, test_payload, runner, sample_mrc_file):
+        """Test adding object with volume but no voxel size (should fail)."""
+        config_file = test_payload["cfg_file"]
+
+        result = runner.invoke(
+            add,
+            [
+                "object-definition",
+                "--config",
+                str(config_file),
+                "--name",
+                "test-no-voxel-size",
+                "--volume",
+                sample_mrc_file,
+                # Missing --voxel-size
+            ],
+        )
+
+        assert result.exit_code != 0, "Command should fail without voxel size"
+        assert "Voxel size must be provided" in result.output
+
+    def test_add_object_volume_nonexistent_object(self, test_payload, runner, sample_mrc_file):
+        """Test adding volume to non-existent object (should fail)."""
+        config_file = test_payload["cfg_file"]
+
+        result = runner.invoke(
+            add,
+            [
+                "object-volume",
+                "--config",
+                str(config_file),
+                "--object-name",
+                "nonexistent-object",
+                "--volume-path",
+                sample_mrc_file,
+                "--voxel-size",
+                "10.0",
+            ],
+        )
+
+        assert result.exit_code != 0, "Command should fail for non-existent object"
+
+    def test_add_object_volume_to_segmentation_object_cli(self, test_payload, runner, sample_mrc_file):
+        """Test adding volume to segmentation object via CLI (should fail)."""
+        config_file = test_payload["cfg_file"]
+
+        # First add a segmentation object
+        result1 = runner.invoke(
+            add,
+            [
+                "object-definition",
+                "--config",
+                str(config_file),
+                "--name",
+                "test-segmentation-cli",
+                "--object-type",
+                "segmentation",
+            ],
+        )
+        assert result1.exit_code == 0
+
+        # Try to add volume to the segmentation object
+        result2 = runner.invoke(
+            add,
+            [
+                "object-volume",
+                "--config",
+                str(config_file),
+                "--object-name",
+                "test-segmentation-cli",
+                "--volume-path",
+                sample_mrc_file,
+                "--voxel-size",
+                "10.0",
+            ],
+        )
+
+        assert result2.exit_code != 0, "Command should fail for segmentation object"
+        assert "not a particle object" in result2.output
+
+    def test_add_object_definition_invalid_color(self, test_payload, runner):
+        """Test adding object with invalid color format (should fail)."""
+        config_file = test_payload["cfg_file"]
+
+        result = runner.invoke(
+            add,
+            [
+                "object-definition",
+                "--config",
+                str(config_file),
+                "--name",
+                "test-invalid-color",
+                "--color",
+                "255,0,0",  # Missing alpha channel
+            ],
+        )
+
+        assert result.exit_code != 0, "Command should fail with invalid color format"
+        assert "four comma-separated values" in result.output
+
+    def test_add_object_volume_unknown_format(self, test_payload, runner):
+        """Test adding volume with unknown file format (should fail)."""
+        config_file = test_payload["cfg_file"]
+
+        # First add an object
+        runner.invoke(
+            add,
+            [
+                "object-definition",
+                "--config",
+                str(config_file),
+                "--name",
+                "test-unknown-format",
+            ],
+        )
+
+        # Create a file with unknown extension
+        with tempfile.NamedTemporaryFile(suffix=".txt", delete=False) as tmp:
+            tmp.write(b"not a volume")
+            tmp.flush()
+
+            result = runner.invoke(
+                add,
+                [
+                    "object-volume",
+                    "--config",
+                    str(config_file),
+                    "--object-name",
+                    "test-unknown-format",
+                    "--volume-path",
+                    tmp.name,
+                    "--voxel-size",
+                    "10.0",
+                ],
+            )
+
+            assert result.exit_code != 0, "Command should fail with unknown format"
+
+            # Cleanup
+            with contextlib.suppress(PermissionError, OSError):
+                os.unlink(tmp.name)

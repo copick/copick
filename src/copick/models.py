@@ -448,11 +448,14 @@ class CopickRoot:
 
         return None
 
+    def _query_objects(self):
+        clz, meta_clz = self._object_factory()
+        self._objects = [clz(self, meta=obj) for obj in self.config.pickable_objects]
+
     @property
     def pickable_objects(self) -> List["CopickObject"]:
         if self._objects is None:
-            clz, meta_clz = self._object_factory()
-            self._objects = [clz(self, meta=obj) for obj in self.config.pickable_objects]
+            self._query_objects()
 
         return self._objects
 
@@ -474,6 +477,16 @@ class CopickRoot:
     def refresh(self) -> None:
         """Refresh the list of runs."""
         self._runs = self.query()
+        self._objects = None  # Reset objects to force reloading
+
+    def save_config(self, config_path: str) -> None:
+        """Save the configuration to a JSON file.
+
+        Args:
+            config_path: Path to the configuration file to save.
+        """
+        with open(config_path, "w") as f:
+            json.dump(self.config.model_dump(), f, indent=4)
 
     def new_run(self, name: str, exist_ok: bool = False, **kwargs) -> "CopickRun":
         """Create a new run.
@@ -527,6 +540,106 @@ class CopickRoot:
     def _run_factory(self) -> Tuple[Type["CopickRun"], Type["CopickRunMeta"]]:
         """Override this method to return the run class and run metadata class."""
         return CopickRun, CopickRunMeta
+
+    def new_object(
+        self,
+        name: str,
+        is_particle: bool,
+        label: Optional[int] = None,
+        color: Optional[Tuple[int, int, int, int]] = None,
+        emdb_id: Optional[str] = None,
+        pdb_id: Optional[str] = None,
+        identifier: Optional[str] = None,
+        map_threshold: Optional[float] = None,
+        radius: Optional[float] = None,
+        exist_ok: bool = False,
+    ) -> "CopickObject":
+        """Create a new pickable object and add it to the configuration.
+
+        Args:
+            name: Name of the object.
+            is_particle: Whether this object should be represented by points (True) or segmentation masks (False).
+            label: Numeric label/id for the object. If None, will use the next available label.
+            color: RGBA color for the object. If None, will use a default color.
+            emdb_id: EMDB ID for the object.
+            pdb_id: PDB ID for the object.
+            identifier: Identifier for the object (e.g. Gene Ontology ID or UniProtKB accession).
+            map_threshold: Threshold to apply to the map when rendering the isosurface.
+            radius: Radius of the particle, when displaying as a sphere.
+            exist_ok: Whether existing objects with the same name should be overwritten..
+
+        Returns:
+            CopickObject: The newly created object.
+
+        Raises:
+            ValueError: If an object with the given name already exists and exist_ok is False.
+        """
+        sane_name = sanitize_name(name)
+
+        if name != sane_name:
+            raise ValueError(
+                f"Object name '{name}' contains invalid characters. Use copick.escape.sanitize_name() to clean it.",
+            )
+        name = sane_name
+
+        # Check if the object already exists
+        obj = self.get_object(name)
+        if obj and not exist_ok:
+            raise ValueError(f"Object name {name} already exists.")
+
+        if obj:
+            obj.meta.is_particle = is_particle
+            obj.meta.label = label if label else obj.label
+            obj.meta.color = color if color else obj.color
+            obj.meta.emdb_id = emdb_id if emdb_id else obj.emdb_id
+            obj.meta.pdb_id = pdb_id if pdb_id else obj.pdb_id
+            obj.meta.identifier = identifier if identifier else obj.identifier
+            obj.meta.map_threshold = map_threshold if map_threshold else obj.map_threshold
+            obj.meta.radius = radius if radius else obj.radius
+        else:
+            # Check for duplicate label BEFORE auto-assignment
+            if label is not None:
+                existing_labels = {obj.label for obj in self.config.pickable_objects if obj.label is not None}
+
+                if label in existing_labels:
+                    raise ValueError(f"Object label {label} already exists.")
+
+            # Auto-assign label if not provided
+            if label is None:
+                existing_labels = [obj.label for obj in self.config.pickable_objects if obj.label is not None]
+                label = max(existing_labels) + 1 if existing_labels else 1
+
+            # Use default color if not provided
+            if color is None:
+                color = (100, 100, 100, 255)
+
+            # Create the pickable object metadata
+            pickable_meta = PickableObject(
+                name=name,
+                is_particle=is_particle,
+                label=label,
+                color=color,
+                emdb_id=emdb_id,
+                pdb_id=pdb_id,
+                identifier=identifier,
+                map_threshold=map_threshold,
+                radius=radius,
+            )
+
+            # Add to configuration
+            self.config.pickable_objects.append(pickable_meta)
+
+            # Create the object and add to cache
+            clz, _ = self._object_factory()
+            obj = clz(self, pickable_meta, read_only=False)
+
+            # Ensure the objects cache is initialized before appending
+            if self._objects is None:
+                # This will initialize self._objects
+                _ = self.pickable_objects
+            self._objects.append(obj)
+
+        return obj
 
     def _object_factory(self) -> Tuple[Type["CopickObject"], Type["PickableObject"]]:
         """Override this method to return the object class and object metadata class."""

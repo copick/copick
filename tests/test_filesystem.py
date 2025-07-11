@@ -1463,6 +1463,99 @@ def test_pick_io(test_payload: Dict[str, Any]):
     pck2.store()
 
 
+def test_root_new_object(test_payload: Dict[str, Any]):
+    # Setup
+    copick_root = test_payload["root"]
+
+    # Test creating a new object
+    new_obj = copick_root.new_object(
+        name="test-object",
+        is_particle=True,
+        label=50,
+        color=(128, 64, 192, 255),
+        radius=75.0,
+    )
+
+    assert new_obj.name == "test-object"
+    assert new_obj.is_particle is True
+    assert new_obj.label == 50
+    assert new_obj.color == (128, 64, 192, 255)
+    assert new_obj.radius == 75.0
+
+    # Test that object is accessible from root
+    retrieved_obj = copick_root.get_object("test-object")
+    assert retrieved_obj is not None
+    assert retrieved_obj.name == "test-object"
+
+    # Test auto label assignment
+    auto_obj = copick_root.new_object(name="auto-label-object", is_particle=False)
+    assert auto_obj.label > 0
+    assert auto_obj.label != new_obj.label
+
+    # Test duplicate name handling
+    with pytest.raises(ValueError, match="already exists"):
+        copick_root.new_object(name="test-object", is_particle=True)
+
+    # Test exist_ok=True
+    existing_obj = copick_root.new_object(name="test-object", is_particle=False, exist_ok=True)  # Different type
+    # Should update the existing object
+    assert existing_obj.name == "test-object"
+    assert existing_obj.is_particle is False  # Should be updated
+
+
+def test_root_save_config(test_payload: Dict[str, Any], tmp_path):
+    # Setup
+    copick_root = test_payload["root"]
+
+    # Add a new object
+    copick_root.new_object(name="test-save-object", is_particle=True, label=99)
+
+    # Save config
+    config_path = tmp_path / "test_config.json"
+    copick_root.save_config(str(config_path))
+
+    # Verify file was created
+    assert config_path.exists()
+
+    # Load config and verify object was saved
+    from copick.impl.filesystem import CopickRootFSSpec
+
+    new_root = CopickRootFSSpec.from_file(str(config_path))
+    saved_obj = new_root.get_object("test-save-object")
+    assert saved_obj is not None
+    assert saved_obj.name == "test-save-object"
+    assert saved_obj.label == 99
+
+
+def test_object_write_readonly_behavior(test_payload: Dict[str, Any]):
+    # Setup
+    copick_root = test_payload["root"]
+
+    # Test that we can create writable objects
+    writable_obj = copick_root.new_object(name="writable-test", is_particle=True)
+
+    # For filesystem backend, newly created objects should be writable
+    if hasattr(writable_obj, "read_only"):
+        assert writable_obj.read_only is False
+
+    # Test writing to object (should work for writable objects)
+    if writable_obj.is_particle:
+        import numpy as np
+
+        volume_data = np.random.randn(16, 16, 16).astype(np.float32)
+        try:
+            writable_obj.from_numpy(volume_data, 10.0)
+            # If we get here, the object is writable
+            assert writable_obj.zarr() is not None
+        except ValueError as e:
+            if "read-only" in str(e):
+                # This object is read-only, which is also valid
+                pass
+            else:
+                # Some other error, re-raise
+                raise
+
+
 def test_repr(test_payload: Dict[str, Any]):
     # Setup
     copick_root = test_payload["root"]

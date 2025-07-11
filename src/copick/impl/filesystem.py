@@ -831,19 +831,33 @@ class CopickObjectFSSpec(CopickObjectOverlay):
     """CopickObject class backed by fsspec storage.
 
     Attributes:
-        path (str): The path to the object file.
-        fs (AbstractFileSystem): The filesystem containing the object file.
+        static_path (str): The path to the object on the static source.
+        overlay_path (str): The path to the object on the overlay source.
+        fs_static (AbstractFileSystem): The filesystem for the static source.
+        fs_overlay (AbstractFileSystem): The filesystem for the overlay source.
     """
 
     root: "CopickRootFSSpec"
 
     @property
-    def path(self) -> str:
+    def static_path(self) -> str:
         return f"{self.root.root_static}/Objects/{self.name}.zarr"
 
     @property
-    def fs(self) -> AbstractFileSystem:
+    def overlay_path(self) -> str:
+        return f"{self.root.root_overlay}/Objects/{self.name}.zarr"
+
+    @property
+    def fs_static(self) -> AbstractFileSystem:
         return self.root.fs_static
+
+    @property
+    def fs_overlay(self) -> AbstractFileSystem:
+        return self.root.fs_overlay
+
+    @property
+    def static_is_overlay(self) -> bool:
+        return self.fs_static == self.fs_overlay and self.static_path == self.overlay_path
 
     def zarr(self) -> Union[None, zarr.storage.FSStore]:
         """Get the zarr store for the object.
@@ -854,19 +868,22 @@ class CopickObjectFSSpec(CopickObjectOverlay):
         if not self.is_particle:
             return None
 
-        if not self.fs.exists(self.path):
-            return None
-
         if self.read_only:
+            # For read-only access, use static filesystem and path
+            fs = self.fs_static
+            path = self.static_path
             mode = "r"
             create = False
         else:
+            # For write access, always use overlay
+            fs = self.fs_overlay
+            path = self.overlay_path
             mode = "w"
-            create = not self.fs.exists(self.path)
+            create = not fs.exists(path)
 
         return zarr.storage.FSStore(
-            self.path,
-            fs=self.fs,
+            path,
+            fs=fs,
             mode=mode,
             key_separator="/",
             dimension_separator="/",
@@ -977,3 +994,29 @@ class CopickRootFSSpec(CopickRoot):
             runs.append(CopickRunFSSpec(root=self, meta=rm))
 
         return runs
+
+    def _query_objects(self):
+        """Override to check if each object from config exists in static or overlay filesystem."""
+        clz, meta_clz = self._object_factory()
+        objects = []
+
+        for obj_meta in self.config.pickable_objects:
+            # Check if object exists in static filesystem
+            static_path = f"{self.root_static}/Objects/{obj_meta.name}.zarr"
+            overlay_path = f"{self.root_overlay}/Objects/{obj_meta.name}.zarr"
+
+            # Determine if object should be read-only
+            if self.static_is_overlay:
+                # If static and overlay are the same, always writable
+                read_only = False
+            else:
+                # If object exists in static but not overlay, it's read-only
+                # If object exists in overlay (regardless of static), it's writable
+                static_exists = self.fs_static.exists(static_path)
+                overlay_exists = self.fs_overlay.exists(overlay_path)
+                read_only = static_exists and not overlay_exists
+
+            obj = clz(self, obj_meta, read_only=read_only)
+            objects.append(obj)
+
+        self._objects = objects
