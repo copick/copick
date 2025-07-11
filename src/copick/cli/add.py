@@ -382,6 +382,13 @@ def segmentation(
     show_default=True,
 )
 @click.option(
+    "--exist-ok/--no-exist-ok",
+    is_flag=True,
+    default=False,
+    help="Whether existing objects with the same name should be overwritten.",
+    show_default=True,
+)
+@click.option(
     "--voxel-size",
     type=float,
     default=None,
@@ -404,6 +411,7 @@ def object_definition(
     volume: str,
     volume_format: str,
     voxel_size: float,
+    exist_ok: bool,
     debug: bool,
 ):
     """
@@ -476,7 +484,7 @@ def object_definition(
             radius=radius,
             volume=volume_data,
             voxel_size=voxel_size,
-            exist_ok=False,
+            exist_ok=exist_ok,
             save_config=True,
             config_path=config,
             log=debug,

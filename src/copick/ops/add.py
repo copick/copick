@@ -447,7 +447,7 @@ def add_object(
         radius: Radius of the particle, when displaying as a sphere.
         volume: Optional volume data to associate with the object.
         voxel_size: Voxel size for the volume data. Required if volume is provided.
-        exist_ok: Whether to raise an error if the object already exists.
+        exist_ok: Whether existing objects with the same name should be overwritten..
         save_config: Whether to save the configuration to disk after adding the object.
         config_path: Path to save the configuration. Required if save_config is True.
         log: Whether to log the operation.

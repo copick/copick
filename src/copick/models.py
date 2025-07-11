@@ -566,7 +566,7 @@ class CopickRoot:
             identifier: Identifier for the object (e.g. Gene Ontology ID or UniProtKB accession).
             map_threshold: Threshold to apply to the map when rendering the isosurface.
             radius: Radius of the particle, when displaying as a sphere.
-            exist_ok: Whether to raise an error if the object already exists.
+            exist_ok: Whether existing objects with the same name should be overwritten..
 
         Returns:
             CopickObject: The newly created object.
