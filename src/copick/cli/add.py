@@ -1,103 +1,62 @@
-import concurrent.futures
 import glob
 import os
-from typing import Any, Callable, Dict, List, Tuple
+from typing import Dict, List, Tuple
 
 import click
-import tqdm
 
 import copick
 from copick.cli.util import add_config_option, add_create_overwrite_options, add_debug_option
 from copick.ops.add import _add_tomogram_mrc, _add_tomogram_zarr, add_segmentation
+from copick.ops.run import map_runs, report_results
 from copick.util.log import get_logger
 
 
-def process_files_parallel(
+def prepare_runs_from_paths(
+    root,
     paths: List[str],
-    process_func: Callable,
-    process_args: Dict[str, Any],
     input_run: str,
-    max_workers: int = None,
-    progress_desc: str = "Processing files",
+    create: bool = True,
     logger=None,
-    debug: bool = False,
-) -> List[str]:
+) -> Dict[str, List[str]]:
     """
-    Generic parallel file processor using ThreadPoolExecutor.
+    Prepare runs from file paths, creating runs if necessary.
 
     Args:
-        paths: List of file paths to process
-        process_func: Function to process each file (must accept path as first argument)
-        process_args: Dictionary of arguments to pass to process_func
+        root: Copick root
+        paths: List of file paths
         input_run: Run name (empty string means derive from filename)
-        max_workers: Number of worker threads
-        progress_desc: Description for progress bar
+        create: Whether to create runs if they don't exist
         logger: Logger instance
-        debug: Debug mode flag
 
     Returns:
-        List of error messages (empty if all succeeded)
+        Dictionary mapping run names to lists of file paths
     """
+    run_to_files = {}
 
-    # Auto-adjust workers for large files
-    if max_workers is None:
-        max_workers = min(4, os.cpu_count())
-        if logger:
-            logger.info(f"Auto-selected {max_workers} workers for large file processing")
+    # Group files by run name
+    for path in paths:
+        if input_run == "":
+            filename = os.path.basename(path)
+            current_run = filename.rsplit(".", 1)[0]
+        else:
+            current_run = input_run
 
-    def process_single_file(path_item):
-        """Process a single file"""
-        try:
-            # Get run name
-            if input_run == "":
-                filename = os.path.basename(path_item)
-                current_run = filename.rsplit(".", 1)[0]
+        if current_run not in run_to_files:
+            run_to_files[current_run] = []
+        run_to_files[current_run].append(path)
+
+    # Create runs if they don't exist
+    for run_name in run_to_files:
+        if not root.get_run(run_name):
+            if create:
+                root.new_run(run_name)
+                if logger:
+                    logger.info(f"Created run: {run_name}")
             else:
-                current_run = input_run
+                if logger:
+                    logger.warning(f"Run {run_name} does not exist and create=False")
 
-            # Call the processing function with the path and run name
-            process_func(path_item, current_run, **process_args)
-
-            return {"success": True, "path": path_item, "message": f"Successfully processed: {path_item}"}
-
-        except Exception as e:
-            error_msg = f"Failed to process {path_item}: {e}"
-            if logger:
-                logger.critical(error_msg)
-            return {"success": False, "path": path_item, "message": error_msg}
-
-    if logger:
-        logger.info(f"Processing {len(paths)} files with {max_workers} workers")
-
-    errors = []
-
-    with concurrent.futures.ThreadPoolExecutor(max_workers=max_workers) as executor:
-        # Submit all tasks
-        future_to_path = {executor.submit(process_single_file, path_item): path_item for path_item in paths}
-
-        # Use tqdm to track progress as futures complete
-        with tqdm.tqdm(total=len(paths), desc=progress_desc, unit="file") as pbar:
-            for future in concurrent.futures.as_completed(future_to_path):
-                try:
-                    result = future.result()
-                    if result["success"]:
-                        pbar.set_postfix_str(f"✓ {os.path.basename(result['path'])}")
-                        if debug and logger:
-                            logger.info(result["message"])
-                    else:
-                        errors.append(result["message"])
-                        pbar.set_postfix_str(f"✗ {os.path.basename(result['path'])}")
-                except Exception as e:
-                    path_item = future_to_path[future]
-                    error_msg = f"Unexpected error processing {path_item}: {e}"
-                    if logger:
-                        logger.critical(error_msg)
-                    errors.append(error_msg)
-                    pbar.set_postfix_str(f"✗ {os.path.basename(path_item)}")
-                finally:
-                    pbar.update(1)
-
-    return errors
+    return run_to_files
 
 
 @click.group()
@@ -228,98 +187,83 @@ def tomogram(
 
     # Convert chunk arg
     chunk_size: Tuple[int, int, int] = tuple(map(int, chunk_size.split(",")[:3]))
-    input_run = run
 
-    def import_tomogram(
-        path_item,
-        current_run,
-        root,
-        tomo_type,
-        file_type,
-        voxel_size,
-        create_pyramid,
-        pyramid_levels,
-        chunk_size,
-        create,
-        overwrite,
-        debug,
-    ):
-        """Process a single tomogram file"""
-        # Get file type
-        ft = file_type.lower() if file_type else None
-        if ft is None:
-            if path_item.endswith(".mrc"):
-                ft = "mrc"
-            elif path_item.endswith(".zarr"):
-                ft = "zarr"
-            else:
-                raise ValueError(f"Could not determine file type from path: {path_item}")
+    # Prepare runs and group files
+    run_to_files = prepare_runs_from_paths(root, paths, run, create, logger)
 
-        if ft == "mrc":
-            _add_tomogram_mrc(
-                root,
-                current_run,
-                tomo_type,
-                path_item,
-                voxel_spacing=voxel_size,
-                create_pyramid=create_pyramid,
-                pyramid_levels=pyramid_levels,
-                chunks=chunk_size,
-                create=create,
-                overwrite=overwrite,
-                log=debug,
-            )
-        elif ft == "zarr":
-            _add_tomogram_zarr(
-                root,
-                current_run,
-                tomo_type,
-                path_item,
-                voxel_spacing=voxel_size,
-                create_pyramid=create_pyramid,
-                pyramid_levels=pyramid_levels,
-                chunks=chunk_size,
-                create=create,
-                overwrite=overwrite,
-                log=debug,
-            )
+    def import_tomogram(run_obj, file_paths, **kwargs):
+        """Process tomogram files for a single run"""
+        errors = []
+        processed = 0
 
-    # Process tomograms in parallel
-    process_args = {
-        "root": root,
-        "tomo_type": tomo_type,
-        "file_type": file_type,
-        "voxel_size": voxel_size,
-        "create_pyramid": create_pyramid,
-        "pyramid_levels": pyramid_levels,
-        "chunk_size": chunk_size,
-        "create": create,
-        "overwrite": overwrite,
-        "debug": debug,
-    }
+        for path_item in file_paths:
+            try:
+                # Get file type
+                ft = file_type.lower() if file_type else None
+                if ft is None:
+                    if path_item.endswith(".mrc"):
+                        ft = "mrc"
+                    elif path_item.endswith(".zarr"):
+                        ft = "zarr"
+                    else:
+                        raise ValueError(f"Could not determine file type from path: {path_item}")
 
-    errors = process_files_parallel(
-        paths=paths,
-        process_func=import_tomogram,
-        process_args=process_args,
-        input_run=input_run,
-        max_workers=max_workers,
-        progress_desc="Processing tomograms",
-        logger=logger,
-        debug=debug,
+                if ft == "mrc":
+                    _add_tomogram_mrc(
+                        root,
+                        run_obj.name,
+                        tomo_type,
+                        path_item,
+                        voxel_spacing=voxel_size,
+                        create_pyramid=create_pyramid,
+                        pyramid_levels=pyramid_levels,
+                        chunks=chunk_size,
+                        create=create,
+                        overwrite=overwrite,
+                        log=debug,
+                    )
+                elif ft == "zarr":
+                    _add_tomogram_zarr(
+                        root,
+                        run_obj.name,
+                        tomo_type,
+                        path_item,
+                        voxel_spacing=voxel_size,
+                        create_pyramid=create_pyramid,
+                        pyramid_levels=pyramid_levels,
+                        chunks=chunk_size,
+                        create=create,
+                        overwrite=overwrite,
+                        log=debug,
+                    )
+                processed += 1
+
+            except Exception as e:
+                error_msg = f"Failed to process {path_item}: {e}"
+                errors.append(error_msg)
+                if logger:
+                    logger.critical(error_msg)
+
+        return {"processed": processed, "errors": errors}
+
+    # Prepare run-specific arguments
+    run_names = list(run_to_files.keys())
+    run_args = [{"file_paths": run_to_files[run_name]} for run_name in run_names]
+
+    # Process tomograms using map_runs
+    results = map_runs(
+        callback=import_tomogram,
+        root=root,
+        runs=run_names,
+        workers=max_workers,
+        parallelism="thread",
+        run_args=run_args,
+        show_progress=True,
+        task_desc="Processing tomograms",
     )
 
-    # Report results
-    if errors:
-        logger.error(f"Failed to process {len(errors)} tomograms:")
-        for error in errors:
-            logger.error(error)
-        if len(errors) == len(paths):
-            ctx.fail("All tomograms failed to process")
-        else:
-            logger.warning(f"Successfully processed {len(paths) - len(errors)} out of {len(paths)} tomograms")
-    else:
-        logger.info(f"Successfully processed all {len(paths)} tomograms")
+    # Report Results
+    report_results(results, len(paths), logger)
 
 
 @add.command(short_help="Add a segmentation to the project.")
@@ -422,66 +366,54 @@ def segmentation(
         # Single file path
         paths = [path]
 
-    input_run = run
+    # Prepare runs and group files
+    run_to_files = prepare_runs_from_paths(root, paths, run, create, logger)
 
-    def import_segmentation(
-        path_item,
-        current_run,
-        root,
-        voxel_size,
-        name,
-        user_id,
-        session_id,
-        create,
-        overwrite,
-        debug,
-    ):
-        """Process a single segmentation file"""
-        add_segmentation(
-            root,
-            current_run,
-            path_item,
-            voxel_size,
-            name,
-            user_id,
-            session_id,
-            multilabel=True,
-            create=create,
-            overwrite=overwrite,
-            log=debug,
-        )
+    def import_segmentation(run_obj, file_paths, **kwargs):
+        """Process segmentation files for a single run"""
+        errors = []
+        processed = 0
 
-    # Process segmentations in parallel
-    process_args = {
-        "root": root,
-        "voxel_size": voxel_size,
-        "name": name,
-        "user_id": user_id,
-        "session_id": session_id,
-        "create": create,
-        "overwrite": overwrite,
-        "debug": debug,
-    }
+        for path_item in file_paths:
+            try:
+                add_segmentation(
+                    root,
+                    run_obj.name,
+                    path_item,
+                    voxel_size,
+                    name,
+                    user_id,
+                    session_id,
+                    multilabel=True,
+                    create=create,
+                    overwrite=overwrite,
+                    log=debug,
+                )
+                processed += 1
 
-    errors = process_files_parallel(
-        paths=paths,
-        process_func=import_segmentation,
-        process_args=process_args,
-        input_run=input_run,
-        max_workers=max_workers,
-        progress_desc="Processing segmentations",
-        logger=logger,
-        debug=debug,
+            except Exception as e:
+                error_msg = f"Failed to process {path_item}: {e}"
+                errors.append(error_msg)
+                if logger:
+                    logger.critical(error_msg)
+
+        return {"processed": processed, "errors": errors}
+
+    # Prepare run-specific arguments
+    run_names = list(run_to_files.keys())
+    run_args = [{"file_paths": run_to_files[run_name]} for run_name in run_names]
+
+    # Process segmentations using map_runs
+    results = map_runs(
+        callback=import_segmentation,
+        root=root,
+        runs=run_names,
+        workers=max_workers,
+        parallelism="thread",
+        run_args=run_args,
+        show_progress=True,
+        task_desc="Processing segmentations",
     )
 
-    # Report results
-    if errors:
-        logger.error(f"Failed to process {len(errors)} segmentations:")
-        for error in errors:
-            logger.error(error)
-        if len(errors) == len(paths):
-            ctx.fail("All segmentations failed to process")
-        else:
-            logger.warning(f"Successfully processed {len(paths) - len(errors)} out of {len(paths)} segmentations")
-    else:
-        logger.info(f"Successfully processed all {len(paths)} segmentations")
+    # Report Results
+    report_results(results, len(paths), logger)
