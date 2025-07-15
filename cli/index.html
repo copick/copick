@@ -900,6 +900,33 @@
   
 </li>
         
+          <li class="md-nav__item">
+  <a href="#copick-add-segmentation" class="md-nav__link">
+    <span class="md-ellipsis">
+      copick add segmentation
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#copick-add-object" class="md-nav__link">
+    <span class="md-ellipsis">
+      copick add object
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#copick-add-object-volume" class="md-nav__link">
+    <span class="md-ellipsis">
+      copick add object-volume
+    </span>
+  </a>
+  
+</li>
+        
       </ul>
     </nav>
   
@@ -2068,6 +2095,33 @@
   
 </li>
         
+          <li class="md-nav__item">
+  <a href="#copick-add-segmentation" class="md-nav__link">
+    <span class="md-ellipsis">
+      copick add segmentation
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#copick-add-object" class="md-nav__link">
+    <span class="md-ellipsis">
+      copick add object
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#copick-add-object-volume" class="md-nav__link">
+    <span class="md-ellipsis">
+      copick add object-volume
+    </span>
+  </a>
+  
+</li>
+        
       </ul>
     </nav>
   
@@ -2439,6 +2493,9 @@ Objects are specified using the format: <code>name,is_particle,[radius],[pdb_id]
 <p><strong>Subcommands:</strong></p>
 <ul>
 <li><a href="#copick-add-tomogram"><code>copick add tomogram</code></a> - Add a tomogram to the project</li>
+<li><a href="#copick-add-segmentation"><code>copick add segmentation</code></a> - Add a segmentation to the project</li>
+<li><a href="#copick-add-object"><code>copick add object</code></a> - Add a pickable object to the project configuration</li>
+<li><a href="#copick-add-object-volume"><code>copick add object-volume</code></a> - Add volume data to an existing pickable object</li>
 </ul>
 <h4 id="copick-add-tomogram"><span class="twemoji"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M21 16.5c0 .38-.21.71-.53.88l-7.9 4.44c-.16.12-.36.18-.57.18s-.41-.06-.57-.18l-7.9-4.44A.99.99 0 0 1 3 16.5v-9c0-.38.21-.71.53-.88l7.9-4.44c.16-.12.36-.18.57-.18s.41.06.57.18l7.9 4.44c.32.17.53.5.53.88zM12 4.15 6.04 7.5 12 10.85l5.96-3.35z"/></svg></span> <code>copick add tomogram</code></h4>
 <p>Add one or more tomograms to the project from MRC or Zarr files.</p>
@@ -2570,6 +2627,296 @@ Objects are specified using the format: <code>name,is_particle,[radius],[pdb_id]
 </span><span id="__span-8-22"><a id="__codelineno-8-22" name="__codelineno-8-22" href="#__codelineno-8-22"></a><span class="c1"># Add multiple tomograms with custom settings</span>
 </span><span id="__span-8-23"><a id="__codelineno-8-23" name="__codelineno-8-23" href="#__codelineno-8-23"></a>copick<span class="w"> </span>add<span class="w"> </span>tomogram<span class="w"> </span>--config<span class="w"> </span>config.json<span class="w"> </span>--tomo-type<span class="w"> </span><span class="s2">&quot;denoised&quot;</span><span class="w"> </span>--voxel_size<span class="w"> </span><span class="m">8</span>.0<span class="w"> </span>data/processed_*.mrc
 </span></code></pre></div>
+<h4 id="copick-add-segmentation"><span class="twemoji"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="m12 16 7.36-5.73L21 9l-9-7-9 7 1.63 1.27M12 18.54l-7.38-5.73L3 14.07l9 7 9-7-1.63-1.27z"/></svg></span> <code>copick add segmentation</code></h4>
+<p>Add one or more segmentations to the project from MRC or Zarr files.</p>
+<p><strong>Usage:</strong>
+<div class="language-bash highlight"><pre><span></span><code><span id="__span-9-1"><a id="__codelineno-9-1" name="__codelineno-9-1" href="#__codelineno-9-1"></a>copick<span class="w"> </span>add<span class="w"> </span>segmentation<span class="w"> </span><span class="o">[</span>OPTIONS<span class="o">]</span><span class="w"> </span>PATH
+</span></code></pre></div></p>
+<p><strong>Arguments:</strong></p>
+<table>
+<thead>
+<tr>
+<th>Argument</th>
+<th>Type</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>PATH</code></td>
+<td>Path</td>
+<td>Path to segmentation file(s) (MRC or Zarr format) or glob pattern (e.g., <code>*.mrc</code>)</td>
+</tr>
+</tbody>
+</table>
+<p><strong>Options:</strong></p>
+<table>
+<thead>
+<tr>
+<th>Option</th>
+<th>Type</th>
+<th>Description</th>
+<th>Default</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>-c, --config PATH</code></td>
+<td>Path</td>
+<td>Path to the configuration file</td>
+<td>Uses <code>COPICK_CONFIG</code> env var</td>
+</tr>
+<tr>
+<td><code>--run TEXT</code></td>
+<td>String</td>
+<td>The name of the run. If not specified, will use the name of the file (stripping extension), ignored if PATH is glob pattern.</td>
+<td><code>""</code></td>
+</tr>
+<tr>
+<td><code>--voxel-size FLOAT</code></td>
+<td>Float</td>
+<td>Voxel size in Angstrom (overrides header value)</td>
+<td>None</td>
+</tr>
+<tr>
+<td><code>--name TEXT</code></td>
+<td>String</td>
+<td>Name of the segmentation</td>
+<td>None</td>
+</tr>
+<tr>
+<td><code>--user-id TEXT</code></td>
+<td>String</td>
+<td>User ID of the segmentation</td>
+<td><code>copick</code></td>
+</tr>
+<tr>
+<td><code>--session-id TEXT</code></td>
+<td>String</td>
+<td>Session ID of the segmentation</td>
+<td><code>1</code></td>
+</tr>
+<tr>
+<td><code>--overwrite / --no-overwrite</code></td>
+<td>Boolean</td>
+<td>Overwrite the object if it exists</td>
+<td><code>no-overwrite</code></td>
+</tr>
+<tr>
+<td><code>--create / --no-create</code></td>
+<td>Boolean</td>
+<td>Create the object if it does not exist</td>
+<td><code>create</code></td>
+</tr>
+<tr>
+<td><code>--debug / --no-debug</code></td>
+<td>Boolean</td>
+<td>Enable debug logging</td>
+<td><code>no-debug</code></td>
+</tr>
+</tbody>
+</table>
+<p><strong>Examples:</strong></p>
+<div class="language-bash highlight"><pre><span></span><code><span id="__span-10-1"><a id="__codelineno-10-1" name="__codelineno-10-1" href="#__codelineno-10-1"></a><span class="c1"># Add single segmentation with default settings</span>
+</span><span id="__span-10-2"><a id="__codelineno-10-2" name="__codelineno-10-2" href="#__codelineno-10-2"></a>copick<span class="w"> </span>add<span class="w"> </span>segmentation<span class="w"> </span>--config<span class="w"> </span>config.json<span class="w"> </span>--run<span class="w"> </span>TS_001<span class="w"> </span>--name<span class="w"> </span>membrane<span class="w"> </span>data/segmentation.mrc
+</span><span id="__span-10-3"><a id="__codelineno-10-3" name="__codelineno-10-3" href="#__codelineno-10-3"></a>
+</span><span id="__span-10-4"><a id="__codelineno-10-4" name="__codelineno-10-4" href="#__codelineno-10-4"></a><span class="c1"># Add multiple segmentations using glob pattern</span>
+</span><span id="__span-10-5"><a id="__codelineno-10-5" name="__codelineno-10-5" href="#__codelineno-10-5"></a>copick<span class="w"> </span>add<span class="w"> </span>segmentation<span class="w"> </span>--config<span class="w"> </span>config.json<span class="w"> </span>--name<span class="w"> </span>organelles<span class="w"> </span>data/segmentations/*.mrc
+</span><span id="__span-10-6"><a id="__codelineno-10-6" name="__codelineno-10-6" href="#__codelineno-10-6"></a>
+</span><span id="__span-10-7"><a id="__codelineno-10-7" name="__codelineno-10-7" href="#__codelineno-10-7"></a><span class="c1"># Add segmentation with custom user and session</span>
+</span><span id="__span-10-8"><a id="__codelineno-10-8" name="__codelineno-10-8" href="#__codelineno-10-8"></a>copick<span class="w"> </span>add<span class="w"> </span>segmentation<span class="w"> </span>--config<span class="w"> </span>config.json<span class="w"> </span>--run<span class="w"> </span>TS_001<span class="w"> </span>--name<span class="w"> </span>mitochondria<span class="w"> </span>--user-id<span class="w"> </span>alice<span class="w"> </span>--session-id<span class="w"> </span><span class="m">2</span><span class="w"> </span>data/mito_seg.mrc
+</span><span id="__span-10-9"><a id="__codelineno-10-9" name="__codelineno-10-9" href="#__codelineno-10-9"></a>
+</span><span id="__span-10-10"><a id="__codelineno-10-10" name="__codelineno-10-10" href="#__codelineno-10-10"></a><span class="c1"># Add segmentation with custom voxel size</span>
+</span><span id="__span-10-11"><a id="__codelineno-10-11" name="__codelineno-10-11" href="#__codelineno-10-11"></a>copick<span class="w"> </span>add<span class="w"> </span>segmentation<span class="w"> </span>--config<span class="w"> </span>config.json<span class="w"> </span>--run<span class="w"> </span>TS_001<span class="w"> </span>--name<span class="w"> </span>membrane<span class="w"> </span>--voxel-size<span class="w"> </span><span class="m">10</span>.0<span class="w"> </span>data/membrane.zarr
+</span></code></pre></div>
+<h4 id="copick-add-object"><span class="twemoji"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M11 13.5v8H3v-8zM12 2l5.5 9h-11zm5.5 11c2.5 0 4.5 2 4.5 4.5S20 22 17.5 22 13 20 13 17.5s2-4.5 4.5-4.5"/></svg></span> <code>copick add object</code></h4>
+<p>Add a pickable object to the project configuration.</p>
+<p><strong>Usage:</strong>
+<div class="language-bash highlight"><pre><span></span><code><span id="__span-11-1"><a id="__codelineno-11-1" name="__codelineno-11-1" href="#__codelineno-11-1"></a>copick<span class="w"> </span>add<span class="w"> </span>object<span class="w"> </span><span class="o">[</span>OPTIONS<span class="o">]</span>
+</span></code></pre></div></p>
+<p><strong>Options:</strong></p>
+<table>
+<thead>
+<tr>
+<th>Option</th>
+<th>Type</th>
+<th>Description</th>
+<th>Default</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>-c, --config PATH</code></td>
+<td>Path</td>
+<td>Path to the configuration file</td>
+<td>Uses <code>COPICK_CONFIG</code> env var</td>
+</tr>
+<tr>
+<td><code>--name TEXT</code></td>
+<td>String</td>
+<td>Name of the object to add (required)</td>
+<td>None</td>
+</tr>
+<tr>
+<td><code>--object-type CHOICE</code></td>
+<td>String</td>
+<td>Type of object: 'particle' or 'segmentation'</td>
+<td><code>particle</code></td>
+</tr>
+<tr>
+<td><code>--label INTEGER</code></td>
+<td>Integer</td>
+<td>Numeric label/id for the object. If not provided, will use the next available label</td>
+<td>None</td>
+</tr>
+<tr>
+<td><code>--color TEXT</code></td>
+<td>String</td>
+<td>RGBA color for the object as comma-separated values (e.g. '255,0,0,255' for red)</td>
+<td>None</td>
+</tr>
+<tr>
+<td><code>--emdb-id TEXT</code></td>
+<td>String</td>
+<td>EMDB ID for the object</td>
+<td>None</td>
+</tr>
+<tr>
+<td><code>--pdb-id TEXT</code></td>
+<td>String</td>
+<td>PDB ID for the object</td>
+<td>None</td>
+</tr>
+<tr>
+<td><code>--identifier TEXT</code></td>
+<td>String</td>
+<td>Identifier for the object (e.g. Gene Ontology ID or UniProtKB accession)</td>
+<td>None</td>
+</tr>
+<tr>
+<td><code>--map-threshold FLOAT</code></td>
+<td>Float</td>
+<td>Threshold to apply to the map when rendering the isosurface</td>
+<td>None</td>
+</tr>
+<tr>
+<td><code>--radius FLOAT</code></td>
+<td>Float</td>
+<td>Radius of the particle, when displaying as a sphere</td>
+<td><code>50</code></td>
+</tr>
+<tr>
+<td><code>--volume PATH</code></td>
+<td>Path</td>
+<td>Path to volume file to associate with the object</td>
+<td>None</td>
+</tr>
+<tr>
+<td><code>--volume-format CHOICE</code></td>
+<td>String</td>
+<td>Format of the volume file ('mrc' or 'zarr')</td>
+<td>Auto-detected</td>
+</tr>
+<tr>
+<td><code>--voxel-size FLOAT</code></td>
+<td>Float</td>
+<td>Voxel size for the volume data. Required if volume is provided</td>
+<td>None</td>
+</tr>
+<tr>
+<td><code>--exist-ok / --no-exist-ok</code></td>
+<td>Boolean</td>
+<td>Whether existing objects with the same name should be overwritten</td>
+<td><code>no-exist-ok</code></td>
+</tr>
+<tr>
+<td><code>--debug / --no-debug</code></td>
+<td>Boolean</td>
+<td>Enable debug logging</td>
+<td><code>no-debug</code></td>
+</tr>
+</tbody>
+</table>
+<p><strong>Examples:</strong></p>
+<div class="language-bash highlight"><pre><span></span><code><span id="__span-12-1"><a id="__codelineno-12-1" name="__codelineno-12-1" href="#__codelineno-12-1"></a><span class="c1"># Add a basic particle object</span>
+</span><span id="__span-12-2"><a id="__codelineno-12-2" name="__codelineno-12-2" href="#__codelineno-12-2"></a>copick<span class="w"> </span>add<span class="w"> </span>object<span class="w"> </span>--config<span class="w"> </span>config.json<span class="w"> </span>--name<span class="w"> </span>ribosome<span class="w"> </span>--object-type<span class="w"> </span>particle<span class="w"> </span>--radius<span class="w"> </span><span class="m">120</span>
+</span><span id="__span-12-3"><a id="__codelineno-12-3" name="__codelineno-12-3" href="#__codelineno-12-3"></a>
+</span><span id="__span-12-4"><a id="__codelineno-12-4" name="__codelineno-12-4" href="#__codelineno-12-4"></a><span class="c1"># Add a particle with PDB reference and custom color</span>
+</span><span id="__span-12-5"><a id="__codelineno-12-5" name="__codelineno-12-5" href="#__codelineno-12-5"></a>copick<span class="w"> </span>add<span class="w"> </span>object<span class="w"> </span>--config<span class="w"> </span>config.json<span class="w"> </span>--name<span class="w"> </span>ribosome<span class="w"> </span>--object-type<span class="w"> </span>particle<span class="w"> </span>--radius<span class="w"> </span><span class="m">120</span><span class="w"> </span>--pdb-id<span class="w"> </span>4V9D<span class="w"> </span>--color<span class="w"> </span><span class="s2">&quot;255,0,0,255&quot;</span>
+</span><span id="__span-12-6"><a id="__codelineno-12-6" name="__codelineno-12-6" href="#__codelineno-12-6"></a>
+</span><span id="__span-12-7"><a id="__codelineno-12-7" name="__codelineno-12-7" href="#__codelineno-12-7"></a><span class="c1"># Add a segmentation object with custom label</span>
+</span><span id="__span-12-8"><a id="__codelineno-12-8" name="__codelineno-12-8" href="#__codelineno-12-8"></a>copick<span class="w"> </span>add<span class="w"> </span>object<span class="w"> </span>--config<span class="w"> </span>config.json<span class="w"> </span>--name<span class="w"> </span>membrane<span class="w"> </span>--object-type<span class="w"> </span>segmentation<span class="w"> </span>--label<span class="w"> </span><span class="m">1</span><span class="w"> </span>--color<span class="w"> </span><span class="s2">&quot;0,255,0,128&quot;</span>
+</span><span id="__span-12-9"><a id="__codelineno-12-9" name="__codelineno-12-9" href="#__codelineno-12-9"></a>
+</span><span id="__span-12-10"><a id="__codelineno-12-10" name="__codelineno-12-10" href="#__codelineno-12-10"></a><span class="c1"># Add a particle with associated volume data</span>
+</span><span id="__span-12-11"><a id="__codelineno-12-11" name="__codelineno-12-11" href="#__codelineno-12-11"></a>copick<span class="w"> </span>add<span class="w"> </span>object<span class="w"> </span>--config<span class="w"> </span>config.json<span class="w"> </span>--name<span class="w"> </span>proteasome<span class="w"> </span>--object-type<span class="w"> </span>particle<span class="w"> </span>--radius<span class="w"> </span><span class="m">80</span><span class="w"> </span>--volume<span class="w"> </span>data/proteasome.mrc<span class="w"> </span>--voxel-size<span class="w"> </span><span class="m">10</span>.0
+</span><span id="__span-12-12"><a id="__codelineno-12-12" name="__codelineno-12-12" href="#__codelineno-12-12"></a>
+</span><span id="__span-12-13"><a id="__codelineno-12-13" name="__codelineno-12-13" href="#__codelineno-12-13"></a><span class="c1"># Add object with EMDB reference and identifier</span>
+</span><span id="__span-12-14"><a id="__codelineno-12-14" name="__codelineno-12-14" href="#__codelineno-12-14"></a>copick<span class="w"> </span>add<span class="w"> </span>object<span class="w"> </span>--config<span class="w"> </span>config.json<span class="w"> </span>--name<span class="w"> </span>apoferritin<span class="w"> </span>--object-type<span class="w"> </span>particle<span class="w"> </span>--emdb-id<span class="w"> </span>EMD-1234<span class="w"> </span>--identifier<span class="w"> </span><span class="s2">&quot;GO:0006826&quot;</span><span class="w"> </span>--radius<span class="w"> </span><span class="m">60</span>
+</span></code></pre></div>
+<h4 id="copick-add-object-volume"><span class="twemoji"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M21 16.5c0 .38-.21.71-.53.88l-7.9 4.44c-.16.12-.36.18-.57.18s-.41-.06-.57-.18l-7.9-4.44A.99.99 0 0 1 3 16.5v-9c0-.38.21-.71.53-.88l7.9-4.44c.16-.12.36-.18.57-.18s.41.06.57.18l7.9 4.44c.32.17.53.5.53.88zM12 4.15 6.04 7.5 12 10.85l5.96-3.35zM5 15.91l6 3.38v-6.71L5 9.21zm14 0v-6.7l-6 3.37v6.71z"/></svg></span> <code>copick add object-volume</code></h4>
+<p>Add volume data to an existing pickable object.</p>
+<p><strong>Usage:</strong>
+<div class="language-bash highlight"><pre><span></span><code><span id="__span-13-1"><a id="__codelineno-13-1" name="__codelineno-13-1" href="#__codelineno-13-1"></a>copick<span class="w"> </span>add<span class="w"> </span>object-volume<span class="w"> </span><span class="o">[</span>OPTIONS<span class="o">]</span>
+</span></code></pre></div></p>
+<p><strong>Options:</strong></p>
+<table>
+<thead>
+<tr>
+<th>Option</th>
+<th>Type</th>
+<th>Description</th>
+<th>Default</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>-c, --config PATH</code></td>
+<td>Path</td>
+<td>Path to the configuration file</td>
+<td>Uses <code>COPICK_CONFIG</code> env var</td>
+</tr>
+<tr>
+<td><code>--object-name TEXT</code></td>
+<td>String</td>
+<td>Name of the existing object (required)</td>
+<td>None</td>
+</tr>
+<tr>
+<td><code>--volume-path PATH</code></td>
+<td>Path</td>
+<td>Path to the volume file (required)</td>
+<td>None</td>
+</tr>
+<tr>
+<td><code>--volume-format CHOICE</code></td>
+<td>String</td>
+<td>Format of the volume file ('mrc' or 'zarr')</td>
+<td>Auto-detected</td>
+</tr>
+<tr>
+<td><code>--voxel-size FLOAT</code></td>
+<td>Float</td>
+<td>Voxel size of the volume data in Angstrom</td>
+<td>None</td>
+</tr>
+<tr>
+<td><code>--debug / --no-debug</code></td>
+<td>Boolean</td>
+<td>Enable debug logging</td>
+<td><code>no-debug</code></td>
+</tr>
+</tbody>
+</table>
+<p><strong>Examples:</strong></p>
+<div class="language-bash highlight"><pre><span></span><code><span id="__span-14-1"><a id="__codelineno-14-1" name="__codelineno-14-1" href="#__codelineno-14-1"></a><span class="c1"># Add volume data to an existing object</span>
+</span><span id="__span-14-2"><a id="__codelineno-14-2" name="__codelineno-14-2" href="#__codelineno-14-2"></a>copick<span class="w"> </span>add<span class="w"> </span>object-volume<span class="w"> </span>--config<span class="w"> </span>config.json<span class="w"> </span>--object-name<span class="w"> </span>ribosome<span class="w"> </span>--volume-path<span class="w"> </span>data/ribosome_volume.mrc
+</span><span id="__span-14-3"><a id="__codelineno-14-3" name="__codelineno-14-3" href="#__codelineno-14-3"></a>
+</span><span id="__span-14-4"><a id="__codelineno-14-4" name="__codelineno-14-4" href="#__codelineno-14-4"></a><span class="c1"># Add volume with custom voxel size</span>
+</span><span id="__span-14-5"><a id="__codelineno-14-5" name="__codelineno-14-5" href="#__codelineno-14-5"></a>copick<span class="w"> </span>add<span class="w"> </span>object-volume<span class="w"> </span>--config<span class="w"> </span>config.json<span class="w"> </span>--object-name<span class="w"> </span>proteasome<span class="w"> </span>--volume-path<span class="w"> </span>data/proteasome.zarr<span class="w"> </span>--voxel-size<span class="w"> </span><span class="m">8</span>.0
+</span><span id="__span-14-6"><a id="__codelineno-14-6" name="__codelineno-14-6" href="#__codelineno-14-6"></a>
+</span><span id="__span-14-7"><a id="__codelineno-14-7" name="__codelineno-14-7" href="#__codelineno-14-7"></a><span class="c1"># Add volume with explicit format specification</span>
+</span><span id="__span-14-8"><a id="__codelineno-14-8" name="__codelineno-14-8" href="#__codelineno-14-8"></a>copick<span class="w"> </span>add<span class="w"> </span>object-volume<span class="w"> </span>--config<span class="w"> </span>config.json<span class="w"> </span>--object-name<span class="w"> </span>membrane<span class="w"> </span>--volume-path<span class="w"> </span>data/membrane_vol<span class="w"> </span>--volume-format<span class="w"> </span>zarr
+</span></code></pre></div>
 <hr />
 <h3 id="copick-new"><span class="twemoji"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M14 2H6c-1.11 0-2 .89-2 2v16c0 1.11.89 2 2 2h7.81c-.53-.91-.81-1.95-.81-3 0-3.31 2.69-6 6-6 .34 0 .67.03 1 .08V8zm-1 7V3.5L18.5 9zm10 11h-3v3h-2v-3h-3v-2h3v-3h2v3h3z"/></svg></span> <code>copick new</code></h3>
 <p>Create new Copick entities.</p>
@@ -2582,7 +2929,7 @@ Objects are specified using the format: <code>name,is_particle,[radius],[pdb_id]
 <h4 id="copick-new-picks"><span class="twemoji"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M11 2v2.07A8 8 0 0 0 4.07 11H2v2h2.07A8 8 0 0 0 11 19.93V22h2v-2.07A8 8 0 0 0 19.93 13H22v-2h-2.07A8 8 0 0 0 13 4.07V2m-2 4.08V8h2V6.09c2.5.41 4.5 2.41 4.92 4.91H16v2h1.91c-.41 2.5-2.41 4.5-4.91 4.92V16h-2v1.91C8.5 17.5 6.5 15.5 6.08 13H8v-2H6.09C6.5 8.5 8.5 6.5 11 6.08M12 11a1 1 0 0 0-1 1 1 1 0 0 0 1 1 1 1 0 0 0 1-1 1 1 0 0 0-1-1"/></svg></span> <code>copick new picks</code></h4>
 <p>Create empty picks for a given particle name.</p>
 <p><strong>Usage:</strong>
-<div class="language-bash highlight"><pre><span></span><code><span id="__span-9-1"><a id="__codelineno-9-1" name="__codelineno-9-1" href="#__codelineno-9-1"></a>copick<span class="w"> </span>new<span class="w"> </span>picks<span class="w"> </span><span class="o">[</span>OPTIONS<span class="o">]</span>
+<div class="language-bash highlight"><pre><span></span><code><span id="__span-15-1"><a id="__codelineno-15-1" name="__codelineno-15-1" href="#__codelineno-15-1"></a>copick<span class="w"> </span>new<span class="w"> </span>picks<span class="w"> </span><span class="o">[</span>OPTIONS<span class="o">]</span>
 </span></code></pre></div></p>
 <p><strong>Options:</strong></p>
 <table>
@@ -2634,19 +2981,19 @@ Objects are specified using the format: <code>name,is_particle,[radius],[pdb_id]
 </tbody>
 </table>
 <p><strong>Examples:</strong></p>
-<div class="language-bash highlight"><pre><span></span><code><span id="__span-10-1"><a id="__codelineno-10-1" name="__codelineno-10-1" href="#__codelineno-10-1"></a><span class="c1"># Create empty picks for ribosomes</span>
-</span><span id="__span-10-2"><a id="__codelineno-10-2" name="__codelineno-10-2" href="#__codelineno-10-2"></a>copick<span class="w"> </span>new<span class="w"> </span>picks<span class="w"> </span>--config<span class="w"> </span>config.json<span class="w"> </span>--particle-name<span class="w"> </span>ribosome
-</span><span id="__span-10-3"><a id="__codelineno-10-3" name="__codelineno-10-3" href="#__codelineno-10-3"></a>
-</span><span id="__span-10-4"><a id="__codelineno-10-4" name="__codelineno-10-4" href="#__codelineno-10-4"></a><span class="c1"># Create picks with custom user and session</span>
-</span><span id="__span-10-5"><a id="__codelineno-10-5" name="__codelineno-10-5" href="#__codelineno-10-5"></a>copick<span class="w"> </span>new<span class="w"> </span>picks<span class="w"> </span>--config<span class="w"> </span>config.json<span class="w"> </span>--particle-name<span class="w"> </span>proteasome<span class="w"> </span>--out-user<span class="w"> </span>alice<span class="w"> </span>--out-session<span class="w"> </span><span class="m">1</span>
-</span><span id="__span-10-6"><a id="__codelineno-10-6" name="__codelineno-10-6" href="#__codelineno-10-6"></a>
-</span><span id="__span-10-7"><a id="__codelineno-10-7" name="__codelineno-10-7" href="#__codelineno-10-7"></a><span class="c1"># Create picks with overwrite enabled</span>
-</span><span id="__span-10-8"><a id="__codelineno-10-8" name="__codelineno-10-8" href="#__codelineno-10-8"></a>copick<span class="w"> </span>new<span class="w"> </span>picks<span class="w"> </span>--config<span class="w"> </span>config.json<span class="w"> </span>--particle-name<span class="w"> </span>ribosome<span class="w"> </span>--overwrite<span class="w"> </span>True
+<div class="language-bash highlight"><pre><span></span><code><span id="__span-16-1"><a id="__codelineno-16-1" name="__codelineno-16-1" href="#__codelineno-16-1"></a><span class="c1"># Create empty picks for ribosomes</span>
+</span><span id="__span-16-2"><a id="__codelineno-16-2" name="__codelineno-16-2" href="#__codelineno-16-2"></a>copick<span class="w"> </span>new<span class="w"> </span>picks<span class="w"> </span>--config<span class="w"> </span>config.json<span class="w"> </span>--particle-name<span class="w"> </span>ribosome
+</span><span id="__span-16-3"><a id="__codelineno-16-3" name="__codelineno-16-3" href="#__codelineno-16-3"></a>
+</span><span id="__span-16-4"><a id="__codelineno-16-4" name="__codelineno-16-4" href="#__codelineno-16-4"></a><span class="c1"># Create picks with custom user and session</span>
+</span><span id="__span-16-5"><a id="__codelineno-16-5" name="__codelineno-16-5" href="#__codelineno-16-5"></a>copick<span class="w"> </span>new<span class="w"> </span>picks<span class="w"> </span>--config<span class="w"> </span>config.json<span class="w"> </span>--particle-name<span class="w"> </span>proteasome<span class="w"> </span>--out-user<span class="w"> </span>alice<span class="w"> </span>--out-session<span class="w"> </span><span class="m">1</span>
+</span><span id="__span-16-6"><a id="__codelineno-16-6" name="__codelineno-16-6" href="#__codelineno-16-6"></a>
+</span><span id="__span-16-7"><a id="__codelineno-16-7" name="__codelineno-16-7" href="#__codelineno-16-7"></a><span class="c1"># Create picks with overwrite enabled</span>
+</span><span id="__span-16-8"><a id="__codelineno-16-8" name="__codelineno-16-8" href="#__codelineno-16-8"></a>copick<span class="w"> </span>new<span class="w"> </span>picks<span class="w"> </span>--config<span class="w"> </span>config.json<span class="w"> </span>--particle-name<span class="w"> </span>ribosome<span class="w"> </span>--overwrite<span class="w"> </span>True
 </span></code></pre></div>
 <h4 id="copick-new-run"><span class="twemoji"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M8 5.14v14l11-7z"/></svg></span> <code>copick new run</code></h4>
 <p>Create an empty run with the given name.</p>
 <p><strong>Usage:</strong>
-<div class="language-bash highlight"><pre><span></span><code><span id="__span-11-1"><a id="__codelineno-11-1" name="__codelineno-11-1" href="#__codelineno-11-1"></a>copick<span class="w"> </span>new<span class="w"> </span>run<span class="w"> </span><span class="o">[</span>OPTIONS<span class="o">]</span><span class="w"> </span>NAME
+<div class="language-bash highlight"><pre><span></span><code><span id="__span-17-1"><a id="__codelineno-17-1" name="__codelineno-17-1" href="#__codelineno-17-1"></a>copick<span class="w"> </span>new<span class="w"> </span>run<span class="w"> </span><span class="o">[</span>OPTIONS<span class="o">]</span><span class="w"> </span>NAME
 </span></code></pre></div></p>
 <p><strong>Arguments:</strong></p>
 <table>
@@ -2703,16 +3050,16 @@ Objects are specified using the format: <code>name,is_particle,[radius],[pdb_id]
 </tbody>
 </table>
 <p><strong>Examples:</strong></p>
-<div class="language-bash highlight"><pre><span></span><code><span id="__span-12-1"><a id="__codelineno-12-1" name="__codelineno-12-1" href="#__codelineno-12-1"></a><span class="c1"># Create a new run</span>
-</span><span id="__span-12-2"><a id="__codelineno-12-2" name="__codelineno-12-2" href="#__codelineno-12-2"></a>copick<span class="w"> </span>new<span class="w"> </span>run<span class="w"> </span>--config<span class="w"> </span>config.json<span class="w"> </span>TS_005
-</span><span id="__span-12-3"><a id="__codelineno-12-3" name="__codelineno-12-3" href="#__codelineno-12-3"></a>
-</span><span id="__span-12-4"><a id="__codelineno-12-4" name="__codelineno-12-4" href="#__codelineno-12-4"></a><span class="c1"># Create run with overwrite enabled</span>
-</span><span id="__span-12-5"><a id="__codelineno-12-5" name="__codelineno-12-5" href="#__codelineno-12-5"></a>copick<span class="w"> </span>new<span class="w"> </span>run<span class="w"> </span>--config<span class="w"> </span>config.json<span class="w"> </span>--overwrite<span class="w"> </span>TS_005
+<div class="language-bash highlight"><pre><span></span><code><span id="__span-18-1"><a id="__codelineno-18-1" name="__codelineno-18-1" href="#__codelineno-18-1"></a><span class="c1"># Create a new run</span>
+</span><span id="__span-18-2"><a id="__codelineno-18-2" name="__codelineno-18-2" href="#__codelineno-18-2"></a>copick<span class="w"> </span>new<span class="w"> </span>run<span class="w"> </span>--config<span class="w"> </span>config.json<span class="w"> </span>TS_005
+</span><span id="__span-18-3"><a id="__codelineno-18-3" name="__codelineno-18-3" href="#__codelineno-18-3"></a>
+</span><span id="__span-18-4"><a id="__codelineno-18-4" name="__codelineno-18-4" href="#__codelineno-18-4"></a><span class="c1"># Create run with overwrite enabled</span>
+</span><span id="__span-18-5"><a id="__codelineno-18-5" name="__codelineno-18-5" href="#__codelineno-18-5"></a>copick<span class="w"> </span>new<span class="w"> </span>run<span class="w"> </span>--config<span class="w"> </span>config.json<span class="w"> </span>--overwrite<span class="w"> </span>TS_005
 </span></code></pre></div>
 <h4 id="copick-new-voxelspacing"><span class="twemoji"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M10 4v4h4V4zm6 0v4h4V4zm0 6v4h4v-4zm0 6v4h4v-4zm-2 4v-4h-4v4zm-6 0v-4H4v4zm0-6v-4H4v4zm0-6V4H4v4zm2 6h4v-4h-4zM4 2h16a2 2 0 0 1 2 2v16a2 2 0 0 1-2 2H4c-1.08 0-2-.9-2-2V4a2 2 0 0 1 2-2"/></svg></span> <code>copick new voxelspacing</code></h4>
 <p>Create an empty voxelspacing with the given name.</p>
 <p><strong>Usage:</strong>
-<div class="language-bash highlight"><pre><span></span><code><span id="__span-13-1"><a id="__codelineno-13-1" name="__codelineno-13-1" href="#__codelineno-13-1"></a>copick<span class="w"> </span>new<span class="w"> </span>voxelspacing<span class="w"> </span><span class="o">[</span>OPTIONS<span class="o">]</span><span class="w"> </span>VOXEL_SPACING
+<div class="language-bash highlight"><pre><span></span><code><span id="__span-19-1"><a id="__codelineno-19-1" name="__codelineno-19-1" href="#__codelineno-19-1"></a>copick<span class="w"> </span>new<span class="w"> </span>voxelspacing<span class="w"> </span><span class="o">[</span>OPTIONS<span class="o">]</span><span class="w"> </span>VOXEL_SPACING
 </span></code></pre></div></p>
 <p><strong>Arguments:</strong></p>
 <table>
@@ -2775,21 +3122,21 @@ Objects are specified using the format: <code>name,is_particle,[radius],[pdb_id]
 </tbody>
 </table>
 <p><strong>Examples:</strong></p>
-<div class="language-bash highlight"><pre><span></span><code><span id="__span-14-1"><a id="__codelineno-14-1" name="__codelineno-14-1" href="#__codelineno-14-1"></a><span class="c1"># Add 10.0 Angstrom voxel spacing to run</span>
-</span><span id="__span-14-2"><a id="__codelineno-14-2" name="__codelineno-14-2" href="#__codelineno-14-2"></a>copick<span class="w"> </span>new<span class="w"> </span>voxelspacing<span class="w"> </span>--config<span class="w"> </span>config.json<span class="w"> </span>--run<span class="w"> </span>TS_001<span class="w"> </span><span class="m">10</span>.0
-</span><span id="__span-14-3"><a id="__codelineno-14-3" name="__codelineno-14-3" href="#__codelineno-14-3"></a>
-</span><span id="__span-14-4"><a id="__codelineno-14-4" name="__codelineno-14-4" href="#__codelineno-14-4"></a><span class="c1"># Add voxel spacing with overwrite enabled</span>
-</span><span id="__span-14-5"><a id="__codelineno-14-5" name="__codelineno-14-5" href="#__codelineno-14-5"></a>copick<span class="w"> </span>new<span class="w"> </span>voxelspacing<span class="w"> </span>--config<span class="w"> </span>config.json<span class="w"> </span>--run<span class="w"> </span>TS_001<span class="w"> </span>--overwrite<span class="w"> </span><span class="m">5</span>.0
+<div class="language-bash highlight"><pre><span></span><code><span id="__span-20-1"><a id="__codelineno-20-1" name="__codelineno-20-1" href="#__codelineno-20-1"></a><span class="c1"># Add 10.0 Angstrom voxel spacing to run</span>
+</span><span id="__span-20-2"><a id="__codelineno-20-2" name="__codelineno-20-2" href="#__codelineno-20-2"></a>copick<span class="w"> </span>new<span class="w"> </span>voxelspacing<span class="w"> </span>--config<span class="w"> </span>config.json<span class="w"> </span>--run<span class="w"> </span>TS_001<span class="w"> </span><span class="m">10</span>.0
+</span><span id="__span-20-3"><a id="__codelineno-20-3" name="__codelineno-20-3" href="#__codelineno-20-3"></a>
+</span><span id="__span-20-4"><a id="__codelineno-20-4" name="__codelineno-20-4" href="#__codelineno-20-4"></a><span class="c1"># Add voxel spacing with overwrite enabled</span>
+</span><span id="__span-20-5"><a id="__codelineno-20-5" name="__codelineno-20-5" href="#__codelineno-20-5"></a>copick<span class="w"> </span>new<span class="w"> </span>voxelspacing<span class="w"> </span>--config<span class="w"> </span>config.json<span class="w"> </span>--run<span class="w"> </span>TS_001<span class="w"> </span>--overwrite<span class="w"> </span><span class="m">5</span>.0
 </span></code></pre></div>
 <hr />
 <h3 id="copick-info"><span class="twemoji"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M13 9h-2V7h2m0 10h-2v-6h2m-1-9A10 10 0 0 0 2 12a10 10 0 0 0 10 10 10 10 0 0 0 10-10A10 10 0 0 0 12 2"/></svg></span> <code>copick info</code></h3>
 <p>Display information about the Copick CLI and available plugins.</p>
 <p><strong>Usage:</strong>
-<div class="language-bash highlight"><pre><span></span><code><span id="__span-15-1"><a id="__codelineno-15-1" name="__codelineno-15-1" href="#__codelineno-15-1"></a>copick<span class="w"> </span>info
+<div class="language-bash highlight"><pre><span></span><code><span id="__span-21-1"><a id="__codelineno-21-1" name="__codelineno-21-1" href="#__codelineno-21-1"></a>copick<span class="w"> </span>info
 </span></code></pre></div></p>
 <p><strong>Examples:</strong></p>
-<div class="language-bash highlight"><pre><span></span><code><span id="__span-16-1"><a id="__codelineno-16-1" name="__codelineno-16-1" href="#__codelineno-16-1"></a><span class="c1"># Show CLI information and available plugins</span>
-</span><span id="__span-16-2"><a id="__codelineno-16-2" name="__codelineno-16-2" href="#__codelineno-16-2"></a>copick<span class="w"> </span>info
+<div class="language-bash highlight"><pre><span></span><code><span id="__span-22-1"><a id="__codelineno-22-1" name="__codelineno-22-1" href="#__codelineno-22-1"></a><span class="c1"># Show CLI information and available plugins</span>
+</span><span id="__span-22-2"><a id="__codelineno-22-2" name="__codelineno-22-2" href="#__codelineno-22-2"></a>copick<span class="w"> </span>info
 </span></code></pre></div>
 <hr />
 <h2 id="plugin-system">Plugin System</h2>
@@ -2799,87 +3146,97 @@ Objects are specified using the format: <code>name,is_particle,[radius],[pdb_id]
 </div>
 <h3 id="plugin-registration">Plugin Registration</h3>
 <p><strong>Using setup.py:</strong>
-<div class="language-python highlight"><pre><span></span><code><span id="__span-17-1"><a id="__codelineno-17-1" name="__codelineno-17-1" href="#__codelineno-17-1"></a><span class="kn">from</span><span class="w"> </span><span class="nn">setuptools</span><span class="w"> </span><span class="kn">import</span> <span class="n">setup</span>
-</span><span id="__span-17-2"><a id="__codelineno-17-2" name="__codelineno-17-2" href="#__codelineno-17-2"></a>
-</span><span id="__span-17-3"><a id="__codelineno-17-3" name="__codelineno-17-3" href="#__codelineno-17-3"></a><span class="n">setup</span><span class="p">(</span>
-</span><span id="__span-17-4"><a id="__codelineno-17-4" name="__codelineno-17-4" href="#__codelineno-17-4"></a>    <span class="n">name</span><span class="o">=</span><span class="s2">&quot;my-copick-plugin&quot;</span><span class="p">,</span>
-</span><span id="__span-17-5"><a id="__codelineno-17-5" name="__codelineno-17-5" href="#__codelineno-17-5"></a>    <span class="n">entry_points</span><span class="o">=</span><span class="p">{</span>
-</span><span id="__span-17-6"><a id="__codelineno-17-6" name="__codelineno-17-6" href="#__codelineno-17-6"></a>        <span class="s2">&quot;copick.commands&quot;</span><span class="p">:</span> <span class="p">[</span>
-</span><span id="__span-17-7"><a id="__codelineno-17-7" name="__codelineno-17-7" href="#__codelineno-17-7"></a>            <span class="s2">&quot;my-command = my_package.cli:my_command&quot;</span><span class="p">,</span>
-</span><span id="__span-17-8"><a id="__codelineno-17-8" name="__codelineno-17-8" href="#__codelineno-17-8"></a>        <span class="p">],</span>
-</span><span id="__span-17-9"><a id="__codelineno-17-9" name="__codelineno-17-9" href="#__codelineno-17-9"></a>    <span class="p">},</span>
-</span><span id="__span-17-10"><a id="__codelineno-17-10" name="__codelineno-17-10" href="#__codelineno-17-10"></a><span class="p">)</span>
+<div class="language-python highlight"><pre><span></span><code><span id="__span-23-1"><a id="__codelineno-23-1" name="__codelineno-23-1" href="#__codelineno-23-1"></a><span class="kn">from</span><span class="w"> </span><span class="nn">setuptools</span><span class="w"> </span><span class="kn">import</span> <span class="n">setup</span>
+</span><span id="__span-23-2"><a id="__codelineno-23-2" name="__codelineno-23-2" href="#__codelineno-23-2"></a>
+</span><span id="__span-23-3"><a id="__codelineno-23-3" name="__codelineno-23-3" href="#__codelineno-23-3"></a><span class="n">setup</span><span class="p">(</span>
+</span><span id="__span-23-4"><a id="__codelineno-23-4" name="__codelineno-23-4" href="#__codelineno-23-4"></a>    <span class="n">name</span><span class="o">=</span><span class="s2">&quot;my-copick-plugin&quot;</span><span class="p">,</span>
+</span><span id="__span-23-5"><a id="__codelineno-23-5" name="__codelineno-23-5" href="#__codelineno-23-5"></a>    <span class="n">entry_points</span><span class="o">=</span><span class="p">{</span>
+</span><span id="__span-23-6"><a id="__codelineno-23-6" name="__codelineno-23-6" href="#__codelineno-23-6"></a>        <span class="s2">&quot;copick.commands&quot;</span><span class="p">:</span> <span class="p">[</span>
+</span><span id="__span-23-7"><a id="__codelineno-23-7" name="__codelineno-23-7" href="#__codelineno-23-7"></a>            <span class="s2">&quot;my-command = my_package.cli:my_command&quot;</span><span class="p">,</span>
+</span><span id="__span-23-8"><a id="__codelineno-23-8" name="__codelineno-23-8" href="#__codelineno-23-8"></a>        <span class="p">],</span>
+</span><span id="__span-23-9"><a id="__codelineno-23-9" name="__codelineno-23-9" href="#__codelineno-23-9"></a>    <span class="p">},</span>
+</span><span id="__span-23-10"><a id="__codelineno-23-10" name="__codelineno-23-10" href="#__codelineno-23-10"></a><span class="p">)</span>
 </span></code></pre></div></p>
 <p><strong>Using pyproject.toml:</strong>
-<div class="language-toml highlight"><pre><span></span><code><span id="__span-18-1"><a id="__codelineno-18-1" name="__codelineno-18-1" href="#__codelineno-18-1"></a><span class="k">[project.entry-points.</span><span class="s2">&quot;copick.commands&quot;</span><span class="k">]</span>
-</span><span id="__span-18-2"><a id="__codelineno-18-2" name="__codelineno-18-2" href="#__codelineno-18-2"></a><span class="n">my-command</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s2">&quot;my_package.cli:my_command&quot;</span>
+<div class="language-toml highlight"><pre><span></span><code><span id="__span-24-1"><a id="__codelineno-24-1" name="__codelineno-24-1" href="#__codelineno-24-1"></a><span class="k">[project.entry-points.</span><span class="s2">&quot;copick.commands&quot;</span><span class="k">]</span>
+</span><span id="__span-24-2"><a id="__codelineno-24-2" name="__codelineno-24-2" href="#__codelineno-24-2"></a><span class="n">my-command</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s2">&quot;my_package.cli:my_command&quot;</span>
 </span></code></pre></div></p>
 <h3 id="plugin-implementation">Plugin Implementation</h3>
 <p><strong>Creating a Click Command:</strong>
-<div class="language-python highlight"><pre><span></span><code><span id="__span-19-1"><a id="__codelineno-19-1" name="__codelineno-19-1" href="#__codelineno-19-1"></a><span class="kn">import</span><span class="w"> </span><span class="nn">click</span>
-</span><span id="__span-19-2"><a id="__codelineno-19-2" name="__codelineno-19-2" href="#__codelineno-19-2"></a><span class="kn">from</span><span class="w"> </span><span class="nn">copick.cli.util</span><span class="w"> </span><span class="kn">import</span> <span class="n">add_config_option</span><span class="p">,</span> <span class="n">add_debug_option</span>
-</span><span id="__span-19-3"><a id="__codelineno-19-3" name="__codelineno-19-3" href="#__codelineno-19-3"></a><span class="kn">from</span><span class="w"> </span><span class="nn">copick.util.log</span><span class="w"> </span><span class="kn">import</span> <span class="n">get_logger</span>
-</span><span id="__span-19-4"><a id="__codelineno-19-4" name="__codelineno-19-4" href="#__codelineno-19-4"></a>
-</span><span id="__span-19-5"><a id="__codelineno-19-5" name="__codelineno-19-5" href="#__codelineno-19-5"></a><span class="nd">@click</span><span class="o">.</span><span class="n">command</span><span class="p">()</span>
-</span><span id="__span-19-6"><a id="__codelineno-19-6" name="__codelineno-19-6" href="#__codelineno-19-6"></a><span class="nd">@add_config_option</span>
-</span><span id="__span-19-7"><a id="__codelineno-19-7" name="__codelineno-19-7" href="#__codelineno-19-7"></a><span class="nd">@add_debug_option</span>
-</span><span id="__span-19-8"><a id="__codelineno-19-8" name="__codelineno-19-8" href="#__codelineno-19-8"></a><span class="k">def</span><span class="w"> </span><span class="nf">my_command</span><span class="p">(</span><span class="n">config</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">debug</span><span class="p">:</span> <span class="nb">bool</span><span class="p">):</span>
-</span><span id="__span-19-9"><a id="__codelineno-19-9" name="__codelineno-19-9" href="#__codelineno-19-9"></a><span class="w">    </span><span class="sd">&quot;&quot;&quot;My custom copick command.&quot;&quot;&quot;</span>
-</span><span id="__span-19-10"><a id="__codelineno-19-10" name="__codelineno-19-10" href="#__codelineno-19-10"></a>    <span class="n">logger</span> <span class="o">=</span> <span class="n">get_logger</span><span class="p">(</span><span class="vm">__name__</span><span class="p">,</span> <span class="n">debug</span><span class="o">=</span><span class="n">debug</span><span class="p">)</span>
-</span><span id="__span-19-11"><a id="__codelineno-19-11" name="__codelineno-19-11" href="#__codelineno-19-11"></a>    <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Running my command with config: </span><span class="si">{</span><span class="n">config</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+<div class="language-python highlight"><pre><span></span><code><span id="__span-25-1"><a id="__codelineno-25-1" name="__codelineno-25-1" href="#__codelineno-25-1"></a><span class="kn">import</span><span class="w"> </span><span class="nn">click</span>
+</span><span id="__span-25-2"><a id="__codelineno-25-2" name="__codelineno-25-2" href="#__codelineno-25-2"></a><span class="kn">from</span><span class="w"> </span><span class="nn">copick.cli.util</span><span class="w"> </span><span class="kn">import</span> <span class="n">add_config_option</span><span class="p">,</span> <span class="n">add_debug_option</span>
+</span><span id="__span-25-3"><a id="__codelineno-25-3" name="__codelineno-25-3" href="#__codelineno-25-3"></a><span class="kn">from</span><span class="w"> </span><span class="nn">copick.util.log</span><span class="w"> </span><span class="kn">import</span> <span class="n">get_logger</span>
+</span><span id="__span-25-4"><a id="__codelineno-25-4" name="__codelineno-25-4" href="#__codelineno-25-4"></a>
+</span><span id="__span-25-5"><a id="__codelineno-25-5" name="__codelineno-25-5" href="#__codelineno-25-5"></a><span class="nd">@click</span><span class="o">.</span><span class="n">command</span><span class="p">()</span>
+</span><span id="__span-25-6"><a id="__codelineno-25-6" name="__codelineno-25-6" href="#__codelineno-25-6"></a><span class="nd">@add_config_option</span>
+</span><span id="__span-25-7"><a id="__codelineno-25-7" name="__codelineno-25-7" href="#__codelineno-25-7"></a><span class="nd">@add_debug_option</span>
+</span><span id="__span-25-8"><a id="__codelineno-25-8" name="__codelineno-25-8" href="#__codelineno-25-8"></a><span class="k">def</span><span class="w"> </span><span class="nf">my_command</span><span class="p">(</span><span class="n">config</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">debug</span><span class="p">:</span> <span class="nb">bool</span><span class="p">):</span>
+</span><span id="__span-25-9"><a id="__codelineno-25-9" name="__codelineno-25-9" href="#__codelineno-25-9"></a><span class="w">    </span><span class="sd">&quot;&quot;&quot;My custom copick command.&quot;&quot;&quot;</span>
+</span><span id="__span-25-10"><a id="__codelineno-25-10" name="__codelineno-25-10" href="#__codelineno-25-10"></a>    <span class="n">logger</span> <span class="o">=</span> <span class="n">get_logger</span><span class="p">(</span><span class="vm">__name__</span><span class="p">,</span> <span class="n">debug</span><span class="o">=</span><span class="n">debug</span><span class="p">)</span>
+</span><span id="__span-25-11"><a id="__codelineno-25-11" name="__codelineno-25-11" href="#__codelineno-25-11"></a>    <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Running my command with config: </span><span class="si">{</span><span class="n">config</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
 </span></code></pre></div></p>
 <p><strong>Usage:</strong>
 After installing your package, the command will be available:
-<div class="language-bash highlight"><pre><span></span><code><span id="__span-20-1"><a id="__codelineno-20-1" name="__codelineno-20-1" href="#__codelineno-20-1"></a>copick<span class="w"> </span>my-command<span class="w"> </span>--config<span class="w"> </span>path/to/config.json
+<div class="language-bash highlight"><pre><span></span><code><span id="__span-26-1"><a id="__codelineno-26-1" name="__codelineno-26-1" href="#__codelineno-26-1"></a>copick<span class="w"> </span>my-command<span class="w"> </span>--config<span class="w"> </span>path/to/config.json
 </span></code></pre></div></p>
 <hr />
 <h2 id="common-workflows">Common Workflows</h2>
 <h3 id="setup-from-data-portal">Setup from Data Portal</h3>
 <p>Create a new project from CryoET Data Portal datasets:</p>
-<div class="language-bash highlight"><pre><span></span><code><span id="__span-21-1"><a id="__codelineno-21-1" name="__codelineno-21-1" href="#__codelineno-21-1"></a><span class="c1"># Create configuration from data portal</span>
-</span><span id="__span-21-2"><a id="__codelineno-21-2" name="__codelineno-21-2" href="#__codelineno-21-2"></a>copick<span class="w"> </span>config<span class="w"> </span>dataportal<span class="w"> </span>--dataset-id<span class="w"> </span><span class="m">10000</span><span class="w"> </span>--overlay<span class="w"> </span>./overlay<span class="w"> </span>--output<span class="w"> </span>project.json
-</span><span id="__span-21-3"><a id="__codelineno-21-3" name="__codelineno-21-3" href="#__codelineno-21-3"></a>
-</span><span id="__span-21-4"><a id="__codelineno-21-4" name="__codelineno-21-4" href="#__codelineno-21-4"></a><span class="c1"># Set environment variable for convenience</span>
-</span><span id="__span-21-5"><a id="__codelineno-21-5" name="__codelineno-21-5" href="#__codelineno-21-5"></a><span class="nb">export</span><span class="w"> </span><span class="nv">COPICK_CONFIG</span><span class="o">=</span>project.json
-</span><span id="__span-21-6"><a id="__codelineno-21-6" name="__codelineno-21-6" href="#__codelineno-21-6"></a>
-</span><span id="__span-21-7"><a id="__codelineno-21-7" name="__codelineno-21-7" href="#__codelineno-21-7"></a><span class="c1"># Browse the project</span>
-</span><span id="__span-21-8"><a id="__codelineno-21-8" name="__codelineno-21-8" href="#__codelineno-21-8"></a>copick<span class="w"> </span>browse
+<div class="language-bash highlight"><pre><span></span><code><span id="__span-27-1"><a id="__codelineno-27-1" name="__codelineno-27-1" href="#__codelineno-27-1"></a><span class="c1"># Create configuration from data portal</span>
+</span><span id="__span-27-2"><a id="__codelineno-27-2" name="__codelineno-27-2" href="#__codelineno-27-2"></a>copick<span class="w"> </span>config<span class="w"> </span>dataportal<span class="w"> </span>--dataset-id<span class="w"> </span><span class="m">10000</span><span class="w"> </span>--overlay<span class="w"> </span>./overlay<span class="w"> </span>--output<span class="w"> </span>project.json
+</span><span id="__span-27-3"><a id="__codelineno-27-3" name="__codelineno-27-3" href="#__codelineno-27-3"></a>
+</span><span id="__span-27-4"><a id="__codelineno-27-4" name="__codelineno-27-4" href="#__codelineno-27-4"></a><span class="c1"># Set environment variable for convenience</span>
+</span><span id="__span-27-5"><a id="__codelineno-27-5" name="__codelineno-27-5" href="#__codelineno-27-5"></a><span class="nb">export</span><span class="w"> </span><span class="nv">COPICK_CONFIG</span><span class="o">=</span>project.json
+</span><span id="__span-27-6"><a id="__codelineno-27-6" name="__codelineno-27-6" href="#__codelineno-27-6"></a>
+</span><span id="__span-27-7"><a id="__codelineno-27-7" name="__codelineno-27-7" href="#__codelineno-27-7"></a><span class="c1"># Browse the project</span>
+</span><span id="__span-27-8"><a id="__codelineno-27-8" name="__codelineno-27-8" href="#__codelineno-27-8"></a>copick<span class="w"> </span>browse
 </span></code></pre></div>
 <h3 id="add-data-to-project">Add Data to Project</h3>
-<p>Add tomograms and create annotation templates:</p>
-<div class="language-bash highlight"><pre><span></span><code><span id="__span-22-1"><a id="__codelineno-22-1" name="__codelineno-22-1" href="#__codelineno-22-1"></a><span class="c1"># Add a single tomogram</span>
-</span><span id="__span-22-2"><a id="__codelineno-22-2" name="__codelineno-22-2" href="#__codelineno-22-2"></a>copick<span class="w"> </span>add<span class="w"> </span>tomogram<span class="w"> </span>--run<span class="w"> </span>TS_001<span class="w"> </span>data/tomogram.mrc
-</span><span id="__span-22-3"><a id="__codelineno-22-3" name="__codelineno-22-3" href="#__codelineno-22-3"></a>
-</span><span id="__span-22-4"><a id="__codelineno-22-4" name="__codelineno-22-4" href="#__codelineno-22-4"></a><span class="c1"># Add multiple tomograms using glob pattern</span>
-</span><span id="__span-22-5"><a id="__codelineno-22-5" name="__codelineno-22-5" href="#__codelineno-22-5"></a>copick<span class="w"> </span>add<span class="w"> </span>tomogram<span class="w"> </span>data/tomograms/*.mrc
-</span><span id="__span-22-6"><a id="__codelineno-22-6" name="__codelineno-22-6" href="#__codelineno-22-6"></a>
-</span><span id="__span-22-7"><a id="__codelineno-22-7" name="__codelineno-22-7" href="#__codelineno-22-7"></a><span class="c1"># Create empty picks for annotation</span>
-</span><span id="__span-22-8"><a id="__codelineno-22-8" name="__codelineno-22-8" href="#__codelineno-22-8"></a>copick<span class="w"> </span>new<span class="w"> </span>picks<span class="w"> </span>--particle-name<span class="w"> </span>ribosome
-</span><span id="__span-22-9"><a id="__codelineno-22-9" name="__codelineno-22-9" href="#__codelineno-22-9"></a>
-</span><span id="__span-22-10"><a id="__codelineno-22-10" name="__codelineno-22-10" href="#__codelineno-22-10"></a><span class="c1"># Browse to verify</span>
-</span><span id="__span-22-11"><a id="__codelineno-22-11" name="__codelineno-22-11" href="#__codelineno-22-11"></a>copick<span class="w"> </span>browse
+<p>Add tomograms, segmentations, and objects to your project:</p>
+<div class="language-bash highlight"><pre><span></span><code><span id="__span-28-1"><a id="__codelineno-28-1" name="__codelineno-28-1" href="#__codelineno-28-1"></a><span class="c1"># Add a single tomogram</span>
+</span><span id="__span-28-2"><a id="__codelineno-28-2" name="__codelineno-28-2" href="#__codelineno-28-2"></a>copick<span class="w"> </span>add<span class="w"> </span>tomogram<span class="w"> </span>--run<span class="w"> </span>TS_001<span class="w"> </span>data/tomogram.mrc
+</span><span id="__span-28-3"><a id="__codelineno-28-3" name="__codelineno-28-3" href="#__codelineno-28-3"></a>
+</span><span id="__span-28-4"><a id="__codelineno-28-4" name="__codelineno-28-4" href="#__codelineno-28-4"></a><span class="c1"># Add multiple tomograms using glob pattern</span>
+</span><span id="__span-28-5"><a id="__codelineno-28-5" name="__codelineno-28-5" href="#__codelineno-28-5"></a>copick<span class="w"> </span>add<span class="w"> </span>tomogram<span class="w"> </span>data/tomograms/*.mrc
+</span><span id="__span-28-6"><a id="__codelineno-28-6" name="__codelineno-28-6" href="#__codelineno-28-6"></a>
+</span><span id="__span-28-7"><a id="__codelineno-28-7" name="__codelineno-28-7" href="#__codelineno-28-7"></a><span class="c1"># Add pickable objects to the project configuration</span>
+</span><span id="__span-28-8"><a id="__codelineno-28-8" name="__codelineno-28-8" href="#__codelineno-28-8"></a>copick<span class="w"> </span>add<span class="w"> </span>object<span class="w"> </span>--name<span class="w"> </span>ribosome<span class="w"> </span>--object-type<span class="w"> </span>particle<span class="w"> </span>--radius<span class="w"> </span><span class="m">120</span><span class="w"> </span>--pdb-id<span class="w"> </span>4V9D<span class="w"> </span>--color<span class="w"> </span><span class="s2">&quot;255,0,0,255&quot;</span>
+</span><span id="__span-28-9"><a id="__codelineno-28-9" name="__codelineno-28-9" href="#__codelineno-28-9"></a>copick<span class="w"> </span>add<span class="w"> </span>object<span class="w"> </span>--name<span class="w"> </span>membrane<span class="w"> </span>--object-type<span class="w"> </span>segmentation<span class="w"> </span>--label<span class="w"> </span><span class="m">1</span><span class="w"> </span>--color<span class="w"> </span><span class="s2">&quot;0,255,0,128&quot;</span>
+</span><span id="__span-28-10"><a id="__codelineno-28-10" name="__codelineno-28-10" href="#__codelineno-28-10"></a>
+</span><span id="__span-28-11"><a id="__codelineno-28-11" name="__codelineno-28-11" href="#__codelineno-28-11"></a><span class="c1"># Add volume data to existing objects</span>
+</span><span id="__span-28-12"><a id="__codelineno-28-12" name="__codelineno-28-12" href="#__codelineno-28-12"></a>copick<span class="w"> </span>add<span class="w"> </span>object-volume<span class="w"> </span>--object-name<span class="w"> </span>ribosome<span class="w"> </span>--volume-path<span class="w"> </span>data/ribosome_reference.mrc<span class="w"> </span>--voxel-size<span class="w"> </span><span class="m">10</span>.0
+</span><span id="__span-28-13"><a id="__codelineno-28-13" name="__codelineno-28-13" href="#__codelineno-28-13"></a>
+</span><span id="__span-28-14"><a id="__codelineno-28-14" name="__codelineno-28-14" href="#__codelineno-28-14"></a><span class="c1"># Add segmentation data</span>
+</span><span id="__span-28-15"><a id="__codelineno-28-15" name="__codelineno-28-15" href="#__codelineno-28-15"></a>copick<span class="w"> </span>add<span class="w"> </span>segmentation<span class="w"> </span>--run<span class="w"> </span>TS_001<span class="w"> </span>--name<span class="w"> </span>membrane<span class="w"> </span>--user-id<span class="w"> </span>analyst<span class="w"> </span>data/membrane_seg.mrc
+</span><span id="__span-28-16"><a id="__codelineno-28-16" name="__codelineno-28-16" href="#__codelineno-28-16"></a>
+</span><span id="__span-28-17"><a id="__codelineno-28-17" name="__codelineno-28-17" href="#__codelineno-28-17"></a><span class="c1"># Create empty picks for annotation</span>
+</span><span id="__span-28-18"><a id="__codelineno-28-18" name="__codelineno-28-18" href="#__codelineno-28-18"></a>copick<span class="w"> </span>new<span class="w"> </span>picks<span class="w"> </span>--particle-name<span class="w"> </span>ribosome
+</span><span id="__span-28-19"><a id="__codelineno-28-19" name="__codelineno-28-19" href="#__codelineno-28-19"></a>
+</span><span id="__span-28-20"><a id="__codelineno-28-20" name="__codelineno-28-20" href="#__codelineno-28-20"></a><span class="c1"># Browse to verify</span>
+</span><span id="__span-28-21"><a id="__codelineno-28-21" name="__codelineno-28-21" href="#__codelineno-28-21"></a>copick<span class="w"> </span>browse
 </span></code></pre></div>
 <h3 id="work-with-multiple-datasets">Work with Multiple Datasets</h3>
 <p>Combine multiple datasets in one project:</p>
-<div class="language-bash highlight"><pre><span></span><code><span id="__span-23-1"><a id="__codelineno-23-1" name="__codelineno-23-1" href="#__codelineno-23-1"></a><span class="c1"># Create configuration with multiple datasets</span>
-</span><span id="__span-23-2"><a id="__codelineno-23-2" name="__codelineno-23-2" href="#__codelineno-23-2"></a>copick<span class="w"> </span>config<span class="w"> </span>dataportal<span class="w"> </span>-ds<span class="w"> </span><span class="m">10000</span><span class="w"> </span>-ds<span class="w"> </span><span class="m">10001</span><span class="w"> </span>-ds<span class="w"> </span><span class="m">10002</span><span class="w"> </span>--overlay<span class="w"> </span>./overlay<span class="w"> </span>--output<span class="w"> </span>multi_project.json
-</span><span id="__span-23-3"><a id="__codelineno-23-3" name="__codelineno-23-3" href="#__codelineno-23-3"></a>
-</span><span id="__span-23-4"><a id="__codelineno-23-4" name="__codelineno-23-4" href="#__codelineno-23-4"></a><span class="c1"># Browse all datasets together</span>
-</span><span id="__span-23-5"><a id="__codelineno-23-5" name="__codelineno-23-5" href="#__codelineno-23-5"></a>copick<span class="w"> </span>browse<span class="w"> </span>--config<span class="w"> </span>multi_project.json
+<div class="language-bash highlight"><pre><span></span><code><span id="__span-29-1"><a id="__codelineno-29-1" name="__codelineno-29-1" href="#__codelineno-29-1"></a><span class="c1"># Create configuration with multiple datasets</span>
+</span><span id="__span-29-2"><a id="__codelineno-29-2" name="__codelineno-29-2" href="#__codelineno-29-2"></a>copick<span class="w"> </span>config<span class="w"> </span>dataportal<span class="w"> </span>-ds<span class="w"> </span><span class="m">10000</span><span class="w"> </span>-ds<span class="w"> </span><span class="m">10001</span><span class="w"> </span>-ds<span class="w"> </span><span class="m">10002</span><span class="w"> </span>--overlay<span class="w"> </span>./overlay<span class="w"> </span>--output<span class="w"> </span>multi_project.json
+</span><span id="__span-29-3"><a id="__codelineno-29-3" name="__codelineno-29-3" href="#__codelineno-29-3"></a>
+</span><span id="__span-29-4"><a id="__codelineno-29-4" name="__codelineno-29-4" href="#__codelineno-29-4"></a><span class="c1"># Browse all datasets together</span>
+</span><span id="__span-29-5"><a id="__codelineno-29-5" name="__codelineno-29-5" href="#__codelineno-29-5"></a>copick<span class="w"> </span>browse<span class="w"> </span>--config<span class="w"> </span>multi_project.json
 </span></code></pre></div>
 <h3 id="development-and-debugging">Development and Debugging</h3>
 <p>Debug and test your Copick workflows:</p>
-<div class="language-bash highlight"><pre><span></span><code><span id="__span-24-1"><a id="__codelineno-24-1" name="__codelineno-24-1" href="#__codelineno-24-1"></a><span class="c1"># Run commands with debug logging</span>
-</span><span id="__span-24-2"><a id="__codelineno-24-2" name="__codelineno-24-2" href="#__codelineno-24-2"></a>copick<span class="w"> </span>browse<span class="w"> </span>--config<span class="w"> </span>project.json<span class="w"> </span>--debug
-</span><span id="__span-24-3"><a id="__codelineno-24-3" name="__codelineno-24-3" href="#__codelineno-24-3"></a>
-</span><span id="__span-24-4"><a id="__codelineno-24-4" name="__codelineno-24-4" href="#__codelineno-24-4"></a><span class="c1"># Create a new run for testing</span>
-</span><span id="__span-24-5"><a id="__codelineno-24-5" name="__codelineno-24-5" href="#__codelineno-24-5"></a>copick<span class="w"> </span>new<span class="w"> </span>run<span class="w"> </span>--config<span class="w"> </span>project.json<span class="w"> </span>TEST_RUN
-</span><span id="__span-24-6"><a id="__codelineno-24-6" name="__codelineno-24-6" href="#__codelineno-24-6"></a>
-</span><span id="__span-24-7"><a id="__codelineno-24-7" name="__codelineno-24-7" href="#__codelineno-24-7"></a><span class="c1"># Add a voxel spacing to the test run</span>
-</span><span id="__span-24-8"><a id="__codelineno-24-8" name="__codelineno-24-8" href="#__codelineno-24-8"></a>copick<span class="w"> </span>new<span class="w"> </span>voxelspacing<span class="w"> </span>--config<span class="w"> </span>project.json<span class="w"> </span>--run<span class="w"> </span>TEST_RUN<span class="w"> </span><span class="m">10</span>.0
-</span><span id="__span-24-9"><a id="__codelineno-24-9" name="__codelineno-24-9" href="#__codelineno-24-9"></a>
-</span><span id="__span-24-10"><a id="__codelineno-24-10" name="__codelineno-24-10" href="#__codelineno-24-10"></a><span class="c1"># Add a tomogram with detailed output</span>
-</span><span id="__span-24-11"><a id="__codelineno-24-11" name="__codelineno-24-11" href="#__codelineno-24-11"></a>copick<span class="w"> </span>add<span class="w"> </span>tomogram<span class="w"> </span>--config<span class="w"> </span>project.json<span class="w"> </span>--run<span class="w"> </span>TEST_RUN<span class="w"> </span>--debug<span class="w"> </span>data/test_tomogram.mrc
+<div class="language-bash highlight"><pre><span></span><code><span id="__span-30-1"><a id="__codelineno-30-1" name="__codelineno-30-1" href="#__codelineno-30-1"></a><span class="c1"># Run commands with debug logging</span>
+</span><span id="__span-30-2"><a id="__codelineno-30-2" name="__codelineno-30-2" href="#__codelineno-30-2"></a>copick<span class="w"> </span>browse<span class="w"> </span>--config<span class="w"> </span>project.json<span class="w"> </span>--debug
+</span><span id="__span-30-3"><a id="__codelineno-30-3" name="__codelineno-30-3" href="#__codelineno-30-3"></a>
+</span><span id="__span-30-4"><a id="__codelineno-30-4" name="__codelineno-30-4" href="#__codelineno-30-4"></a><span class="c1"># Create a new run for testing</span>
+</span><span id="__span-30-5"><a id="__codelineno-30-5" name="__codelineno-30-5" href="#__codelineno-30-5"></a>copick<span class="w"> </span>new<span class="w"> </span>run<span class="w"> </span>--config<span class="w"> </span>project.json<span class="w"> </span>TEST_RUN
+</span><span id="__span-30-6"><a id="__codelineno-30-6" name="__codelineno-30-6" href="#__codelineno-30-6"></a>
+</span><span id="__span-30-7"><a id="__codelineno-30-7" name="__codelineno-30-7" href="#__codelineno-30-7"></a><span class="c1"># Add a voxel spacing to the test run</span>
+</span><span id="__span-30-8"><a id="__codelineno-30-8" name="__codelineno-30-8" href="#__codelineno-30-8"></a>copick<span class="w"> </span>new<span class="w"> </span>voxelspacing<span class="w"> </span>--config<span class="w"> </span>project.json<span class="w"> </span>--run<span class="w"> </span>TEST_RUN<span class="w"> </span><span class="m">10</span>.0
+</span><span id="__span-30-9"><a id="__codelineno-30-9" name="__codelineno-30-9" href="#__codelineno-30-9"></a>
+</span><span id="__span-30-10"><a id="__codelineno-30-10" name="__codelineno-30-10" href="#__codelineno-30-10"></a><span class="c1"># Add a tomogram with detailed output</span>
+</span><span id="__span-30-11"><a id="__codelineno-30-11" name="__codelineno-30-11" href="#__codelineno-30-11"></a>copick<span class="w"> </span>add<span class="w"> </span>tomogram<span class="w"> </span>--config<span class="w"> </span>project.json<span class="w"> </span>--run<span class="w"> </span>TEST_RUN<span class="w"> </span>--debug<span class="w"> </span>data/test_tomogram.mrc
 </span></code></pre></div>
 
 

@@ -2520,19 +2520,35 @@ any storage supported by <code>fsspec</code>. The filesystem implementation is d
 <p><span class="doc-section-title">Attributes:</span></p>
     <ul>
         <li class="doc-section-item field-body">
-          <b><code><span title="copick.impl.filesystem.CopickObjectFSSpec.path">path</span></code></b>
+          <b><code><span title="copick.impl.filesystem.CopickObjectFSSpec.static_path">static_path</span></code></b>
               (<code><span title="str">str</span></code>)
           –
           <div class="doc-md-description">
-            <p>The path to the object file.</p>
+            <p>The path to the object on the static source.</p>
           </div>
         </li>
         <li class="doc-section-item field-body">
-          <b><code><span title="copick.impl.filesystem.CopickObjectFSSpec.fs">fs</span></code></b>
+          <b><code><span title="copick.impl.filesystem.CopickObjectFSSpec.overlay_path">overlay_path</span></code></b>
+              (<code><span title="str">str</span></code>)
+          –
+          <div class="doc-md-description">
+            <p>The path to the object on the overlay source.</p>
+          </div>
+        </li>
+        <li class="doc-section-item field-body">
+          <b><code><span title="copick.impl.filesystem.CopickObjectFSSpec.fs_static">fs_static</span></code></b>
               (<code><span title="fsspec.AbstractFileSystem">AbstractFileSystem</span></code>)
           –
           <div class="doc-md-description">
-            <p>The filesystem containing the object file.</p>
+            <p>The filesystem for the static source.</p>
+          </div>
+        </li>
+        <li class="doc-section-item field-body">
+          <b><code><span title="copick.impl.filesystem.CopickObjectFSSpec.fs_overlay">fs_overlay</span></code></b>
+              (<code><span title="fsspec.AbstractFileSystem">AbstractFileSystem</span></code>)
+          –
+          <div class="doc-md-description">
+            <p>The filesystem for the overlay source.</p>
           </div>
         </li>
     </ul>
