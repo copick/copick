@@ -149,6 +149,9 @@ Add entities to Copick projects.
 **Subcommands:**
 
 - [`copick add tomogram`](#copick-add-tomogram) - Add a tomogram to the project
+- [`copick add segmentation`](#copick-add-segmentation) - Add a segmentation to the project
+- [`copick add object`](#copick-add-object) - Add a pickable object to the project configuration
+- [`copick add object-volume`](#copick-add-object-volume) - Add volume data to an existing pickable object
 
 #### :material-cube: `copick add tomogram`
 
@@ -210,6 +213,132 @@ copick add tomogram --config config.json --chunk-size "128,128,128" data/tomogra
 
 # Add multiple tomograms with custom settings
 copick add tomogram --config config.json --tomo-type "denoised" --voxel_size 8.0 data/processed_*.mrc
+```
+
+#### :material-layers: `copick add segmentation`
+
+Add one or more segmentations to the project from MRC or Zarr files.
+
+**Usage:**
+```bash
+copick add segmentation [OPTIONS] PATH
+```
+
+**Arguments:**
+
+| Argument | Type | Description |
+|----------|------|-------------|
+| `PATH` | Path | Path to segmentation file(s) (MRC or Zarr format) or glob pattern (e.g., `*.mrc`) |
+
+**Options:**
+
+| Option | Type | Description | Default |
+|--------|------|-------------|---------|
+| `-c, --config PATH` | Path | Path to the configuration file | Uses `COPICK_CONFIG` env var |
+| `--run TEXT` | String | The name of the run. If not specified, will use the name of the file (stripping extension), ignored if PATH is glob pattern. | `""` |
+| `--voxel-size FLOAT` | Float | Voxel size in Angstrom (overrides header value) | None |
+| `--name TEXT` | String | Name of the segmentation | None |
+| `--user-id TEXT` | String | User ID of the segmentation | `copick` |
+| `--session-id TEXT` | String | Session ID of the segmentation | `1` |
+| `--overwrite / --no-overwrite` | Boolean | Overwrite the object if it exists | `no-overwrite` |
+| `--create / --no-create` | Boolean | Create the object if it does not exist | `create` |
+| `--debug / --no-debug` | Boolean | Enable debug logging | `no-debug` |
+
+**Examples:**
+
+```bash
+# Add single segmentation with default settings
+copick add segmentation --config config.json --run TS_001 --name membrane data/segmentation.mrc
+
+# Add multiple segmentations using glob pattern
+copick add segmentation --config config.json --name organelles data/segmentations/*.mrc
+
+# Add segmentation with custom user and session
+copick add segmentation --config config.json --run TS_001 --name mitochondria --user-id alice --session-id 2 data/mito_seg.mrc
+
+# Add segmentation with custom voxel size
+copick add segmentation --config config.json --run TS_001 --name membrane --voxel-size 10.0 data/membrane.zarr
+```
+
+#### :material-shape: `copick add object`
+
+Add a pickable object to the project configuration.
+
+**Usage:**
+```bash
+copick add object [OPTIONS]
+```
+
+**Options:**
+
+| Option | Type | Description | Default |
+|--------|------|-------------|---------|
+| `-c, --config PATH` | Path | Path to the configuration file | Uses `COPICK_CONFIG` env var |
+| `--name TEXT` | String | Name of the object to add (required) | None |
+| `--object-type CHOICE` | String | Type of object: 'particle' or 'segmentation' | `particle` |
+| `--label INTEGER` | Integer | Numeric label/id for the object. If not provided, will use the next available label | None |
+| `--color TEXT` | String | RGBA color for the object as comma-separated values (e.g. '255,0,0,255' for red) | None |
+| `--emdb-id TEXT` | String | EMDB ID for the object | None |
+| `--pdb-id TEXT` | String | PDB ID for the object | None |
+| `--identifier TEXT` | String | Identifier for the object (e.g. Gene Ontology ID or UniProtKB accession) | None |
+| `--map-threshold FLOAT` | Float | Threshold to apply to the map when rendering the isosurface | None |
+| `--radius FLOAT` | Float | Radius of the particle, when displaying as a sphere | `50` |
+| `--volume PATH` | Path | Path to volume file to associate with the object | None |
+| `--volume-format CHOICE` | String | Format of the volume file ('mrc' or 'zarr') | Auto-detected |
+| `--voxel-size FLOAT` | Float | Voxel size for the volume data. Required if volume is provided | None |
+| `--exist-ok / --no-exist-ok` | Boolean | Whether existing objects with the same name should be overwritten | `no-exist-ok` |
+| `--debug / --no-debug` | Boolean | Enable debug logging | `no-debug` |
+
+**Examples:**
+
+```bash
+# Add a basic particle object
+copick add object --config config.json --name ribosome --object-type particle --radius 120
+
+# Add a particle with PDB reference and custom color
+copick add object --config config.json --name ribosome --object-type particle --radius 120 --pdb-id 4V9D --color "255,0,0,255"
+
+# Add a segmentation object with custom label
+copick add object --config config.json --name membrane --object-type segmentation --label 1 --color "0,255,0,128"
+
+# Add a particle with associated volume data
+copick add object --config config.json --name proteasome --object-type particle --radius 80 --volume data/proteasome.mrc --voxel-size 10.0
+
+# Add object with EMDB reference and identifier
+copick add object --config config.json --name apoferritin --object-type particle --emdb-id EMD-1234 --identifier "GO:0006826" --radius 60
+```
+
+#### :material-cube-outline: `copick add object-volume`
+
+Add volume data to an existing pickable object.
+
+**Usage:**
+```bash
+copick add object-volume [OPTIONS]
+```
+
+**Options:**
+
+| Option | Type | Description | Default |
+|--------|------|-------------|---------|
+| `-c, --config PATH` | Path | Path to the configuration file | Uses `COPICK_CONFIG` env var |
+| `--object-name TEXT` | String | Name of the existing object (required) | None |
+| `--volume-path PATH` | Path | Path to the volume file (required) | None |
+| `--volume-format CHOICE` | String | Format of the volume file ('mrc' or 'zarr') | Auto-detected |
+| `--voxel-size FLOAT` | Float | Voxel size of the volume data in Angstrom | None |
+| `--debug / --no-debug` | Boolean | Enable debug logging | `no-debug` |
+
+**Examples:**
+
+```bash
+# Add volume data to an existing object
+copick add object-volume --config config.json --object-name ribosome --volume-path data/ribosome_volume.mrc
+
+# Add volume with custom voxel size
+copick add object-volume --config config.json --object-name proteasome --volume-path data/proteasome.zarr --voxel-size 8.0
+
+# Add volume with explicit format specification
+copick add object-volume --config config.json --object-name membrane --volume-path data/membrane_vol --volume-format zarr
 ```
 
 ---
@@ -417,7 +546,7 @@ copick browse
 
 ### Add Data to Project
 
-Add tomograms and create annotation templates:
+Add tomograms, segmentations, and objects to your project:
 
 ```bash
 # Add a single tomogram
@@ -425,6 +554,16 @@ copick add tomogram --run TS_001 data/tomogram.mrc
 
 # Add multiple tomograms using glob pattern
 copick add tomogram data/tomograms/*.mrc
+
+# Add pickable objects to the project configuration
+copick add object --name ribosome --object-type particle --radius 120 --pdb-id 4V9D --color "255,0,0,255"
+copick add object --name membrane --object-type segmentation --label 1 --color "0,255,0,128"
+
+# Add volume data to existing objects
+copick add object-volume --object-name ribosome --volume-path data/ribosome_reference.mrc --voxel-size 10.0
+
+# Add segmentation data
+copick add segmentation --run TS_001 --name membrane --user-id analyst data/membrane_seg.mrc
 
 # Create empty picks for annotation
 copick new picks --particle-name ribosome

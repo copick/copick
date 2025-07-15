@@ -100,7 +100,7 @@ class CopickObjectOverlay(CopickObject):
         read_only (bool): Whether the object is read-only.
     """
 
-    def __init__(self, root: CopickRoot, meta: PickableObject, read_only: bool = True):
+    def __init__(self, root: CopickRoot, meta: PickableObject, read_only: bool = False):
         super().__init__(root, meta)
         self.read_only = read_only
 
