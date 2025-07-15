@@ -841,7 +841,7 @@ class TestCLIAddObject:
         result = runner.invoke(
             add,
             [
-                "object-definition",
+                "object",
                 "--config",
                 str(config_file),
                 "--name",
@@ -878,7 +878,7 @@ class TestCLIAddObject:
         result = runner.invoke(
             add,
             [
-                "object-definition",
+                "object",
                 "--config",
                 str(config_file),
                 "--name",
@@ -909,7 +909,7 @@ class TestCLIAddObject:
         result = runner.invoke(
             add,
             [
-                "object-definition",
+                "object",
                 "--config",
                 str(config_file),
                 "--name",
@@ -941,7 +941,7 @@ class TestCLIAddObject:
         result = runner.invoke(
             add,
             [
-                "object-definition",
+                "object",
                 "--config",
                 str(config_file),
                 "--name",
@@ -969,7 +969,7 @@ class TestCLIAddObject:
         result = runner.invoke(
             add,
             [
-                "object-definition",
+                "object",
                 "--config",
                 str(config_file),
                 "--name",
@@ -998,7 +998,7 @@ class TestCLIAddObject:
         result1 = runner.invoke(
             add,
             [
-                "object-definition",
+                "object",
                 "--config",
                 str(config_file),
                 "--name",
@@ -1011,7 +1011,7 @@ class TestCLIAddObject:
         result2 = runner.invoke(
             add,
             [
-                "object-definition",
+                "object",
                 "--config",
                 str(config_file),
                 "--name",
@@ -1036,7 +1036,7 @@ class TestCLIAddObject:
         result1 = runner.invoke(
             add,
             [
-                "object-definition",
+                "object",
                 "--config",
                 str(config_file),
                 "--name",
@@ -1079,7 +1079,7 @@ class TestCLIAddObject:
         result1 = runner.invoke(
             add,
             [
-                "object-definition",
+                "object",
                 "--config",
                 str(config_file),
                 "--name",
@@ -1139,7 +1139,7 @@ class TestCLIAddObject:
         result1 = runner.invoke(
             add,
             [
-                "object-definition",
+                "object",
                 "--config",
                 str(config_file),
                 "--name",
@@ -1176,7 +1176,7 @@ class TestCLIAddObject:
         result = runner.invoke(
             add,
             [
-                "object-definition",
+                "object",
                 "--config",
                 str(config_file),
                 "--name",
@@ -1197,7 +1197,7 @@ class TestCLIAddObject:
         runner.invoke(
             add,
             [
-                "object-definition",
+                "object",
                 "--config",
                 str(config_file),
                 "--name",

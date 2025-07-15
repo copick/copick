@@ -398,7 +398,7 @@ def segmentation(
 )
 @add_debug_option
 @click.pass_context
-def object_definition(
+def object(
     ctx,
     config: str,
     name: str,
