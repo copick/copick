@@ -8,6 +8,7 @@ import tqdm
 import copick
 from copick.cli.util import add_config_option, add_create_overwrite_options, add_debug_option
 from copick.ops.add import _add_tomogram_mrc, _add_tomogram_zarr, add_object, add_object_volume, add_segmentation
+from copick.util.formats import get_data_from_file, get_format_from_extension
 from copick.util.log import get_logger
 
 
@@ -364,8 +365,9 @@ def segmentation(
 @click.option(
     "--radius",
     type=float,
-    default=None,
+    default=50,
     help="Radius of the particle, when displaying as a sphere.",
+    show_default=True,
 )
 @click.option(
     "--volume",
@@ -438,36 +440,22 @@ def object_definition(
 
     # Load volume if provided
     volume_data = None
+    voxel_spacing = None
     if volume:
-        if voxel_size is None:
-            ctx.fail("Voxel size must be provided when adding volume data.")
-
         # Determine format
-        if volume_format:
-            fmt = volume_format.lower()
-        elif volume.endswith(".mrc"):
-            fmt = "mrc"
-        elif volume.endswith(".zarr"):
-            fmt = "zarr"
-        else:
+        fmt = volume_format.lower() if volume_format else get_format_from_extension(volume)
+
+        if fmt is None:
             ctx.fail("Could not determine volume format from extension. Please specify --volume-format.")
 
         try:
-            if fmt == "mrc":
-                import mrcfile
-
-                with mrcfile.open(volume) as mrc:
-                    volume_data = mrc.data
-            elif fmt == "zarr":
-                import zarr
-
-                zarr_group = zarr.open(volume)
-                volume_data = zarr_group["0"][:]
-            else:
-                ctx.fail(f"Unsupported volume format: {fmt}")
+            volume_data, voxel_spacing = get_data_from_file(volume, fmt)
         except Exception as e:
             logger.critical(f"Failed to load volume: {e}")
             ctx.fail(f"Error loading volume: {e}")
+
+        if voxel_size is not None:
+            voxel_spacing = voxel_size
 
     try:
         # Add object
@@ -483,7 +471,7 @@ def object_definition(
             map_threshold=map_threshold,
             radius=radius,
             volume=volume_data,
-            voxel_size=voxel_size,
+            voxel_size=voxel_spacing,
             exist_ok=exist_ok,
             save_config=True,
             config_path=config,
@@ -522,7 +510,8 @@ def object_definition(
 @click.option(
     "--voxel-size",
     type=float,
-    required=True,
+    required=False,
+    default=None,
     help="Voxel size of the volume data in Angstrom.",
 )
 @add_debug_option
@@ -545,32 +534,21 @@ def object_volume(
     root = copick.from_file(config)
 
     # Determine format
-    if volume_format:
-        fmt = volume_format.lower()
-    elif volume_path.endswith(".mrc"):
-        fmt = "mrc"
-    elif volume_path.endswith(".zarr"):
-        fmt = "zarr"
-    else:
+    fmt = volume_format.lower() if volume_format else get_format_from_extension(volume_path)
+
+    if fmt is None:
         ctx.fail("Could not determine volume format from extension. Please specify --volume-format.")
 
     # Load volume
     try:
-        if fmt == "mrc":
-            import mrcfile
-
-            with mrcfile.open(volume_path) as mrc:
-                volume_data = mrc.data
-        elif fmt == "zarr":
-            import zarr
-
-            zarr_group = zarr.open(volume_path)
-            volume_data = zarr_group["0"][:]
-        else:
-            ctx.fail(f"Unsupported volume format: {fmt}")
+        volume_data, voxel_spacing = get_data_from_file(volume_path, fmt)
     except Exception as e:
         logger.critical(f"Failed to load volume: {e}")
         ctx.fail(f"Error loading volume: {e}")
+        raise e
+
+    if voxel_size is not None:
+        voxel_spacing = voxel_size
 
     try:
         # Add volume to object
@@ -578,7 +556,7 @@ def object_volume(
             root=root,
             object_name=object_name,
             volume=volume_data,
-            voxel_size=voxel_size,
+            voxel_size=voxel_spacing,
             log=debug,
         )
 

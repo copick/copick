@@ -1110,27 +1110,6 @@ class TestCLIAddObject:
 
         assert result2.exit_code == 0, f"Command failed: {result2.output}"
 
-    def test_add_object_definition_volume_without_voxel_size(self, test_payload, runner, sample_mrc_file):
-        """Test adding object with volume but no voxel size (should fail)."""
-        config_file = test_payload["cfg_file"]
-
-        result = runner.invoke(
-            add,
-            [
-                "object-definition",
-                "--config",
-                str(config_file),
-                "--name",
-                "test-no-voxel-size",
-                "--volume",
-                sample_mrc_file,
-                # Missing --voxel-size
-            ],
-        )
-
-        assert result.exit_code != 0, "Command should fail without voxel size"
-        assert "Voxel size must be provided" in result.output
-
     def test_add_object_volume_nonexistent_object(self, test_payload, runner, sample_mrc_file):
         """Test adding volume to non-existent object (should fail)."""
         config_file = test_payload["cfg_file"]
