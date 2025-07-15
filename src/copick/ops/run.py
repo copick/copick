@@ -115,7 +115,7 @@ def report_results(
         for error in all_errors:
             logger.error(error)
 
-        if total_processed == 0:
-            logger.warning(f"Successfully processed {total_processed} out of {total_files} runs")
+        if total_processed > 0:
+            logger.info(f"Successfully processed {total_processed} out of {total_files} runs")
     else:
         logger.info(f"Successfully processed all {total_processed} runs")
