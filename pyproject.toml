@@ -31,6 +31,7 @@ dependencies = [
 ]
 authors = [
     { name = "Utz H. Ermel", email = "utz.ermel@czii.org" },
+    { name = "Jonathan Schwartz", email = "jonathan.schwartz@czii.org" },
     { name = "Kyle I. S. Harrington", email = "kyle@kyleharrington.com" },
 ]
 description = "Definitions for a collaborative cryoET annotation tool."
