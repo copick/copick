@@ -1864,9 +1864,27 @@
       <ul class="md-nav__list">
         
           <li class="md-nav__item">
+  <a href="#supported-entry-point-groups" class="md-nav__link">
+    <span class="md-ellipsis">
+      Supported Entry Point Groups
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
   <a href="#creating-a-plugin" class="md-nav__link">
     <span class="md-ellipsis">
       Creating a Plugin
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#demo-package" class="md-nav__link">
+    <span class="md-ellipsis">
+      Demo Package
     </span>
   </a>
   
@@ -2030,9 +2048,27 @@
       <ul class="md-nav__list">
         
           <li class="md-nav__item">
+  <a href="#supported-entry-point-groups" class="md-nav__link">
+    <span class="md-ellipsis">
+      Supported Entry Point Groups
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
   <a href="#creating-a-plugin" class="md-nav__link">
     <span class="md-ellipsis">
       Creating a Plugin
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#demo-package" class="md-nav__link">
+    <span class="md-ellipsis">
+      Demo Package
     </span>
   </a>
   
@@ -2165,49 +2201,110 @@
 </span><span id="__span-9-6"><a id="__codelineno-9-6" name="__codelineno-9-6" href="#__codelineno-9-6"></a>perf:<span class="w"> </span>optimize<span class="w"> </span>zarr<span class="w"> </span>array<span class="w"> </span>reading<span class="w"> </span><span class="k">for</span><span class="w"> </span>large<span class="w"> </span>volumes
 </span></code></pre></div>
 <h2 id="plugin-development">Plugin Development</h2>
-<p>Copick supports a plugin system that allows external Python packages to register CLI commands.</p>
+<p>Copick supports a plugin system that allows external Python packages to register CLI commands. Commands can be added to the main CLI or organized into groups like <code>inference</code>, <code>training</code>, <code>evaluation</code>, <code>process</code>, and <code>convert</code>.</p>
+<h3 id="supported-entry-point-groups">Supported Entry Point Groups</h3>
+<p>The plugin system supports the following entry point groups:</p>
+<ul>
+<li><strong><code>copick.commands</code></strong>: Commands added directly to the main CLI (e.g., <code>copick mycommand</code>)</li>
+<li><strong><code>copick.inference.commands</code></strong>: Commands under the inference group (e.g., <code>copick inference mymodel</code>)</li>
+<li><strong><code>copick.training.commands</code></strong>: Commands under the training group (e.g., <code>copick training mytrain</code>)</li>
+<li><strong><code>copick.evaluation.commands</code></strong>: Commands under the evaluation group (e.g., <code>copick evaluation myscore</code>)</li>
+<li><strong><code>copick.process.commands</code></strong>: Commands under the process group (e.g., <code>copick process mymethod</code>)</li>
+<li><strong><code>copick.convert.commands</code></strong>: Commands under the convert group (e.g., <code>copick convert myconverter</code>)</li>
+</ul>
 <h3 id="creating-a-plugin">Creating a Plugin</h3>
 <ol>
-<li><strong>In your package's <code>setup.py</code> or <code>pyproject.toml</code></strong>, add an entry point in the <code>copick.commands</code> group:</li>
-</ol>
-<p><strong>setup.py</strong>:
-   <div class="language-python highlight"><pre><span></span><code><span id="__span-10-1"><a id="__codelineno-10-1" name="__codelineno-10-1" href="#__codelineno-10-1"></a><span class="n">setup</span><span class="p">(</span>
-</span><span id="__span-10-2"><a id="__codelineno-10-2" name="__codelineno-10-2" href="#__codelineno-10-2"></a>    <span class="n">name</span><span class="o">=</span><span class="s2">&quot;my-copick-plugin&quot;</span><span class="p">,</span>
-</span><span id="__span-10-3"><a id="__codelineno-10-3" name="__codelineno-10-3" href="#__codelineno-10-3"></a>    <span class="n">entry_points</span><span class="o">=</span><span class="p">{</span>
-</span><span id="__span-10-4"><a id="__codelineno-10-4" name="__codelineno-10-4" href="#__codelineno-10-4"></a>        <span class="s2">&quot;copick.commands&quot;</span><span class="p">:</span> <span class="p">[</span>
-</span><span id="__span-10-5"><a id="__codelineno-10-5" name="__codelineno-10-5" href="#__codelineno-10-5"></a>            <span class="s2">&quot;my-command=my_package.cli:my_command&quot;</span><span class="p">,</span>
-</span><span id="__span-10-6"><a id="__codelineno-10-6" name="__codelineno-10-6" href="#__codelineno-10-6"></a>        <span class="p">],</span>
-</span><span id="__span-10-7"><a id="__codelineno-10-7" name="__codelineno-10-7" href="#__codelineno-10-7"></a>    <span class="p">},</span>
-</span><span id="__span-10-8"><a id="__codelineno-10-8" name="__codelineno-10-8" href="#__codelineno-10-8"></a><span class="p">)</span>
-</span></code></pre></div></p>
-<p><strong>pyproject.toml</strong>:
-   <div class="language-toml highlight"><pre><span></span><code><span id="__span-11-1"><a id="__codelineno-11-1" name="__codelineno-11-1" href="#__codelineno-11-1"></a><span class="k">[project.entry-points.</span><span class="s2">&quot;copick.commands&quot;</span><span class="k">]</span>
-</span><span id="__span-11-2"><a id="__codelineno-11-2" name="__codelineno-11-2" href="#__codelineno-11-2"></a><span class="n">my-command</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s2">&quot;my_package.cli:my_command&quot;</span>
-</span></code></pre></div></p>
-<ol>
 <li>
-<p><strong>Create a Click command</strong> in your package:
+<p><strong>Set up your package structure</strong>:
+   <div class="language-text highlight"><pre><span></span><code><span id="__span-10-1"><a id="__codelineno-10-1" name="__codelineno-10-1" href="#__codelineno-10-1"></a>my-copick-plugin/
+</span><span id="__span-10-2"><a id="__codelineno-10-2" name="__codelineno-10-2" href="#__codelineno-10-2"></a>├── src/
+</span><span id="__span-10-3"><a id="__codelineno-10-3" name="__codelineno-10-3" href="#__codelineno-10-3"></a>│   └── my_copick_plugin/
+</span><span id="__span-10-4"><a id="__codelineno-10-4" name="__codelineno-10-4" href="#__codelineno-10-4"></a>│       ├── __init__.py
+</span><span id="__span-10-5"><a id="__codelineno-10-5" name="__codelineno-10-5" href="#__codelineno-10-5"></a>│       └── cli/
+</span><span id="__span-10-6"><a id="__codelineno-10-6" name="__codelineno-10-6" href="#__codelineno-10-6"></a>│           ├── __init__.py
+</span><span id="__span-10-7"><a id="__codelineno-10-7" name="__codelineno-10-7" href="#__codelineno-10-7"></a>│           └── cli.py
+</span><span id="__span-10-8"><a id="__codelineno-10-8" name="__codelineno-10-8" href="#__codelineno-10-8"></a>├── pyproject.toml
+</span><span id="__span-10-9"><a id="__codelineno-10-9" name="__codelineno-10-9" href="#__codelineno-10-9"></a>└── README.md
+</span></code></pre></div></p>
+</li>
+<li>
+<p><strong>In your package's <code>pyproject.toml</code></strong>, add entry points for the desired groups:
+   <div class="language-toml highlight"><pre><span></span><code><span id="__span-11-1"><a id="__codelineno-11-1" name="__codelineno-11-1" href="#__codelineno-11-1"></a><span class="c1"># Commands added to main CLI group</span>
+</span><span id="__span-11-2"><a id="__codelineno-11-2" name="__codelineno-11-2" href="#__codelineno-11-2"></a><span class="k">[project.entry-points.</span><span class="s2">&quot;copick.commands&quot;</span><span class="k">]</span>
+</span><span id="__span-11-3"><a id="__codelineno-11-3" name="__codelineno-11-3" href="#__codelineno-11-3"></a><span class="n">mycommand</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s2">&quot;my_copick_plugin.cli.cli:mycommand&quot;</span>
+</span><span id="__span-11-4"><a id="__codelineno-11-4" name="__codelineno-11-4" href="#__codelineno-11-4"></a>
+</span><span id="__span-11-5"><a id="__codelineno-11-5" name="__codelineno-11-5" href="#__codelineno-11-5"></a><span class="c1"># Commands added to inference group</span>
+</span><span id="__span-11-6"><a id="__codelineno-11-6" name="__codelineno-11-6" href="#__codelineno-11-6"></a><span class="k">[project.entry-points.</span><span class="s2">&quot;copick.inference.commands&quot;</span><span class="k">]</span>
+</span><span id="__span-11-7"><a id="__codelineno-11-7" name="__codelineno-11-7" href="#__codelineno-11-7"></a><span class="n">mymodel-infer</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s2">&quot;my_copick_plugin.cli.cli:mymodel_infer&quot;</span>
+</span><span id="__span-11-8"><a id="__codelineno-11-8" name="__codelineno-11-8" href="#__codelineno-11-8"></a>
+</span><span id="__span-11-9"><a id="__codelineno-11-9" name="__codelineno-11-9" href="#__codelineno-11-9"></a><span class="c1"># Commands added to training group</span>
+</span><span id="__span-11-10"><a id="__codelineno-11-10" name="__codelineno-11-10" href="#__codelineno-11-10"></a><span class="k">[project.entry-points.</span><span class="s2">&quot;copick.training.commands&quot;</span><span class="k">]</span>
+</span><span id="__span-11-11"><a id="__codelineno-11-11" name="__codelineno-11-11" href="#__codelineno-11-11"></a><span class="n">mymodel-train</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s2">&quot;my_copick_plugin.cli.cli:mymodel_train&quot;</span>
+</span><span id="__span-11-12"><a id="__codelineno-11-12" name="__codelineno-11-12" href="#__codelineno-11-12"></a>
+</span><span id="__span-11-13"><a id="__codelineno-11-13" name="__codelineno-11-13" href="#__codelineno-11-13"></a><span class="c1"># Commands added to evaluation group</span>
+</span><span id="__span-11-14"><a id="__codelineno-11-14" name="__codelineno-11-14" href="#__codelineno-11-14"></a><span class="k">[project.entry-points.</span><span class="s2">&quot;copick.evaluation.commands&quot;</span><span class="k">]</span>
+</span><span id="__span-11-15"><a id="__codelineno-11-15" name="__codelineno-11-15" href="#__codelineno-11-15"></a><span class="n">myscore</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s2">&quot;my_copick_plugin.cli.cli:myscore&quot;</span>
+</span><span id="__span-11-16"><a id="__codelineno-11-16" name="__codelineno-11-16" href="#__codelineno-11-16"></a>
+</span><span id="__span-11-17"><a id="__codelineno-11-17" name="__codelineno-11-17" href="#__codelineno-11-17"></a><span class="c1"># Commands added to process group</span>
+</span><span id="__span-11-18"><a id="__codelineno-11-18" name="__codelineno-11-18" href="#__codelineno-11-18"></a><span class="k">[project.entry-points.</span><span class="s2">&quot;copick.process.commands&quot;</span><span class="k">]</span>
+</span><span id="__span-11-19"><a id="__codelineno-11-19" name="__codelineno-11-19" href="#__codelineno-11-19"></a><span class="n">mymethod</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s2">&quot;my_copick_plugin.cli.cli:mymethod&quot;</span>
+</span><span id="__span-11-20"><a id="__codelineno-11-20" name="__codelineno-11-20" href="#__codelineno-11-20"></a>
+</span><span id="__span-11-21"><a id="__codelineno-11-21" name="__codelineno-11-21" href="#__codelineno-11-21"></a><span class="c1"># Commands added to convert group</span>
+</span><span id="__span-11-22"><a id="__codelineno-11-22" name="__codelineno-11-22" href="#__codelineno-11-22"></a><span class="k">[project.entry-points.</span><span class="s2">&quot;copick.convert.commands&quot;</span><span class="k">]</span>
+</span><span id="__span-11-23"><a id="__codelineno-11-23" name="__codelineno-11-23" href="#__codelineno-11-23"></a><span class="n">myconverter</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s2">&quot;my_copick_plugin.cli.cli:myconverter&quot;</span>
+</span></code></pre></div></p>
+</li>
+<li>
+<p><strong>Create Click commands</strong> in your package:
    <div class="language-python highlight"><pre><span></span><code><span id="__span-12-1"><a id="__codelineno-12-1" name="__codelineno-12-1" href="#__codelineno-12-1"></a><span class="kn">import</span><span class="w"> </span><span class="nn">click</span>
 </span><span id="__span-12-2"><a id="__codelineno-12-2" name="__codelineno-12-2" href="#__codelineno-12-2"></a>
 </span><span id="__span-12-3"><a id="__codelineno-12-3" name="__codelineno-12-3" href="#__codelineno-12-3"></a><span class="kn">from</span><span class="w"> </span><span class="nn">copick.cli.util</span><span class="w"> </span><span class="kn">import</span> <span class="n">add_config_option</span><span class="p">,</span> <span class="n">add_debug_option</span>
 </span><span id="__span-12-4"><a id="__codelineno-12-4" name="__codelineno-12-4" href="#__codelineno-12-4"></a><span class="kn">from</span><span class="w"> </span><span class="nn">copick.util.log</span><span class="w"> </span><span class="kn">import</span> <span class="n">get_logger</span>
 </span><span id="__span-12-5"><a id="__codelineno-12-5" name="__codelineno-12-5" href="#__codelineno-12-5"></a>
-</span><span id="__span-12-6"><a id="__codelineno-12-6" name="__codelineno-12-6" href="#__codelineno-12-6"></a><span class="nd">@click</span><span class="o">.</span><span class="n">command</span><span class="p">()</span>
+</span><span id="__span-12-6"><a id="__codelineno-12-6" name="__codelineno-12-6" href="#__codelineno-12-6"></a><span class="nd">@click</span><span class="o">.</span><span class="n">command</span><span class="p">(</span><span class="n">short_help</span><span class="o">=</span><span class="s2">&quot;A command added to the main copick CLI.&quot;</span><span class="p">)</span>
 </span><span id="__span-12-7"><a id="__codelineno-12-7" name="__codelineno-12-7" href="#__codelineno-12-7"></a><span class="nd">@add_config_option</span>
-</span><span id="__span-12-8"><a id="__codelineno-12-8" name="__codelineno-12-8" href="#__codelineno-12-8"></a><span class="nd">@add_debug_option</span>
-</span><span id="__span-12-9"><a id="__codelineno-12-9" name="__codelineno-12-9" href="#__codelineno-12-9"></a><span class="nd">@click</span><span class="o">.</span><span class="n">pass_context</span>
-</span><span id="__span-12-10"><a id="__codelineno-12-10" name="__codelineno-12-10" href="#__codelineno-12-10"></a><span class="k">def</span><span class="w"> </span><span class="nf">my_command</span><span class="p">(</span><span class="n">ctx</span><span class="p">,</span> <span class="n">config</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">debug</span><span class="p">:</span> <span class="nb">bool</span><span class="p">):</span>
-</span><span id="__span-12-11"><a id="__codelineno-12-11" name="__codelineno-12-11" href="#__codelineno-12-11"></a><span class="w">    </span><span class="sd">&quot;&quot;&quot;My custom copick command.&quot;&quot;&quot;</span>
-</span><span id="__span-12-12"><a id="__codelineno-12-12" name="__codelineno-12-12" href="#__codelineno-12-12"></a>    <span class="n">logger</span> <span class="o">=</span> <span class="n">get_logger</span><span class="p">(</span><span class="vm">__name__</span><span class="p">,</span> <span class="n">debug</span><span class="o">=</span><span class="n">debug</span><span class="p">)</span>
-</span><span id="__span-12-13"><a id="__codelineno-12-13" name="__codelineno-12-13" href="#__codelineno-12-13"></a>    <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Running my command with config: </span><span class="si">{</span><span class="n">config</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+</span><span id="__span-12-8"><a id="__codelineno-12-8" name="__codelineno-12-8" href="#__codelineno-12-8"></a><span class="nd">@click</span><span class="o">.</span><span class="n">option</span><span class="p">(</span><span class="s2">&quot;--option&quot;</span><span class="p">,</span> <span class="s2">&quot;-o&quot;</span><span class="p">,</span> <span class="nb">type</span><span class="o">=</span><span class="nb">str</span><span class="p">,</span> <span class="n">default</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">help</span><span class="o">=</span><span class="s2">&quot;An example option.&quot;</span><span class="p">)</span>
+</span><span id="__span-12-9"><a id="__codelineno-12-9" name="__codelineno-12-9" href="#__codelineno-12-9"></a><span class="nd">@add_debug_option</span>
+</span><span id="__span-12-10"><a id="__codelineno-12-10" name="__codelineno-12-10" href="#__codelineno-12-10"></a><span class="nd">@click</span><span class="o">.</span><span class="n">pass_context</span>
+</span><span id="__span-12-11"><a id="__codelineno-12-11" name="__codelineno-12-11" href="#__codelineno-12-11"></a><span class="k">def</span><span class="w"> </span><span class="nf">mycommand</span><span class="p">(</span><span class="n">ctx</span><span class="p">:</span> <span class="n">click</span><span class="o">.</span><span class="n">Context</span><span class="p">,</span> <span class="n">config</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">option</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">debug</span><span class="p">:</span> <span class="nb">bool</span><span class="p">):</span>
+</span><span id="__span-12-12"><a id="__codelineno-12-12" name="__codelineno-12-12" href="#__codelineno-12-12"></a><span class="w">    </span><span class="sd">&quot;&quot;&quot;A command that serves as an example for how to implement a CLI command in copick.&quot;&quot;&quot;</span>
+</span><span id="__span-12-13"><a id="__codelineno-12-13" name="__codelineno-12-13" href="#__codelineno-12-13"></a>    <span class="n">logger</span> <span class="o">=</span> <span class="n">get_logger</span><span class="p">(</span><span class="vm">__name__</span><span class="p">,</span> <span class="n">debug</span><span class="o">=</span><span class="n">debug</span><span class="p">)</span>
+</span><span id="__span-12-14"><a id="__codelineno-12-14" name="__codelineno-12-14" href="#__codelineno-12-14"></a>    <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Running mycommand with config: </span><span class="si">{</span><span class="n">config</span><span class="si">}</span><span class="s2">, option: </span><span class="si">{</span><span class="n">option</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+</span><span id="__span-12-15"><a id="__codelineno-12-15" name="__codelineno-12-15" href="#__codelineno-12-15"></a>    <span class="c1"># Add your command logic here</span>
+</span><span id="__span-12-16"><a id="__codelineno-12-16" name="__codelineno-12-16" href="#__codelineno-12-16"></a>
+</span><span id="__span-12-17"><a id="__codelineno-12-17" name="__codelineno-12-17" href="#__codelineno-12-17"></a><span class="nd">@click</span><span class="o">.</span><span class="n">command</span><span class="p">(</span><span class="n">short_help</span><span class="o">=</span><span class="s2">&quot;An inference command.&quot;</span><span class="p">)</span>
+</span><span id="__span-12-18"><a id="__codelineno-12-18" name="__codelineno-12-18" href="#__codelineno-12-18"></a><span class="nd">@add_config_option</span>
+</span><span id="__span-12-19"><a id="__codelineno-12-19" name="__codelineno-12-19" href="#__codelineno-12-19"></a><span class="nd">@click</span><span class="o">.</span><span class="n">option</span><span class="p">(</span><span class="s2">&quot;--model-path&quot;</span><span class="p">,</span> <span class="nb">type</span><span class="o">=</span><span class="nb">str</span><span class="p">,</span> <span class="n">help</span><span class="o">=</span><span class="s2">&quot;Path to model file.&quot;</span><span class="p">)</span>
+</span><span id="__span-12-20"><a id="__codelineno-12-20" name="__codelineno-12-20" href="#__codelineno-12-20"></a><span class="nd">@add_debug_option</span>
+</span><span id="__span-12-21"><a id="__codelineno-12-21" name="__codelineno-12-21" href="#__codelineno-12-21"></a><span class="nd">@click</span><span class="o">.</span><span class="n">pass_context</span>
+</span><span id="__span-12-22"><a id="__codelineno-12-22" name="__codelineno-12-22" href="#__codelineno-12-22"></a><span class="k">def</span><span class="w"> </span><span class="nf">mymodel_infer</span><span class="p">(</span><span class="n">ctx</span><span class="p">:</span> <span class="n">click</span><span class="o">.</span><span class="n">Context</span><span class="p">,</span> <span class="n">config</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">model_path</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">debug</span><span class="p">:</span> <span class="nb">bool</span><span class="p">):</span>
+</span><span id="__span-12-23"><a id="__codelineno-12-23" name="__codelineno-12-23" href="#__codelineno-12-23"></a><span class="w">    </span><span class="sd">&quot;&quot;&quot;A command that serves as an example for how to implement an inference CLI command in copick.&quot;&quot;&quot;</span>
+</span><span id="__span-12-24"><a id="__codelineno-12-24" name="__codelineno-12-24" href="#__codelineno-12-24"></a>    <span class="n">logger</span> <span class="o">=</span> <span class="n">get_logger</span><span class="p">(</span><span class="vm">__name__</span><span class="p">,</span> <span class="n">debug</span><span class="o">=</span><span class="n">debug</span><span class="p">)</span>
+</span><span id="__span-12-25"><a id="__codelineno-12-25" name="__codelineno-12-25" href="#__codelineno-12-25"></a>    <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Running inference with model: </span><span class="si">{</span><span class="n">model_path</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+</span><span id="__span-12-26"><a id="__codelineno-12-26" name="__codelineno-12-26" href="#__codelineno-12-26"></a>    <span class="c1"># Add your inference logic here</span>
 </span></code></pre></div></p>
 </li>
 <li>
-<p><strong>After installing your package</strong>, the command will be available via:
-   <div class="language-bash highlight"><pre><span></span><code><span id="__span-13-1"><a id="__codelineno-13-1" name="__codelineno-13-1" href="#__codelineno-13-1"></a>copick<span class="w"> </span>my-command<span class="w"> </span>--config<span class="w"> </span>path/to/config.json<span class="w"> </span>--run<span class="w"> </span>TS_001
+<p><strong>After installing your package</strong>, the commands will be available via:
+   <div class="language-bash highlight"><pre><span></span><code><span id="__span-13-1"><a id="__codelineno-13-1" name="__codelineno-13-1" href="#__codelineno-13-1"></a>copick<span class="w"> </span>mycommand<span class="w"> </span>--config<span class="w"> </span>path/to/config.json<span class="w"> </span>--option<span class="w"> </span>value
+</span><span id="__span-13-2"><a id="__codelineno-13-2" name="__codelineno-13-2" href="#__codelineno-13-2"></a>copick<span class="w"> </span>inference<span class="w"> </span>mymodel-infer<span class="w"> </span>--config<span class="w"> </span>path/to/config.json<span class="w"> </span>--model-path<span class="w"> </span>./model.pt
+</span><span id="__span-13-3"><a id="__codelineno-13-3" name="__codelineno-13-3" href="#__codelineno-13-3"></a>copick<span class="w"> </span>training<span class="w"> </span>mymodel-train<span class="w"> </span>--config<span class="w"> </span>path/to/config.json
+</span><span id="__span-13-4"><a id="__codelineno-13-4" name="__codelineno-13-4" href="#__codelineno-13-4"></a>copick<span class="w"> </span>evaluation<span class="w"> </span>myscore<span class="w"> </span>--config<span class="w"> </span>path/to/config.json
+</span><span id="__span-13-5"><a id="__codelineno-13-5" name="__codelineno-13-5" href="#__codelineno-13-5"></a>copick<span class="w"> </span>process<span class="w"> </span>mymethod<span class="w"> </span>--config<span class="w"> </span>path/to/config.json
+</span><span id="__span-13-6"><a id="__codelineno-13-6" name="__codelineno-13-6" href="#__codelineno-13-6"></a>copick<span class="w"> </span>convert<span class="w"> </span>myconverter<span class="w"> </span>--config<span class="w"> </span>path/to/config.json
 </span></code></pre></div></p>
 </li>
 </ol>
+<h3 id="demo-package">Demo Package</h3>
+<p>A complete demo package is available at <a href="https://github.com/copick/copick-plugin-demo">copick-plugin-demo</a> that demonstrates:</p>
+<ul>
+<li>Project structure for copick plugins</li>
+<li>Commands for all supported entry point groups</li>
+<li>Proper use of copick utilities like <code>add_config_option</code> and <code>add_debug_option</code></li>
+<li>Entry point configuration in <code>pyproject.toml</code></li>
+<li>Example command implementations</li>
+</ul>
+<p>You can use this demo as a template for creating your own copick plugins.</p>
 <p>Thank you for contributing to copick! 🚀</p>
 
 

@@ -999,6 +999,15 @@
       <ul class="md-nav__list">
         
           <li class="md-nav__item">
+  <a href="#supported-entry-point-groups" class="md-nav__link">
+    <span class="md-ellipsis">
+      Supported Entry Point Groups
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
   <a href="#plugin-registration" class="md-nav__link">
     <span class="md-ellipsis">
       Plugin Registration
@@ -1011,6 +1020,33 @@
   <a href="#plugin-implementation" class="md-nav__link">
     <span class="md-ellipsis">
       Plugin Implementation
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#demo-package" class="md-nav__link">
+    <span class="md-ellipsis">
+      Demo Package
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#usage" class="md-nav__link">
+    <span class="md-ellipsis">
+      Usage
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#best-practices" class="md-nav__link">
+    <span class="md-ellipsis">
+      Best Practices
     </span>
   </a>
   
@@ -2194,6 +2230,15 @@
       <ul class="md-nav__list">
         
           <li class="md-nav__item">
+  <a href="#supported-entry-point-groups" class="md-nav__link">
+    <span class="md-ellipsis">
+      Supported Entry Point Groups
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
   <a href="#plugin-registration" class="md-nav__link">
     <span class="md-ellipsis">
       Plugin Registration
@@ -2206,6 +2251,33 @@
   <a href="#plugin-implementation" class="md-nav__link">
     <span class="md-ellipsis">
       Plugin Implementation
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#demo-package" class="md-nav__link">
+    <span class="md-ellipsis">
+      Demo Package
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#usage" class="md-nav__link">
+    <span class="md-ellipsis">
+      Usage
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#best-practices" class="md-nav__link">
+    <span class="md-ellipsis">
+      Best Practices
     </span>
   </a>
   
@@ -3142,101 +3214,172 @@ Objects are specified using the format: <code>name,is_particle,[radius],[pdb_id]
 <h2 id="plugin-system">Plugin System</h2>
 <div class="admonition info">
 <p class="admonition-title">Extensibility</p>
-<p>The Copick CLI supports extensibility through plugins. External packages can register additional commands by defining entry points in the <code>copick.commands</code> group.</p>
+<p>The Copick CLI supports extensibility through plugins. External packages can register additional commands by defining entry points in multiple supported groups.</p>
 </div>
+<h3 id="supported-entry-point-groups">Supported Entry Point Groups</h3>
+<p>The plugin system supports the following entry point groups:</p>
+<ul>
+<li><strong><code>copick.commands</code></strong>: Commands added directly to the main CLI (e.g., <code>copick mycommand</code>)</li>
+<li><strong><code>copick.inference.commands</code></strong>: Commands under the inference group (e.g., <code>copick inference mymodel</code>)</li>
+<li><strong><code>copick.training.commands</code></strong>: Commands under the training group (e.g., <code>copick training mytrain</code>)</li>
+<li><strong><code>copick.evaluation.commands</code></strong>: Commands under the evaluation group (e.g., <code>copick evaluation myscore</code>)</li>
+<li><strong><code>copick.process.commands</code></strong>: Commands under the process group (e.g., <code>copick process mymethod</code>)</li>
+<li><strong><code>copick.convert.commands</code></strong>: Commands under the convert group (e.g., <code>copick convert myconverter</code>)</li>
+</ul>
 <h3 id="plugin-registration">Plugin Registration</h3>
-<p><strong>Using setup.py:</strong>
-<div class="language-python highlight"><pre><span></span><code><span id="__span-23-1"><a id="__codelineno-23-1" name="__codelineno-23-1" href="#__codelineno-23-1"></a><span class="kn">from</span><span class="w"> </span><span class="nn">setuptools</span><span class="w"> </span><span class="kn">import</span> <span class="n">setup</span>
-</span><span id="__span-23-2"><a id="__codelineno-23-2" name="__codelineno-23-2" href="#__codelineno-23-2"></a>
-</span><span id="__span-23-3"><a id="__codelineno-23-3" name="__codelineno-23-3" href="#__codelineno-23-3"></a><span class="n">setup</span><span class="p">(</span>
-</span><span id="__span-23-4"><a id="__codelineno-23-4" name="__codelineno-23-4" href="#__codelineno-23-4"></a>    <span class="n">name</span><span class="o">=</span><span class="s2">&quot;my-copick-plugin&quot;</span><span class="p">,</span>
-</span><span id="__span-23-5"><a id="__codelineno-23-5" name="__codelineno-23-5" href="#__codelineno-23-5"></a>    <span class="n">entry_points</span><span class="o">=</span><span class="p">{</span>
-</span><span id="__span-23-6"><a id="__codelineno-23-6" name="__codelineno-23-6" href="#__codelineno-23-6"></a>        <span class="s2">&quot;copick.commands&quot;</span><span class="p">:</span> <span class="p">[</span>
-</span><span id="__span-23-7"><a id="__codelineno-23-7" name="__codelineno-23-7" href="#__codelineno-23-7"></a>            <span class="s2">&quot;my-command = my_package.cli:my_command&quot;</span><span class="p">,</span>
-</span><span id="__span-23-8"><a id="__codelineno-23-8" name="__codelineno-23-8" href="#__codelineno-23-8"></a>        <span class="p">],</span>
-</span><span id="__span-23-9"><a id="__codelineno-23-9" name="__codelineno-23-9" href="#__codelineno-23-9"></a>    <span class="p">},</span>
-</span><span id="__span-23-10"><a id="__codelineno-23-10" name="__codelineno-23-10" href="#__codelineno-23-10"></a><span class="p">)</span>
-</span></code></pre></div></p>
 <p><strong>Using pyproject.toml:</strong>
-<div class="language-toml highlight"><pre><span></span><code><span id="__span-24-1"><a id="__codelineno-24-1" name="__codelineno-24-1" href="#__codelineno-24-1"></a><span class="k">[project.entry-points.</span><span class="s2">&quot;copick.commands&quot;</span><span class="k">]</span>
-</span><span id="__span-24-2"><a id="__codelineno-24-2" name="__codelineno-24-2" href="#__codelineno-24-2"></a><span class="n">my-command</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s2">&quot;my_package.cli:my_command&quot;</span>
+<div class="language-toml highlight"><pre><span></span><code><span id="__span-23-1"><a id="__codelineno-23-1" name="__codelineno-23-1" href="#__codelineno-23-1"></a><span class="c1"># Commands added to main CLI group</span>
+</span><span id="__span-23-2"><a id="__codelineno-23-2" name="__codelineno-23-2" href="#__codelineno-23-2"></a><span class="k">[project.entry-points.</span><span class="s2">&quot;copick.commands&quot;</span><span class="k">]</span>
+</span><span id="__span-23-3"><a id="__codelineno-23-3" name="__codelineno-23-3" href="#__codelineno-23-3"></a><span class="n">mycommand</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s2">&quot;my_copick_plugin.cli.cli:mycommand&quot;</span>
+</span><span id="__span-23-4"><a id="__codelineno-23-4" name="__codelineno-23-4" href="#__codelineno-23-4"></a>
+</span><span id="__span-23-5"><a id="__codelineno-23-5" name="__codelineno-23-5" href="#__codelineno-23-5"></a><span class="c1"># Commands added to inference group</span>
+</span><span id="__span-23-6"><a id="__codelineno-23-6" name="__codelineno-23-6" href="#__codelineno-23-6"></a><span class="k">[project.entry-points.</span><span class="s2">&quot;copick.inference.commands&quot;</span><span class="k">]</span>
+</span><span id="__span-23-7"><a id="__codelineno-23-7" name="__codelineno-23-7" href="#__codelineno-23-7"></a><span class="n">mymodel-infer</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s2">&quot;my_copick_plugin.cli.cli:mymodel_infer&quot;</span>
+</span><span id="__span-23-8"><a id="__codelineno-23-8" name="__codelineno-23-8" href="#__codelineno-23-8"></a>
+</span><span id="__span-23-9"><a id="__codelineno-23-9" name="__codelineno-23-9" href="#__codelineno-23-9"></a><span class="c1"># Commands added to training group</span>
+</span><span id="__span-23-10"><a id="__codelineno-23-10" name="__codelineno-23-10" href="#__codelineno-23-10"></a><span class="k">[project.entry-points.</span><span class="s2">&quot;copick.training.commands&quot;</span><span class="k">]</span>
+</span><span id="__span-23-11"><a id="__codelineno-23-11" name="__codelineno-23-11" href="#__codelineno-23-11"></a><span class="n">mymodel-train</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s2">&quot;my_copick_plugin.cli.cli:mymodel_train&quot;</span>
+</span><span id="__span-23-12"><a id="__codelineno-23-12" name="__codelineno-23-12" href="#__codelineno-23-12"></a>
+</span><span id="__span-23-13"><a id="__codelineno-23-13" name="__codelineno-23-13" href="#__codelineno-23-13"></a><span class="c1"># Commands added to evaluation group</span>
+</span><span id="__span-23-14"><a id="__codelineno-23-14" name="__codelineno-23-14" href="#__codelineno-23-14"></a><span class="k">[project.entry-points.</span><span class="s2">&quot;copick.evaluation.commands&quot;</span><span class="k">]</span>
+</span><span id="__span-23-15"><a id="__codelineno-23-15" name="__codelineno-23-15" href="#__codelineno-23-15"></a><span class="n">myscore</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s2">&quot;my_copick_plugin.cli.cli:myscore&quot;</span>
+</span><span id="__span-23-16"><a id="__codelineno-23-16" name="__codelineno-23-16" href="#__codelineno-23-16"></a>
+</span><span id="__span-23-17"><a id="__codelineno-23-17" name="__codelineno-23-17" href="#__codelineno-23-17"></a><span class="c1"># Commands added to process group</span>
+</span><span id="__span-23-18"><a id="__codelineno-23-18" name="__codelineno-23-18" href="#__codelineno-23-18"></a><span class="k">[project.entry-points.</span><span class="s2">&quot;copick.process.commands&quot;</span><span class="k">]</span>
+</span><span id="__span-23-19"><a id="__codelineno-23-19" name="__codelineno-23-19" href="#__codelineno-23-19"></a><span class="n">mymethod</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s2">&quot;my_copick_plugin.cli.cli:mymethod&quot;</span>
+</span><span id="__span-23-20"><a id="__codelineno-23-20" name="__codelineno-23-20" href="#__codelineno-23-20"></a>
+</span><span id="__span-23-21"><a id="__codelineno-23-21" name="__codelineno-23-21" href="#__codelineno-23-21"></a><span class="c1"># Commands added to convert group</span>
+</span><span id="__span-23-22"><a id="__codelineno-23-22" name="__codelineno-23-22" href="#__codelineno-23-22"></a><span class="k">[project.entry-points.</span><span class="s2">&quot;copick.convert.commands&quot;</span><span class="k">]</span>
+</span><span id="__span-23-23"><a id="__codelineno-23-23" name="__codelineno-23-23" href="#__codelineno-23-23"></a><span class="n">myconverter</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s2">&quot;my_copick_plugin.cli.cli:myconverter&quot;</span>
 </span></code></pre></div></p>
 <h3 id="plugin-implementation">Plugin Implementation</h3>
-<p><strong>Creating a Click Command:</strong>
-<div class="language-python highlight"><pre><span></span><code><span id="__span-25-1"><a id="__codelineno-25-1" name="__codelineno-25-1" href="#__codelineno-25-1"></a><span class="kn">import</span><span class="w"> </span><span class="nn">click</span>
-</span><span id="__span-25-2"><a id="__codelineno-25-2" name="__codelineno-25-2" href="#__codelineno-25-2"></a><span class="kn">from</span><span class="w"> </span><span class="nn">copick.cli.util</span><span class="w"> </span><span class="kn">import</span> <span class="n">add_config_option</span><span class="p">,</span> <span class="n">add_debug_option</span>
-</span><span id="__span-25-3"><a id="__codelineno-25-3" name="__codelineno-25-3" href="#__codelineno-25-3"></a><span class="kn">from</span><span class="w"> </span><span class="nn">copick.util.log</span><span class="w"> </span><span class="kn">import</span> <span class="n">get_logger</span>
-</span><span id="__span-25-4"><a id="__codelineno-25-4" name="__codelineno-25-4" href="#__codelineno-25-4"></a>
-</span><span id="__span-25-5"><a id="__codelineno-25-5" name="__codelineno-25-5" href="#__codelineno-25-5"></a><span class="nd">@click</span><span class="o">.</span><span class="n">command</span><span class="p">()</span>
-</span><span id="__span-25-6"><a id="__codelineno-25-6" name="__codelineno-25-6" href="#__codelineno-25-6"></a><span class="nd">@add_config_option</span>
-</span><span id="__span-25-7"><a id="__codelineno-25-7" name="__codelineno-25-7" href="#__codelineno-25-7"></a><span class="nd">@add_debug_option</span>
-</span><span id="__span-25-8"><a id="__codelineno-25-8" name="__codelineno-25-8" href="#__codelineno-25-8"></a><span class="k">def</span><span class="w"> </span><span class="nf">my_command</span><span class="p">(</span><span class="n">config</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">debug</span><span class="p">:</span> <span class="nb">bool</span><span class="p">):</span>
-</span><span id="__span-25-9"><a id="__codelineno-25-9" name="__codelineno-25-9" href="#__codelineno-25-9"></a><span class="w">    </span><span class="sd">&quot;&quot;&quot;My custom copick command.&quot;&quot;&quot;</span>
-</span><span id="__span-25-10"><a id="__codelineno-25-10" name="__codelineno-25-10" href="#__codelineno-25-10"></a>    <span class="n">logger</span> <span class="o">=</span> <span class="n">get_logger</span><span class="p">(</span><span class="vm">__name__</span><span class="p">,</span> <span class="n">debug</span><span class="o">=</span><span class="n">debug</span><span class="p">)</span>
-</span><span id="__span-25-11"><a id="__codelineno-25-11" name="__codelineno-25-11" href="#__codelineno-25-11"></a>    <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Running my command with config: </span><span class="si">{</span><span class="n">config</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+<p><strong>Creating Click Commands:</strong>
+<div class="language-python highlight"><pre><span></span><code><span id="__span-24-1"><a id="__codelineno-24-1" name="__codelineno-24-1" href="#__codelineno-24-1"></a><span class="kn">import</span><span class="w"> </span><span class="nn">click</span>
+</span><span id="__span-24-2"><a id="__codelineno-24-2" name="__codelineno-24-2" href="#__codelineno-24-2"></a><span class="kn">from</span><span class="w"> </span><span class="nn">copick.cli.util</span><span class="w"> </span><span class="kn">import</span> <span class="n">add_config_option</span><span class="p">,</span> <span class="n">add_debug_option</span>
+</span><span id="__span-24-3"><a id="__codelineno-24-3" name="__codelineno-24-3" href="#__codelineno-24-3"></a><span class="kn">from</span><span class="w"> </span><span class="nn">copick.util.log</span><span class="w"> </span><span class="kn">import</span> <span class="n">get_logger</span>
+</span><span id="__span-24-4"><a id="__codelineno-24-4" name="__codelineno-24-4" href="#__codelineno-24-4"></a>
+</span><span id="__span-24-5"><a id="__codelineno-24-5" name="__codelineno-24-5" href="#__codelineno-24-5"></a><span class="nd">@click</span><span class="o">.</span><span class="n">command</span><span class="p">(</span><span class="n">short_help</span><span class="o">=</span><span class="s2">&quot;A command added to the main copick CLI.&quot;</span><span class="p">)</span>
+</span><span id="__span-24-6"><a id="__codelineno-24-6" name="__codelineno-24-6" href="#__codelineno-24-6"></a><span class="nd">@add_config_option</span>
+</span><span id="__span-24-7"><a id="__codelineno-24-7" name="__codelineno-24-7" href="#__codelineno-24-7"></a><span class="nd">@click</span><span class="o">.</span><span class="n">option</span><span class="p">(</span><span class="s2">&quot;--option&quot;</span><span class="p">,</span> <span class="s2">&quot;-o&quot;</span><span class="p">,</span> <span class="nb">type</span><span class="o">=</span><span class="nb">str</span><span class="p">,</span> <span class="n">default</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">help</span><span class="o">=</span><span class="s2">&quot;An example option.&quot;</span><span class="p">)</span>
+</span><span id="__span-24-8"><a id="__codelineno-24-8" name="__codelineno-24-8" href="#__codelineno-24-8"></a><span class="nd">@add_debug_option</span>
+</span><span id="__span-24-9"><a id="__codelineno-24-9" name="__codelineno-24-9" href="#__codelineno-24-9"></a><span class="nd">@click</span><span class="o">.</span><span class="n">pass_context</span>
+</span><span id="__span-24-10"><a id="__codelineno-24-10" name="__codelineno-24-10" href="#__codelineno-24-10"></a><span class="k">def</span><span class="w"> </span><span class="nf">mycommand</span><span class="p">(</span><span class="n">ctx</span><span class="p">:</span> <span class="n">click</span><span class="o">.</span><span class="n">Context</span><span class="p">,</span> <span class="n">config</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">option</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">debug</span><span class="p">:</span> <span class="nb">bool</span><span class="p">):</span>
+</span><span id="__span-24-11"><a id="__codelineno-24-11" name="__codelineno-24-11" href="#__codelineno-24-11"></a><span class="w">    </span><span class="sd">&quot;&quot;&quot;A command that serves as an example for how to implement a CLI command in copick.&quot;&quot;&quot;</span>
+</span><span id="__span-24-12"><a id="__codelineno-24-12" name="__codelineno-24-12" href="#__codelineno-24-12"></a>    <span class="n">logger</span> <span class="o">=</span> <span class="n">get_logger</span><span class="p">(</span><span class="vm">__name__</span><span class="p">,</span> <span class="n">debug</span><span class="o">=</span><span class="n">debug</span><span class="p">)</span>
+</span><span id="__span-24-13"><a id="__codelineno-24-13" name="__codelineno-24-13" href="#__codelineno-24-13"></a>    <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Running mycommand with config: </span><span class="si">{</span><span class="n">config</span><span class="si">}</span><span class="s2">, option: </span><span class="si">{</span><span class="n">option</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+</span><span id="__span-24-14"><a id="__codelineno-24-14" name="__codelineno-24-14" href="#__codelineno-24-14"></a>    <span class="c1"># Add your command logic here</span>
+</span><span id="__span-24-15"><a id="__codelineno-24-15" name="__codelineno-24-15" href="#__codelineno-24-15"></a>
+</span><span id="__span-24-16"><a id="__codelineno-24-16" name="__codelineno-24-16" href="#__codelineno-24-16"></a><span class="nd">@click</span><span class="o">.</span><span class="n">command</span><span class="p">(</span><span class="n">short_help</span><span class="o">=</span><span class="s2">&quot;An inference command.&quot;</span><span class="p">)</span>
+</span><span id="__span-24-17"><a id="__codelineno-24-17" name="__codelineno-24-17" href="#__codelineno-24-17"></a><span class="nd">@add_config_option</span>
+</span><span id="__span-24-18"><a id="__codelineno-24-18" name="__codelineno-24-18" href="#__codelineno-24-18"></a><span class="nd">@click</span><span class="o">.</span><span class="n">option</span><span class="p">(</span><span class="s2">&quot;--model-path&quot;</span><span class="p">,</span> <span class="nb">type</span><span class="o">=</span><span class="nb">str</span><span class="p">,</span> <span class="n">help</span><span class="o">=</span><span class="s2">&quot;Path to model file.&quot;</span><span class="p">)</span>
+</span><span id="__span-24-19"><a id="__codelineno-24-19" name="__codelineno-24-19" href="#__codelineno-24-19"></a><span class="nd">@add_debug_option</span>
+</span><span id="__span-24-20"><a id="__codelineno-24-20" name="__codelineno-24-20" href="#__codelineno-24-20"></a><span class="nd">@click</span><span class="o">.</span><span class="n">pass_context</span>
+</span><span id="__span-24-21"><a id="__codelineno-24-21" name="__codelineno-24-21" href="#__codelineno-24-21"></a><span class="k">def</span><span class="w"> </span><span class="nf">mymodel_infer</span><span class="p">(</span><span class="n">ctx</span><span class="p">:</span> <span class="n">click</span><span class="o">.</span><span class="n">Context</span><span class="p">,</span> <span class="n">config</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">model_path</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">debug</span><span class="p">:</span> <span class="nb">bool</span><span class="p">):</span>
+</span><span id="__span-24-22"><a id="__codelineno-24-22" name="__codelineno-24-22" href="#__codelineno-24-22"></a><span class="w">    </span><span class="sd">&quot;&quot;&quot;A command that serves as an example for how to implement an inference CLI command in copick.&quot;&quot;&quot;</span>
+</span><span id="__span-24-23"><a id="__codelineno-24-23" name="__codelineno-24-23" href="#__codelineno-24-23"></a>    <span class="n">logger</span> <span class="o">=</span> <span class="n">get_logger</span><span class="p">(</span><span class="vm">__name__</span><span class="p">,</span> <span class="n">debug</span><span class="o">=</span><span class="n">debug</span><span class="p">)</span>
+</span><span id="__span-24-24"><a id="__codelineno-24-24" name="__codelineno-24-24" href="#__codelineno-24-24"></a>    <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Running inference with model: </span><span class="si">{</span><span class="n">model_path</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+</span><span id="__span-24-25"><a id="__codelineno-24-25" name="__codelineno-24-25" href="#__codelineno-24-25"></a>    <span class="c1"># Add your inference logic here</span>
+</span><span id="__span-24-26"><a id="__codelineno-24-26" name="__codelineno-24-26" href="#__codelineno-24-26"></a>
+</span><span id="__span-24-27"><a id="__codelineno-24-27" name="__codelineno-24-27" href="#__codelineno-24-27"></a><span class="nd">@click</span><span class="o">.</span><span class="n">command</span><span class="p">(</span><span class="n">short_help</span><span class="o">=</span><span class="s2">&quot;A training command.&quot;</span><span class="p">)</span>
+</span><span id="__span-24-28"><a id="__codelineno-24-28" name="__codelineno-24-28" href="#__codelineno-24-28"></a><span class="nd">@add_config_option</span>
+</span><span id="__span-24-29"><a id="__codelineno-24-29" name="__codelineno-24-29" href="#__codelineno-24-29"></a><span class="nd">@click</span><span class="o">.</span><span class="n">option</span><span class="p">(</span><span class="s2">&quot;--epochs&quot;</span><span class="p">,</span> <span class="nb">type</span><span class="o">=</span><span class="nb">int</span><span class="p">,</span> <span class="n">default</span><span class="o">=</span><span class="mi">100</span><span class="p">,</span> <span class="n">help</span><span class="o">=</span><span class="s2">&quot;Number of training epochs.&quot;</span><span class="p">)</span>
+</span><span id="__span-24-30"><a id="__codelineno-24-30" name="__codelineno-24-30" href="#__codelineno-24-30"></a><span class="nd">@add_debug_option</span>
+</span><span id="__span-24-31"><a id="__codelineno-24-31" name="__codelineno-24-31" href="#__codelineno-24-31"></a><span class="nd">@click</span><span class="o">.</span><span class="n">pass_context</span>
+</span><span id="__span-24-32"><a id="__codelineno-24-32" name="__codelineno-24-32" href="#__codelineno-24-32"></a><span class="k">def</span><span class="w"> </span><span class="nf">mymodel_train</span><span class="p">(</span><span class="n">ctx</span><span class="p">:</span> <span class="n">click</span><span class="o">.</span><span class="n">Context</span><span class="p">,</span> <span class="n">config</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">epochs</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span> <span class="n">debug</span><span class="p">:</span> <span class="nb">bool</span><span class="p">):</span>
+</span><span id="__span-24-33"><a id="__codelineno-24-33" name="__codelineno-24-33" href="#__codelineno-24-33"></a><span class="w">    </span><span class="sd">&quot;&quot;&quot;A command that serves as an example for how to implement a training CLI command in copick.&quot;&quot;&quot;</span>
+</span><span id="__span-24-34"><a id="__codelineno-24-34" name="__codelineno-24-34" href="#__codelineno-24-34"></a>    <span class="n">logger</span> <span class="o">=</span> <span class="n">get_logger</span><span class="p">(</span><span class="vm">__name__</span><span class="p">,</span> <span class="n">debug</span><span class="o">=</span><span class="n">debug</span><span class="p">)</span>
+</span><span id="__span-24-35"><a id="__codelineno-24-35" name="__codelineno-24-35" href="#__codelineno-24-35"></a>    <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Starting training for </span><span class="si">{</span><span class="n">epochs</span><span class="si">}</span><span class="s2"> epochs&quot;</span><span class="p">)</span>
+</span><span id="__span-24-36"><a id="__codelineno-24-36" name="__codelineno-24-36" href="#__codelineno-24-36"></a>    <span class="c1"># Add your training logic here</span>
 </span></code></pre></div></p>
-<p><strong>Usage:</strong>
-After installing your package, the command will be available:
-<div class="language-bash highlight"><pre><span></span><code><span id="__span-26-1"><a id="__codelineno-26-1" name="__codelineno-26-1" href="#__codelineno-26-1"></a>copick<span class="w"> </span>my-command<span class="w"> </span>--config<span class="w"> </span>path/to/config.json
+<h3 id="demo-package">Demo Package</h3>
+<p>A complete demo package is available at <a href="https://github.com/copick/copick-plugin-demo">copick-plugin-demo</a> that demonstrates:</p>
+<ul>
+<li>Project structure for copick plugins</li>
+<li>Commands for all supported entry point groups</li>
+<li>Proper use of copick utilities like <code>add_config_option</code> and <code>add_debug_option</code></li>
+<li>Entry point configuration in <code>pyproject.toml</code></li>
+<li>Example command implementations</li>
+</ul>
+<p>You can use this demo as a template for creating your own copick plugins.</p>
+<h3 id="usage">Usage</h3>
+<p>After installing your package, the commands will be available:
+<div class="language-bash highlight"><pre><span></span><code><span id="__span-25-1"><a id="__codelineno-25-1" name="__codelineno-25-1" href="#__codelineno-25-1"></a><span class="c1"># Main CLI commands</span>
+</span><span id="__span-25-2"><a id="__codelineno-25-2" name="__codelineno-25-2" href="#__codelineno-25-2"></a>copick<span class="w"> </span>mycommand<span class="w"> </span>--config<span class="w"> </span>path/to/config.json<span class="w"> </span>--option<span class="w"> </span>value
+</span><span id="__span-25-3"><a id="__codelineno-25-3" name="__codelineno-25-3" href="#__codelineno-25-3"></a>
+</span><span id="__span-25-4"><a id="__codelineno-25-4" name="__codelineno-25-4" href="#__codelineno-25-4"></a><span class="c1"># Grouped commands</span>
+</span><span id="__span-25-5"><a id="__codelineno-25-5" name="__codelineno-25-5" href="#__codelineno-25-5"></a>copick<span class="w"> </span>inference<span class="w"> </span>mymodel-infer<span class="w"> </span>--config<span class="w"> </span>path/to/config.json<span class="w"> </span>--model-path<span class="w"> </span>./model.pt
+</span><span id="__span-25-6"><a id="__codelineno-25-6" name="__codelineno-25-6" href="#__codelineno-25-6"></a>copick<span class="w"> </span>training<span class="w"> </span>mymodel-train<span class="w"> </span>--config<span class="w"> </span>path/to/config.json<span class="w"> </span>--epochs<span class="w"> </span><span class="m">50</span>
+</span><span id="__span-25-7"><a id="__codelineno-25-7" name="__codelineno-25-7" href="#__codelineno-25-7"></a>copick<span class="w"> </span>evaluation<span class="w"> </span>myscore<span class="w"> </span>--config<span class="w"> </span>path/to/config.json
+</span><span id="__span-25-8"><a id="__codelineno-25-8" name="__codelineno-25-8" href="#__codelineno-25-8"></a>copick<span class="w"> </span>process<span class="w"> </span>mymethod<span class="w"> </span>--config<span class="w"> </span>path/to/config.json
+</span><span id="__span-25-9"><a id="__codelineno-25-9" name="__codelineno-25-9" href="#__codelineno-25-9"></a>copick<span class="w"> </span>convert<span class="w"> </span>myconverter<span class="w"> </span>--config<span class="w"> </span>path/to/config.json
 </span></code></pre></div></p>
+<h3 id="best-practices">Best Practices</h3>
+<ol>
+<li><strong>Use descriptive command names</strong> that clearly indicate their purpose</li>
+<li><strong>Follow the existing naming conventions</strong> with hyphens for multi-word commands</li>
+<li><strong>Always use <code>@add_config_option</code> and <code>@add_debug_option</code></strong> decorators for consistency</li>
+<li><strong>Add proper docstrings</strong> for your commands - they become the help text</li>
+<li><strong>Use appropriate entry point groups</strong> to organize your commands logically</li>
+<li><strong>Test your plugins</strong> with the demo package structure as a reference</li>
+</ol>
 <hr />
 <h2 id="common-workflows">Common Workflows</h2>
 <h3 id="setup-from-data-portal">Setup from Data Portal</h3>
 <p>Create a new project from CryoET Data Portal datasets:</p>
-<div class="language-bash highlight"><pre><span></span><code><span id="__span-27-1"><a id="__codelineno-27-1" name="__codelineno-27-1" href="#__codelineno-27-1"></a><span class="c1"># Create configuration from data portal</span>
-</span><span id="__span-27-2"><a id="__codelineno-27-2" name="__codelineno-27-2" href="#__codelineno-27-2"></a>copick<span class="w"> </span>config<span class="w"> </span>dataportal<span class="w"> </span>--dataset-id<span class="w"> </span><span class="m">10000</span><span class="w"> </span>--overlay<span class="w"> </span>./overlay<span class="w"> </span>--output<span class="w"> </span>project.json
-</span><span id="__span-27-3"><a id="__codelineno-27-3" name="__codelineno-27-3" href="#__codelineno-27-3"></a>
-</span><span id="__span-27-4"><a id="__codelineno-27-4" name="__codelineno-27-4" href="#__codelineno-27-4"></a><span class="c1"># Set environment variable for convenience</span>
-</span><span id="__span-27-5"><a id="__codelineno-27-5" name="__codelineno-27-5" href="#__codelineno-27-5"></a><span class="nb">export</span><span class="w"> </span><span class="nv">COPICK_CONFIG</span><span class="o">=</span>project.json
-</span><span id="__span-27-6"><a id="__codelineno-27-6" name="__codelineno-27-6" href="#__codelineno-27-6"></a>
-</span><span id="__span-27-7"><a id="__codelineno-27-7" name="__codelineno-27-7" href="#__codelineno-27-7"></a><span class="c1"># Browse the project</span>
-</span><span id="__span-27-8"><a id="__codelineno-27-8" name="__codelineno-27-8" href="#__codelineno-27-8"></a>copick<span class="w"> </span>browse
+<div class="language-bash highlight"><pre><span></span><code><span id="__span-26-1"><a id="__codelineno-26-1" name="__codelineno-26-1" href="#__codelineno-26-1"></a><span class="c1"># Create configuration from data portal</span>
+</span><span id="__span-26-2"><a id="__codelineno-26-2" name="__codelineno-26-2" href="#__codelineno-26-2"></a>copick<span class="w"> </span>config<span class="w"> </span>dataportal<span class="w"> </span>--dataset-id<span class="w"> </span><span class="m">10000</span><span class="w"> </span>--overlay<span class="w"> </span>./overlay<span class="w"> </span>--output<span class="w"> </span>project.json
+</span><span id="__span-26-3"><a id="__codelineno-26-3" name="__codelineno-26-3" href="#__codelineno-26-3"></a>
+</span><span id="__span-26-4"><a id="__codelineno-26-4" name="__codelineno-26-4" href="#__codelineno-26-4"></a><span class="c1"># Set environment variable for convenience</span>
+</span><span id="__span-26-5"><a id="__codelineno-26-5" name="__codelineno-26-5" href="#__codelineno-26-5"></a><span class="nb">export</span><span class="w"> </span><span class="nv">COPICK_CONFIG</span><span class="o">=</span>project.json
+</span><span id="__span-26-6"><a id="__codelineno-26-6" name="__codelineno-26-6" href="#__codelineno-26-6"></a>
+</span><span id="__span-26-7"><a id="__codelineno-26-7" name="__codelineno-26-7" href="#__codelineno-26-7"></a><span class="c1"># Browse the project</span>
+</span><span id="__span-26-8"><a id="__codelineno-26-8" name="__codelineno-26-8" href="#__codelineno-26-8"></a>copick<span class="w"> </span>browse
 </span></code></pre></div>
 <h3 id="add-data-to-project">Add Data to Project</h3>
 <p>Add tomograms, segmentations, and objects to your project:</p>
-<div class="language-bash highlight"><pre><span></span><code><span id="__span-28-1"><a id="__codelineno-28-1" name="__codelineno-28-1" href="#__codelineno-28-1"></a><span class="c1"># Add a single tomogram</span>
-</span><span id="__span-28-2"><a id="__codelineno-28-2" name="__codelineno-28-2" href="#__codelineno-28-2"></a>copick<span class="w"> </span>add<span class="w"> </span>tomogram<span class="w"> </span>--run<span class="w"> </span>TS_001<span class="w"> </span>data/tomogram.mrc
-</span><span id="__span-28-3"><a id="__codelineno-28-3" name="__codelineno-28-3" href="#__codelineno-28-3"></a>
-</span><span id="__span-28-4"><a id="__codelineno-28-4" name="__codelineno-28-4" href="#__codelineno-28-4"></a><span class="c1"># Add multiple tomograms using glob pattern</span>
-</span><span id="__span-28-5"><a id="__codelineno-28-5" name="__codelineno-28-5" href="#__codelineno-28-5"></a>copick<span class="w"> </span>add<span class="w"> </span>tomogram<span class="w"> </span>data/tomograms/*.mrc
-</span><span id="__span-28-6"><a id="__codelineno-28-6" name="__codelineno-28-6" href="#__codelineno-28-6"></a>
-</span><span id="__span-28-7"><a id="__codelineno-28-7" name="__codelineno-28-7" href="#__codelineno-28-7"></a><span class="c1"># Add pickable objects to the project configuration</span>
-</span><span id="__span-28-8"><a id="__codelineno-28-8" name="__codelineno-28-8" href="#__codelineno-28-8"></a>copick<span class="w"> </span>add<span class="w"> </span>object<span class="w"> </span>--name<span class="w"> </span>ribosome<span class="w"> </span>--object-type<span class="w"> </span>particle<span class="w"> </span>--radius<span class="w"> </span><span class="m">120</span><span class="w"> </span>--pdb-id<span class="w"> </span>4V9D<span class="w"> </span>--color<span class="w"> </span><span class="s2">&quot;255,0,0,255&quot;</span>
-</span><span id="__span-28-9"><a id="__codelineno-28-9" name="__codelineno-28-9" href="#__codelineno-28-9"></a>copick<span class="w"> </span>add<span class="w"> </span>object<span class="w"> </span>--name<span class="w"> </span>membrane<span class="w"> </span>--object-type<span class="w"> </span>segmentation<span class="w"> </span>--label<span class="w"> </span><span class="m">1</span><span class="w"> </span>--color<span class="w"> </span><span class="s2">&quot;0,255,0,128&quot;</span>
-</span><span id="__span-28-10"><a id="__codelineno-28-10" name="__codelineno-28-10" href="#__codelineno-28-10"></a>
-</span><span id="__span-28-11"><a id="__codelineno-28-11" name="__codelineno-28-11" href="#__codelineno-28-11"></a><span class="c1"># Add volume data to existing objects</span>
-</span><span id="__span-28-12"><a id="__codelineno-28-12" name="__codelineno-28-12" href="#__codelineno-28-12"></a>copick<span class="w"> </span>add<span class="w"> </span>object-volume<span class="w"> </span>--object-name<span class="w"> </span>ribosome<span class="w"> </span>--volume-path<span class="w"> </span>data/ribosome_reference.mrc<span class="w"> </span>--voxel-size<span class="w"> </span><span class="m">10</span>.0
-</span><span id="__span-28-13"><a id="__codelineno-28-13" name="__codelineno-28-13" href="#__codelineno-28-13"></a>
-</span><span id="__span-28-14"><a id="__codelineno-28-14" name="__codelineno-28-14" href="#__codelineno-28-14"></a><span class="c1"># Add segmentation data</span>
-</span><span id="__span-28-15"><a id="__codelineno-28-15" name="__codelineno-28-15" href="#__codelineno-28-15"></a>copick<span class="w"> </span>add<span class="w"> </span>segmentation<span class="w"> </span>--run<span class="w"> </span>TS_001<span class="w"> </span>--name<span class="w"> </span>membrane<span class="w"> </span>--user-id<span class="w"> </span>analyst<span class="w"> </span>data/membrane_seg.mrc
-</span><span id="__span-28-16"><a id="__codelineno-28-16" name="__codelineno-28-16" href="#__codelineno-28-16"></a>
-</span><span id="__span-28-17"><a id="__codelineno-28-17" name="__codelineno-28-17" href="#__codelineno-28-17"></a><span class="c1"># Create empty picks for annotation</span>
-</span><span id="__span-28-18"><a id="__codelineno-28-18" name="__codelineno-28-18" href="#__codelineno-28-18"></a>copick<span class="w"> </span>new<span class="w"> </span>picks<span class="w"> </span>--particle-name<span class="w"> </span>ribosome
-</span><span id="__span-28-19"><a id="__codelineno-28-19" name="__codelineno-28-19" href="#__codelineno-28-19"></a>
-</span><span id="__span-28-20"><a id="__codelineno-28-20" name="__codelineno-28-20" href="#__codelineno-28-20"></a><span class="c1"># Browse to verify</span>
-</span><span id="__span-28-21"><a id="__codelineno-28-21" name="__codelineno-28-21" href="#__codelineno-28-21"></a>copick<span class="w"> </span>browse
+<div class="language-bash highlight"><pre><span></span><code><span id="__span-27-1"><a id="__codelineno-27-1" name="__codelineno-27-1" href="#__codelineno-27-1"></a><span class="c1"># Add a single tomogram</span>
+</span><span id="__span-27-2"><a id="__codelineno-27-2" name="__codelineno-27-2" href="#__codelineno-27-2"></a>copick<span class="w"> </span>add<span class="w"> </span>tomogram<span class="w"> </span>--run<span class="w"> </span>TS_001<span class="w"> </span>data/tomogram.mrc
+</span><span id="__span-27-3"><a id="__codelineno-27-3" name="__codelineno-27-3" href="#__codelineno-27-3"></a>
+</span><span id="__span-27-4"><a id="__codelineno-27-4" name="__codelineno-27-4" href="#__codelineno-27-4"></a><span class="c1"># Add multiple tomograms using glob pattern</span>
+</span><span id="__span-27-5"><a id="__codelineno-27-5" name="__codelineno-27-5" href="#__codelineno-27-5"></a>copick<span class="w"> </span>add<span class="w"> </span>tomogram<span class="w"> </span>data/tomograms/*.mrc
+</span><span id="__span-27-6"><a id="__codelineno-27-6" name="__codelineno-27-6" href="#__codelineno-27-6"></a>
+</span><span id="__span-27-7"><a id="__codelineno-27-7" name="__codelineno-27-7" href="#__codelineno-27-7"></a><span class="c1"># Add pickable objects to the project configuration</span>
+</span><span id="__span-27-8"><a id="__codelineno-27-8" name="__codelineno-27-8" href="#__codelineno-27-8"></a>copick<span class="w"> </span>add<span class="w"> </span>object<span class="w"> </span>--name<span class="w"> </span>ribosome<span class="w"> </span>--object-type<span class="w"> </span>particle<span class="w"> </span>--radius<span class="w"> </span><span class="m">120</span><span class="w"> </span>--pdb-id<span class="w"> </span>4V9D<span class="w"> </span>--color<span class="w"> </span><span class="s2">&quot;255,0,0,255&quot;</span>
+</span><span id="__span-27-9"><a id="__codelineno-27-9" name="__codelineno-27-9" href="#__codelineno-27-9"></a>copick<span class="w"> </span>add<span class="w"> </span>object<span class="w"> </span>--name<span class="w"> </span>membrane<span class="w"> </span>--object-type<span class="w"> </span>segmentation<span class="w"> </span>--label<span class="w"> </span><span class="m">1</span><span class="w"> </span>--color<span class="w"> </span><span class="s2">&quot;0,255,0,128&quot;</span>
+</span><span id="__span-27-10"><a id="__codelineno-27-10" name="__codelineno-27-10" href="#__codelineno-27-10"></a>
+</span><span id="__span-27-11"><a id="__codelineno-27-11" name="__codelineno-27-11" href="#__codelineno-27-11"></a><span class="c1"># Add volume data to existing objects</span>
+</span><span id="__span-27-12"><a id="__codelineno-27-12" name="__codelineno-27-12" href="#__codelineno-27-12"></a>copick<span class="w"> </span>add<span class="w"> </span>object-volume<span class="w"> </span>--object-name<span class="w"> </span>ribosome<span class="w"> </span>--volume-path<span class="w"> </span>data/ribosome_reference.mrc<span class="w"> </span>--voxel-size<span class="w"> </span><span class="m">10</span>.0
+</span><span id="__span-27-13"><a id="__codelineno-27-13" name="__codelineno-27-13" href="#__codelineno-27-13"></a>
+</span><span id="__span-27-14"><a id="__codelineno-27-14" name="__codelineno-27-14" href="#__codelineno-27-14"></a><span class="c1"># Add segmentation data</span>
+</span><span id="__span-27-15"><a id="__codelineno-27-15" name="__codelineno-27-15" href="#__codelineno-27-15"></a>copick<span class="w"> </span>add<span class="w"> </span>segmentation<span class="w"> </span>--run<span class="w"> </span>TS_001<span class="w"> </span>--name<span class="w"> </span>membrane<span class="w"> </span>--user-id<span class="w"> </span>analyst<span class="w"> </span>data/membrane_seg.mrc
+</span><span id="__span-27-16"><a id="__codelineno-27-16" name="__codelineno-27-16" href="#__codelineno-27-16"></a>
+</span><span id="__span-27-17"><a id="__codelineno-27-17" name="__codelineno-27-17" href="#__codelineno-27-17"></a><span class="c1"># Create empty picks for annotation</span>
+</span><span id="__span-27-18"><a id="__codelineno-27-18" name="__codelineno-27-18" href="#__codelineno-27-18"></a>copick<span class="w"> </span>new<span class="w"> </span>picks<span class="w"> </span>--particle-name<span class="w"> </span>ribosome
+</span><span id="__span-27-19"><a id="__codelineno-27-19" name="__codelineno-27-19" href="#__codelineno-27-19"></a>
+</span><span id="__span-27-20"><a id="__codelineno-27-20" name="__codelineno-27-20" href="#__codelineno-27-20"></a><span class="c1"># Browse to verify</span>
+</span><span id="__span-27-21"><a id="__codelineno-27-21" name="__codelineno-27-21" href="#__codelineno-27-21"></a>copick<span class="w"> </span>browse
 </span></code></pre></div>
 <h3 id="work-with-multiple-datasets">Work with Multiple Datasets</h3>
 <p>Combine multiple datasets in one project:</p>
-<div class="language-bash highlight"><pre><span></span><code><span id="__span-29-1"><a id="__codelineno-29-1" name="__codelineno-29-1" href="#__codelineno-29-1"></a><span class="c1"># Create configuration with multiple datasets</span>
-</span><span id="__span-29-2"><a id="__codelineno-29-2" name="__codelineno-29-2" href="#__codelineno-29-2"></a>copick<span class="w"> </span>config<span class="w"> </span>dataportal<span class="w"> </span>-ds<span class="w"> </span><span class="m">10000</span><span class="w"> </span>-ds<span class="w"> </span><span class="m">10001</span><span class="w"> </span>-ds<span class="w"> </span><span class="m">10002</span><span class="w"> </span>--overlay<span class="w"> </span>./overlay<span class="w"> </span>--output<span class="w"> </span>multi_project.json
-</span><span id="__span-29-3"><a id="__codelineno-29-3" name="__codelineno-29-3" href="#__codelineno-29-3"></a>
-</span><span id="__span-29-4"><a id="__codelineno-29-4" name="__codelineno-29-4" href="#__codelineno-29-4"></a><span class="c1"># Browse all datasets together</span>
-</span><span id="__span-29-5"><a id="__codelineno-29-5" name="__codelineno-29-5" href="#__codelineno-29-5"></a>copick<span class="w"> </span>browse<span class="w"> </span>--config<span class="w"> </span>multi_project.json
+<div class="language-bash highlight"><pre><span></span><code><span id="__span-28-1"><a id="__codelineno-28-1" name="__codelineno-28-1" href="#__codelineno-28-1"></a><span class="c1"># Create configuration with multiple datasets</span>
+</span><span id="__span-28-2"><a id="__codelineno-28-2" name="__codelineno-28-2" href="#__codelineno-28-2"></a>copick<span class="w"> </span>config<span class="w"> </span>dataportal<span class="w"> </span>-ds<span class="w"> </span><span class="m">10000</span><span class="w"> </span>-ds<span class="w"> </span><span class="m">10001</span><span class="w"> </span>-ds<span class="w"> </span><span class="m">10002</span><span class="w"> </span>--overlay<span class="w"> </span>./overlay<span class="w"> </span>--output<span class="w"> </span>multi_project.json
+</span><span id="__span-28-3"><a id="__codelineno-28-3" name="__codelineno-28-3" href="#__codelineno-28-3"></a>
+</span><span id="__span-28-4"><a id="__codelineno-28-4" name="__codelineno-28-4" href="#__codelineno-28-4"></a><span class="c1"># Browse all datasets together</span>
+</span><span id="__span-28-5"><a id="__codelineno-28-5" name="__codelineno-28-5" href="#__codelineno-28-5"></a>copick<span class="w"> </span>browse<span class="w"> </span>--config<span class="w"> </span>multi_project.json
 </span></code></pre></div>
 <h3 id="development-and-debugging">Development and Debugging</h3>
 <p>Debug and test your Copick workflows:</p>
-<div class="language-bash highlight"><pre><span></span><code><span id="__span-30-1"><a id="__codelineno-30-1" name="__codelineno-30-1" href="#__codelineno-30-1"></a><span class="c1"># Run commands with debug logging</span>
-</span><span id="__span-30-2"><a id="__codelineno-30-2" name="__codelineno-30-2" href="#__codelineno-30-2"></a>copick<span class="w"> </span>browse<span class="w"> </span>--config<span class="w"> </span>project.json<span class="w"> </span>--debug
-</span><span id="__span-30-3"><a id="__codelineno-30-3" name="__codelineno-30-3" href="#__codelineno-30-3"></a>
-</span><span id="__span-30-4"><a id="__codelineno-30-4" name="__codelineno-30-4" href="#__codelineno-30-4"></a><span class="c1"># Create a new run for testing</span>
-</span><span id="__span-30-5"><a id="__codelineno-30-5" name="__codelineno-30-5" href="#__codelineno-30-5"></a>copick<span class="w"> </span>new<span class="w"> </span>run<span class="w"> </span>--config<span class="w"> </span>project.json<span class="w"> </span>TEST_RUN
-</span><span id="__span-30-6"><a id="__codelineno-30-6" name="__codelineno-30-6" href="#__codelineno-30-6"></a>
-</span><span id="__span-30-7"><a id="__codelineno-30-7" name="__codelineno-30-7" href="#__codelineno-30-7"></a><span class="c1"># Add a voxel spacing to the test run</span>
-</span><span id="__span-30-8"><a id="__codelineno-30-8" name="__codelineno-30-8" href="#__codelineno-30-8"></a>copick<span class="w"> </span>new<span class="w"> </span>voxelspacing<span class="w"> </span>--config<span class="w"> </span>project.json<span class="w"> </span>--run<span class="w"> </span>TEST_RUN<span class="w"> </span><span class="m">10</span>.0
-</span><span id="__span-30-9"><a id="__codelineno-30-9" name="__codelineno-30-9" href="#__codelineno-30-9"></a>
-</span><span id="__span-30-10"><a id="__codelineno-30-10" name="__codelineno-30-10" href="#__codelineno-30-10"></a><span class="c1"># Add a tomogram with detailed output</span>
-</span><span id="__span-30-11"><a id="__codelineno-30-11" name="__codelineno-30-11" href="#__codelineno-30-11"></a>copick<span class="w"> </span>add<span class="w"> </span>tomogram<span class="w"> </span>--config<span class="w"> </span>project.json<span class="w"> </span>--run<span class="w"> </span>TEST_RUN<span class="w"> </span>--debug<span class="w"> </span>data/test_tomogram.mrc
+<div class="language-bash highlight"><pre><span></span><code><span id="__span-29-1"><a id="__codelineno-29-1" name="__codelineno-29-1" href="#__codelineno-29-1"></a><span class="c1"># Run commands with debug logging</span>
+</span><span id="__span-29-2"><a id="__codelineno-29-2" name="__codelineno-29-2" href="#__codelineno-29-2"></a>copick<span class="w"> </span>browse<span class="w"> </span>--config<span class="w"> </span>project.json<span class="w"> </span>--debug
+</span><span id="__span-29-3"><a id="__codelineno-29-3" name="__codelineno-29-3" href="#__codelineno-29-3"></a>
+</span><span id="__span-29-4"><a id="__codelineno-29-4" name="__codelineno-29-4" href="#__codelineno-29-4"></a><span class="c1"># Create a new run for testing</span>
+</span><span id="__span-29-5"><a id="__codelineno-29-5" name="__codelineno-29-5" href="#__codelineno-29-5"></a>copick<span class="w"> </span>new<span class="w"> </span>run<span class="w"> </span>--config<span class="w"> </span>project.json<span class="w"> </span>TEST_RUN
+</span><span id="__span-29-6"><a id="__codelineno-29-6" name="__codelineno-29-6" href="#__codelineno-29-6"></a>
+</span><span id="__span-29-7"><a id="__codelineno-29-7" name="__codelineno-29-7" href="#__codelineno-29-7"></a><span class="c1"># Add a voxel spacing to the test run</span>
+</span><span id="__span-29-8"><a id="__codelineno-29-8" name="__codelineno-29-8" href="#__codelineno-29-8"></a>copick<span class="w"> </span>new<span class="w"> </span>voxelspacing<span class="w"> </span>--config<span class="w"> </span>project.json<span class="w"> </span>--run<span class="w"> </span>TEST_RUN<span class="w"> </span><span class="m">10</span>.0
+</span><span id="__span-29-9"><a id="__codelineno-29-9" name="__codelineno-29-9" href="#__codelineno-29-9"></a>
+</span><span id="__span-29-10"><a id="__codelineno-29-10" name="__codelineno-29-10" href="#__codelineno-29-10"></a><span class="c1"># Add a tomogram with detailed output</span>
+</span><span id="__span-29-11"><a id="__codelineno-29-11" name="__codelineno-29-11" href="#__codelineno-29-11"></a>copick<span class="w"> </span>add<span class="w"> </span>tomogram<span class="w"> </span>--config<span class="w"> </span>project.json<span class="w"> </span>--run<span class="w"> </span>TEST_RUN<span class="w"> </span>--debug<span class="w"> </span>data/test_tomogram.mrc
 </span></code></pre></div>
 
 
