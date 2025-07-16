@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.8.1](https://github.com/copick/copick/compare/copick-v1.8.0...copick-v1.8.1) (2025-07-16)
+
+
+### 🐞 Bug Fixes
+
+* Make sshfs a core dependency and update docs. ([#107](https://github.com/copick/copick/issues/107)) ([3e5645d](https://github.com/copick/copick/commit/3e5645d35b1db732d1f39e2d1177de674c772be3))
+
 ## [1.8.0](https://github.com/copick/copick/compare/copick-v1.7.0...copick-v1.8.0) (2025-07-16)
 
 
