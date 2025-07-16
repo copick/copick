@@ -1231,3 +1231,16 @@ class CopickRootCDP(CopickRoot):
             runs.append(CopickRunCDP(root=self, meta=rm))
 
         return runs
+
+    def _query_objects(self):
+        """Override to create objects from config. For CryoET Data Portal, objects are always writable since they only exist in overlay."""
+        clz, meta_clz = self._object_factory()
+        objects = []
+
+        for obj_meta in self.config.pickable_objects:
+            # For CryoET Data Portal, objects are always writable (read_only=False)
+            # since they only exist in the overlay filesystem
+            obj = clz(self, obj_meta, read_only=False)
+            objects.append(obj)
+
+        self._objects = objects

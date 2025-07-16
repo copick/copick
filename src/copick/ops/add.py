@@ -1,5 +1,5 @@
 import logging
-from typing import Any, Dict, Tuple, Union
+from typing import Any, Dict, Optional, Tuple, Union
 
 import mrcfile
 import numpy as np
@@ -8,6 +8,7 @@ from ome_zarr.writer import write_multiscale
 
 from copick.models import (
     CopickFeatures,
+    CopickObject,
     CopickRoot,
     CopickRun,
     CopickTomogram,
@@ -411,3 +412,139 @@ def add_segmentation(
         logging.log(logging.INFO, f"Added segmentation {name} to run {runobj.name}.")
 
     return segmentation
+
+
+def add_object(
+    root: CopickRoot,
+    name: str,
+    is_particle: bool,
+    label: Optional[int] = None,
+    color: Optional[Tuple[int, int, int, int]] = None,
+    emdb_id: Optional[str] = None,
+    pdb_id: Optional[str] = None,
+    identifier: Optional[str] = None,
+    map_threshold: Optional[float] = None,
+    radius: Optional[float] = None,
+    volume: Optional[np.ndarray] = None,
+    voxel_size: Optional[float] = None,
+    exist_ok: bool = False,
+    save_config: bool = False,
+    config_path: Optional[str] = None,
+    log: bool = False,
+) -> CopickObject:
+    """Add a new pickable object to the copick root configuration.
+
+    Args:
+        root: The copick root object.
+        name: Name of the object.
+        is_particle: Whether this object should be represented by points (True) or segmentation masks (False).
+        label: Numeric label/id for the object. If None, will use the next available label.
+        color: RGBA color for the object. If None, will use a default color.
+        emdb_id: EMDB ID for the object.
+        pdb_id: PDB ID for the object.
+        identifier: Identifier for the object (e.g. Gene Ontology ID or UniProtKB accession).
+        map_threshold: Threshold to apply to the map when rendering the isosurface.
+        radius: Radius of the particle, when displaying as a sphere.
+        volume: Optional volume data to associate with the object.
+        voxel_size: Voxel size for the volume data. Required if volume is provided.
+        exist_ok: Whether existing objects with the same name should be overwritten..
+        save_config: Whether to save the configuration to disk after adding the object.
+        config_path: Path to save the configuration. Required if save_config is True.
+        log: Whether to log the operation.
+
+    Returns:
+        CopickObject: The newly created object.
+
+    Raises:
+        ValueError: If volume is provided but voxel_size is not, or if save_config is True but config_path is not provided.
+    """
+    if volume is not None and voxel_size is None:
+        e = ValueError("voxel_size must be provided if volume is provided.")
+        if log:
+            logging.exception(e)
+        raise e
+
+    if save_config and config_path is None:
+        e = ValueError("config_path must be provided if save_config is True.")
+        if log:
+            logging.exception(e)
+        raise e
+
+    # Create the object
+    obj = root.new_object(
+        name=name,
+        is_particle=is_particle,
+        label=label,
+        color=color,
+        emdb_id=emdb_id,
+        pdb_id=pdb_id,
+        identifier=identifier,
+        map_threshold=map_threshold,
+        radius=radius,
+        exist_ok=exist_ok,
+    )
+
+    # Add volume data if provided
+    if volume is not None:
+        obj.from_numpy(volume, voxel_size)
+
+    # Save configuration if requested
+    if save_config:
+        root.save_config(config_path)
+
+    if log:
+        logging.log(logging.INFO, f"Added object {name} to root configuration.")
+
+    return obj
+
+
+def add_object_volume(
+    root: CopickRoot,
+    object_name: str,
+    volume: np.ndarray,
+    voxel_size: float,
+    log: bool = False,
+) -> CopickObject:
+    """Add volume data to an existing pickable object.
+
+    Args:
+        root: The copick root object.
+        object_name: Name of the existing object.
+        volume: Volume data to add.
+        voxel_size: Voxel size of the volume data.
+        log: Whether to log the operation.
+
+    Returns:
+        CopickObject: The updated object.
+
+    Raises:
+        ValueError: If the object does not exist or if the object is not a particle.
+    """
+    obj = root.get_object(object_name)
+    if obj is None:
+        e = ValueError(f"Object {object_name} not found in root configuration.")
+        if log:
+            logging.exception(e)
+        raise e
+
+    if not obj.is_particle:
+        e = ValueError(f"Object {object_name} is not a particle object and cannot have volume data.")
+        if log:
+            logging.exception(e)
+        raise e
+
+    # Check if the object is read-only
+    if obj.read_only:
+        e = ValueError(
+            f"Object {object_name} is read-only and cannot be modified. Volume data cannot be added to read-only objects.",
+        )
+        if log:
+            logging.exception(e)
+        raise e
+
+    obj.from_numpy(volume, voxel_size)
+
+    if log:
+        logging.log(logging.INFO, f"Added volume data to object {object_name}.")
+
+    return obj
