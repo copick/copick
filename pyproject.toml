@@ -27,6 +27,7 @@ dependencies = [
     "tqdm>=4.67.1",
     "trimesh>=4.6.12",
     "zarr<3",
+    "sshfs>=2025.2.0",
 ]
 authors = [
     { name = "Utz H. Ermel", email = "utz.ermel@czii.org" },
@@ -51,24 +52,18 @@ make_templates = "copick.cli.make_templates:create [docs]"
 smb = [
     "smbprotocol>=1.15.0",
 ]
-ssh = [
-    "sshfs>=2025.2.0",
-]
 all = [
     "smbprotocol>=1.15.0",
-    "sshfs>=2024.6.0",
 ]
 fledgeling = [
     "pooch>=1.8.2",
     "smbprotocol>=1.15.0",
-    "sshfs>=2024.6.0",
 ]
 test = [
     "pooch>=1.8.2",
     "pytest>=8.4.1",
     "pytest-cov>=6.2.1",
     "smbprotocol>=1.15.0",
-    "sshfs>=2025.2.0",
 ]
 dev = [
     "black>=25.1.0",

@@ -14,11 +14,15 @@ It requires the following packages:
 ## Installation
 
 copick can be installed using pip. Using the `all` extra installs necessary requirements for all tested filesystem
-implementations from the fsspec family (`local`, `s3fs`, `smb`, `sshfs`). Separate `s3`, `smb`, and `ssh` extras are available.
+implementations from the fsspec family (`local`, `s3fs`, `smb`, `sshfs`). A separate `smb` extra is available.
 
 ```shell
 pip install "copick[all]"
 ```
+
+!!! note
+    `copick==1.2.0` will fail to install with `pip>=25`. We recommend using [`uv pip`](https://docs.astral.sh/uv/pip/) or `pip<=25` when installing copick.
+
 
 ## Example dataset
 
