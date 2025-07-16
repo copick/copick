@@ -1,6 +1,4 @@
-from typing import List, Optional
-
-from trimesh.parent import Geometry
+from typing import TYPE_CHECKING, List, Optional
 
 from copick.models import (
     CopickFeatures,
@@ -20,6 +18,10 @@ from copick.models import (
     PickableObject,
 )
 from copick.util.log import get_logger
+
+# Dont import Geometry at runtime to keep CLI snappy
+if TYPE_CHECKING:
+    from trimesh.parent import Geometry
 
 logger = get_logger(__name__)
 
@@ -56,7 +58,13 @@ class CopickMeshOverlay(CopickMesh):
         read_only (bool): Whether the mesh is read-only.
     """
 
-    def __init__(self, run: CopickRun, meta: CopickMeshMeta, mesh: Optional[Geometry] = None, read_only: bool = False):
+    def __init__(
+        self,
+        run: CopickRun,
+        meta: CopickMeshMeta,
+        mesh: Optional["Geometry"] = None,
+        read_only: bool = False,
+    ):
         super().__init__(run, meta, mesh)
         self.read_only = read_only
 

@@ -1,17 +1,15 @@
 import json
 import re
 import warnings
-from typing import Any, Dict, List, Optional, Tuple, Type, Union
+from typing import TYPE_CHECKING, Any, Dict, List, Optional, Tuple, Type, Union
 
 import cryoet_data_portal as cdp
 import fsspec
 import numpy as np
 import s3fs
-import trimesh
 import zarr
 from fsspec import AbstractFileSystem
 from pydantic import BaseModel, create_model, field_validator
-from trimesh.parent import Geometry
 
 from copick.impl.overlay import (
     CopickFeaturesOverlay,
@@ -38,6 +36,10 @@ from copick.models import (
     PickableObject,
 )
 from copick.util.log import get_logger
+
+# Dont import Geometry at runtime to keep CLI snappy
+if TYPE_CHECKING:
+    from trimesh.parent import Geometry
 
 logger = get_logger(__name__)
 
@@ -333,12 +335,15 @@ class CopickMeshCDP(CopickMeshOverlay):
     def fs(self) -> Union[AbstractFileSystem, None]:
         return None if self.read_only else self.run.fs_overlay
 
-    def _load(self) -> Union[Geometry, None]:
+    def _load(self) -> Union["Geometry", None]:
         if not self.fs.exists(self.path):
             logger.critical(f"File not found: {self.path}")
             raise FileNotFoundError(f"File not found: {self.path}")
 
         with self.fs.open(self.path, "rb") as f:
+            # Defer trimesh import to keep CLI snappy (trimesh imports scipy)
+            import trimesh
+
             scene = trimesh.load(f, file_type="glb")
 
         return scene

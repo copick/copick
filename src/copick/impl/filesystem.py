@@ -1,12 +1,10 @@
 import concurrent.futures
 import json
-from typing import Any, Dict, List, Optional, Tuple, Type, Union
+from typing import TYPE_CHECKING, Any, Dict, List, Optional, Tuple, Type, Union
 
 import fsspec
-import trimesh
 import zarr
 from fsspec import AbstractFileSystem
-from trimesh.parent import Geometry
 
 from copick.impl.overlay import (
     CopickFeaturesOverlay,
@@ -32,6 +30,10 @@ from copick.models import (
     PickableObject,
 )
 from copick.util.log import get_logger
+
+# Dont import Geometry at runtime to keep CLI snappy
+if TYPE_CHECKING:
+    from trimesh.parent import Geometry
 
 logger = get_logger(__name__)
 
@@ -136,12 +138,15 @@ class CopickMeshFSSpec(CopickMeshOverlay):
     def fs(self) -> AbstractFileSystem:
         return self.run.fs_static if self.read_only else self.run.fs_overlay
 
-    def _load(self) -> Geometry:
+    def _load(self) -> "Geometry":
         if not self.fs.exists(self.path):
             logger.critical(f"File not found: {self.path}")
             raise FileNotFoundError(f"File not found: {self.path}")
 
         with self.fs.open(self.path, "rb") as f:
+            # Defer trimesh import to keep CLI snappy (trimesh imports scipy)
+            import trimesh
+
             scene = trimesh.load(f, file_type="glb")
 
         return scene
