@@ -3,10 +3,10 @@ import os
 from typing import Tuple
 
 import click
-import tqdm
 
 from copick.cli.util import add_config_option, add_create_overwrite_options, add_debug_option
 from copick.util.log import get_logger
+from copick.util.path_util import get_format_from_extension, prepare_runs_from_paths
 
 
 @click.group()
@@ -76,6 +76,14 @@ def add(ctx):
     show_default=True,
     help="Chunk size for the output Zarr file.",
 )
+@click.option(
+    "--max-workers",
+    required=False,
+    type=int,
+    default=4,
+    show_default=True,
+    help="Maximum number of worker threads.",
+)
 @add_create_overwrite_options
 @add_debug_option
 @click.argument(
@@ -96,6 +104,7 @@ def tomogram(
     pyramid_levels: int,
     chunk_size: str,
     path: str,
+    max_workers: int,
     create: bool,
     overwrite: bool,
     debug: bool,
@@ -108,6 +117,7 @@ def tomogram(
     # Deferred imports for performance
     import copick
     from copick.ops.add import _add_tomogram_mrc, _add_tomogram_zarr
+    from copick.ops.run import map_runs, report_results
 
     logger = get_logger(__name__, debug=debug)
 
@@ -130,36 +140,33 @@ def tomogram(
         # Single file path
         paths = [path]
 
+    # Files extension validation before processing
+    if not file_type:
+        for p in paths:
+            ext = get_format_from_extension(p)
+            if ext not in ["mrc", "zarr"]:
+                raise ValueError(f"Unsupported file format for {p}. Supported formats are 'mrc' and 'zarr'.")
+            if not os.path.exists(p):
+                raise FileNotFoundError(f"File not found: {p}")
+
     # Convert chunk arg
     chunk_size: Tuple[int, int, int] = tuple(map(int, chunk_size.split(",")[:3]))
-    input_run = run
 
-    for path in tqdm.tqdm(paths, desc="Adding tomograms", unit="file", total=len(paths)):
+    # Prepare runs and group files
+    run_to_file = prepare_runs_from_paths(root, paths, run, create, logger)
+
+    def import_tomogram(run_obj, file_path, **kwargs):
+        """Process one tomogram file for a single run"""
         try:
-            # Get run name
-            if input_run == "":
-                # Use os.path.basename for cross-platform compatibility
-                filename = os.path.basename(path)
-                run = filename.rsplit(".", 1)[0]
-            else:
-                run = input_run
-
             # Get file type
-            ft = file_type.lower() if file_type else None
-            if ft is None:
-                if path.endswith(".mrc"):
-                    ft = "mrc"
-                elif path.endswith(".zarr"):
-                    ft = "zarr"
-                else:
-                    ctx.fail(f"Could not determine file type from path: {path}")
+            ft = file_type.lower() if file_type else get_format_from_extension(file_path)
 
             if ft == "mrc":
                 _add_tomogram_mrc(
                     root,
-                    run,
+                    run_obj.name,
                     tomo_type,
-                    path,
+                    file_path,  # Single file, not a list
                     voxel_spacing=voxel_size,
                     create_pyramid=create_pyramid,
                     pyramid_levels=pyramid_levels,
@@ -171,9 +178,9 @@ def tomogram(
             elif ft == "zarr":
                 _add_tomogram_zarr(
                     root,
-                    run,
+                    run_obj.name,
                     tomo_type,
-                    path,
+                    file_path,  # Single file, not a list
                     voxel_spacing=voxel_size,
                     create_pyramid=create_pyramid,
                     pyramid_levels=pyramid_levels,
@@ -182,9 +189,35 @@ def tomogram(
                     overwrite=overwrite,
                     log=debug,
                 )
+            else:
+                raise ValueError(f"Could not determine file type from path: {file_path}")
+
+            return {"processed": 1, "errors": []}
+
         except Exception as e:
-            logger.critical(f"Failed to add tomogram: {e}")
-            ctx.fail(f"Error adding tomogram: {e}")
+            error_msg = f"Failed to process {file_path}: {e}"
+            if logger:
+                logger.critical(error_msg)
+            return {"processed": 0, "errors": [error_msg]}
+
+    # Prepare run-specific arguments
+    run_names = list(run_to_file.keys())
+    run_args = [{"file_path": run_to_file[run_name]} for run_name in run_names]
+
+    # Process tomograms using map_runs
+    results = map_runs(
+        callback=import_tomogram,
+        root=root,
+        runs=run_names,
+        workers=max_workers,
+        parallelism="thread",
+        run_args=run_args,
+        show_progress=True,
+        task_desc="Processing tomograms",
+    )
+
+    # Report Results
+    report_results(results, len(paths), logger)
 
 
 @add.command(short_help="Add a segmentation to the project.")
@@ -230,6 +263,14 @@ def tomogram(
     show_default=True,
     help="Session ID of the segmentation.",
 )
+@click.option(
+    "--max-workers",
+    required=False,
+    type=int,
+    default=4,
+    show_default=True,
+    help="Maximum number of worker threads.",
+)
 @add_create_overwrite_options
 @add_debug_option
 @click.argument(
@@ -247,6 +288,7 @@ def segmentation(
     name: str,
     user_id: str,
     session_id: str,
+    max_workers: int,
     path: str,
     create: bool,
     overwrite: bool,
@@ -260,6 +302,7 @@ def segmentation(
     # Deferred import for performance
     import copick
     from copick.ops.add import add_segmentation
+    from copick.ops.run import map_runs, report_results
 
     logger = get_logger(__name__, debug=debug)
 
@@ -281,25 +324,17 @@ def segmentation(
     else:
         # Single file path
         paths = [path]
-    input_run = run
 
-    # Add segmentations
-    for path in tqdm.tqdm(paths, desc="Adding Segmentations", unit="file", total=len(paths)):
+    # Prepare runs and group files
+    run_to_file = prepare_runs_from_paths(root, paths, run, create, logger)
+
+    def import_segmentation(run_obj, file_path, **kwargs):
+        """Process segmentation files for a single run"""
         try:
-            # Get run name
-            if input_run == "":
-                # Use os.path.basename for cross-platform compatibility
-                filename = os.path.basename(path)
-                run = filename.rsplit(".", 1)[0]
-            else:
-                run = input_run
-            print(run)
-
-            # Add segmentation
             add_segmentation(
                 root,
-                run,
-                path,
+                run_obj.name,
+                file_path,
                 voxel_size,
                 name,
                 user_id,
@@ -309,9 +344,33 @@ def segmentation(
                 overwrite=overwrite,
                 log=debug,
             )
+
+            return {"processed": 1, "errors": []}
+
         except Exception as e:
-            logger.critical(f"Failed to add tomogram: {e}")
-            ctx.fail(f"Error adding tomogram: {e}")
+            error_msg = f"Failed to process {file_path}: {e}"
+            if logger:
+                logger.critical(error_msg)
+            return {"processed": 0, "errors": [error_msg]}
+
+    # Prepare run-specific arguments
+    run_names = list(run_to_file.keys())
+    run_args = [{"file_path": run_to_file[run_name]} for run_name in run_names]
+
+    # Process segmentations using map_runs
+    results = map_runs(
+        callback=import_segmentation,
+        root=root,
+        runs=run_names,
+        workers=max_workers,
+        parallelism="thread",
+        run_args=run_args,
+        show_progress=True,
+        task_desc="Processing segmentations",
+    )
+
+    # Report Results
+    report_results(results, len(paths), logger)
 
 
 @add.command(short_help="Add a pickable object to the project configuration.")
@@ -383,7 +442,7 @@ def segmentation(
 )
 @click.option(
     "--volume-format",
-    type=click.Choice(["mrc", "zarr"], case_sensitive=False),
+    type=click.Choice(["mrc", "zarr", "map"], case_sensitive=False),
     default=None,
     help="Format of the volume file ('mrc' or 'zarr'). Will guess from extension if not provided.",
     show_default=True,

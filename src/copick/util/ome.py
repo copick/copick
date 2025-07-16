@@ -63,7 +63,6 @@ def _ome_zarr_transforms(voxel_size: float) -> Dict[str, Any]:
     return {
         "scale": [voxel_size, voxel_size, voxel_size],
         "type": "scale",
-        "unit": "angstrom",
     }
 
 
@@ -184,6 +183,15 @@ def get_voxel_size_from_zarr(zarr_group: zarr.Group) -> float:
         The voxel size in Angstrom from the coordinate transformations.
     """
     multiscales = zarr_group.attrs["multiscales"]
+
+    # Get unit from axes (should be consistent across spatial axes)
+    axes = multiscales[0]["axes"]
+    unit = "angstrom"  # Default
+    for axis in axes:
+        if axis.get("type") == "space" and "unit" in axis:
+            unit = axis["unit"]
+            break
+
     datasets = multiscales[0]["datasets"]
     first_dataset = datasets[0]
     coord_transforms = first_dataset["coordinateTransformations"]
@@ -194,7 +202,6 @@ def get_voxel_size_from_zarr(zarr_group: zarr.Group) -> float:
             scale_value = float(transform["scale"][0])
 
             # Handle unit conversion
-            unit = transform.get("unit", "angstrom")  # Default to angstrom if no unit specified
             conversion_factor = UNITFACTOR.get(unit, 1.0)  # Default to 1.0 if unknown unit
 
             # Convert to Angstrom

@@ -83,3 +83,39 @@ def map_runs(
                 ret[run_name] = None
 
     return ret
+
+
+def report_results(
+    results: Dict[str, Any],
+    total_files: int,
+    logger=None,
+) -> None:
+    """
+    Report the results of parallel processing operations.
+
+    Args:
+        results: Results dictionary from map_runs
+        total_files: Total number of files that were supposed to be processed
+        logger: Logger instance
+    """
+    total_processed = 0
+    all_errors = []
+
+    # Collect results
+    for run_name, result in results.items():
+        if result is None:
+            all_errors.append(f"Run {run_name} failed completely")
+        else:
+            total_processed += result["processed"]
+            all_errors.extend(result["errors"])
+
+    # Report results
+    if all_errors:
+        logger.error(f"Failed to process {len(all_errors)} runs:")
+        for error in all_errors:
+            logger.error(error)
+
+        if total_processed > 0:
+            logger.info(f"Successfully processed {total_processed} out of {total_files} runs")
+    else:
+        logger.info(f"Successfully processed all {total_processed} runs")

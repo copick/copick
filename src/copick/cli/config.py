@@ -175,7 +175,7 @@ def filesystem(
         "description": proj_description,
         "version": "0.1.6",  # TODO: Update this to the actual version - how to do this automatically?
         "pickable_objects": pickable_objects,
-        "overlay_root": "local://" + os.path.join(overlay_root, "static"),
+        "overlay_root": "local://" + overlay_root,
         "overlay_fs_args": {"auto_mkdir": True},
     }
 
