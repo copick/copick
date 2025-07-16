@@ -4,12 +4,9 @@ from typing import Tuple
 
 import click
 
-import copick
 from copick.cli.util import add_config_option, add_create_overwrite_options, add_debug_option
-from copick.ops.add import _add_tomogram_mrc, _add_tomogram_zarr, add_object, add_object_volume, add_segmentation
-from copick.ops.run import map_runs, report_results
 from copick.util.log import get_logger
-from copick.util.path_util import get_data_from_file, get_format_from_extension, prepare_runs_from_paths
+from copick.util.path_util import get_format_from_extension, prepare_runs_from_paths
 
 
 @click.group()
@@ -117,6 +114,11 @@ def tomogram(
 
     PATH: Path to the tomogram file (MRC or Zarr format) or glob pattern.
     """
+    # Deferred imports for performance
+    import copick
+    from copick.ops.add import _add_tomogram_mrc, _add_tomogram_zarr
+    from copick.ops.run import map_runs, report_results
+
     logger = get_logger(__name__, debug=debug)
 
     # Get root
@@ -297,6 +299,11 @@ def segmentation(
 
     PATH: Path to the segmentation file (MRC or Zarr format) or glob pattern.
     """
+    # Deferred import for performance
+    import copick
+    from copick.ops.add import add_segmentation
+    from copick.ops.run import map_runs, report_results
+
     logger = get_logger(__name__, debug=debug)
 
     # Get root
@@ -476,6 +483,11 @@ def object(
     """
     Add a pickable object to the project configuration.
     """
+    # Deferred import for performance
+    import copick
+    from copick.ops.add import add_object
+    from copick.util.path_util import get_data_from_file, get_format_from_extension
+
     logger = get_logger(__name__, debug=debug)
 
     # Get root
@@ -585,6 +597,11 @@ def object_volume(
     """
     Add volume data to an existing pickable object.
     """
+    # Deferred import for performance
+    import copick
+    from copick.ops.add import add_object_volume
+    from copick.util.path_util import get_data_from_file, get_format_from_extension
+
     logger = get_logger(__name__, debug=debug)
 
     # Get root

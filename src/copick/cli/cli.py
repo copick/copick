@@ -1,6 +1,6 @@
 import click
 
-import copick
+from copick import __version__ as version
 from copick.cli.add import add
 from copick.cli.browse import browse
 from copick.cli.config import config
@@ -13,10 +13,10 @@ logger = get_logger(__name__)
 
 
 @click.group()
-@click.version_option(version=copick.__version__, message="copick %(version)s")
+@click.version_option(version=version, message="copick %(version)s")
 @click.pass_context
 def _cli(ctx):
-    text = f"copick {copick.__version__}"
+    text = f"copick {version}"
     logger.info(text)
     logger.info(f"{'-'*len(text)}")
 

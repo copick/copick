@@ -1,8 +1,6 @@
 import click
 
-import copick
 from copick.cli.util import add_config_option, add_debug_option
-from copick.ops.browser import launch_app
 from copick.util.log import get_logger
 
 
@@ -27,6 +25,9 @@ def browse(
     """
     Browse Copick projects.
     """
+    # Deferred import for performance
+    import copick
+    from copick.ops.browser import launch_app
 
     logger = get_logger(__name__, debug=debug)
 

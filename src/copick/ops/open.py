@@ -1,17 +1,30 @@
 import json
 import warnings
-from typing import Any, Dict, List, Union
+from typing import TYPE_CHECKING, Any, Dict, List, Union
 
 from copick import __version__
-from copick.impl.cryoet_data_portal import CopickConfigCDP, CopickRootCDP
-from copick.impl.filesystem import CopickConfigFSSpec, CopickRootFSSpec
 from copick.util.log import get_logger
-from copick.util.portal import objects_from_datasets
 
 logger = get_logger(__name__)
 
+if TYPE_CHECKING:
+    from copick.impl.cryoet_data_portal import CopickRootCDP
+    from copick.impl.filesystem import CopickRootFSSpec
 
-def from_string(data: str):
+
+def from_string(data: str) -> Union["CopickRootFSSpec", "CopickRootCDP"]:
+    """Create a Copick project from a JSON string.
+
+    Args:
+        data (str): JSON string containing the project configuration.
+
+    Returns:
+        CopickRootFSSpec or CopickRootCDP: The initialized Copick project.
+    """
+
+    from copick.impl.cryoet_data_portal import CopickConfigCDP, CopickRootCDP
+    from copick.impl.filesystem import CopickConfigFSSpec, CopickRootFSSpec
+
     data = json.loads(data)
 
     if "config_type" not in data:
@@ -28,7 +41,15 @@ def from_string(data: str):
         return CopickRootCDP(CopickConfigCDP(**data))
 
 
-def from_file(path: str):
+def from_file(path: str) -> Union["CopickRootFSSpec", "CopickRootCDP"]:
+    """Create a Copick project from a JSON file.
+    Args:
+        path (str): Path to the JSON file containing the project configuration.
+
+    Returns:
+        CopickRootFSSpec or CopickRootCDP: The initialized Copick project.
+    """
+
     with open(path, "r") as f:
         data = f.read()
 
@@ -42,7 +63,7 @@ def from_czcdp_datasets(
     user_id: Union[str, None] = None,
     session_id: Union[str, None] = None,
     output_path: Union[str, None] = None,
-) -> CopickRootCDP:
+) -> "CopickRootCDP":
     """Create a Copick project from datasets in the CZ cryoET Data Portal.
 
     Args:
@@ -56,6 +77,8 @@ def from_czcdp_datasets(
     Returns:
         CopickRootCDP: The initialized Copick project.
     """
+    from copick.impl.cryoet_data_portal import CopickConfigCDP, CopickRootCDP
+    from copick.util.portal import objects_from_datasets
 
     objects = objects_from_datasets(dataset_ids)
     config = CopickConfigCDP(

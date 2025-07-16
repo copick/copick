@@ -3,8 +3,6 @@ from typing import Any, Dict, List, MutableMapping, Tuple
 import numpy as np
 import psutil
 import zarr
-from ome_zarr.writer import write_multiscale
-from skimage.transform import downscale_local_mean, rescale
 
 from copick.util.log import get_logger
 
@@ -85,6 +83,9 @@ def volume_pyramid(
     Returns:
         A dictionary containing the pyramid with the voxel size as the key.
     """
+    # This is a super heavy import, so we do it here to avoid loading it before it's needed.
+    from skimage.transform import downscale_local_mean
+
     pyramid = {voxel_size: volume.astype(dtype)}
     vs = voxel_size
 
@@ -113,6 +114,9 @@ def segmentation_pyramid(
     Returns:
         A dictionary containing the pyramid with the voxel size as the key.
     """
+    # This is a super heavy import, so we do it here to avoid loading it before it's needed.
+    from skimage.transform import rescale
+
     pyramid = {voxel_size: segmentation.astype(dtype)}
     vs = voxel_size
 
@@ -151,6 +155,10 @@ def write_ome_zarr_3d(
         pyramid: The pyramid to write.
         chunk_size: The chunk size to use for the Zarr store. Default is (256, 256, 256).
     """
+    # This is a super heavy import, so we do it here to avoid loading it before it's needed.
+    # Writing is slow anyway.
+    from ome_zarr.writer import write_multiscale
+
     ome_meta = ome_metadata(pyramid)
     root_group = zarr.group(store=store, overwrite=True)
 
