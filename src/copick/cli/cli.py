@@ -21,6 +21,61 @@ def _cli(ctx):
     logger.info(f"{'-'*len(text)}")
 
 
+@click.group(short_help="Inference commands.")
+@click.pass_context
+def inference(ctx):
+    """
+    Inference commands for Copick.
+
+    This group contains commands related to inference tasks.
+    """
+    pass
+
+
+@click.group(short_help="Training commands.")
+@click.pass_context
+def training(ctx):
+    """
+    Training commands for Copick.
+
+    This group contains commands related to training tasks.
+    """
+    pass
+
+
+@click.group(short_help="Evaluation commands.")
+@click.pass_context
+def evaluation(ctx):
+    """
+    Evaluation commands for Copick.
+
+    This group contains commands related to evaluation tasks.
+    """
+    pass
+
+
+@click.group(short_help="Image processing commands.")
+@click.pass_context
+def process(ctx):
+    """
+    Image processing commands for Copick.
+
+    This group contains commands related to data management tasks.
+    """
+    pass
+
+
+@click.group(short_help="Conversion commands.")
+@click.pass_context
+def convert(ctx):
+    """
+    Data commands for Copick.
+
+    This group contains commands related to data management tasks.
+    """
+    pass
+
+
 def add_core_commands(cmd: click.Command) -> click.Command:
     """
     Add core commands to the CLI.
@@ -52,8 +107,28 @@ def add_plugin_commands(cmd: click.Command) -> click.Command:
         cmd (click.Command): The command object with plugin commands added.
     """
 
-    for command in load_plugin_commands():
+    for command in load_plugin_commands("main"):
         cmd.add_command(command)
+
+    if inference_commands := load_plugin_commands("inference"):
+        for command in inference_commands:
+            inference.add_command(command)
+
+    if training_commands := load_plugin_commands("training"):
+        for command in training_commands:
+            training.add_command(command)
+
+    if evaluation_commands := load_plugin_commands("evaluation"):
+        for command in evaluation_commands:
+            evaluation.add_command(command)
+
+    if process_commands := load_plugin_commands("process"):
+        for command in process_commands:
+            process.add_command(command)
+
+    if convert_commands := load_plugin_commands("convert"):
+        for command in convert_commands:
+            convert.add_command(command)
 
     return cmd
 
