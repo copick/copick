@@ -1862,9 +1862,13 @@
 </ul>
 <h2 id="installation">Installation</h2>
 <p>copick can be installed using pip. Using the <code>all</code> extra installs necessary requirements for all tested filesystem
-implementations from the fsspec family (<code>local</code>, <code>s3fs</code>, <code>smb</code>, <code>sshfs</code>). Separate <code>s3</code>, <code>smb</code>, and <code>ssh</code> extras are available.</p>
+implementations from the fsspec family (<code>local</code>, <code>s3fs</code>, <code>smb</code>, <code>sshfs</code>). A separate <code>smb</code> extra is available.</p>
 <div class="language-shell highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a>pip<span class="w"> </span>install<span class="w"> </span><span class="s2">&quot;copick[all]&quot;</span>
 </span></code></pre></div>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p><code>copick==1.2.0</code> will fail to install with <code>pip&gt;=25</code>. We recommend using <a href="https://docs.astral.sh/uv/pip/"><code>uv pip</code></a> or <code>pip&lt;=25</code> when installing copick.</p>
+</div>
 <h2 id="example-dataset">Example dataset</h2>
 <p>An example dataset can be obtained from <a href="https://doi.org/10.5281/zenodo.11238625">Zenodo</a>.</p>
 <p>To test with the example dataset:</p>
