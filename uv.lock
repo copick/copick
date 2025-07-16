@@ -687,6 +687,7 @@ dependencies = [
     { name = "s3fs" },
     { name = "scikit-image", version = "0.24.0", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version < '3.10'" },
     { name = "scikit-image", version = "0.25.2", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version >= '3.10'" },
+    { name = "sshfs" },
     { name = "textual" },
     { name = "tqdm" },
     { name = "trimesh" },
@@ -698,7 +699,6 @@ dependencies = [
 [package.optional-dependencies]
 all = [
     { name = "smbprotocol" },
-    { name = "sshfs" },
 ]
 dev = [
     { name = "black" },
@@ -719,20 +719,15 @@ docs = [
 fledgeling = [
     { name = "pooch" },
     { name = "smbprotocol" },
-    { name = "sshfs" },
 ]
 smb = [
     { name = "smbprotocol" },
-]
-ssh = [
-    { name = "sshfs" },
 ]
 test = [
     { name = "pooch" },
     { name = "pytest" },
     { name = "pytest-cov" },
     { name = "smbprotocol" },
-    { name = "sshfs" },
 ]
 
 [package.metadata]
@@ -766,17 +761,14 @@ requires-dist = [
     { name = "smbprotocol", marker = "extra == 'fledgeling'", specifier = ">=1.15.0" },
     { name = "smbprotocol", marker = "extra == 'smb'", specifier = ">=1.15.0" },
     { name = "smbprotocol", marker = "extra == 'test'", specifier = ">=1.15.0" },
-    { name = "sshfs", marker = "extra == 'all'", specifier = ">=2024.6.0" },
-    { name = "sshfs", marker = "extra == 'fledgeling'", specifier = ">=2024.6.0" },
-    { name = "sshfs", marker = "extra == 'ssh'", specifier = ">=2025.2.0" },
-    { name = "sshfs", marker = "extra == 'test'", specifier = ">=2025.2.0" },
+    { name = "sshfs", specifier = ">=2025.2.0" },
     { name = "textual", specifier = ">=3.5.0" },
     { name = "textual-dev", marker = "extra == 'dev'", specifier = ">=1.7.0" },
     { name = "tqdm", specifier = ">=4.67.1" },
     { name = "trimesh", specifier = ">=4.6.12" },
     { name = "zarr", specifier = "<3" },
 ]
-provides-extras = ["all", "dev", "docs", "fledgeling", "smb", "ssh", "test"]
+provides-extras = ["all", "dev", "docs", "fledgeling", "smb", "test"]
 
 [[package]]
 name = "coverage"

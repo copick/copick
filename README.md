@@ -33,7 +33,7 @@ For more information, see the [documentation](https://copick.github.io/copick/).
 ## Installation
 
 copick can be installed using pip. Using the `all` extra installs necessary requirements for all tested filesystem
-implementations from the fsspec family (`local`, `s3fs`, `smb`, `sshfs`). Separate `s3`, `smb`, and `ssh` extras are available.
+implementations from the fsspec family (`local`, `s3fs`, `smb`, `sshfs`). A separate `smb` extra is available.
 
 ```shell
 pip install "copick[all]"
