@@ -150,23 +150,23 @@ The plugin system supports the following entry point groups:
    # Commands added to main CLI group
    [project.entry-points."copick.commands"]
    mycommand = "my_copick_plugin.cli.cli:mycommand"
-   
+
    # Commands added to inference group
    [project.entry-points."copick.inference.commands"]
    mymodel-infer = "my_copick_plugin.cli.cli:mymodel_infer"
-   
+
    # Commands added to training group
    [project.entry-points."copick.training.commands"]
    mymodel-train = "my_copick_plugin.cli.cli:mymodel_train"
-   
+
    # Commands added to evaluation group
    [project.entry-points."copick.evaluation.commands"]
    myscore = "my_copick_plugin.cli.cli:myscore"
-   
+
    # Commands added to process group
    [project.entry-points."copick.process.commands"]
    mymethod = "my_copick_plugin.cli.cli:mymethod"
-   
+
    # Commands added to convert group
    [project.entry-points."copick.convert.commands"]
    myconverter = "my_copick_plugin.cli.cli:myconverter"
@@ -175,10 +175,10 @@ The plugin system supports the following entry point groups:
 3. **Create Click commands** in your package:
    ```python
    import click
-   
+
    from copick.cli.util import add_config_option, add_debug_option
    from copick.util.log import get_logger
-   
+
    @click.command(short_help="A command added to the main copick CLI.")
    @add_config_option
    @click.option("--option", "-o", type=str, default=None, help="An example option.")
@@ -189,7 +189,7 @@ The plugin system supports the following entry point groups:
        logger = get_logger(__name__, debug=debug)
        logger.info(f"Running mycommand with config: {config}, option: {option}")
        # Add your command logic here
-   
+
    @click.command(short_help="An inference command.")
    @add_config_option
    @click.option("--model-path", type=str, help="Path to model file.")
