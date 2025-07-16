@@ -169,53 +169,11 @@ Examples:
 - `docs: update installation instructions`
 - `test: add unit tests for mesh operations`
 
-### Adding CLI Commands from External Packages
+### Plugin System
 
-Copick supports a plugin system that allows external Python packages to register CLI commands. To add a command from your package:
+Copick supports a plugin system that allows external Python packages to register CLI commands. Commands can be added to the main CLI or organized into groups like `inference`, `training`, `evaluation`, `process`, and `convert`.
 
-1. In your package's `setup.py` or `pyproject.toml`, add an entry point in the `copick.commands` group:
-
-   **setup.py**:
-   ```python
-   setup(
-       name="my-copick-plugin",
-       entry_points={
-           "copick.commands": [
-               "my-command=my_package.cli:my_command",
-           ],
-       },
-   )
-   ```
-
-   **pyproject.toml**:
-   ```toml
-   [project.entry-points."copick.commands"]
-   my-command = "my_package.cli:my_command"
-   ```
-
-2. Create a Click command in your package:
-   ```python
-   import click
-
-   from copick.cli.util import add_config_option, add_debug_option
-   from copick.util.log import get_logger
-
-   @click.command()
-   @add_config_option
-   @add_debug_option
-   @click.pass_context
-   def my_command(ctx, config: str, debug: bool):
-       """My custom copick command."""
-       logger = get_logger(__name__, debug=debug)
-       logger.info(f"Running my command with config: {config}")
-   ```
-
-3. After installing your package, the command will be available via:
-   ```bash
-   copick my-command --config path/to/config.json
-   ```
-
-The plugin system automatically discovers and loads all commands registered in the `copick.commands` entry point group.
+See the [CLI documentation](https://copick.github.io/copick/cli/#plugin-system) for detailed plugin development instructions and the [copick-plugin-demo](https://github.com/copick/copick-plugin-demo) repository for a complete example.
 
 ## Code of Conduct
 
