@@ -9,10 +9,27 @@ from copick.util.log import get_logger
 def info(ctx):
     """Display information about the Copick CLI."""
     logger = get_logger(__name__)
-    commands = load_plugin_commands()
-    if commands:
-        logger.info("Available commands:")
-        for command in commands:
-            logger.info(f"  - {command.name}: {command.short_help or 'No description available'}")
-    else:
-        logger.info("No plugin commands available.")
+
+    command_groups = {
+        "main": "Main commands (copick COMMAND)",
+        "inference": "Inference commands (copick inference COMMAND)",
+        "training": "Training commands (copick training COMMAND)",
+        "evaluation": "Evaluation commands (copick evaluation COMMAND)",
+        "process": "Processing commands (copick process COMMAND)",
+        "convert": "Conversion commands (copick convert COMMAND)",
+    }
+
+    logged_any_command = False
+
+    for group, description in command_groups.items():
+        commands = load_plugin_commands(group)
+        if commands:
+            logged_any_command = True
+            logger.info(f"\n{description}:")
+            logger.info("=" * len(description))
+            for command, package_name in commands:
+                description_text = command.short_help or "No description available"
+                logger.info(f"  {command.name:<20} {description_text} [{package_name}]")
+
+    if not logged_any_command:
+        logger.info("\nNo plugin commands available.")

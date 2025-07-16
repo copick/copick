@@ -108,32 +108,32 @@ def add_plugin_commands(cmd: click.group) -> click.group:
     """
 
     for command in load_plugin_commands("main"):
-        cmd.add_command(command)
+        cmd.add_command(command[0])
 
     if inference_commands := load_plugin_commands("inference"):
         cmd.add_command(inference)
         for command in inference_commands:
-            inference.add_command(command)
+            inference.add_command(command[0])
 
     if training_commands := load_plugin_commands("training"):
         cmd.add_command(training)
         for command in training_commands:
-            training.add_command(command)
+            training.add_command(command[0])
 
     if evaluation_commands := load_plugin_commands("evaluation"):
         cmd.add_command(evaluation)
         for command in evaluation_commands:
-            evaluation.add_command(command)
+            evaluation.add_command(command[0])
 
     if process_commands := load_plugin_commands("process"):
         cmd.add_command(process)
         for command in process_commands:
-            process.add_command(command)
+            process.add_command(command[0])
 
     if convert_commands := load_plugin_commands("convert"):
         cmd.add_command(convert)
         for command in convert_commands:
-            convert.add_command(command)
+            convert.add_command(command[0])
 
     return cmd
 
