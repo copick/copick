@@ -1973,10 +1973,37 @@
 
 
 </h2>
-<div class="language-python doc-signature highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="nf">from_string</span><span class="p">(</span><span class="n">data</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span>
+<div class="language-python doc-signature highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="nf">from_string</span><span class="p">(</span><span class="n">data</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Union</span><span class="p">[</span><span class="n">CopickRootFSSpec</span><span class="p">,</span> <span class="n">CopickRootCDP</span><span class="p">]</span>
 </span></code></pre></div>
 
     <div class="doc doc-contents first">
+
+        <p>Create a Copick project from a JSON string.</p>
+
+
+<p><span class="doc-section-title">Parameters:</span></p>
+    <ul>
+        <li class="doc-section-item field-body">
+            <b><code>data</code></b>
+              (<code><span title="str">str</span></code>)
+          –
+          <div class="doc-md-description">
+            <p>JSON string containing the project configuration.</p>
+          </div>
+        </li>
+    </ul>
+
+
+<p><span class="doc-section-title">Returns:</span></p>
+    <ul>
+        <li class="doc-section-item field-body">
+              <code><span title="typing.Union">Union</span>[<a class="autorefs autorefs-internal" title="            copick.impl.filesystem.CopickRootFSSpec" href="../../implementations/Filesystem/#copick.impl.filesystem.CopickRootFSSpec">CopickRootFSSpec</a>, <a class="autorefs autorefs-internal" title="            copick.impl.cryoet_data_portal.CopickRootCDP" href="../../implementations/Dataportal/#copick.impl.cryoet_data_portal.CopickRootCDP">CopickRootCDP</a>]</code>
+          –
+          <div class="doc-md-description">
+            <p>CopickRootFSSpec or CopickRootCDP: The initialized Copick project.</p>
+          </div>
+        </li>
+    </ul>
 
 
     </div>
@@ -1991,10 +2018,26 @@
 
 
 </h2>
-<div class="language-python doc-signature highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="nf">from_file</span><span class="p">(</span><span class="n">path</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span>
+<div class="language-python doc-signature highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="nf">from_file</span><span class="p">(</span><span class="n">path</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Union</span><span class="p">[</span><span class="n">CopickRootFSSpec</span><span class="p">,</span> <span class="n">CopickRootCDP</span><span class="p">]</span>
 </span></code></pre></div>
 
     <div class="doc doc-contents first">
+
+        <p>Create a Copick project from a JSON file.
+Args:
+    path (str): Path to the JSON file containing the project configuration.</p>
+
+
+<p><span class="doc-section-title">Returns:</span></p>
+    <ul>
+        <li class="doc-section-item field-body">
+              <code><span title="typing.Union">Union</span>[<a class="autorefs autorefs-internal" title="            copick.impl.filesystem.CopickRootFSSpec" href="../../implementations/Filesystem/#copick.impl.filesystem.CopickRootFSSpec">CopickRootFSSpec</a>, <a class="autorefs autorefs-internal" title="            copick.impl.cryoet_data_portal.CopickRootCDP" href="../../implementations/Dataportal/#copick.impl.cryoet_data_portal.CopickRootCDP">CopickRootCDP</a>]</code>
+          –
+          <div class="doc-md-description">
+            <p>CopickRootFSSpec or CopickRootCDP: The initialized Copick project.</p>
+          </div>
+        </li>
+    </ul>
 
 
     </div>
