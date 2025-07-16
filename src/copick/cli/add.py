@@ -1,6 +1,6 @@
 import glob
 import os
-from typing import Dict, List, Tuple
+from typing import Tuple
 
 import click
 
@@ -8,56 +8,8 @@ import copick
 from copick.cli.util import add_config_option, add_create_overwrite_options, add_debug_option
 from copick.ops.add import _add_tomogram_mrc, _add_tomogram_zarr, add_object, add_object_volume, add_segmentation
 from copick.ops.run import map_runs, report_results
-from copick.util.formats import get_data_from_file, get_format_from_extension
 from copick.util.log import get_logger
-
-
-def prepare_runs_from_paths(
-    root,
-    paths: List[str],
-    input_run: str,
-    create: bool = True,
-    logger=None,
-) -> Dict[str, List[str]]:
-    """
-    Prepare runs from file paths, creating runs if necessary.
-
-    Args:
-        root: Copick root
-        paths: List of file paths
-        input_run: Run name (empty string means derive from filename)
-        create: Whether to create runs if they don't exist
-        logger: Logger instance
-
-    Returns:
-        Dictionary mapping run names to lists of file paths
-    """
-    run_to_files = {}
-
-    # Group files by run name
-    for path in paths:
-        if input_run == "":
-            filename = os.path.basename(path)
-            current_run = filename.rsplit(".", 1)[0]
-        else:
-            current_run = input_run
-
-        if current_run not in run_to_files:
-            run_to_files[current_run] = []
-        run_to_files[current_run].append(path)
-
-    # Create runs if they don't exist
-    for run_name in run_to_files:
-        if not root.get_run(run_name):
-            if create:
-                root.new_run(run_name)
-                if logger:
-                    logger.info(f"Created run: {run_name}")
-            else:
-                if logger:
-                    logger.warning(f"Run {run_name} does not exist and create=False")
-
-    return run_to_files
+from copick.util.path_util import get_data_from_file, get_format_from_extension, prepare_runs_from_paths
 
 
 @click.group()
@@ -186,6 +138,15 @@ def tomogram(
         # Single file path
         paths = [path]
 
+    # Files extension validation before processing
+    if not file_type:
+        for p in paths:
+            ext = get_format_from_extension(p)
+            if ext not in ["mrc", "zarr"]:
+                raise ValueError(f"Unsupported file format for {p}. Supported formats are 'mrc' and 'zarr'.")
+            if not os.path.exists(p):
+                raise FileNotFoundError(f"File not found: {p}")
+
     # Convert chunk arg
     chunk_size: Tuple[int, int, int] = tuple(map(int, chunk_size.split(",")[:3]))
 
@@ -200,14 +161,7 @@ def tomogram(
         for path_item in file_paths:
             try:
                 # Get file type
-                ft = file_type.lower() if file_type else None
-                if ft is None:
-                    if path_item.endswith(".mrc"):
-                        ft = "mrc"
-                    elif path_item.endswith(".zarr"):
-                        ft = "zarr"
-                    else:
-                        raise ValueError(f"Could not determine file type from path: {path_item}")
+                ft = file_type.lower() if file_type else get_format_from_extension(path_item)
 
                 if ft == "mrc":
                     _add_tomogram_mrc(
@@ -237,6 +191,9 @@ def tomogram(
                         overwrite=overwrite,
                         log=debug,
                     )
+                else:
+                    raise ValueError(f"Could not determine file type from path: {path_item}")
+
                 processed += 1
 
             except Exception as e:
@@ -489,7 +446,7 @@ def segmentation(
 )
 @click.option(
     "--volume-format",
-    type=click.Choice(["mrc", "zarr"], case_sensitive=False),
+    type=click.Choice(["mrc", "zarr", "map"], case_sensitive=False),
     default=None,
     help="Format of the volume file ('mrc' or 'zarr'). Will guess from extension if not provided.",
     show_default=True,
