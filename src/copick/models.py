@@ -1,14 +1,16 @@
 import json
-from typing import Dict, Iterable, List, Literal, MutableMapping, Optional, Tuple, Type, Union
+from typing import TYPE_CHECKING, Dict, Iterable, List, Literal, MutableMapping, Optional, Tuple, Type, Union
 
 import numpy as np
-import trimesh
 import zarr
 from pydantic import AliasChoices, BaseModel, Field, field_validator
-from trimesh.parent import Geometry
 
 from copick.util.escape import sanitize_name
 from copick.util.ome import fits_in_memory, segmentation_pyramid, volume_pyramid, write_ome_zarr_3d
+
+# Don't import Geometry at runtime to keep CLI snappy
+if TYPE_CHECKING:
+    from trimesh.parent import Geometry
 
 
 class PickableObject(BaseModel):
@@ -1170,6 +1172,9 @@ class CopickRun:
                 **kwargs,
             )
 
+            # Defer trimesh import to keep CLI snappy (trimesh imports scipy)
+            import trimesh
+
             # Need to create an empty trimesh.Trimesh object first, because empty scenes can't be exported.
             tmesh = trimesh.Trimesh()
             scene = tmesh.scene()
@@ -2130,7 +2135,7 @@ class CopickMesh:
         color: Color of the pickable object this pick belongs to.
     """
 
-    def __init__(self, run: CopickRun, meta: CopickMeshMeta, mesh: Optional[Geometry] = None):
+    def __init__(self, run: CopickRun, meta: CopickMeshMeta, mesh: Optional["Geometry"] = None):
         self.meta: CopickMeshMeta = meta
         self.run: CopickRun = run
 
@@ -2162,7 +2167,7 @@ class CopickMesh:
     def color(self):
         return self.run.root.get_object(self.pickable_object_name).color
 
-    def _load(self) -> Geometry:
+    def _load(self) -> "Geometry":
         """Override this method to load mesh from a RESTful interface or filesystem."""
         raise NotImplementedError("load must be implemented for CopickMesh.")
 
@@ -2171,7 +2176,7 @@ class CopickMesh:
         the file if it doesn't exist."""
         raise NotImplementedError("store must be implemented for CopickMesh.")
 
-    def load(self) -> Geometry:
+    def load(self) -> "Geometry":
         """Load the mesh from storage.
 
         Returns:
@@ -2186,14 +2191,14 @@ class CopickMesh:
         self._store()
 
     @property
-    def mesh(self) -> Geometry:
+    def mesh(self) -> "Geometry":
         if self._mesh is None:
             self._mesh = self.load()
 
         return self._mesh
 
     @mesh.setter
-    def mesh(self, value: Geometry) -> None:
+    def mesh(self, value: "Geometry") -> None:
         self._mesh = value
 
     @property

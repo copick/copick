@@ -4,7 +4,6 @@ from typing import List
 
 import click
 
-import copick
 from copick.cli.util import add_debug_option
 from copick.util.log import get_logger
 
@@ -80,6 +79,9 @@ def dataportal(
     """
     Generate a configuration file from a CZDP dataset ID and local overlay directory
     """
+    # Deferred import for performance
+    import copick
+
     logger = get_logger(__name__, debug=debug)
     logger.info("Generating configuration file from CZDP dataset IDs...")
 
@@ -139,11 +141,11 @@ def filesystem(
     Generate a configuration file for a local project directory.
 
     Example Useage:
-copick config filesystem \
-    --config config.json \
-    --overlay-root /mnt/24sep24a/run002 \
-    --objects membrane,False --objects apoferritin,True,60,4V1W \
-    --proj-name 24sep24a --proj-description "Synaptic Vesicles collected on 24sep24"
+    copick config filesystem \
+        --config config.json \
+        --overlay-root /mnt/24sep24a/run002 \
+        --objects membrane,False --objects apoferritin,True,60,4V1W \
+        --proj-name 24sep24a --proj-description "Synaptic Vesicles collected on 24sep24"
     """
     logger = get_logger(__name__, debug=debug)
     logger.info("Generating configuration file for a local project directory...")
@@ -173,7 +175,7 @@ copick config filesystem \
         "description": proj_description,
         "version": "0.1.6",  # TODO: Update this to the actual version - how to do this automatically?
         "pickable_objects": pickable_objects,
-        "overlay_root": "local://" + os.path.join(overlay_root, "static"),
+        "overlay_root": "local://" + overlay_root,
         "overlay_fs_args": {"auto_mkdir": True},
     }
 

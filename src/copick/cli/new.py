@@ -3,9 +3,7 @@ import os
 import click
 import tqdm
 
-import copick
 from copick.cli.util import add_config_option, add_create_overwrite_options, add_debug_option
-from copick.ops.add import add_run, add_voxelspacing
 from copick.util.log import get_logger
 
 
@@ -36,6 +34,9 @@ def picks(
     """
     Create empty picks for a given particle name.
     """
+    # Deferred import for performance
+    import copick
+
     logger = get_logger(__name__, debug=debug)
 
     # Load Copick Project
@@ -92,6 +93,10 @@ def run(
 
     NAME: The name of the new run to be created.
     """
+    # Deferred import for performance
+    import copick
+    from copick.ops.add import add_run
+
     get_logger(__name__, debug=debug)
 
     root = copick.from_file(config)
@@ -119,6 +124,10 @@ def voxelspacing(
 
     VOXEL_SPACING: The voxel spacing in Angstrom to be added to the run.
     """
+    # Deferred import for performance
+    import copick
+    from copick.ops.add import add_voxelspacing
+
     get_logger(__name__, debug=debug)
 
     root = copick.from_file(config)

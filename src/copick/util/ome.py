@@ -3,8 +3,6 @@ from typing import Any, Dict, List, MutableMapping, Tuple
 import numpy as np
 import psutil
 import zarr
-from ome_zarr.writer import write_multiscale
-from skimage.transform import downscale_local_mean, rescale
 
 from copick.util.log import get_logger
 
@@ -65,7 +63,6 @@ def _ome_zarr_transforms(voxel_size: float) -> Dict[str, Any]:
     return {
         "scale": [voxel_size, voxel_size, voxel_size],
         "type": "scale",
-        "unit": "angstrom",
     }
 
 
@@ -86,6 +83,9 @@ def volume_pyramid(
     Returns:
         A dictionary containing the pyramid with the voxel size as the key.
     """
+    # This is a super heavy import, so we do it here to avoid loading it before it's needed.
+    from skimage.transform import downscale_local_mean
+
     pyramid = {voxel_size: volume.astype(dtype)}
     vs = voxel_size
 
@@ -114,6 +114,9 @@ def segmentation_pyramid(
     Returns:
         A dictionary containing the pyramid with the voxel size as the key.
     """
+    # This is a super heavy import, so we do it here to avoid loading it before it's needed.
+    from skimage.transform import rescale
+
     pyramid = {voxel_size: segmentation.astype(dtype)}
     vs = voxel_size
 
@@ -152,6 +155,10 @@ def write_ome_zarr_3d(
         pyramid: The pyramid to write.
         chunk_size: The chunk size to use for the Zarr store. Default is (256, 256, 256).
     """
+    # This is a super heavy import, so we do it here to avoid loading it before it's needed.
+    # Writing is slow anyway.
+    from ome_zarr.writer import write_multiscale
+
     ome_meta = ome_metadata(pyramid)
     root_group = zarr.group(store=store, overwrite=True)
 
@@ -176,6 +183,15 @@ def get_voxel_size_from_zarr(zarr_group: zarr.Group) -> float:
         The voxel size in Angstrom from the coordinate transformations.
     """
     multiscales = zarr_group.attrs["multiscales"]
+
+    # Get unit from axes (should be consistent across spatial axes)
+    axes = multiscales[0]["axes"]
+    unit = "angstrom"  # Default
+    for axis in axes:
+        if axis.get("type") == "space" and "unit" in axis:
+            unit = axis["unit"]
+            break
+
     datasets = multiscales[0]["datasets"]
     first_dataset = datasets[0]
     coord_transforms = first_dataset["coordinateTransformations"]
@@ -186,7 +202,6 @@ def get_voxel_size_from_zarr(zarr_group: zarr.Group) -> float:
             scale_value = float(transform["scale"][0])
 
             # Handle unit conversion
-            unit = transform.get("unit", "angstrom")  # Default to angstrom if no unit specified
             conversion_factor = UNITFACTOR.get(unit, 1.0)  # Default to 1.0 if unknown unit
 
             # Convert to Angstrom
