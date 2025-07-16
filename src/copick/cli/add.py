@@ -486,7 +486,7 @@ def object(
     # Deferred import for performance
     import copick
     from copick.ops.add import add_object
-    from copick.util.formats import get_data_from_file, get_format_from_extension
+    from copick.util.path_util import get_data_from_file, get_format_from_extension
 
     logger = get_logger(__name__, debug=debug)
 
@@ -600,7 +600,7 @@ def object_volume(
     # Deferred import for performance
     import copick
     from copick.ops.add import add_object_volume
-    from copick.util.formats import get_data_from_file, get_format_from_extension
+    from copick.util.path_util import get_data_from_file, get_format_from_extension
 
     logger = get_logger(__name__, debug=debug)
 
