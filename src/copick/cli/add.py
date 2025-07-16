@@ -173,6 +173,7 @@ def tomogram(
                     chunks=chunk_size,
                     create=create,
                     overwrite=overwrite,
+                    exist_ok=overwrite,
                     log=debug,
                 )
             elif ft == "zarr":
@@ -187,6 +188,7 @@ def tomogram(
                     chunks=chunk_size,
                     create=create,
                     overwrite=overwrite,
+                    exist_ok=overwrite,
                     log=debug,
                 )
             else:
@@ -342,6 +344,7 @@ def segmentation(
                 multilabel=True,
                 create=create,
                 overwrite=overwrite,
+                exist_ok=overwrite,
                 log=debug,
             )
 
