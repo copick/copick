@@ -21,7 +21,7 @@ def _cli(ctx):
     logger.info(f"{'-'*len(text)}")
 
 
-@click.group(short_help="Inference commands.")
+@click.group(short_help="Run inference on copick tomograms.")
 @click.pass_context
 def inference(ctx):
     """
@@ -32,7 +32,7 @@ def inference(ctx):
     pass
 
 
-@click.group(short_help="Training commands.")
+@click.group(short_help="Train a model with copick data.")
 @click.pass_context
 def training(ctx):
     """
@@ -43,7 +43,7 @@ def training(ctx):
     pass
 
 
-@click.group(short_help="Evaluation commands.")
+@click.group(short_help="Evaluate model performance.")
 @click.pass_context
 def evaluation(ctx):
     """
@@ -54,7 +54,7 @@ def evaluation(ctx):
     pass
 
 
-@click.group(short_help="Image processing commands.")
+@click.group(short_help="Apply processing method to copick entity.")
 @click.pass_context
 def process(ctx):
     """
@@ -65,7 +65,7 @@ def process(ctx):
     pass
 
 
-@click.group(short_help="Conversion commands.")
+@click.group(short_help="Convert one copick type to another.")
 @click.pass_context
 def convert(ctx):
     """
@@ -76,7 +76,7 @@ def convert(ctx):
     pass
 
 
-def add_core_commands(cmd: click.Command) -> click.Command:
+def add_core_commands(cmd: click.group) -> click.group:
     """
     Add core commands to the CLI.
 
@@ -96,7 +96,7 @@ def add_core_commands(cmd: click.Command) -> click.Command:
     return cmd
 
 
-def add_plugin_commands(cmd: click.Command) -> click.Command:
+def add_plugin_commands(cmd: click.group) -> click.group:
     """
     Add plugin commands to the CLI.
 
@@ -111,22 +111,27 @@ def add_plugin_commands(cmd: click.Command) -> click.Command:
         cmd.add_command(command)
 
     if inference_commands := load_plugin_commands("inference"):
+        cmd.add_command(inference)
         for command in inference_commands:
             inference.add_command(command)
 
     if training_commands := load_plugin_commands("training"):
+        cmd.add_command(training)
         for command in training_commands:
             training.add_command(command)
 
     if evaluation_commands := load_plugin_commands("evaluation"):
+        cmd.add_command(evaluation)
         for command in evaluation_commands:
             evaluation.add_command(command)
 
     if process_commands := load_plugin_commands("process"):
+        cmd.add_command(process)
         for command in process_commands:
             process.add_command(command)
 
     if convert_commands := load_plugin_commands("convert"):
+        cmd.add_command(convert)
         for command in convert_commands:
             convert.add_command(command)
 
