@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.8.2](https://github.com/copick/copick/compare/copick-v1.8.1...copick-v1.8.2) (2025-07-16)
+
+
+### 🐞 Bug Fixes
+
+* Fix overwrite option on CLI ([#109](https://github.com/copick/copick/issues/109)) ([8232aaf](https://github.com/copick/copick/commit/8232aaf983ad32a0c0c6198cd121e7cd313febb3))
+
 ## [1.8.1](https://github.com/copick/copick/compare/copick-v1.8.0...copick-v1.8.1) (2025-07-16)
 
 
