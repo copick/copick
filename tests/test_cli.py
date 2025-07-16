@@ -90,9 +90,9 @@ def sample_zarr_file_nanometer():
         store.attrs["multiscales"] = [
             {
                 "axes": [
-                    {"name": "z", "type": "space", "unit": "angstrom"},
-                    {"name": "y", "type": "space", "unit": "angstrom"},
-                    {"name": "x", "type": "space", "unit": "angstrom"},
+                    {"name": "z", "type": "space", "unit": "nanometer"},
+                    {"name": "y", "type": "space", "unit": "nanometer"},
+                    {"name": "x", "type": "space", "unit": "nanometer"},
                 ],
                 "datasets": [
                     {
@@ -100,7 +100,6 @@ def sample_zarr_file_nanometer():
                             {
                                 "scale": [1.0, 1.0, 1.0],  # 1 nanometer = 10 Angstrom
                                 "type": "scale",
-                                "unit": "nanometer",
                             },
                         ],
                         "path": "0",
