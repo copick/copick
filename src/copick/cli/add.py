@@ -151,62 +151,56 @@ def tomogram(
     chunk_size: Tuple[int, int, int] = tuple(map(int, chunk_size.split(",")[:3]))
 
     # Prepare runs and group files
-    run_to_files = prepare_runs_from_paths(root, paths, run, create, logger)
+    run_to_file = prepare_runs_from_paths(root, paths, run, create, logger)
 
-    def import_tomogram(run_obj, file_paths, **kwargs):
-        """Process tomogram files for a single run"""
-        errors = []
-        processed = 0
+    def import_tomogram(run_obj, file_path, **kwargs):
+        """Process one tomogram file for a single run"""
+        try:
+            # Get file type
+            ft = file_type.lower() if file_type else get_format_from_extension(file_path)
 
-        for path_item in file_paths:
-            try:
-                # Get file type
-                ft = file_type.lower() if file_type else get_format_from_extension(path_item)
+            if ft == "mrc":
+                _add_tomogram_mrc(
+                    root,
+                    run_obj.name,
+                    tomo_type,
+                    file_path,  # Single file, not a list
+                    voxel_spacing=voxel_size,
+                    create_pyramid=create_pyramid,
+                    pyramid_levels=pyramid_levels,
+                    chunks=chunk_size,
+                    create=create,
+                    overwrite=overwrite,
+                    log=debug,
+                )
+            elif ft == "zarr":
+                _add_tomogram_zarr(
+                    root,
+                    run_obj.name,
+                    tomo_type,
+                    file_path,  # Single file, not a list
+                    voxel_spacing=voxel_size,
+                    create_pyramid=create_pyramid,
+                    pyramid_levels=pyramid_levels,
+                    chunks=chunk_size,
+                    create=create,
+                    overwrite=overwrite,
+                    log=debug,
+                )
+            else:
+                raise ValueError(f"Could not determine file type from path: {file_path}")
 
-                if ft == "mrc":
-                    _add_tomogram_mrc(
-                        root,
-                        run_obj.name,
-                        tomo_type,
-                        path_item,
-                        voxel_spacing=voxel_size,
-                        create_pyramid=create_pyramid,
-                        pyramid_levels=pyramid_levels,
-                        chunks=chunk_size,
-                        create=create,
-                        overwrite=overwrite,
-                        log=debug,
-                    )
-                elif ft == "zarr":
-                    _add_tomogram_zarr(
-                        root,
-                        run_obj.name,
-                        tomo_type,
-                        path_item,
-                        voxel_spacing=voxel_size,
-                        create_pyramid=create_pyramid,
-                        pyramid_levels=pyramid_levels,
-                        chunks=chunk_size,
-                        create=create,
-                        overwrite=overwrite,
-                        log=debug,
-                    )
-                else:
-                    raise ValueError(f"Could not determine file type from path: {path_item}")
+            return {"processed": 1, "errors": []}
 
-                processed += 1
-
-            except Exception as e:
-                error_msg = f"Failed to process {path_item}: {e}"
-                errors.append(error_msg)
-                if logger:
-                    logger.critical(error_msg)
-
-        return {"processed": processed, "errors": errors}
+        except Exception as e:
+            error_msg = f"Failed to process {file_path}: {e}"
+            if logger:
+                logger.critical(error_msg)
+            return {"processed": 0, "errors": [error_msg]}
 
     # Prepare run-specific arguments
-    run_names = list(run_to_files.keys())
-    run_args = [{"file_paths": run_to_files[run_name]} for run_name in run_names]
+    run_names = list(run_to_file.keys())
+    run_args = [{"file_path": run_to_file[run_name]} for run_name in run_names]
 
     # Process tomograms using map_runs
     results = map_runs(
@@ -325,41 +319,36 @@ def segmentation(
         paths = [path]
 
     # Prepare runs and group files
-    run_to_files = prepare_runs_from_paths(root, paths, run, create, logger)
+    run_to_file = prepare_runs_from_paths(root, paths, run, create, logger)
 
-    def import_segmentation(run_obj, file_paths, **kwargs):
+    def import_segmentation(run_obj, file_path, **kwargs):
         """Process segmentation files for a single run"""
-        errors = []
-        processed = 0
+        try:
+            add_segmentation(
+                root,
+                run_obj.name,
+                file_path,
+                voxel_size,
+                name,
+                user_id,
+                session_id,
+                multilabel=True,
+                create=create,
+                overwrite=overwrite,
+                log=debug,
+            )
 
-        for path_item in file_paths:
-            try:
-                add_segmentation(
-                    root,
-                    run_obj.name,
-                    path_item,
-                    voxel_size,
-                    name,
-                    user_id,
-                    session_id,
-                    multilabel=True,
-                    create=create,
-                    overwrite=overwrite,
-                    log=debug,
-                )
-                processed += 1
+            return {"processed": 1, "errors": []}
 
-            except Exception as e:
-                error_msg = f"Failed to process {path_item}: {e}"
-                errors.append(error_msg)
-                if logger:
-                    logger.critical(error_msg)
-
-        return {"processed": processed, "errors": errors}
+        except Exception as e:
+            error_msg = f"Failed to process {file_path}: {e}"
+            if logger:
+                logger.critical(error_msg)
+            return {"processed": 0, "errors": [error_msg]}
 
     # Prepare run-specific arguments
-    run_names = list(run_to_files.keys())
-    run_args = [{"file_paths": run_to_files[run_name]} for run_name in run_names]
+    run_names = list(run_to_file.keys())
+    run_args = [{"file_path": run_to_file[run_name]} for run_name in run_names]
 
     # Process segmentations using map_runs
     results = map_runs(

@@ -57,9 +57,10 @@ def prepare_runs_from_paths(
     input_run: str,
     create: bool = True,
     logger=None,
-) -> Dict[str, List[str]]:
+) -> Dict[str, str]:
     """
     Prepare runs from file paths, creating runs if necessary.
+    Each run gets exactly one file.
 
     Args:
         root: Copick root
@@ -69,11 +70,11 @@ def prepare_runs_from_paths(
         logger: Logger instance
 
     Returns:
-        Dictionary mapping run names to lists of file paths
+        Dictionary mapping run names to single file paths
     """
-    run_to_files = {}
+    run_to_file = {}  # Changed variable name to reflect single file per run
 
-    # Group files by run name
+    # Map each file to a run name
     for path in paths:
         if input_run == "":
             filename = os.path.basename(path)
@@ -81,12 +82,18 @@ def prepare_runs_from_paths(
         else:
             current_run = input_run
 
-        if current_run not in run_to_files:
-            run_to_files[current_run] = []
-        run_to_files[current_run].append(path)
+        # Check if this run already has a file assigned
+        if current_run in run_to_file:
+            if logger:
+                logger.warning(
+                    f"Run {current_run} already has a file assigned ({run_to_file[current_run]}). Skipping {path}.",
+                )
+            continue
+
+        run_to_file[current_run] = path
 
     # Create runs if they don't exist
-    for run_name in run_to_files:
+    for run_name in run_to_file:
         if not root.get_run(run_name):
             if create:
                 root.new_run(run_name)
@@ -96,4 +103,4 @@ def prepare_runs_from_paths(
                 if logger:
                     logger.warning(f"Run {run_name} does not exist and create=False")
 
-    return run_to_files
+    return run_to_file
