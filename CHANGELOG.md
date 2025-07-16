@@ -1,5 +1,24 @@
 # Changelog
 
+## [1.7.0](https://github.com/copick/copick/compare/copick-v1.6.1...copick-v1.7.0) (2025-07-16)
+
+
+### ✨ Features
+
+* Add ability to add objects. ([#101](https://github.com/copick/copick/issues/101)) ([ee19667](https://github.com/copick/copick/commit/ee196679fc9a198e166a5e8a9baf64882e216a5f))
+
+
+### 🐞 Bug Fixes
+
+* remove requirement for providing objects when generating a local config project ([#99](https://github.com/copick/copick/issues/99)) ([7a0045d](https://github.com/copick/copick/commit/7a0045d61a42d59e8f6502b4c76f360c7f313bf6))
+* Store OME metadata correctly. ([#105](https://github.com/copick/copick/issues/105)) ([144457b](https://github.com/copick/copick/commit/144457bc2041e17b24a48b5bae42ac7e6ae3a190))
+
+
+### ⚡️ Performance Improvements
+
+* Add parallel processing support for tomogram and segmentation import ([#102](https://github.com/copick/copick/issues/102)) ([944f77c](https://github.com/copick/copick/commit/944f77c359b47c273e3dc59a5376f353b9997ebe))
+* Optimize imports to make importing copick quicker and keep CLI snappy ([#104](https://github.com/copick/copick/issues/104)) ([e115d78](https://github.com/copick/copick/commit/e115d781992bd65a3dc06640d17317c2b0d1eeb9))
+
 ## [1.6.1](https://github.com/copick/copick/compare/copick-v1.6.0...copick-v1.6.1) (2025-07-08)
 
 
