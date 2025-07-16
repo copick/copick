@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.8.0](https://github.com/copick/copick/compare/copick-v1.7.0...copick-v1.8.0) (2025-07-16)
+
+
+### ✨ Features
+
+* More CLI groups exposed for entry points from other packages. ([#103](https://github.com/copick/copick/issues/103)) ([f99bb3f](https://github.com/copick/copick/commit/f99bb3f3fa97b8f3b30d4fa54f58bc29f9cd5d64))
+
 ## [1.7.0](https://github.com/copick/copick/compare/copick-v1.6.1...copick-v1.7.0) (2025-07-16)
 
 
