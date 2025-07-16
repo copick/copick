@@ -37,7 +37,7 @@ from copick.models import (
 )
 from copick.util.log import get_logger
 
-# Dont import Geometry at runtime to keep CLI snappy
+# Don't import Geometry at runtime to keep CLI snappy
 if TYPE_CHECKING:
     from trimesh.parent import Geometry
 

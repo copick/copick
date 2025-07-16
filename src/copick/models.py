@@ -8,7 +8,7 @@ from pydantic import AliasChoices, BaseModel, Field, field_validator
 from copick.util.escape import sanitize_name
 from copick.util.ome import fits_in_memory, segmentation_pyramid, volume_pyramid, write_ome_zarr_3d
 
-# Dont import Geometry at runtime to keep CLI snappy
+# Don't import Geometry at runtime to keep CLI snappy
 if TYPE_CHECKING:
     from trimesh.parent import Geometry
 
