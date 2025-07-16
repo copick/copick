@@ -117,50 +117,111 @@ perf: optimize zarr array reading for large volumes
 
 ## Plugin Development
 
-Copick supports a plugin system that allows external Python packages to register CLI commands.
+Copick supports a plugin system that allows external Python packages to register CLI commands. Commands can be added to the main CLI or organized into groups like `inference`, `training`, `evaluation`, `process`, and `convert`.
+
+### Supported Entry Point Groups
+
+The plugin system supports the following entry point groups:
+
+- **`copick.commands`**: Commands added directly to the main CLI (e.g., `copick mycommand`)
+- **`copick.inference.commands`**: Commands under the inference group (e.g., `copick inference mymodel`)
+- **`copick.training.commands`**: Commands under the training group (e.g., `copick training mytrain`)
+- **`copick.evaluation.commands`**: Commands under the evaluation group (e.g., `copick evaluation myscore`)
+- **`copick.process.commands`**: Commands under the process group (e.g., `copick process mymethod`)
+- **`copick.convert.commands`**: Commands under the convert group (e.g., `copick convert myconverter`)
 
 ### Creating a Plugin
 
-1. **In your package's `setup.py` or `pyproject.toml`**, add an entry point in the `copick.commands` group:
-
-   **setup.py**:
-   ```python
-   setup(
-       name="my-copick-plugin",
-       entry_points={
-           "copick.commands": [
-               "my-command=my_package.cli:my_command",
-           ],
-       },
-   )
+1. **Set up your package structure**:
+   ```
+   my-copick-plugin/
+   ├── src/
+   │   └── my_copick_plugin/
+   │       ├── __init__.py
+   │       └── cli/
+   │           ├── __init__.py
+   │           └── cli.py
+   ├── pyproject.toml
+   └── README.md
    ```
 
-   **pyproject.toml**:
+2. **In your package's `pyproject.toml`**, add entry points for the desired groups:
    ```toml
+   # Commands added to main CLI group
    [project.entry-points."copick.commands"]
-   my-command = "my_package.cli:my_command"
+   mycommand = "my_copick_plugin.cli.cli:mycommand"
+   
+   # Commands added to inference group
+   [project.entry-points."copick.inference.commands"]
+   mymodel-infer = "my_copick_plugin.cli.cli:mymodel_infer"
+   
+   # Commands added to training group
+   [project.entry-points."copick.training.commands"]
+   mymodel-train = "my_copick_plugin.cli.cli:mymodel_train"
+   
+   # Commands added to evaluation group
+   [project.entry-points."copick.evaluation.commands"]
+   myscore = "my_copick_plugin.cli.cli:myscore"
+   
+   # Commands added to process group
+   [project.entry-points."copick.process.commands"]
+   mymethod = "my_copick_plugin.cli.cli:mymethod"
+   
+   # Commands added to convert group
+   [project.entry-points."copick.convert.commands"]
+   myconverter = "my_copick_plugin.cli.cli:myconverter"
    ```
 
-2. **Create a Click command** in your package:
+3. **Create Click commands** in your package:
    ```python
    import click
-
+   
    from copick.cli.util import add_config_option, add_debug_option
    from copick.util.log import get_logger
-
-   @click.command()
+   
+   @click.command(short_help="A command added to the main copick CLI.")
    @add_config_option
+   @click.option("--option", "-o", type=str, default=None, help="An example option.")
    @add_debug_option
    @click.pass_context
-   def my_command(ctx, config: str, debug: bool):
-       """My custom copick command."""
+   def mycommand(ctx: click.Context, config: str, option: str, debug: bool):
+       """A command that serves as an example for how to implement a CLI command in copick."""
        logger = get_logger(__name__, debug=debug)
-       logger.info(f"Running my command with config: {config}")
+       logger.info(f"Running mycommand with config: {config}, option: {option}")
+       # Add your command logic here
+   
+   @click.command(short_help="An inference command.")
+   @add_config_option
+   @click.option("--model-path", type=str, help="Path to model file.")
+   @add_debug_option
+   @click.pass_context
+   def mymodel_infer(ctx: click.Context, config: str, model_path: str, debug: bool):
+       """A command that serves as an example for how to implement an inference CLI command in copick."""
+       logger = get_logger(__name__, debug=debug)
+       logger.info(f"Running inference with model: {model_path}")
+       # Add your inference logic here
    ```
 
-3. **After installing your package**, the command will be available via:
+4. **After installing your package**, the commands will be available via:
    ```bash
-   copick my-command --config path/to/config.json --run TS_001
+   copick mycommand --config path/to/config.json --option value
+   copick inference mymodel-infer --config path/to/config.json --model-path ./model.pt
+   copick training mymodel-train --config path/to/config.json
+   copick evaluation myscore --config path/to/config.json
+   copick process mymethod --config path/to/config.json
+   copick convert myconverter --config path/to/config.json
    ```
+
+### Demo Package
+
+A complete demo package is available at [copick-plugin-demo](https://github.com/copick/copick-plugin-demo) that demonstrates:
+
+- Project structure for copick plugins
+- Commands for all supported entry point groups
+- Proper use of copick utilities like `add_config_option` and `add_debug_option`
+- Entry point configuration in `pyproject.toml`
+- Example command implementations
+
+You can use this demo as a template for creating your own copick plugins.
 
 Thank you for contributing to copick! 🚀

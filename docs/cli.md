@@ -478,52 +478,125 @@ copick info
 ## Plugin System
 
 !!! info "Extensibility"
-    The Copick CLI supports extensibility through plugins. External packages can register additional commands by defining entry points in the `copick.commands` group.
+    The Copick CLI supports extensibility through plugins. External packages can register additional commands by defining entry points in multiple supported groups.
+
+### Supported Entry Point Groups
+
+The plugin system supports the following entry point groups:
+
+- **`copick.commands`**: Commands added directly to the main CLI (e.g., `copick mycommand`)
+- **`copick.inference.commands`**: Commands under the inference group (e.g., `copick inference mymodel`)
+- **`copick.training.commands`**: Commands under the training group (e.g., `copick training mytrain`)
+- **`copick.evaluation.commands`**: Commands under the evaluation group (e.g., `copick evaluation myscore`)
+- **`copick.process.commands`**: Commands under the process group (e.g., `copick process mymethod`)
+- **`copick.convert.commands`**: Commands under the convert group (e.g., `copick convert myconverter`)
 
 ### Plugin Registration
 
-**Using setup.py:**
-```python
-from setuptools import setup
-
-setup(
-    name="my-copick-plugin",
-    entry_points={
-        "copick.commands": [
-            "my-command = my_package.cli:my_command",
-        ],
-    },
-)
-```
-
 **Using pyproject.toml:**
 ```toml
+# Commands added to main CLI group
 [project.entry-points."copick.commands"]
-my-command = "my_package.cli:my_command"
+mycommand = "my_copick_plugin.cli.cli:mycommand"
+
+# Commands added to inference group
+[project.entry-points."copick.inference.commands"]
+mymodel-infer = "my_copick_plugin.cli.cli:mymodel_infer"
+
+# Commands added to training group
+[project.entry-points."copick.training.commands"]
+mymodel-train = "my_copick_plugin.cli.cli:mymodel_train"
+
+# Commands added to evaluation group
+[project.entry-points."copick.evaluation.commands"]
+myscore = "my_copick_plugin.cli.cli:myscore"
+
+# Commands added to process group
+[project.entry-points."copick.process.commands"]
+mymethod = "my_copick_plugin.cli.cli:mymethod"
+
+# Commands added to convert group
+[project.entry-points."copick.convert.commands"]
+myconverter = "my_copick_plugin.cli.cli:myconverter"
 ```
 
 ### Plugin Implementation
 
-**Creating a Click Command:**
+**Creating Click Commands:**
 ```python
 import click
 from copick.cli.util import add_config_option, add_debug_option
 from copick.util.log import get_logger
 
-@click.command()
+@click.command(short_help="A command added to the main copick CLI.")
 @add_config_option
+@click.option("--option", "-o", type=str, default=None, help="An example option.")
 @add_debug_option
-def my_command(config: str, debug: bool):
-    """My custom copick command."""
+@click.pass_context
+def mycommand(ctx: click.Context, config: str, option: str, debug: bool):
+    """A command that serves as an example for how to implement a CLI command in copick."""
     logger = get_logger(__name__, debug=debug)
-    logger.info(f"Running my command with config: {config}")
+    logger.info(f"Running mycommand with config: {config}, option: {option}")
+    # Add your command logic here
+
+@click.command(short_help="An inference command.")
+@add_config_option
+@click.option("--model-path", type=str, help="Path to model file.")
+@add_debug_option
+@click.pass_context
+def mymodel_infer(ctx: click.Context, config: str, model_path: str, debug: bool):
+    """A command that serves as an example for how to implement an inference CLI command in copick."""
+    logger = get_logger(__name__, debug=debug)
+    logger.info(f"Running inference with model: {model_path}")
+    # Add your inference logic here
+
+@click.command(short_help="A training command.")
+@add_config_option
+@click.option("--epochs", type=int, default=100, help="Number of training epochs.")
+@add_debug_option
+@click.pass_context
+def mymodel_train(ctx: click.Context, config: str, epochs: int, debug: bool):
+    """A command that serves as an example for how to implement a training CLI command in copick."""
+    logger = get_logger(__name__, debug=debug)
+    logger.info(f"Starting training for {epochs} epochs")
+    # Add your training logic here
 ```
 
-**Usage:**
-After installing your package, the command will be available:
+### Demo Package
+
+A complete demo package is available at [copick-plugin-demo](https://github.com/copick/copick-plugin-demo) that demonstrates:
+
+- Project structure for copick plugins
+- Commands for all supported entry point groups
+- Proper use of copick utilities like `add_config_option` and `add_debug_option`
+- Entry point configuration in `pyproject.toml`
+- Example command implementations
+
+You can use this demo as a template for creating your own copick plugins.
+
+### Usage
+
+After installing your package, the commands will be available:
 ```bash
-copick my-command --config path/to/config.json
+# Main CLI commands
+copick mycommand --config path/to/config.json --option value
+
+# Grouped commands
+copick inference mymodel-infer --config path/to/config.json --model-path ./model.pt
+copick training mymodel-train --config path/to/config.json --epochs 50
+copick evaluation myscore --config path/to/config.json
+copick process mymethod --config path/to/config.json
+copick convert myconverter --config path/to/config.json
 ```
+
+### Best Practices
+
+1. **Use descriptive command names** that clearly indicate their purpose
+2. **Follow the existing naming conventions** with hyphens for multi-word commands
+3. **Always use `@add_config_option` and `@add_debug_option`** decorators for consistency
+4. **Add proper docstrings** for your commands - they become the help text
+5. **Use appropriate entry point groups** to organize your commands logically
+6. **Test your plugins** with the demo package structure as a reference
 
 ---
 
