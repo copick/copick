@@ -1,4 +1,5 @@
 import os
+import re
 from typing import Dict, List, Tuple, Union
 
 import mrcfile
@@ -55,6 +56,7 @@ def prepare_runs_from_paths(
     root,
     paths: List[str],
     input_run: str,
+    run_regex: str = r"^(.*)$",
     create: bool = True,
     logger=None,
 ) -> Dict[str, str]:
@@ -66,6 +68,7 @@ def prepare_runs_from_paths(
         root: Copick root
         paths: List of file paths
         input_run: Run name (empty string means derive from filename)
+        run_regex: Regex to match run names in filenames. First group is used as run name.
         create: Whether to create runs if they don't exist
         logger: Logger instance
 
@@ -88,6 +91,15 @@ def prepare_runs_from_paths(
                 logger.warning(
                     f"Run {current_run} already has a file assigned ({run_to_file[current_run]}). Skipping {path}.",
                 )
+            continue
+
+        # Match run name with regex
+        match = re.search(run_regex, current_run)
+        if match:
+            current_run = match.group(1)
+        else:
+            if logger:
+                logger.warning(f"Run name {current_run} does not match regex {run_regex}. Skipping {path}.")
             continue
 
         run_to_file[current_run] = path
