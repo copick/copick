@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.9.0](https://github.com/copick/copick/compare/copick-v1.8.2...copick-v1.9.0) (2025-07-17)
+
+
+### ✨ Features
+
+* Add an option allowing extracting run names from filenames ([#111](https://github.com/copick/copick/issues/111)) ([3293545](https://github.com/copick/copick/commit/32935452b46f28cc4f046866d84c5810f359b87b))
+
 ## [1.8.2](https://github.com/copick/copick/compare/copick-v1.8.1...copick-v1.8.2) (2025-07-16)
 
 
