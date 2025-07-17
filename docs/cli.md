@@ -25,11 +25,11 @@ copick browse [OPTIONS]
 
 **Options:**
 
-| Option | Type | Description | Default |
-|--------|------|-------------|---------|
-| `-c, --config PATH` | Path | Path to the configuration file | Uses `COPICK_CONFIG` env var |
-| `-ds, --dataset-ids ID` | Integer | Dataset IDs to include (multiple inputs possible) | None |
-| `--debug / --no-debug` | Boolean | Enable debug logging | `no-debug` |
+| Option                  | Type    | Description                                       | Default                      |
+|-------------------------|---------|---------------------------------------------------|------------------------------|
+| `-c, --config PATH`     | Path    | Path to the configuration file                    | Uses `COPICK_CONFIG` env var |
+| `-ds, --dataset-ids ID` | Integer | Dataset IDs to include (multiple inputs possible) | None                         |
+| `--debug / --no-debug`  | Boolean | Enable debug logging                              | `no-debug`                   |
 
 **Examples:**
 
@@ -68,12 +68,12 @@ copick config dataportal [OPTIONS]
 
 **Options:**
 
-| Option | Type | Description | Default |
-|--------|------|-------------|---------|
-| `-ds, --dataset-id INTEGER` | Integer | Dataset IDs from the CryoET Data Portal (required, multiple allowed) | None |
-| `--overlay TEXT` | Path | Path to the local overlay directory (required) | None |
-| `--output TEXT` | Path | Path to save the generated configuration file | `config.json` |
-| `--debug / --no-debug` | Boolean | Enable debug logging | `no-debug` |
+| Option                      | Type    | Description                                                          | Default       |
+|-----------------------------|---------|----------------------------------------------------------------------|---------------|
+| `-ds, --dataset-id INTEGER` | Integer | Dataset IDs from the CryoET Data Portal (required, multiple allowed) | None          |
+| `--overlay TEXT`            | Path    | Path to the local overlay directory (required)                       | None          |
+| `--output TEXT`             | Path    | Path to save the generated configuration file                        | `config.json` |
+| `--debug / --no-debug`      | Boolean | Enable debug logging                                                 | `no-debug`    |
 
 **Examples:**
 
@@ -96,14 +96,14 @@ copick config filesystem [OPTIONS]
 
 **Options:**
 
-| Option | Type | Description | Default |
-|--------|------|-------------|---------|
-| `--overlay-root TEXT` | Path | Overlay root path (required) | None |
-| `--objects TEXT` | String | List of desired objects in the format: `name,is_particle,[radius],[pdb_id]` (required, multiple allowed) | None |
-| `--config TEXT` | Path | Path to the output JSON configuration file | `config.json` |
-| `--proj-name TEXT` | String | Name of the project configuration | `project` |
-| `--proj-description TEXT` | String | Description of the project configuration | `Config Project for SessionXXa` |
-| `--debug / --no-debug` | Boolean | Enable debug logging | `no-debug` |
+| Option                    | Type    | Description                                                                                              | Default                         |
+|---------------------------|---------|----------------------------------------------------------------------------------------------------------|---------------------------------|
+| `--overlay-root TEXT`     | Path    | Overlay root path (required)                                                                             | None                            |
+| `--objects TEXT`          | String  | List of desired objects in the format: `name,is_particle,[radius],[pdb_id]` (required, multiple allowed) | None                            |
+| `--config TEXT`           | Path    | Path to the output JSON configuration file                                                               | `config.json`                   |
+| `--proj-name TEXT`        | String  | Name of the project configuration                                                                        | `project`                       |
+| `--proj-description TEXT` | String  | Description of the project configuration                                                                 | `Config Project for SessionXXa` |
+| `--debug / --no-debug`    | Boolean | Enable debug logging                                                                                     | `no-debug`                      |
 
 **Object Format:**
 Objects are specified using the format: `name,is_particle,[radius],[pdb_id]`
@@ -164,25 +164,26 @@ copick add tomogram [OPTIONS] PATH
 
 **Arguments:**
 
-| Argument | Type | Description |
-|----------|------|-------------|
-| `PATH` | Path | Path to tomogram file(s) (MRC or Zarr format) or glob pattern (e.g., `*.mrc`) |
+| Argument | Type | Description                                                                   |
+|----------|------|-------------------------------------------------------------------------------|
+| `PATH`   | Path | Path to tomogram file(s) (MRC or Zarr format) or glob pattern (e.g., `*.mrc`) |
 
 **Options:**
 
-| Option | Type | Description                                                                                                                  | Default |
-|--------|------|------------------------------------------------------------------------------------------------------------------------------|---------|
-| `-c, --config PATH` | Path | Path to the configuration file                                                                                               | Uses `COPICK_CONFIG` env var |
-| `--run TEXT` | String | The name of the run. If not specified, will use the name of the file (stripping extension), ignored if PATH is glob pattern. | `""` |
-| `--tomo-type TEXT` | String | The name of the tomogram (e.g. wbp)                                                                                          | `wbp` |
-| `--file-type TEXT` | String | The file type ('mrc' or 'zarr')                                                                                              | Auto-detected |
-| `--voxel_size FLOAT` | Float | Voxel size in Angstrom (overrides header value)                                                                              | None |
-| `--create-pyramid / --no-create-pyramid` | Boolean | Compute the multiscale pyramid                                                                                               | `create-pyramid` |
-| `--pyramid-levels INTEGER` | Integer | Number of pyramid levels (each level is 2x downscaling)                                                                      | `3` |
-| `--chunk-size TEXT` | String | Chunk size for the output Zarr file                                                                                          | `256,256,256` |
-| `--overwrite / --no-overwrite` | Boolean | Overwrite the object if it exists                                                                                            | `no-overwrite` |
-| `--create / --no-create` | Boolean | Create the object if it does not exist                                                                                       | `create` |
-| `--debug / --no-debug` | Boolean | Enable debug logging                                                                                                         | `no-debug` |
+| Option                                   | Type    | Description                                                                                                                  | Default                      |
+|------------------------------------------|---------|------------------------------------------------------------------------------------------------------------------------------|------------------------------|
+| `-c, --config PATH`                      | Path    | Path to the configuration file                                                                                               | Uses `COPICK_CONFIG` env var |
+| `--run TEXT`                             | String  | The name of the run. If not specified, will use the name of the file (stripping extension), ignored if PATH is glob pattern. | `""`                         |
+| `--run-regex TEXT`                       | String  | Regular expression to extract the run name from the filename. The regex should capture the run name in the first group.      | `(.*)`                       |
+| `--tomo-type TEXT`                       | String  | The name of the tomogram (e.g. wbp)                                                                                          | `wbp`                        |
+| `--file-type TEXT`                       | String  | The file type ('mrc' or 'zarr')                                                                                              | Auto-detected                |
+| `--voxel_size FLOAT`                     | Float   | Voxel size in Angstrom (overrides header value)                                                                              | None                         |
+| `--create-pyramid / --no-create-pyramid` | Boolean | Compute the multiscale pyramid                                                                                               | `create-pyramid`             |
+| `--pyramid-levels INTEGER`               | Integer | Number of pyramid levels (each level is 2x downscaling)                                                                      | `3`                          |
+| `--chunk-size TEXT`                      | String  | Chunk size for the output Zarr file                                                                                          | `256,256,256`                |
+| `--overwrite / --no-overwrite`           | Boolean | Overwrite the object if it exists                                                                                            | `no-overwrite`               |
+| `--create / --no-create`                 | Boolean | Create the object if it does not exist                                                                                       | `create`                     |
+| `--debug / --no-debug`                   | Boolean | Enable debug logging                                                                                                         | `no-debug`                   |
 
 !!! tip "Batch Processing with Glob Patterns"
     You can add multiple tomograms at once using glob patterns. When using glob patterns, run names are automatically derived from filenames, and a progress bar shows the processing status.
@@ -213,6 +214,13 @@ copick add tomogram --config config.json --chunk-size "128,128,128" data/tomogra
 
 # Add multiple tomograms with custom settings
 copick add tomogram --config config.json --tomo-type "denoised" --voxel_size 8.0 data/processed_*.mrc
+
+# Extract run names using regex pattern
+# For file "Position_60_7_Vol_CTF.mrc", this will create run "Position_60_7"
+copick add tomogram --config config.json --run-regex "^(Position_.*)_Vol_CTF" data/Position_60_7_Vol_CTF.mrc
+
+# Use regex with glob pattern for multiple files with structured naming
+copick add tomogram --config config.json --run-regex "^(Position_.*)_Vol_CTF" data/Position_*_Vol_CTF.mrc
 ```
 
 #### :material-layers: `copick add segmentation`
@@ -226,23 +234,24 @@ copick add segmentation [OPTIONS] PATH
 
 **Arguments:**
 
-| Argument | Type | Description |
-|----------|------|-------------|
-| `PATH` | Path | Path to segmentation file(s) (MRC or Zarr format) or glob pattern (e.g., `*.mrc`) |
+| Argument | Type | Description                                                                       |
+|----------|------|-----------------------------------------------------------------------------------|
+| `PATH`   | Path | Path to segmentation file(s) (MRC or Zarr format) or glob pattern (e.g., `*.mrc`) |
 
 **Options:**
 
-| Option | Type | Description | Default |
-|--------|------|-------------|---------|
-| `-c, --config PATH` | Path | Path to the configuration file | Uses `COPICK_CONFIG` env var |
-| `--run TEXT` | String | The name of the run. If not specified, will use the name of the file (stripping extension), ignored if PATH is glob pattern. | `""` |
-| `--voxel-size FLOAT` | Float | Voxel size in Angstrom (overrides header value) | None |
-| `--name TEXT` | String | Name of the segmentation | None |
-| `--user-id TEXT` | String | User ID of the segmentation | `copick` |
-| `--session-id TEXT` | String | Session ID of the segmentation | `1` |
-| `--overwrite / --no-overwrite` | Boolean | Overwrite the object if it exists | `no-overwrite` |
-| `--create / --no-create` | Boolean | Create the object if it does not exist | `create` |
-| `--debug / --no-debug` | Boolean | Enable debug logging | `no-debug` |
+| Option                         | Type    | Description                                                                                                                  | Default                      |
+|--------------------------------|---------|------------------------------------------------------------------------------------------------------------------------------|------------------------------|
+| `-c, --config PATH`            | Path    | Path to the configuration file                                                                                               | Uses `COPICK_CONFIG` env var |
+| `--run TEXT`                   | String  | The name of the run. If not specified, will use the name of the file (stripping extension), ignored if PATH is glob pattern. | `""`                         |
+| `--run-regex TEXT`             | String  | Regular expression to extract the run name from the filename. The regex should capture the run name in the first group.      | `(.*)`                       |
+| `--voxel-size FLOAT`           | Float   | Voxel size in Angstrom (overrides header value)                                                                              | None                         |
+| `--name TEXT`                  | String  | Name of the segmentation                                                                                                     | None                         |
+| `--user-id TEXT`               | String  | User ID of the segmentation                                                                                                  | `copick`                     |
+| `--session-id TEXT`            | String  | Session ID of the segmentation                                                                                               | `1`                          |
+| `--overwrite / --no-overwrite` | Boolean | Overwrite the object if it exists                                                                                            | `no-overwrite`               |
+| `--create / --no-create`       | Boolean | Create the object if it does not exist                                                                                       | `create`                     |
+| `--debug / --no-debug`         | Boolean | Enable debug logging                                                                                                         | `no-debug`                   |
 
 **Examples:**
 
@@ -258,6 +267,10 @@ copick add segmentation --config config.json --run TS_001 --name mitochondria --
 
 # Add segmentation with custom voxel size
 copick add segmentation --config config.json --run TS_001 --name membrane --voxel-size 10.0 data/membrane.zarr
+
+# Extract run names using regex pattern for segmentations
+# For file "Position_60_7_Vol_CTF.mrc", this will create run "Position_60_7"
+copick add segmentation --config config.json --run-regex "^(Position_.*)_Vol_CTF" --name membrane data/Position_60_7_Vol_CTF.mrc
 ```
 
 #### :material-shape: `copick add object`
@@ -271,23 +284,23 @@ copick add object [OPTIONS]
 
 **Options:**
 
-| Option | Type | Description | Default |
-|--------|------|-------------|---------|
-| `-c, --config PATH` | Path | Path to the configuration file | Uses `COPICK_CONFIG` env var |
-| `--name TEXT` | String | Name of the object to add (required) | None |
-| `--object-type CHOICE` | String | Type of object: 'particle' or 'segmentation' | `particle` |
-| `--label INTEGER` | Integer | Numeric label/id for the object. If not provided, will use the next available label | None |
-| `--color TEXT` | String | RGBA color for the object as comma-separated values (e.g. '255,0,0,255' for red) | None |
-| `--emdb-id TEXT` | String | EMDB ID for the object | None |
-| `--pdb-id TEXT` | String | PDB ID for the object | None |
-| `--identifier TEXT` | String | Identifier for the object (e.g. Gene Ontology ID or UniProtKB accession) | None |
-| `--map-threshold FLOAT` | Float | Threshold to apply to the map when rendering the isosurface | None |
-| `--radius FLOAT` | Float | Radius of the particle, when displaying as a sphere | `50` |
-| `--volume PATH` | Path | Path to volume file to associate with the object | None |
-| `--volume-format CHOICE` | String | Format of the volume file ('mrc' or 'zarr') | Auto-detected |
-| `--voxel-size FLOAT` | Float | Voxel size for the volume data. Required if volume is provided | None |
-| `--exist-ok / --no-exist-ok` | Boolean | Whether existing objects with the same name should be overwritten | `no-exist-ok` |
-| `--debug / --no-debug` | Boolean | Enable debug logging | `no-debug` |
+| Option                       | Type    | Description                                                                         | Default                      |
+|------------------------------|---------|-------------------------------------------------------------------------------------|------------------------------|
+| `-c, --config PATH`          | Path    | Path to the configuration file                                                      | Uses `COPICK_CONFIG` env var |
+| `--name TEXT`                | String  | Name of the object to add (required)                                                | None                         |
+| `--object-type CHOICE`       | String  | Type of object: 'particle' or 'segmentation'                                        | `particle`                   |
+| `--label INTEGER`            | Integer | Numeric label/id for the object. If not provided, will use the next available label | None                         |
+| `--color TEXT`               | String  | RGBA color for the object as comma-separated values (e.g. '255,0,0,255' for red)    | None                         |
+| `--emdb-id TEXT`             | String  | EMDB ID for the object                                                              | None                         |
+| `--pdb-id TEXT`              | String  | PDB ID for the object                                                               | None                         |
+| `--identifier TEXT`          | String  | Identifier for the object (e.g. Gene Ontology ID or UniProtKB accession)            | None                         |
+| `--map-threshold FLOAT`      | Float   | Threshold to apply to the map when rendering the isosurface                         | None                         |
+| `--radius FLOAT`             | Float   | Radius of the particle, when displaying as a sphere                                 | `50`                         |
+| `--volume PATH`              | Path    | Path to volume file to associate with the object                                    | None                         |
+| `--volume-format CHOICE`     | String  | Format of the volume file ('mrc' or 'zarr')                                         | Auto-detected                |
+| `--voxel-size FLOAT`         | Float   | Voxel size for the volume data. Required if volume is provided                      | None                         |
+| `--exist-ok / --no-exist-ok` | Boolean | Whether existing objects with the same name should be overwritten                   | `no-exist-ok`                |
+| `--debug / --no-debug`       | Boolean | Enable debug logging                                                                | `no-debug`                   |
 
 **Examples:**
 
@@ -319,14 +332,14 @@ copick add object-volume [OPTIONS]
 
 **Options:**
 
-| Option | Type | Description | Default |
-|--------|------|-------------|---------|
-| `-c, --config PATH` | Path | Path to the configuration file | Uses `COPICK_CONFIG` env var |
-| `--object-name TEXT` | String | Name of the existing object (required) | None |
-| `--volume-path PATH` | Path | Path to the volume file (required) | None |
-| `--volume-format CHOICE` | String | Format of the volume file ('mrc' or 'zarr') | Auto-detected |
-| `--voxel-size FLOAT` | Float | Voxel size of the volume data in Angstrom | None |
-| `--debug / --no-debug` | Boolean | Enable debug logging | `no-debug` |
+| Option                   | Type    | Description                                 | Default                      |
+|--------------------------|---------|---------------------------------------------|------------------------------|
+| `-c, --config PATH`      | Path    | Path to the configuration file              | Uses `COPICK_CONFIG` env var |
+| `--object-name TEXT`     | String  | Name of the existing object (required)      | None                         |
+| `--volume-path PATH`     | Path    | Path to the volume file (required)          | None                         |
+| `--volume-format CHOICE` | String  | Format of the volume file ('mrc' or 'zarr') | Auto-detected                |
+| `--voxel-size FLOAT`     | Float   | Voxel size of the volume data in Angstrom   | None                         |
+| `--debug / --no-debug`   | Boolean | Enable debug logging                        | `no-debug`                   |
 
 **Examples:**
 
@@ -364,14 +377,14 @@ copick new picks [OPTIONS]
 
 **Options:**
 
-| Option | Type | Description | Default |
-|--------|------|-------------|---------|
-| `-c, --config PATH` | Path | Path to the configuration file | Uses `COPICK_CONFIG` env var |
-| `--particle-name TEXT` | String | Name of the particle to create picks for (required) | None |
-| `--out-user TEXT` | String | User ID to write picks to | `copick` |
-| `--out-session TEXT` | String | Session ID to write picks to | `0` |
-| `--overwrite BOOLEAN` | Boolean | Overwrite existing picks | `False` |
-| `--debug / --no-debug` | Boolean | Enable debug logging | `no-debug` |
+| Option                 | Type    | Description                                         | Default                      |
+|------------------------|---------|-----------------------------------------------------|------------------------------|
+| `-c, --config PATH`    | Path    | Path to the configuration file                      | Uses `COPICK_CONFIG` env var |
+| `--particle-name TEXT` | String  | Name of the particle to create picks for (required) | None                         |
+| `--out-user TEXT`      | String  | User ID to write picks to                           | `copick`                     |
+| `--out-session TEXT`   | String  | Session ID to write picks to                        | `0`                          |
+| `--overwrite BOOLEAN`  | Boolean | Overwrite existing picks                            | `False`                      |
+| `--debug / --no-debug` | Boolean | Enable debug logging                                | `no-debug`                   |
 
 **Examples:**
 
@@ -397,18 +410,18 @@ copick new run [OPTIONS] NAME
 
 **Arguments:**
 
-| Argument | Type | Description |
-|----------|------|-------------|
-| `NAME` | String | The name of the new run to be created |
+| Argument | Type   | Description                           |
+|----------|--------|---------------------------------------|
+| `NAME`   | String | The name of the new run to be created |
 
 **Options:**
 
-| Option | Type | Description | Default |
-|--------|------|-------------|---------|
-| `-c, --config PATH` | Path | Path to the configuration file | Uses `COPICK_CONFIG` env var |
-| `--overwrite / --no-overwrite` | Boolean | Overwrite the object if it exists | `no-overwrite` |
-| `--create / --no-create` | Boolean | Create the object if it does not exist | `create` |
-| `--debug / --no-debug` | Boolean | Enable debug logging | `no-debug` |
+| Option                         | Type    | Description                            | Default                      |
+|--------------------------------|---------|----------------------------------------|------------------------------|
+| `-c, --config PATH`            | Path    | Path to the configuration file         | Uses `COPICK_CONFIG` env var |
+| `--overwrite / --no-overwrite` | Boolean | Overwrite the object if it exists      | `no-overwrite`               |
+| `--create / --no-create`       | Boolean | Create the object if it does not exist | `create`                     |
+| `--debug / --no-debug`         | Boolean | Enable debug logging                   | `no-debug`                   |
 
 **Examples:**
 
@@ -431,19 +444,19 @@ copick new voxelspacing [OPTIONS] VOXEL_SPACING
 
 **Arguments:**
 
-| Argument | Type | Description |
-|----------|------|-------------|
+| Argument        | Type  | Description                                          |
+|-----------------|-------|------------------------------------------------------|
 | `VOXEL_SPACING` | Float | The voxel spacing in Angstrom to be added to the run |
 
 **Options:**
 
-| Option | Type | Description | Default |
-|--------|------|-------------|---------|
-| `-c, --config PATH` | Path | Path to the configuration file | Uses `COPICK_CONFIG` env var |
-| `--run RUN` | String | Name of the run to add voxel spacing to (required) | None |
-| `--overwrite / --no-overwrite` | Boolean | Overwrite the object if it exists | `no-overwrite` |
-| `--create / --no-create` | Boolean | Create the object if it does not exist | `create` |
-| `--debug / --no-debug` | Boolean | Enable debug logging | `no-debug` |
+| Option                         | Type    | Description                                        | Default                      |
+|--------------------------------|---------|----------------------------------------------------|------------------------------|
+| `-c, --config PATH`            | Path    | Path to the configuration file                     | Uses `COPICK_CONFIG` env var |
+| `--run RUN`                    | String  | Name of the run to add voxel spacing to (required) | None                         |
+| `--overwrite / --no-overwrite` | Boolean | Overwrite the object if it exists                  | `no-overwrite`               |
+| `--create / --no-create`       | Boolean | Create the object if it does not exist             | `create`                     |
+| `--debug / --no-debug`         | Boolean | Enable debug logging                               | `no-debug`                   |
 
 **Examples:**
 

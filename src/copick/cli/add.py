@@ -28,6 +28,15 @@ def add(ctx):
     default="",
 )
 @click.option(
+    "--run-regex",
+    required=False,
+    type=str,
+    default="(.*)",
+    show_default=True,
+    help="Regular expression to extract the run name from the filename. If not provided, will use the file name "
+    "without extension. The regex should capture the run name in the first group.",
+)
+@click.option(
     "--tomo-type",
     required=False,
     type=str,
@@ -97,6 +106,7 @@ def tomogram(
     ctx,
     config: str,
     run: str,
+    run_regex: str,
     tomo_type: str,
     file_type: str,
     voxel_size: float,
@@ -153,7 +163,7 @@ def tomogram(
     chunk_size: Tuple[int, int, int] = tuple(map(int, chunk_size.split(",")[:3]))
 
     # Prepare runs and group files
-    run_to_file = prepare_runs_from_paths(root, paths, run, create, logger)
+    run_to_file = prepare_runs_from_paths(root, paths, run, run_regex, create, logger)
 
     def import_tomogram(run_obj, file_path, **kwargs):
         """Process one tomogram file for a single run"""
@@ -234,6 +244,15 @@ def tomogram(
     default="",
 )
 @click.option(
+    "--run-regex",
+    required=False,
+    type=str,
+    default="(.*)",
+    show_default=True,
+    help="Regular expression to extract the run name from the filename. If not provided, will use the file name "
+    "without extension. The regex should capture the run name in the first group.",
+)
+@click.option(
     "--voxel-size",
     required=False,
     type=float,
@@ -286,6 +305,7 @@ def segmentation(
     ctx,
     config: str,
     run: str,
+    run_regex: str,
     voxel_size: float,
     name: str,
     user_id: str,
@@ -328,7 +348,7 @@ def segmentation(
         paths = [path]
 
     # Prepare runs and group files
-    run_to_file = prepare_runs_from_paths(root, paths, run, create, logger)
+    run_to_file = prepare_runs_from_paths(root, paths, run, run_regex, create, logger)
 
     def import_segmentation(run_obj, file_path, **kwargs):
         """Process segmentation files for a single run"""
