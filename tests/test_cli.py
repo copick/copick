@@ -429,6 +429,189 @@ class TestCLIAdd:
         assert result.exit_code != 0, "Command should fail when no files match the pattern"
         assert "No files found matching pattern" in result.output
 
+    def test_add_tomogram_run_regex_simple(self, test_payload, runner):
+        """Test adding tomogram with simple regex run name extraction."""
+        config_file = test_payload["cfg_file"]
+
+        # Create a test MRC file with specific filename
+        with tempfile.TemporaryDirectory() as tmpdir:
+            tmpdir_path = Path(tmpdir)
+            mrc_path = tmpdir_path / "Position_60_7_Vol_CTF.mrc"
+
+            # Create minimal MRC file
+            np.random.seed(42)
+            volume = np.random.randn(32, 32, 32).astype(np.float32)
+
+            with mrcfile.new(str(mrc_path), overwrite=True) as mrc:
+                mrc.set_data(volume)
+                mrc.voxel_size = 10.0
+
+            # Test with regex that extracts Position_60_7
+            result = runner.invoke(
+                add,
+                [
+                    "tomogram",
+                    "--config",
+                    str(config_file),
+                    "--run-regex",
+                    r"^(Position_.*)_Vol_CTF",
+                    "--tomo-type",
+                    "wbp",
+                    "--no-create-pyramid",
+                    str(mrc_path),
+                ],
+            )
+
+            assert result.exit_code == 0, f"Command failed: {result.output}"
+
+            # Verify the run was created with the extracted name
+            root = CopickRootFSSpec.from_file(config_file)
+            expected_run_name = "Position_60_7"
+            test_run = root.get_run(expected_run_name)
+            assert test_run is not None, f"Run {expected_run_name} should be created"
+
+            voxel_spacing = test_run.get_voxel_spacing(10.0)
+            assert voxel_spacing is not None, "Voxel spacing should be created"
+
+            tomogram = voxel_spacing.get_tomograms("wbp")[0]
+            assert tomogram is not None, "Tomogram should be created"
+
+    def test_add_tomogram_run_regex_with_glob(self, test_payload, runner):
+        """Test adding multiple tomograms with regex and glob pattern."""
+        config_file = test_payload["cfg_file"]
+
+        # Create multiple MRC files with specific naming pattern
+        with tempfile.TemporaryDirectory() as tmpdir:
+            tmpdir_path = Path(tmpdir)
+
+            # Create 3 test MRC files with the pattern
+            expected_runs = []
+            for i, pos in enumerate([("60", "7"), ("45", "3"), ("90", "12")]):
+                mrc_path = tmpdir_path / f"Position_{pos[0]}_{pos[1]}_Vol_CTF.mrc"
+                expected_runs.append(f"Position_{pos[0]}_{pos[1]}")
+
+                # Create minimal MRC file
+                np.random.seed(42 + i)
+                volume = np.random.randn(32, 32, 32).astype(np.float32)
+
+                with mrcfile.new(str(mrc_path), overwrite=True) as mrc:
+                    mrc.set_data(volume)
+                    mrc.voxel_size = 10.0
+
+            # Test glob pattern with regex
+            glob_pattern = str(tmpdir_path / "Position_*_Vol_CTF.mrc")
+
+            result = runner.invoke(
+                add,
+                [
+                    "tomogram",
+                    "--config",
+                    str(config_file),
+                    "--run-regex",
+                    r"^(Position_.*)_Vol_CTF",
+                    "--tomo-type",
+                    "wbp",
+                    "--no-create-pyramid",
+                    glob_pattern,
+                ],
+            )
+
+            assert result.exit_code == 0, f"Command failed: {result.output}"
+
+            # Verify all runs were created with the extracted names
+            root = CopickRootFSSpec.from_file(config_file)
+
+            for expected_run_name in expected_runs:
+                test_run = root.get_run(expected_run_name)
+                assert test_run is not None, f"Run {expected_run_name} should be created"
+
+                voxel_spacing = test_run.get_voxel_spacing(10.0)
+                assert voxel_spacing is not None, f"Voxel spacing should be created for {expected_run_name}"
+
+                tomograms = voxel_spacing.get_tomograms("wbp")
+                assert len(tomograms) > 0, f"Tomogram should be created for {expected_run_name}"
+
+    def test_add_tomogram_run_regex_no_match(self, test_payload, runner):
+        """Test adding tomogram with regex that doesn't match filename."""
+        config_file = test_payload["cfg_file"]
+
+        # Create a test MRC file with specific filename
+        with tempfile.TemporaryDirectory() as tmpdir:
+            tmpdir_path = Path(tmpdir)
+            mrc_path = tmpdir_path / "regular_filename.mrc"
+
+            # Create minimal MRC file
+            np.random.seed(42)
+            volume = np.random.randn(32, 32, 32).astype(np.float32)
+
+            with mrcfile.new(str(mrc_path), overwrite=True) as mrc:
+                mrc.set_data(volume)
+                mrc.voxel_size = 10.0
+
+            # Test with regex that won't match the filename
+            result = runner.invoke(
+                add,
+                [
+                    "tomogram",
+                    "--config",
+                    str(config_file),
+                    "--run-regex",
+                    r"^(Position_.*)_Vol_CTF",
+                    "--tomo-type",
+                    "wbp",
+                    str(mrc_path),
+                ],
+            )
+
+            assert result.exit_code == 0, f"Command failed: {result.output}"
+
+            # Since the regex doesn't match, no run should be created
+            root = CopickRootFSSpec.from_file(config_file)
+            # The run name should fall back to default behavior (filename without extension)
+            # but since regex doesn't match, it should be skipped
+            test_run = root.get_run("regular_filename")
+            assert test_run is None, "Run should not be created when regex doesn't match"
+
+    def test_add_segmentation_run_regex(self, test_payload, runner):
+        """Test adding segmentation with regex run name extraction."""
+        config_file = test_payload["cfg_file"]
+
+        # Create a test MRC file with specific filename
+        with tempfile.TemporaryDirectory() as tmpdir:
+            tmpdir_path = Path(tmpdir)
+            mrc_path = tmpdir_path / "Position_30_4_Vol_CTF.mrc"
+
+            # Create minimal MRC file
+            np.random.seed(42)
+            volume = np.random.randint(0, 3, (32, 32, 32), dtype=np.uint8)
+
+            with mrcfile.new(str(mrc_path), overwrite=True) as mrc:
+                mrc.set_data(volume)
+                mrc.voxel_size = 10.0
+
+            # Test segmentation with regex
+            result = runner.invoke(
+                add,
+                [
+                    "segmentation",
+                    "--config",
+                    str(config_file),
+                    "--run-regex",
+                    r"^(Position_.*)_Vol_CTF",
+                    "--name",
+                    "test_seg",
+                    str(mrc_path),
+                ],
+            )
+
+            assert result.exit_code == 0, f"Command failed: {result.output}"
+
+            # Verify the run was created with the extracted name
+            root = CopickRootFSSpec.from_file(config_file)
+            expected_run_name = "Position_30_4"
+            test_run = root.get_run(expected_run_name)
+            assert test_run is not None, f"Run {expected_run_name} should be created"
+
 
 class TestCLIConfig:
     """Test cases for the CLI config module."""

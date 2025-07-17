@@ -56,7 +56,7 @@ def prepare_runs_from_paths(
     root,
     paths: List[str],
     input_run: str,
-    run_regex: str = r"^(.*)$",
+    run_regex: str = r"(.*)",
     create: bool = True,
     logger=None,
 ) -> Dict[str, str]:
