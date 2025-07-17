@@ -2615,6 +2615,12 @@ Objects are specified using the format: <code>name,is_particle,[radius],[pdb_id]
 <td><code>""</code></td>
 </tr>
 <tr>
+<td><code>--run-regex TEXT</code></td>
+<td>String</td>
+<td>Regular expression to extract the run name from the filename. The regex should capture the run name in the first group.</td>
+<td><code>(.*)</code></td>
+</tr>
+<tr>
 <td><code>--tomo-type TEXT</code></td>
 <td>String</td>
 <td>The name of the tomogram (e.g. wbp)</td>
@@ -2698,6 +2704,13 @@ Objects are specified using the format: <code>name,is_particle,[radius],[pdb_id]
 </span><span id="__span-8-21"><a id="__codelineno-8-21" name="__codelineno-8-21" href="#__codelineno-8-21"></a>
 </span><span id="__span-8-22"><a id="__codelineno-8-22" name="__codelineno-8-22" href="#__codelineno-8-22"></a><span class="c1"># Add multiple tomograms with custom settings</span>
 </span><span id="__span-8-23"><a id="__codelineno-8-23" name="__codelineno-8-23" href="#__codelineno-8-23"></a>copick<span class="w"> </span>add<span class="w"> </span>tomogram<span class="w"> </span>--config<span class="w"> </span>config.json<span class="w"> </span>--tomo-type<span class="w"> </span><span class="s2">&quot;denoised&quot;</span><span class="w"> </span>--voxel_size<span class="w"> </span><span class="m">8</span>.0<span class="w"> </span>data/processed_*.mrc
+</span><span id="__span-8-24"><a id="__codelineno-8-24" name="__codelineno-8-24" href="#__codelineno-8-24"></a>
+</span><span id="__span-8-25"><a id="__codelineno-8-25" name="__codelineno-8-25" href="#__codelineno-8-25"></a><span class="c1"># Extract run names using regex pattern</span>
+</span><span id="__span-8-26"><a id="__codelineno-8-26" name="__codelineno-8-26" href="#__codelineno-8-26"></a><span class="c1"># For file &quot;Position_60_7_Vol_CTF.mrc&quot;, this will create run &quot;Position_60_7&quot;</span>
+</span><span id="__span-8-27"><a id="__codelineno-8-27" name="__codelineno-8-27" href="#__codelineno-8-27"></a>copick<span class="w"> </span>add<span class="w"> </span>tomogram<span class="w"> </span>--config<span class="w"> </span>config.json<span class="w"> </span>--run-regex<span class="w"> </span><span class="s2">&quot;^(Position_.*)_Vol_CTF&quot;</span><span class="w"> </span>data/Position_60_7_Vol_CTF.mrc
+</span><span id="__span-8-28"><a id="__codelineno-8-28" name="__codelineno-8-28" href="#__codelineno-8-28"></a>
+</span><span id="__span-8-29"><a id="__codelineno-8-29" name="__codelineno-8-29" href="#__codelineno-8-29"></a><span class="c1"># Use regex with glob pattern for multiple files with structured naming</span>
+</span><span id="__span-8-30"><a id="__codelineno-8-30" name="__codelineno-8-30" href="#__codelineno-8-30"></a>copick<span class="w"> </span>add<span class="w"> </span>tomogram<span class="w"> </span>--config<span class="w"> </span>config.json<span class="w"> </span>--run-regex<span class="w"> </span><span class="s2">&quot;^(Position_.*)_Vol_CTF&quot;</span><span class="w"> </span>data/Position_*_Vol_CTF.mrc
 </span></code></pre></div>
 <h4 id="copick-add-segmentation"><span class="twemoji"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="m12 16 7.36-5.73L21 9l-9-7-9 7 1.63 1.27M12 18.54l-7.38-5.73L3 14.07l9 7 9-7-1.63-1.27z"/></svg></span> <code>copick add segmentation</code></h4>
 <p>Add one or more segmentations to the project from MRC or Zarr files.</p>
@@ -2743,6 +2756,12 @@ Objects are specified using the format: <code>name,is_particle,[radius],[pdb_id]
 <td>String</td>
 <td>The name of the run. If not specified, will use the name of the file (stripping extension), ignored if PATH is glob pattern.</td>
 <td><code>""</code></td>
+</tr>
+<tr>
+<td><code>--run-regex TEXT</code></td>
+<td>String</td>
+<td>Regular expression to extract the run name from the filename. The regex should capture the run name in the first group.</td>
+<td><code>(.*)</code></td>
 </tr>
 <tr>
 <td><code>--voxel-size FLOAT</code></td>
@@ -2800,6 +2819,10 @@ Objects are specified using the format: <code>name,is_particle,[radius],[pdb_id]
 </span><span id="__span-10-9"><a id="__codelineno-10-9" name="__codelineno-10-9" href="#__codelineno-10-9"></a>
 </span><span id="__span-10-10"><a id="__codelineno-10-10" name="__codelineno-10-10" href="#__codelineno-10-10"></a><span class="c1"># Add segmentation with custom voxel size</span>
 </span><span id="__span-10-11"><a id="__codelineno-10-11" name="__codelineno-10-11" href="#__codelineno-10-11"></a>copick<span class="w"> </span>add<span class="w"> </span>segmentation<span class="w"> </span>--config<span class="w"> </span>config.json<span class="w"> </span>--run<span class="w"> </span>TS_001<span class="w"> </span>--name<span class="w"> </span>membrane<span class="w"> </span>--voxel-size<span class="w"> </span><span class="m">10</span>.0<span class="w"> </span>data/membrane.zarr
+</span><span id="__span-10-12"><a id="__codelineno-10-12" name="__codelineno-10-12" href="#__codelineno-10-12"></a>
+</span><span id="__span-10-13"><a id="__codelineno-10-13" name="__codelineno-10-13" href="#__codelineno-10-13"></a><span class="c1"># Extract run names using regex pattern for segmentations</span>
+</span><span id="__span-10-14"><a id="__codelineno-10-14" name="__codelineno-10-14" href="#__codelineno-10-14"></a><span class="c1"># For file &quot;Position_60_7_Vol_CTF.mrc&quot;, this will create run &quot;Position_60_7&quot;</span>
+</span><span id="__span-10-15"><a id="__codelineno-10-15" name="__codelineno-10-15" href="#__codelineno-10-15"></a>copick<span class="w"> </span>add<span class="w"> </span>segmentation<span class="w"> </span>--config<span class="w"> </span>config.json<span class="w"> </span>--run-regex<span class="w"> </span><span class="s2">&quot;^(Position_.*)_Vol_CTF&quot;</span><span class="w"> </span>--name<span class="w"> </span>membrane<span class="w"> </span>data/Position_60_7_Vol_CTF.mrc
 </span></code></pre></div>
 <h4 id="copick-add-object"><span class="twemoji"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M11 13.5v8H3v-8zM12 2l5.5 9h-11zm5.5 11c2.5 0 4.5 2 4.5 4.5S20 22 17.5 22 13 20 13 17.5s2-4.5 4.5-4.5"/></svg></span> <code>copick add object</code></h4>
 <p>Add a pickable object to the project configuration.</p>
