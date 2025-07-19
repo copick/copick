@@ -470,6 +470,217 @@ copick new voxelspacing --config config.json --run TS_001 --overwrite 5.0
 
 ---
 
+### :material-sync: `copick sync`
+
+Synchronize data between Copick projects with support for parallel processing, name mapping, and user filtering.
+
+**Subcommands:**
+
+- [`copick sync picks`](#copick-sync-picks) - Synchronize picks between two Copick projects
+- [`copick sync meshes`](#copick-sync-meshes) - Synchronize meshes between two Copick projects
+- [`copick sync segmentations`](#copick-sync-segmentations) - Synchronize segmentations between two Copick projects
+- [`copick sync tomograms`](#copick-sync-tomograms) - Synchronize tomograms between two Copick projects
+
+#### :material-target: `copick sync picks`
+
+Synchronize pick annotations between two Copick projects with support for name mapping and user filtering.
+
+**Usage:**
+```bash
+copick sync picks [OPTIONS]
+```
+
+**Options:**
+
+| Option                    | Type    | Description                                                                                             | Default                      |
+|---------------------------|---------|---------------------------------------------------------------------------------------------------------|------------------------------|
+| `-c, --config PATH`       | Path    | Path to the source configuration file                                                                   | Uses `COPICK_CONFIG` env var |
+| `--source-dataset-ids`    | String  | Comma-separated list of dataset IDs to use as source from CryoET Data Portal                           | `""`                         |
+| `--target-config PATH`    | Path    | Path to the target configuration file (required)                                                       | None                         |
+| `--source-runs`           | String  | Comma-separated list of source run names to synchronize                                                | `""` (all runs)              |
+| `--target-runs`           | String  | Comma-separated mapping of source run names to target run names (e.g. 'run1:target1,run2:target2')    | `""` (same names)            |
+| `--source-objects`        | String  | Comma-separated list of source object names to synchronize                                             | `""` (all objects)           |
+| `--target-objects`        | String  | Comma-separated mapping of source object names to target object names (e.g. 'ribosome:ribo,membrane:mem') | `""` (same names)            |
+| `--source-users`          | String  | Comma-separated list of source user IDs to synchronize                                                 | `""` (all users)             |
+| `--target-users`          | String  | Comma-separated mapping of source user IDs to target user IDs (e.g. 'user1:target1,user2:target2')    | `""` (same user IDs)         |
+| `--exist-ok/--no-exist-ok` | Boolean | Allow overwriting existing picks in the target project                                                 | `no-exist-ok`                |
+| `--max-workers`           | Integer | Maximum number of worker threads to use for synchronization                                            | `4`                          |
+| `--log/--no-log`          | Boolean | Enable verbose logging of the synchronization process                                                  | `no-log`                     |
+| `--debug/--no-debug`      | Boolean | Enable debug logging                                                                                   | `no-debug`                   |
+
+**Examples:**
+
+```bash
+# Sync all picks from all runs
+copick sync picks -c source_config.json --target-config target_config.json
+
+# Sync specific runs with name mapping
+copick sync picks -c source_config.json --target-config target_config.json \
+    --source-runs "run1,run2" --target-runs "run1:new_run1,run2:new_run2"
+
+# Sync specific objects with name mapping
+copick sync picks -c source_config.json --target-config target_config.json \
+    --source-objects "ribosome,membrane" --target-objects "ribosome:ribo,membrane:mem"
+
+# Sync picks from specific users with user mapping
+copick sync picks -c source_config.json --target-config target_config.json \
+    --source-users "user1,user2" --target-users "user1:analyst1,user2:analyst2" \
+    --exist-ok --log
+
+# Sync from CryoET Data Portal to local project
+copick sync picks \
+    --source-dataset-ids "12345,67890" \
+    --target-config target_config.json \
+    --max-workers 8 --log
+```
+
+#### :material-vector-triangle: `copick sync meshes`
+
+Synchronize mesh data between two Copick projects with support for name mapping and user filtering.
+
+**Usage:**
+```bash
+copick sync meshes [OPTIONS]
+```
+
+**Options:**
+
+| Option                    | Type    | Description                                                                                             | Default                      |
+|---------------------------|---------|---------------------------------------------------------------------------------------------------------|------------------------------|
+| `-c, --config PATH`       | Path    | Path to the source configuration file                                                                   | Uses `COPICK_CONFIG` env var |
+| `--source-dataset-ids`    | String  | Comma-separated list of dataset IDs to use as source from CryoET Data Portal                           | `""`                         |
+| `--target-config PATH`    | Path    | Path to the target configuration file (required)                                                       | None                         |
+| `--source-runs`           | String  | Comma-separated list of source run names to synchronize                                                | `""` (all runs)              |
+| `--target-runs`           | String  | Comma-separated mapping of source run names to target run names (e.g. 'run1:target1,run2:target2')    | `""` (same names)            |
+| `--source-objects`        | String  | Comma-separated list of source object names to synchronize                                             | `""` (all objects)           |
+| `--target-objects`        | String  | Comma-separated mapping of source object names to target object names (e.g. 'ribosome:ribo,membrane:mem') | `""` (same names)            |
+| `--source-users`          | String  | Comma-separated list of source user IDs to synchronize                                                 | `""` (all users)             |
+| `--target-users`          | String  | Comma-separated mapping of source user IDs to target user IDs (e.g. 'user1:target1,user2:target2')    | `""` (same user IDs)         |
+| `--exist-ok/--no-exist-ok` | Boolean | Allow overwriting existing meshes in the target project                                                | `no-exist-ok`                |
+| `--max-workers`           | Integer | Maximum number of worker threads to use for synchronization                                            | `4`                          |
+| `--log/--no-log`          | Boolean | Enable verbose logging of the synchronization process                                                  | `no-log`                     |
+| `--debug/--no-debug`      | Boolean | Enable debug logging                                                                                   | `no-debug`                   |
+
+**Examples:**
+
+```bash
+# Sync all meshes from all runs
+copick sync meshes -c source_config.json --target-config target_config.json
+
+# Sync specific runs with name mapping
+copick sync meshes -c source_config.json --target-config target_config.json \
+    --source-runs "run1,run2" --target-runs "run1:new_run1,run2:new_run2"
+
+# Sync specific objects with name mapping
+copick sync meshes -c source_config.json --target-config target_config.json \
+    --source-objects "ribosome,membrane" --target-objects "ribosome:ribo,membrane:mem"
+
+# Parallel processing with logging
+copick sync meshes -c source_config.json --target-config target_config.json \
+    --max-workers 8 --log
+```
+
+#### :material-layers: `copick sync segmentations`
+
+Synchronize segmentation data between two Copick projects with voxel spacing filtering, name mapping, and user filtering.
+
+**Usage:**
+```bash
+copick sync segmentations [OPTIONS]
+```
+
+**Options:**
+
+| Option                    | Type    | Description                                                                                             | Default                      |
+|---------------------------|---------|---------------------------------------------------------------------------------------------------------|------------------------------|
+| `-c, --config PATH`       | Path    | Path to the source configuration file                                                                   | Uses `COPICK_CONFIG` env var |
+| `--source-dataset-ids`    | String  | Comma-separated list of dataset IDs to use as source from CryoET Data Portal                           | `""`                         |
+| `--target-config PATH`    | Path    | Path to the target configuration file (required)                                                       | None                         |
+| `--source-runs`           | String  | Comma-separated list of source run names to synchronize                                                | `""` (all runs)              |
+| `--target-runs`           | String  | Comma-separated mapping of source run names to target run names (e.g. 'run1:target1,run2:target2')    | `""` (same names)            |
+| `--voxel-spacings`        | String  | Comma-separated list of voxel spacings to consider for synchronization                                 | `""` (all voxel spacings)    |
+| `--source-names`          | String  | Comma-separated list of source segmentation names to synchronize                                       | `""` (all segmentations)     |
+| `--target-names`          | String  | Comma-separated mapping of source segmentation names to target names (e.g. 'seg1:target1,seg2:target2') | `""` (same names)            |
+| `--source-users`          | String  | Comma-separated list of source user IDs to synchronize                                                 | `""` (all users)             |
+| `--target-users`          | String  | Comma-separated mapping of source user IDs to target user IDs (e.g. 'user1:target1,user2:target2')    | `""` (same user IDs)         |
+| `--exist-ok/--no-exist-ok` | Boolean | Allow overwriting existing segmentations in the target project                                         | `no-exist-ok`                |
+| `--max-workers`           | Integer | Maximum number of worker threads to use for synchronization                                            | `4`                          |
+| `--log/--no-log`          | Boolean | Enable verbose logging of the synchronization process                                                  | `no-log`                     |
+| `--debug/--no-debug`      | Boolean | Enable debug logging                                                                                   | `no-debug`                   |
+
+**Examples:**
+
+```bash
+# Sync all segmentations from all runs
+copick sync segmentations -c source_config.json --target-config target_config.json
+
+# Sync specific runs and voxel spacings
+copick sync segmentations -c source_config.json --target-config target_config.json \
+    --source-runs "run1,run2" --voxel-spacings "10.0,20.0"
+
+# Sync specific segmentations with name mapping
+copick sync segmentations -c source_config.json --target-config target_config.json \
+    --source-names "membrane,organelle" --target-names "membrane:cell_membrane,organelle:mitochondria"
+
+# Complete synchronization with all options
+copick sync segmentations -c source_config.json --target-config target_config.json \
+    --source-runs "run1,run2" --target-runs "run1:exp1,run2:exp2" \
+    --voxel-spacings "10.0,20.0" \
+    --source-names "membrane,organelle" --target-names "membrane:cell_membrane,organelle:mitochondria" \
+    --source-users "user1,user2" --target-users "user1:analyst1,user2:analyst2" \
+    --exist-ok --max-workers 8 --log
+```
+
+#### :material-cube: `copick sync tomograms`
+
+Synchronize tomogram data between two Copick projects with voxel spacing and tomogram type filtering.
+
+**Usage:**
+```bash
+copick sync tomograms [OPTIONS]
+```
+
+**Options:**
+
+| Option                    | Type    | Description                                                                                             | Default                      |
+|---------------------------|---------|---------------------------------------------------------------------------------------------------------|------------------------------|
+| `-c, --config PATH`       | Path    | Path to the source configuration file                                                                   | Uses `COPICK_CONFIG` env var |
+| `--source-dataset-ids`    | String  | Comma-separated list of dataset IDs to use as source from CryoET Data Portal                           | `""`                         |
+| `--target-config PATH`    | Path    | Path to the target configuration file (required)                                                       | None                         |
+| `--source-runs`           | String  | Comma-separated list of source run names to synchronize                                                | `""` (all runs)              |
+| `--target-runs`           | String  | Comma-separated mapping of source run names to target run names (e.g. 'run1:target1,run2:target2')    | `""` (same names)            |
+| `--voxel-spacings`        | String  | Comma-separated list of voxel spacings to consider for synchronization                                 | `""` (all voxel spacings)    |
+| `--source-tomo-types`     | String  | Comma-separated list of source tomogram types to synchronize                                           | `""` (all tomogram types)    |
+| `--target-tomo-types`     | String  | Comma-separated mapping of source tomogram types to target types (e.g. 'wbp:filtered,raw:original')   | `""` (same types)            |
+| `--exist-ok/--no-exist-ok` | Boolean | Allow overwriting existing tomograms in the target project                                             | `no-exist-ok`                |
+| `--max-workers`           | Integer | Maximum number of worker threads to use for synchronization                                            | `4`                          |
+| `--log/--no-log`          | Boolean | Enable verbose logging of the synchronization process                                                  | `no-log`                     |
+| `--debug/--no-debug`      | Boolean | Enable debug logging                                                                                   | `no-debug`                   |
+
+**Examples:**
+
+```bash
+# Sync all tomograms from all runs
+copick sync tomograms -c source_config.json --target-config target_config.json
+
+# Sync specific runs and voxel spacings
+copick sync tomograms -c source_config.json --target-config target_config.json \
+    --source-runs "run1,run2" --voxel-spacings "10.0,20.0"
+
+# Sync specific tomogram types with name mapping
+copick sync tomograms -c source_config.json --target-config target_config.json \
+    --source-tomo-types "wbp,raw" --target-tomo-types "wbp:filtered,raw:original"
+
+# Complete tomogram synchronization
+copick sync tomograms -c source_config.json --target-config target_config.json \
+    --source-runs "run1,run2" --target-runs "run1:exp1,run2:exp2" \
+    --voxel-spacings "10.0" \
+    --source-tomo-types "wbp,denoised" --target-tomo-types "wbp:processed,denoised:clean" \
+    --exist-ok --max-workers 6 --log
+```
+
+---
+
 ### :material-information: `copick info`
 
 Display information about the Copick CLI and available plugins.
@@ -670,6 +881,42 @@ copick config dataportal -ds 10000 -ds 10001 -ds 10002 --overlay ./overlay --out
 copick browse --config multi_project.json
 ```
 
+### Synchronize Data Between Projects
+
+Synchronize data between different Copick projects:
+
+```bash
+# Basic synchronization of all data types
+copick sync picks -c source_config.json --target-config target_config.json --log
+copick sync meshes -c source_config.json --target-config target_config.json --log
+copick sync segmentations -c source_config.json --target-config target_config.json --log
+copick sync tomograms -c source_config.json --target-config target_config.json --log
+
+# Sync from CryoET Data Portal to local project
+copick sync picks \
+    --source-dataset-ids "12345,67890" \
+    --target-config local_project.json \
+    --max-workers 8 --log
+
+# Sync with name mapping and user filtering
+copick sync picks -c source_config.json --target-config target_config.json \
+    --source-runs "run1,run2" --target-runs "run1:experiment_A,run2:experiment_B" \
+    --source-objects "ribosome,membrane" --target-objects "ribosome:large_ribosomal_subunit,membrane:plasma_membrane" \
+    --source-users "user1,user2" --target-users "user1:analyst1,user2:analyst2" \
+    --exist-ok --log
+
+# Selective synchronization of specific voxel spacings and segmentation types
+copick sync segmentations -c source_config.json --target-config target_config.json \
+    --voxel-spacings "10.0,20.0" \
+    --source-names "membrane,organelle" --target-names "membrane:cell_membrane,organelle:mitochondria" \
+    --log
+
+copick sync tomograms -c source_config.json --target-config target_config.json \
+    --voxel-spacings "10.0" \
+    --source-tomo-types "wbp,denoised" --target-tomo-types "wbp:processed,denoised:clean" \
+    --log
+```
+
 ### Development and Debugging
 
 Debug and test your Copick workflows:
@@ -686,4 +933,7 @@ copick new voxelspacing --config project.json --run TEST_RUN 10.0
 
 # Add a tomogram with detailed output
 copick add tomogram --config project.json --run TEST_RUN --debug data/test_tomogram.mrc
+
+# Test synchronization with debug logging
+copick sync picks -c source_config.json --target-config target_config.json --debug --log
 ```
