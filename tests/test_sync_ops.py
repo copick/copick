@@ -479,12 +479,8 @@ class TestSyncSegmentations:
         target_root = source_target_configs["target_root"]
 
         # Add test segmentations at different voxel spacings
-        runs = list(source_root.runs)
-        if not runs:
-            test_run = source_root.new_run("test_run", exist_ok=True)
-            runs = [test_run]
-
-        source_run = runs[0]
+        # Create a unique run for this test to avoid conflicts with existing data
+        source_run = source_root.new_run("voxel-filter-test-run", exist_ok=True)
 
         # Create segmentations at different voxel sizes
         seg1 = source_run.new_segmentation(
@@ -669,14 +665,11 @@ class TestSyncTomograms:
         target_root = source_target_configs["target_root"]
 
         # Check for existing tomograms at different voxel spacings
-        runs = list(source_root.runs)
-        if not runs:
-            pytest.skip("No runs available for testing")
+        # Create a unique run for this test to avoid conflicts with existing data
+        source_run = source_root.new_run("voxel-filter-test-run", exist_ok=True)
+        source_run.new_voxel_spacing(12.0, exist_ok=True)
 
-        source_run = runs[0]
         voxel_spacings = list(source_run.voxel_spacings)
-        if len(voxel_spacings) < 1:
-            pytest.skip("Need at least one voxel spacing for testing")
 
         # Use the first voxel spacing for filtering
         target_voxel_size = voxel_spacings[0].voxel_size

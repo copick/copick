@@ -623,12 +623,8 @@ class TestSyncSegmentationsCLI:
         source_root = source_target_configs["source_root"]
 
         # Add test segmentations at different voxel spacings
-        runs = list(source_root.runs)
-        if not runs:
-            test_run = source_root.new_run("test_run", exist_ok=True)
-            runs = [test_run]
-
-        source_run = runs[0]
+        # Create a unique run for this test to avoid conflicts with existing data
+        source_run = source_root.new_run("voxel-filter-test-run", exist_ok=True)
 
         # Create segmentations at different voxel sizes
         seg1 = source_run.new_segmentation(
