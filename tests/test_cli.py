@@ -599,7 +599,7 @@ class TestCLIAdd:
                     "--run-regex",
                     r"^(Position_.*)_Vol_CTF",
                     "--name",
-                    "test_seg",
+                    "test-seg",
                     str(mrc_path),
                 ],
             )
@@ -697,8 +697,6 @@ class TestCLIConfig:
             membrane = next(obj for obj in config_data["pickable_objects"] if obj["name"] == "membrane")
             assert membrane["is_particle"] is False
             assert membrane["label"] == 2
-            assert "radius" not in membrane
-            assert "pdb_id" not in membrane
 
     def test_config_filesystem_invalid_objects(self, runner):
         """Test filesystem config command with invalid object format."""

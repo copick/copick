@@ -1,5 +1,3 @@
-import json
-import os
 from typing import List
 
 import click
@@ -147,6 +145,9 @@ def filesystem(
         --objects membrane,False --objects apoferritin,True,60,4V1W \
         --proj-name 24sep24a --proj-description "Synaptic Vesicles collected on 24sep24"
     """
+    import copick
+    from copick.models import PickableObject
+
     logger = get_logger(__name__, debug=debug)
     logger.info("Generating configuration file for a local project directory...")
 
@@ -166,25 +167,15 @@ def filesystem(
             if pdb_id:
                 obj_dict["pdb_id"] = pdb_id
 
-        pickable_objects.append(obj_dict)
+        pickable_objects.append(PickableObject(**obj_dict))
         label_counter += 1
 
-    config_data = {
-        "config_type": "filesystem",
-        "name": proj_name,
-        "description": proj_description,
-        "version": "0.1.6",  # TODO: Update this to the actual version - how to do this automatically?
-        "pickable_objects": pickable_objects,
-        "overlay_root": "local://" + overlay_root,
-        "overlay_fs_args": {"auto_mkdir": True},
-    }
-
-    # Only create the directory if it is non-empty (i.e., the file is not in the current directory)
-    directory = os.path.dirname(config)
-    if directory:
-        os.makedirs(directory, exist_ok=True)
-    # Write the JSON data to the file
-    with open(config, "w") as f:
-        json.dump(config_data, f, indent=4)
+    copick.new_config(
+        config=config,
+        proj_name=proj_name,
+        proj_description=proj_description,
+        overlay_root=overlay_root,
+        pickable_objects=pickable_objects,
+    )
 
     logger.info(f"Generated configuration file at {config}.")
