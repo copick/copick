@@ -1,4 +1,5 @@
 import json
+import os
 import warnings
 from typing import TYPE_CHECKING, Any, Dict, List, Union
 
@@ -10,6 +11,7 @@ logger = get_logger(__name__)
 if TYPE_CHECKING:
     from copick.impl.cryoet_data_portal import CopickRootCDP
     from copick.impl.filesystem import CopickRootFSSpec
+    from copick.models import PickableObject
 
 
 def from_string(data: str) -> Union["CopickRootFSSpec", "CopickRootCDP"]:
@@ -99,3 +101,47 @@ def from_czcdp_datasets(
             f.write(json.dumps(config.model_dump(exclude_unset=True), indent=4))
 
     return CopickRootCDP(config)
+
+
+def new_config(
+    config: str,
+    overlay_root: str,
+    proj_name: str = "copick project",
+    proj_description: str = "",
+    pickable_objects: List["PickableObject"] = None,
+) -> "CopickRootFSSpec":
+    """
+    Create a new Copick configuration file.
+
+    Args:
+        config: Path to the configuration file to create.
+        proj_name: Name of the project.
+        overlay_root: Root path for the overlay directory.
+        proj_description: Description of the project.
+        pickable_objects: List of pickable objects to include in the project.
+
+    Returns:
+        The initialized Copick project.
+    """
+
+    import copick
+
+    config_data = {
+        "config_type": "filesystem",
+        "name": proj_name,
+        "description": proj_description,
+        "version": f"{copick.__version__}",
+        "pickable_objects": [po.model_dump() for po in pickable_objects] if pickable_objects else [],
+        "overlay_root": "local://" + overlay_root,
+        "overlay_fs_args": {"auto_mkdir": True},
+    }
+
+    # Only create the directory if it is non-empty (i.e., the file is not in the current directory)
+    directory = os.path.dirname(config)
+    if directory:
+        os.makedirs(directory, exist_ok=True)
+    # Write the JSON data to the file
+    with open(config, "w") as f:
+        json.dump(config_data, f, indent=4)
+
+    return copick.from_file(config)

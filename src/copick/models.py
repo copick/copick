@@ -2089,7 +2089,7 @@ class CopickPicks:
 
         """
 
-        if positions.shape[0] != transforms.shape[0]:
+        if transforms is not None and positions.shape[0] != transforms.shape[0]:
             raise ValueError("Number of positions and transforms must be the same.")
 
         points = []
