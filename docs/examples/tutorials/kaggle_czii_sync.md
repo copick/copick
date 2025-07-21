@@ -1,10 +1,10 @@
 # Syncing CZII Kaggle Challenge Dataset with Copick
 
-This tutorial demonstrates how to use Copick's sync functionality to reproduce the CZ Science CryoET Object Identification Kaggle competition dataset structure and naming conventions.
+This tutorial demonstrates how to use Copick's sync functionality to reproduce the CZII CryoET Object Identification Kaggle competition dataset structure and naming conventions.
 
 ## Competition Overview
 
-The [CZII CryoET Object Identification Competition](https://www.kaggle.com/competitions/czii-cryo-et-object-identification) challenged participants to develop machine learning algorithms that can automatically annotate particles in 3D cellular tomograms. The competition features a phantom dataset containing 6 protein complexes:
+The [CZII CryoET Object Identification Competition](https://cryoetdataportal.czscience.com/competition) challenged participants to develop machine learning algorithms that can automatically annotate particles in 3D cellular tomograms. The competition features a phantom dataset containing 6 protein complexes:
 
 1. **Apo-ferritin** - Iron storage protein complex
 2. **Beta-amylase** - Starch-degrading enzyme
@@ -18,7 +18,7 @@ The [CZII CryoET Object Identification Competition](https://www.kaggle.com/compe
 Before starting, ensure you have the required packages installed:
 
 ```bash
-pip install copick[all] cryoet-data-portal
+uv pip install "copick[all]>=1.10.0" "cryoet-data-portal"
 ```
 
 You'll also need sufficient disk space for the dataset (several GB) and a stable internet connection for downloading from the CryoET Data Portal.
