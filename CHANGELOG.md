@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.10.0](https://github.com/copick/copick/compare/copick-v1.9.0...copick-v1.10.0) (2025-07-21)
+
+
+### ✨ Features
+
+* Add sync command and CLI ([#113](https://github.com/copick/copick/issues/113)) ([ea28cd7](https://github.com/copick/copick/commit/ea28cd7481d526da8686498c81424009b6cfbc82))
+
 ## [1.9.0](https://github.com/copick/copick/compare/copick-v1.8.2...copick-v1.9.0) (2025-07-17)
 
 
