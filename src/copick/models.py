@@ -26,6 +26,7 @@ class PickableObject(BaseModel):
         identifier: Identifier for the object (e.g. Gene Ontology ID or UniProtKB accession).
         map_threshold: Threshold to apply to the map when rendering the isosurface.
         radius: Radius of the particle, when displaying as a sphere.
+        metadata: Additional metadata for the object (not part of the base PickableObject model).
     """
 
     name: str
