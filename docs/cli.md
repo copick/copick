@@ -296,6 +296,7 @@ copick add object [OPTIONS]
 | `--identifier TEXT`          | String  | Identifier for the object (e.g. Gene Ontology ID or UniProtKB accession)            | None                         |
 | `--map-threshold FLOAT`      | Float   | Threshold to apply to the map when rendering the isosurface                         | None                         |
 | `--radius FLOAT`             | Float   | Radius of the particle, when displaying as a sphere                                 | `50`                         |
+| `--metadata TEXT`            | String  | JSON string containing custom metadata for the object (e.g. '{"source": "experimental_data", "confidence": 0.95}') | None |
 | `--volume PATH`              | Path    | Path to volume file to associate with the object                                    | None                         |
 | `--volume-format CHOICE`     | String  | Format of the volume file ('mrc' or 'zarr')                                         | Auto-detected                |
 | `--voxel-size FLOAT`         | Float   | Voxel size for the volume data. Required if volume is provided                      | None                         |
@@ -319,6 +320,9 @@ copick add object --config config.json --name proteasome --object-type particle 
 
 # Add object with EMDB reference and identifier
 copick add object --config config.json --name apoferritin --object-type particle --emdb-id EMD-1234 --identifier "GO:0006826" --radius 60
+
+# Add object with custom metadata
+copick add object --config config.json --name ribosome --object-type particle --radius 120 --metadata '{"source": "experimental_data", "confidence": 0.95, "notes": "High-resolution structure"}'
 ```
 
 #### :material-cube-outline: `copick add object-volume`

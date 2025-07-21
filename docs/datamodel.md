@@ -47,7 +47,12 @@ label, color, radius, and other properties.
         "label": 1,
         "color": [255, 0, 0, 255],
         "radius": 60,
-        "map_threshold": 0.0418
+        "map_threshold": 0.0418,
+        "metadata": {
+            "source": "experimental_data",
+            "confidence": 0.95,
+            "notes": "High-resolution structure"
+        }
     }
     ```
 
@@ -67,6 +72,9 @@ label, color, radius, and other properties.
         object. This is used to determine the isosurface level to use when rendering the object as a mesh. Density maps are
         discovered by the copick API by looking for files with the same name as the object in the `Objects` directory of
         the project's root.
+    - `metadata`: An optional dictionary that can contain arbitrary key-value pairs for storing additional custom
+        information about the object. This field allows users to attach project-specific metadata such as confidence scores,
+        data sources, or processing notes.
 
 
 ### Run

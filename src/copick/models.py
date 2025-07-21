@@ -1,5 +1,5 @@
 import json
-from typing import TYPE_CHECKING, Dict, Iterable, List, Literal, MutableMapping, Optional, Tuple, Type, Union
+from typing import TYPE_CHECKING, Any, Dict, Iterable, List, Literal, MutableMapping, Optional, Tuple, Type, Union
 
 import numpy as np
 import zarr
@@ -37,6 +37,7 @@ class PickableObject(BaseModel):
     identifier: Optional[str] = Field(None, alias=AliasChoices("go_id", "identifier"))
     map_threshold: Optional[float] = None
     radius: Optional[float] = None
+    metadata: Optional[Dict[str, Any]] = Field(default_factory=dict)
 
     @property
     def go_id(self):
@@ -211,6 +212,7 @@ class CopickObject:
         pdb_id: PDB ID for the object.
         map_threshold: Threshold to apply to the map when rendering the isosurface.
         radius: Radius of the particle, when displaying as a sphere.
+        metadata: Additional metadata for the object (not part of the base PickableObject model).
     """
 
     def __init__(self, root: "CopickRoot", meta: PickableObject):
@@ -272,6 +274,10 @@ class CopickObject:
     @property
     def radius(self) -> Union[float, None]:
         return self.meta.radius
+
+    @property
+    def metadata(self) -> Dict[str, Any]:
+        return self.meta.metadata
 
     def zarr(self) -> Union[None, MutableMapping]:
         """Override this method to return a zarr store for this object. Should return None if
@@ -554,6 +560,7 @@ class CopickRoot:
         identifier: Optional[str] = None,
         map_threshold: Optional[float] = None,
         radius: Optional[float] = None,
+        metadata: Optional[Dict[str, Any]] = None,
         exist_ok: bool = False,
     ) -> "CopickObject":
         """Create a new pickable object and add it to the configuration.
@@ -568,6 +575,7 @@ class CopickRoot:
             identifier: Identifier for the object (e.g. Gene Ontology ID or UniProtKB accession).
             map_threshold: Threshold to apply to the map when rendering the isosurface.
             radius: Radius of the particle, when displaying as a sphere.
+            metadata: Additional metadata for the object (not part of the base PickableObject model).
             exist_ok: Whether existing objects with the same name should be overwritten..
 
         Returns:
@@ -598,6 +606,7 @@ class CopickRoot:
             obj.meta.identifier = identifier if identifier else obj.identifier
             obj.meta.map_threshold = map_threshold if map_threshold else obj.map_threshold
             obj.meta.radius = radius if radius else obj.radius
+            obj.meta.metadata = metadata if metadata else obj.metadata
         else:
             # Check for duplicate label BEFORE auto-assignment
             if label is not None:
@@ -626,6 +635,7 @@ class CopickRoot:
                 identifier=identifier,
                 map_threshold=map_threshold,
                 radius=radius,
+                metadata=metadata if metadata else {},
             )
 
             # Add to configuration

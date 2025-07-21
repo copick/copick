@@ -457,6 +457,12 @@ def segmentation(
     show_default=True,
 )
 @click.option(
+    "--metadata",
+    type=str,
+    default=None,
+    help="Additional metadata values to associate with the object, in JSON format.",
+)
+@click.option(
     "--volume",
     type=str,
     default=None,
@@ -497,6 +503,7 @@ def object(
     identifier: str,
     map_threshold: float,
     radius: float,
+    metadata: str,
     volume: str,
     volume_format: str,
     voxel_size: float,
@@ -529,6 +536,16 @@ def object(
             color_tuple = tuple(color_values)
         except ValueError:
             ctx.fail("Color values must be integers between 0 and 255.")
+
+    # Parse metadata if provided
+    metadata_dict = {}
+    if metadata:
+        try:
+            import json
+
+            metadata_dict = json.loads(metadata)
+        except json.JSONDecodeError:
+            ctx.fail("Metadata must be valid JSON format.")
 
     # Load volume if provided
     volume_data = None
@@ -564,6 +581,7 @@ def object(
             radius=radius,
             volume=volume_data,
             voxel_size=voxel_spacing,
+            metadata=metadata_dict,
             exist_ok=exist_ok,
             save_config=True,
             config_path=config,
