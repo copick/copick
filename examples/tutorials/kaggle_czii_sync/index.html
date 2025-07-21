@@ -1948,9 +1948,9 @@
 
 
 <h1 id="syncing-czii-kaggle-challenge-dataset-with-copick">Syncing CZII Kaggle Challenge Dataset with Copick</h1>
-<p>This tutorial demonstrates how to use Copick's sync functionality to reproduce the CZ Science CryoET Object Identification Kaggle competition dataset structure and naming conventions.</p>
+<p>This tutorial demonstrates how to use Copick's sync functionality to reproduce the CZII CryoET Object Identification Kaggle competition dataset structure and naming conventions.</p>
 <h2 id="competition-overview">Competition Overview</h2>
-<p>The <a href="https://www.kaggle.com/competitions/czii-cryo-et-object-identification">CZII CryoET Object Identification Competition</a> challenged participants to develop machine learning algorithms that can automatically annotate particles in 3D cellular tomograms. The competition features a phantom dataset containing 6 protein complexes:</p>
+<p>The <a href="https://cryoetdataportal.czscience.com/competition">CZII CryoET Object Identification Competition</a> challenged participants to develop machine learning algorithms that can automatically annotate particles in 3D cellular tomograms. The competition features a phantom dataset containing 6 protein complexes:</p>
 <ol>
 <li><strong>Apo-ferritin</strong> - Iron storage protein complex</li>
 <li><strong>Beta-amylase</strong> - Starch-degrading enzyme</li>
@@ -1961,7 +1961,7 @@
 </ol>
 <h2 id="prerequisites">Prerequisites</h2>
 <p>Before starting, ensure you have the required packages installed:</p>
-<div class="language-bash highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a>pip<span class="w"> </span>install<span class="w"> </span>copick<span class="o">[</span>all<span class="o">]</span><span class="w"> </span>cryoet-data-portal
+<div class="language-bash highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a>uv<span class="w"> </span>pip<span class="w"> </span>install<span class="w"> </span><span class="s2">&quot;copick[all]&gt;=1.10.0&quot;</span><span class="w"> </span><span class="s2">&quot;cryoet-data-portal&quot;</span>
 </span></code></pre></div>
 <p>You'll also need sufficient disk space for the dataset (several GB) and a stable internet connection for downloading from the CryoET Data Portal.</p>
 <h2 id="how-to-sync">How To Sync</h2>
