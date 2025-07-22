@@ -1,5 +1,5 @@
 import json
-from typing import TYPE_CHECKING, Dict, Iterable, List, Literal, MutableMapping, Optional, Tuple, Type, Union
+from typing import TYPE_CHECKING, Any, Dict, Iterable, List, Literal, MutableMapping, Optional, Tuple, Type, Union
 
 import numpy as np
 import zarr
@@ -26,6 +26,7 @@ class PickableObject(BaseModel):
         identifier: Identifier for the object (e.g. Gene Ontology ID or UniProtKB accession).
         map_threshold: Threshold to apply to the map when rendering the isosurface.
         radius: Radius of the particle, when displaying as a sphere.
+        metadata: Additional metadata for the object (user-defined contents).
     """
 
     name: str
@@ -37,6 +38,7 @@ class PickableObject(BaseModel):
     identifier: Optional[str] = Field(None, alias=AliasChoices("go_id", "identifier"))
     map_threshold: Optional[float] = None
     radius: Optional[float] = None
+    metadata: Optional[Dict[str, Any]] = Field(default_factory=dict)
 
     @property
     def go_id(self):
@@ -68,6 +70,11 @@ class PickableObject(BaseModel):
         if v != sanitize_name(v):
             raise ValueError(f"Name '{v}' contains invalid characters. Use copick.escape.sanitize_name() to clean it.")
         return v
+
+    @field_validator("metadata", mode="before")
+    @classmethod
+    def none_to_empty_dict(cls, v):
+        return {} if v is None else v
 
 
 class CopickConfig(BaseModel):
@@ -211,6 +218,7 @@ class CopickObject:
         pdb_id: PDB ID for the object.
         map_threshold: Threshold to apply to the map when rendering the isosurface.
         radius: Radius of the particle, when displaying as a sphere.
+        metadata: Additional metadata for the object (user-defined contents).
     """
 
     def __init__(self, root: "CopickRoot", meta: PickableObject):
@@ -230,10 +238,12 @@ class CopickObject:
         pdb_id = self.pdb_id if self.pdb_id is not None else "None"
         identifier = self.identifier if self.identifier is not None else "None"
         map_threshold = self.map_threshold if self.map_threshold is not None else "None"
+        metadata = self.metadata if self.metadata is not None else "None"
 
         ret = (
             f"CopickObject(name={self.name}, is_particle={self.is_particle}, label={label}, color={color}, "
-            f"emdb_id={emdb_id}, pdb_id={pdb_id}, identifier={identifier} threshold={map_threshold}) at {hex(id(self))}"
+            f"emdb_id={emdb_id}, pdb_id={pdb_id}, identifier={identifier} threshold={map_threshold}, "
+            f"metadata={metadata}) at {hex(id(self))}"
         )
         return ret
 
@@ -272,6 +282,10 @@ class CopickObject:
     @property
     def radius(self) -> Union[float, None]:
         return self.meta.radius
+
+    @property
+    def metadata(self) -> Dict[str, Any]:
+        return self.meta.metadata
 
     def zarr(self) -> Union[None, MutableMapping]:
         """Override this method to return a zarr store for this object. Should return None if
@@ -554,6 +568,7 @@ class CopickRoot:
         identifier: Optional[str] = None,
         map_threshold: Optional[float] = None,
         radius: Optional[float] = None,
+        metadata: Optional[Dict[str, Any]] = None,
         exist_ok: bool = False,
     ) -> "CopickObject":
         """Create a new pickable object and add it to the configuration.
@@ -568,6 +583,7 @@ class CopickRoot:
             identifier: Identifier for the object (e.g. Gene Ontology ID or UniProtKB accession).
             map_threshold: Threshold to apply to the map when rendering the isosurface.
             radius: Radius of the particle, when displaying as a sphere.
+            metadata: Additional metadata for the object (user-defined contents).
             exist_ok: Whether existing objects with the same name should be overwritten..
 
         Returns:
@@ -598,6 +614,7 @@ class CopickRoot:
             obj.meta.identifier = identifier if identifier else obj.identifier
             obj.meta.map_threshold = map_threshold if map_threshold else obj.map_threshold
             obj.meta.radius = radius if radius else obj.radius
+            obj.meta.metadata = metadata if metadata else obj.metadata
         else:
             # Check for duplicate label BEFORE auto-assignment
             if label is not None:
@@ -626,6 +643,7 @@ class CopickRoot:
                 identifier=identifier,
                 map_threshold=map_threshold,
                 radius=radius,
+                metadata=metadata if metadata else {},
             )
 
             # Add to configuration

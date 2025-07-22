@@ -34,6 +34,8 @@ class TestCopickRootNewObject:
         """Test creating an object with all parameters specified."""
         root = test_payload["root"]
 
+        metadata_dict = {"key1": "value1", "key2": 42, "nested": {"inner": True}}
+
         obj = root.new_object(
             name="detailed-object",
             is_particle=False,
@@ -44,6 +46,7 @@ class TestCopickRootNewObject:
             identifier="GO:0005840",
             map_threshold=0.7,
             radius=150.0,
+            metadata=metadata_dict,
         )
 
         assert obj.name == "detailed-object"
@@ -55,6 +58,7 @@ class TestCopickRootNewObject:
         assert obj.identifier == "GO:0005840"
         assert obj.map_threshold == 0.7
         assert obj.radius == 150.0
+        assert obj.metadata == metadata_dict
 
     def test_new_object_auto_label_assignment(self, test_payload):
         """Test automatic label assignment for multiple objects."""
@@ -174,6 +178,50 @@ class TestCopickRootNewObject:
         with pytest.raises(ValidationError, match="Color values must be in the range"):
             root.new_object(name="bad-color2", is_particle=True, color=(256, 0, 0, 255))  # 256 > 255
 
+    def test_new_object_with_metadata(self, test_payload):
+        """Test creating object with metadata."""
+        root = test_payload["root"]
+
+        metadata_dict = {
+            "key1": "value1",
+            "key2": 42,
+            "key3": {"nested": {"inner": True}},
+            "array": [1, 2, 3],
+            "boolean": False,
+        }
+
+        obj = root.new_object(name="test-with-metadata", is_particle=True, metadata=metadata_dict)
+
+        assert obj.name == "test-with-metadata"
+        assert obj.metadata == metadata_dict
+
+    def test_new_object_without_metadata(self, test_payload):
+        """Test creating object without metadata (should default to empty dict)."""
+        root = test_payload["root"]
+
+        obj = root.new_object(name="test-no-metadata", is_particle=True)
+
+        assert obj.name == "test-no-metadata"
+        assert obj.metadata == {}
+
+    def test_new_object_with_none_metadata(self, test_payload):
+        """Test creating object with None metadata (should default to empty dict)."""
+        root = test_payload["root"]
+
+        obj = root.new_object(name="test-none-metadata", is_particle=True, metadata=None)
+
+        assert obj.name == "test-none-metadata"
+        assert obj.metadata == {}
+
+    def test_new_object_with_empty_metadata(self, test_payload):
+        """Test creating object with empty metadata dict."""
+        root = test_payload["root"]
+
+        obj = root.new_object(name="test-empty-metadata", is_particle=True, metadata={})
+
+        assert obj.name == "test-empty-metadata"
+        assert obj.metadata == {}
+
 
 class TestCopickRootSaveConfig:
     """Test cases for the CopickRoot.save_config method."""
@@ -232,6 +280,33 @@ class TestCopickRootSaveConfig:
         assert loaded_obj.identifier == original_obj.identifier
         assert loaded_obj.map_threshold == original_obj.map_threshold
         assert loaded_obj.radius == original_obj.radius
+
+    def test_save_config_preserves_metadata(self, test_payload, tmp_path):
+        """Test that saving config preserves object metadata."""
+        root = test_payload["root"]
+
+        # Add object with complex metadata
+        metadata_dict = {
+            "key1": "value1",
+            "key2": 42,
+            "key3": {"nested": {"inner": True, "list": [1, 2, 3]}},
+            "array": [1, 2, 3],
+            "boolean": False,
+            "null_value": None,
+        }
+
+        original_obj = root.new_object(name="metadata-object", is_particle=True, metadata=metadata_dict)
+
+        # Save config
+        config_path = tmp_path / "metadata-config.json"
+        root.save_config(str(config_path))
+
+        # Load and verify metadata is preserved
+        new_root = CopickRootFSSpec.from_file(str(config_path))
+        loaded_obj = new_root.get_object("metadata-object")
+
+        assert loaded_obj.name == original_obj.name
+        assert loaded_obj.metadata == metadata_dict
 
 
 class TestAddObjectFunction:
@@ -322,6 +397,81 @@ class TestAddObjectFunction:
                 save_config=True,
                 # Missing config_path
             )
+
+    def test_add_object_functional_api_with_metadata(self, test_payload):
+        """Test adding object with metadata via functional API."""
+        root = test_payload["root"]
+
+        metadata_dict = {"key1": "value1", "key2": 42, "key3": {"nested": True}, "array": [1, 2, 3]}
+
+        # Add object with metadata
+        obj = add_object(
+            root=root,
+            name="test-functional-metadata",
+            is_particle=True,
+            metadata=metadata_dict,
+        )
+
+        assert obj is not None, "Object should be created"
+        assert obj.metadata == metadata_dict, f"Metadata should match. Got: {obj.metadata}"
+
+        # Verify object is accessible from root with metadata
+        retrieved_obj = root.get_object("test-functional-metadata")
+        assert retrieved_obj is not None, "Object should exist"
+        assert retrieved_obj.metadata == metadata_dict, "Metadata should persist"
+
+    def test_add_object_functional_api_without_metadata(self, test_payload):
+        """Test adding object without metadata via functional API (should default to empty dict)."""
+        root = test_payload["root"]
+
+        # Add object without metadata
+        obj = add_object(
+            root=root,
+            name="test-functional-no-metadata",
+            is_particle=True,
+        )
+
+        assert obj is not None, "Object should be created"
+        assert obj.metadata == {}, "Metadata should default to empty dict"
+
+    def test_add_object_functional_api_with_none_metadata(self, test_payload):
+        """Test adding object with None metadata via functional API (should default to empty dict)."""
+        root = test_payload["root"]
+
+        # Add object with None metadata
+        obj = add_object(
+            root=root,
+            name="test-functional-none-metadata",
+            is_particle=True,
+            metadata=None,
+        )
+
+        assert obj is not None, "Object should be created"
+        assert obj.metadata == {}, "Metadata should default to empty dict when None"
+
+    def test_add_object_with_metadata_and_config_save(self, test_payload, tmp_path):
+        """Test adding object with metadata and saving config preserves metadata."""
+        root = test_payload["root"]
+        config_path = tmp_path / "metadata-saved-config.json"
+
+        metadata_dict = {"key1": "value1", "key2": 42, "nested": {"inner": True}}
+
+        obj = add_object(
+            root=root,
+            name="test-metadata-save",
+            is_particle=True,
+            metadata=metadata_dict,
+            save_config=True,
+            config_path=str(config_path),
+        )
+
+        assert obj.metadata == metadata_dict
+
+        # Verify metadata persists after reloading config
+        root_reloaded = CopickRootFSSpec.from_file(str(config_path))
+        obj_reloaded = root_reloaded.get_object("test-metadata-save")
+        assert obj_reloaded is not None, "Object should exist after reload"
+        assert obj_reloaded.metadata == metadata_dict, "Metadata should persist after reload"
 
 
 class TestAddObjectVolumeFunction:
@@ -419,3 +569,52 @@ class TestAddObjectVolumeFunction:
         else:
             # Skip test if no read-only objects available
             pytest.skip("No read-only particle objects available for testing")
+
+
+class TestPickableObjectModel:
+    """Test cases for the PickableObject model metadata functionality."""
+
+    def test_pickable_object_model_with_metadata(self):
+        """Test PickableObject model with metadata field."""
+        from copick.models import PickableObject
+
+        metadata_dict = {"key1": "value1", "key2": 42}
+
+        obj = PickableObject(name="test-object", is_particle=True, metadata=metadata_dict, identifier=None)
+
+        assert obj.metadata == metadata_dict, "Metadata should be preserved in model"
+
+    def test_pickable_object_model_without_metadata(self):
+        """Test PickableObject model without metadata field (should default to empty dict)."""
+        from copick.models import PickableObject
+
+        obj = PickableObject(name="test-object", is_particle=True)
+
+        assert obj.metadata == {}, "Metadata should default to empty dict"
+
+    def test_pickable_object_model_with_none_metadata(self):
+        """Test PickableObject model with None metadata."""
+        from copick.models import PickableObject
+
+        obj = PickableObject(name="test-object", is_particle=True, metadata=None, identifier=None)
+
+        assert obj.metadata == {}, "Metadata should default to empty dict when None"
+
+    def test_pickable_object_model_complex_metadata(self):
+        """Test PickableObject model with complex metadata structures."""
+        from copick.models import PickableObject
+
+        complex_metadata = {
+            "string": "value",
+            "number": 42,
+            "float": 3.14,
+            "boolean": True,
+            "null": None,
+            "nested": {"inner": "nested_value", "array": [1, 2, 3], "nested_object": {"deep": "value"}},
+            "array": ["a", "b", "c"],
+            "mixed_array": [1, "two", {"three": 3}],
+        }
+
+        obj = PickableObject(name="complex-object", is_particle=True, metadata=complex_metadata)
+
+        assert obj.metadata == complex_metadata, "Complex metadata should be preserved"

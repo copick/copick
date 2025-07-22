@@ -1208,6 +1208,112 @@ class TestCLIAddObject:
         assert obj1.label != obj2.label, "Objects should have different labels"
         assert obj1.label > 0 and obj2.label > 0, "Labels should be positive"
 
+    def test_add_object_definition_with_metadata(self, test_payload, runner):
+        """Test adding object definition with metadata via CLI."""
+        config_file = test_payload["cfg_file"]
+
+        metadata_json = '{"key1": "value1", "key2": 42, "key3": {"nested": true}}'
+
+        result = runner.invoke(
+            add,
+            [
+                "object",
+                "--config",
+                str(config_file),
+                "--name",
+                "test-with-metadata",
+                "--object-type",
+                "particle",
+                "--metadata",
+                metadata_json,
+            ],
+        )
+
+        assert result.exit_code == 0, f"Command failed: {result.output}"
+
+        # Verify the object was added with metadata
+        root = CopickRootFSSpec.from_file(config_file)
+        obj = root.get_object("test-with-metadata")
+        assert obj is not None, "Object should be created"
+
+        # Check metadata content
+        expected_metadata = {"key1": "value1", "key2": 42, "key3": {"nested": True}}
+        assert obj.metadata == expected_metadata, f"Metadata should match. Got: {obj.metadata}"
+
+    def test_add_object_definition_with_empty_metadata(self, test_payload, runner):
+        """Test adding object definition with empty metadata."""
+        config_file = test_payload["cfg_file"]
+
+        result = runner.invoke(
+            add,
+            [
+                "object",
+                "--config",
+                str(config_file),
+                "--name",
+                "test-empty-metadata",
+                "--object-type",
+                "particle",
+                "--metadata",
+                "{}",
+            ],
+        )
+
+        assert result.exit_code == 0, f"Command failed: {result.output}"
+
+        # Verify the object was added with empty metadata
+        root = CopickRootFSSpec.from_file(config_file)
+        obj = root.get_object("test-empty-metadata")
+        assert obj is not None, "Object should be created"
+        assert obj.metadata == {}, "Metadata should be empty dict"
+
+    def test_add_object_definition_without_metadata(self, test_payload, runner):
+        """Test adding object definition without metadata (should default to empty dict)."""
+        config_file = test_payload["cfg_file"]
+
+        result = runner.invoke(
+            add,
+            [
+                "object",
+                "--config",
+                str(config_file),
+                "--name",
+                "test-no-metadata",
+                "--object-type",
+                "particle",
+            ],
+        )
+
+        assert result.exit_code == 0, f"Command failed: {result.output}"
+
+        # Verify the object has default empty metadata
+        root = CopickRootFSSpec.from_file(config_file)
+        obj = root.get_object("test-no-metadata")
+        assert obj is not None, "Object should be created"
+        assert obj.metadata == {}, "Metadata should default to empty dict"
+
+    def test_add_object_definition_invalid_metadata_json(self, test_payload, runner):
+        """Test adding object with invalid JSON metadata (should fail)."""
+        config_file = test_payload["cfg_file"]
+
+        result = runner.invoke(
+            add,
+            [
+                "object",
+                "--config",
+                str(config_file),
+                "--name",
+                "test-invalid-metadata",
+                "--object-type",
+                "particle",
+                "--metadata",
+                '{"invalid": json}',  # Invalid JSON
+            ],
+        )
+
+        assert result.exit_code != 0, "Command should fail with invalid JSON metadata"
+        assert "valid JSON format" in result.output
+
     def test_add_object_volume_to_existing(self, test_payload, runner, sample_mrc_file):
         """Test adding volume to existing object via CLI."""
         config_file = test_payload["cfg_file"]

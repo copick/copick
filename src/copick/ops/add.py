@@ -427,6 +427,7 @@ def add_object(
     radius: Optional[float] = None,
     volume: Optional[np.ndarray] = None,
     voxel_size: Optional[float] = None,
+    metadata: Optional[Dict[str, Any]] = None,
     exist_ok: bool = False,
     save_config: bool = False,
     config_path: Optional[str] = None,
@@ -447,6 +448,7 @@ def add_object(
         radius: Radius of the particle, when displaying as a sphere.
         volume: Optional volume data to associate with the object.
         voxel_size: Voxel size for the volume data. Required if volume is provided.
+        metadata: Optional metadata dictionary to associate with the object.
         exist_ok: Whether existing objects with the same name should be overwritten..
         save_config: Whether to save the configuration to disk after adding the object.
         config_path: Path to save the configuration. Required if save_config is True.
@@ -481,6 +483,7 @@ def add_object(
         identifier=identifier,
         map_threshold=map_threshold,
         radius=radius,
+        metadata=metadata or {},
         exist_ok=exist_ok,
     )
 
