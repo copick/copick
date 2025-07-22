@@ -238,10 +238,12 @@ class CopickObject:
         pdb_id = self.pdb_id if self.pdb_id is not None else "None"
         identifier = self.identifier if self.identifier is not None else "None"
         map_threshold = self.map_threshold if self.map_threshold is not None else "None"
+        metadata = self.metadata if self.metadata is not None else "None"
 
         ret = (
             f"CopickObject(name={self.name}, is_particle={self.is_particle}, label={label}, color={color}, "
-            f"emdb_id={emdb_id}, pdb_id={pdb_id}, identifier={identifier} threshold={map_threshold}) at {hex(id(self))}"
+            f"emdb_id={emdb_id}, pdb_id={pdb_id}, identifier={identifier} threshold={map_threshold}, "
+            f"metadata={metadata}) at {hex(id(self))}"
         )
         return ret
 
