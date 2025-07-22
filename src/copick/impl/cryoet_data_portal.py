@@ -21,19 +21,21 @@ from copick.impl.overlay import (
     CopickTomogramOverlay,
     CopickVoxelSpacingOverlay,
 )
-from copick.models import (
+from copick.metadata import (
     CopickConfig,
     CopickFeaturesMeta,
     CopickLocation,
     CopickMeshMeta,
     CopickPicksFile,
     CopickPoint,
-    CopickRoot,
     CopickRunMeta,
     CopickSegmentationMeta,
     CopickTomogramMeta,
     CopickVoxelSpacingMeta,
     PickableObject,
+)
+from copick.models import (
+    CopickRoot,
 )
 from copick.util.log import get_logger
 

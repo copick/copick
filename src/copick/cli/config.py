@@ -146,7 +146,7 @@ def filesystem(
         --proj-name 24sep24a --proj-description "Synaptic Vesicles collected on 24sep24"
     """
     import copick
-    from copick.models import PickableObject
+    from copick.metadata import PickableObject
 
     logger = get_logger(__name__, debug=debug)
     logger.info("Generating configuration file for a local project directory...")

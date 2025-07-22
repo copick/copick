@@ -3,7 +3,7 @@ from typing import List
 import cryoet_data_portal as cdp
 import distinctipy
 
-from copick.models import PickableObject
+from copick.metadata import PickableObject
 from copick.util.escape import sanitize_name
 from copick.util.log import get_logger
 
