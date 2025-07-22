@@ -26,7 +26,7 @@ class PickableObject(BaseModel):
         identifier: Identifier for the object (e.g. Gene Ontology ID or UniProtKB accession).
         map_threshold: Threshold to apply to the map when rendering the isosurface.
         radius: Radius of the particle, when displaying as a sphere.
-        metadata: Additional metadata for the object (not part of the base PickableObject model).
+        metadata: Additional metadata for the object (user-defined contents).
     """
 
     name: str
@@ -218,7 +218,7 @@ class CopickObject:
         pdb_id: PDB ID for the object.
         map_threshold: Threshold to apply to the map when rendering the isosurface.
         radius: Radius of the particle, when displaying as a sphere.
-        metadata: Additional metadata for the object (not part of the base PickableObject model).
+        metadata: Additional metadata for the object (user-defined contents).
     """
 
     def __init__(self, root: "CopickRoot", meta: PickableObject):
@@ -581,7 +581,7 @@ class CopickRoot:
             identifier: Identifier for the object (e.g. Gene Ontology ID or UniProtKB accession).
             map_threshold: Threshold to apply to the map when rendering the isosurface.
             radius: Radius of the particle, when displaying as a sphere.
-            metadata: Additional metadata for the object (not part of the base PickableObject model).
+            metadata: Additional metadata for the object (user-defined contents).
             exist_ok: Whether existing objects with the same name should be overwritten..
 
         Returns:
