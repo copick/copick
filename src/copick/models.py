@@ -71,6 +71,11 @@ class PickableObject(BaseModel):
             raise ValueError(f"Name '{v}' contains invalid characters. Use copick.escape.sanitize_name() to clean it.")
         return v
 
+    @field_validator("metadata", mode="before")
+    @classmethod
+    def none_to_empty_dict(cls, v):
+        return {} if v is None else v
+
 
 class CopickConfig(BaseModel):
     """Configuration for a copick project. Defines the available objects, user_id and optionally an index for runs.

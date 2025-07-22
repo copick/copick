@@ -596,7 +596,7 @@ class TestPickableObjectModel:
         """Test PickableObject model with None metadata."""
         from copick.models import PickableObject
 
-        obj = PickableObject(name="test-object", is_particle=True, metadata=None)
+        obj = PickableObject(name="test-object", is_particle=True, metadata=None, identifier=None)
 
         assert obj.metadata == {}, "Metadata should default to empty dict when None"
 
