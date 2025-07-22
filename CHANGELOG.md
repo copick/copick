@@ -1,5 +1,17 @@
 # Changelog
 
+## [1.11.0](https://github.com/copick/copick/compare/copick-v1.10.0...copick-v1.11.0) (2025-07-22)
+
+
+### ✨ Features
+
+* Allow custom metadata on pickable objects ([#117](https://github.com/copick/copick/issues/117)) ([0f4cd98](https://github.com/copick/copick/commit/0f4cd9871d3c68db6858601451d595059cd6dc14))
+
+
+### 🐞 Bug Fixes
+
+* Minor docs fixes. ([#115](https://github.com/copick/copick/issues/115)) ([91f92b8](https://github.com/copick/copick/commit/91f92b83cf36112ef31b335b37b2eea783659abe))
+
 ## [1.10.0](https://github.com/copick/copick/compare/copick-v1.9.0...copick-v1.10.0) (2025-07-21)
 
 
