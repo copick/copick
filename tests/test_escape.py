@@ -3,7 +3,7 @@ from typing import Any, Dict
 
 import pytest
 from copick.impl.filesystem import CopickRootFSSpec
-from copick.models import CopickConfig, PickableObject
+from copick.metadata import CopickConfig, PickableObject
 from copick.util.escape import sanitize_name
 from pydantic import ValidationError
 
@@ -321,7 +321,7 @@ def test_integration_new_features(test_payload: Dict[str, Any]):
     copick_root = test_payload["root"]
     run = copick_root.get_run("TS_001")
     voxel_spacing = run.get_voxel_spacing(10.0)
-    tomogram = voxel_spacing.get_tomogram("wbp")
+    tomogram = voxel_spacing.get_tomograms("wbp")[0]
 
     # Try to create features with an invalid feature type
     with warnings.catch_warnings(record=True) as w:
