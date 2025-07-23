@@ -1,6 +1,6 @@
 import concurrent.futures
 import json
-from typing import TYPE_CHECKING, Any, Dict, List, Optional, Tuple, Type, Union
+from typing import TYPE_CHECKING, Any, Dict, List, Optional, Union
 
 import fsspec
 import zarr
@@ -24,11 +24,8 @@ from copick.metadata import (
     CopickRunMeta,
     CopickSegmentationMeta,
     CopickTomogramMeta,
-    CopickVoxelSpacingMeta,
-    PickableObject,
 )
 from copick.models import (
-    CopickFeatures,
     CopickRoot,
 )
 from copick.util.log import get_logger
@@ -290,10 +287,9 @@ class CopickTomogramFSSpec(CopickTomogramOverlay):
         static_is_overlay (bool): Whether the static and overlay sources are the same.
     """
 
-    voxel_spacing: "CopickVoxelSpacingFSSpec"
+    feature_class = CopickFeaturesFSSpec
 
-    def _feature_factory(self) -> Tuple[Type[CopickFeatures], Type["CopickFeaturesMeta"]]:
-        return CopickFeaturesFSSpec, CopickFeaturesMeta
+    voxel_spacing: "CopickVoxelSpacingFSSpec"
 
     @property
     def static_path(self) -> str:
@@ -416,10 +412,9 @@ class CopickVoxelSpacingFSSpec(CopickVoxelSpacingOverlay):
 
     """
 
-    run: "CopickRunFSSpec"
+    tomogram_class = CopickTomogramFSSpec
 
-    def _tomogram_factory(self) -> Tuple[Type[CopickTomogramFSSpec], Type[CopickTomogramMeta]]:
-        return CopickTomogramFSSpec, CopickTomogramMeta
+    run: "CopickRunFSSpec"
 
     @property
     def static_path(self) -> str:
@@ -527,19 +522,12 @@ class CopickRunFSSpec(CopickRunOverlay):
         static_is_overlay (bool): Whether the static and overlay sources are the same.
     """
 
+    picks_class = CopickPicksFSSpec
+    mesh_class = CopickMeshFSSpec
+    segmentation_class = CopickSegmentationFSSpec
+    voxel_spacing_class = CopickVoxelSpacingFSSpec
+
     root: "CopickRootFSSpec"
-
-    def _voxel_spacing_factory(self) -> Tuple[Type[CopickVoxelSpacingFSSpec], Type["CopickVoxelSpacingMeta"]]:
-        return CopickVoxelSpacingFSSpec, CopickVoxelSpacingMeta
-
-    def _picks_factory(self) -> Type[CopickPicksFSSpec]:
-        return CopickPicksFSSpec
-
-    def _mesh_factory(self) -> Tuple[Type[CopickMeshFSSpec], Type[CopickMeshMeta]]:
-        return CopickMeshFSSpec, CopickMeshMeta
-
-    def _segmentation_factory(self) -> Tuple[Type[CopickSegmentationFSSpec], Type[CopickSegmentationMeta]]:
-        return CopickSegmentationFSSpec, CopickSegmentationMeta
 
     @property
     def static_path(self) -> str:
@@ -571,8 +559,8 @@ class CopickRunFSSpec(CopickRunOverlay):
         spacings = [float(p.replace(f"{static_vs_loc}", "")) for p in spaths]
 
         return [
-            CopickVoxelSpacingFSSpec(
-                meta=CopickVoxelSpacingMeta(voxel_size=s),
+            self.voxel_spacing_class(
+                meta=self.voxel_spacing_meta_class(voxel_size=s),
                 run=self,
             )
             for s in spacings
@@ -585,8 +573,8 @@ class CopickRunFSSpec(CopickRunOverlay):
         spacings = [float(p.replace(f"{overlay_vs_loc}", "")) for p in opaths]
 
         return [
-            CopickVoxelSpacingFSSpec(
-                meta=CopickVoxelSpacingMeta(voxel_size=s),
+            self.voxel_spacing_class(
+                meta=self.voxel_spacing_meta_class(voxel_size=s),
                 run=self,
             )
             for s in spacings
@@ -908,6 +896,10 @@ class CopickRootFSSpec(CopickRoot):
         root_static (Optional[str]): The root path for the static storage.
     """
 
+    run_class = CopickRunFSSpec
+
+    object_class = CopickObjectFSSpec
+
     def __init__(self, config: CopickConfigFSSpec):
         """
         Args:
@@ -946,12 +938,6 @@ class CopickRootFSSpec(CopickRoot):
             data = json.load(f)
 
         return cls(CopickConfigFSSpec(**data))
-
-    def _run_factory(self) -> Tuple[Type[CopickRunFSSpec], Type["CopickRunMeta"]]:
-        return CopickRunFSSpec, CopickRunMeta
-
-    def _object_factory(self) -> Tuple[Type[CopickObjectFSSpec], Type[PickableObject]]:
-        return CopickObjectFSSpec, PickableObject
 
     @staticmethod
     def _query_names(fs, root) -> List[str]:
@@ -1002,9 +988,8 @@ class CopickRootFSSpec(CopickRoot):
 
         return runs
 
-    def _query_objects(self):
+    def _query_objects(self) -> None:
         """Override to check if each object from config exists in static or overlay filesystem."""
-        clz, meta_clz = self._object_factory()
         objects = []
 
         for obj_meta in self.config.pickable_objects:
@@ -1023,7 +1008,7 @@ class CopickRootFSSpec(CopickRoot):
                 overlay_exists = self.fs_overlay.exists(overlay_path)
                 read_only = static_exists and not overlay_exists
 
-            obj = clz(self, obj_meta, read_only=read_only)
+            obj = self.object_class(self, obj_meta, read_only=read_only)
             objects.append(obj)
 
         self._objects = objects

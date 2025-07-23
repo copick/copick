@@ -83,9 +83,6 @@ class CopickConfig(BaseModel):
         pickable_objects (List[PickableObject]): Index for available pickable objects.
         user_id: Unique identifier for the user (e.g. when distributing the config file to users).
         session_id: Unique identifier for the session.
-        voxel_spacings: Index for available voxel spacings.
-        runs: Index for run names.
-        tomograms: Index for available voxel spacings and tomogram types.
     """
 
     name: Optional[str] = "CoPick"
@@ -94,9 +91,6 @@ class CopickConfig(BaseModel):
     pickable_objects: List[PickableObject]
     user_id: Optional[str] = None
     session_id: Optional[str] = None
-    runs: Optional[List[str]] = None
-    voxel_spacings: Optional[List[float]] = None
-    tomograms: Optional[Dict[float, List[str]]] = {}
 
     @classmethod
     def from_file(cls, filename: str) -> "CopickConfig":

@@ -1,19 +1,20 @@
 import json
 from typing import TYPE_CHECKING, Any, Dict, Iterable, List, Literal, MutableMapping, Optional, Tuple, Type, Union
+from warnings import warn
 
 import numpy as np
 import zarr
 
 from copick.metadata import (
     CopickConfig,
-    CopickFeaturesMeta,
+    CopickFeaturesMeta,  # noqa
     CopickLocation,
     CopickMeshMeta,
     CopickPicksFile,
     CopickPoint,
     CopickRunMeta,
     CopickSegmentationMeta,
-    CopickTomogramMeta,
+    CopickTomogramMeta,  # noqa
     CopickVoxelSpacingMeta,
     PickableObject,
 )
@@ -199,292 +200,929 @@ class CopickObject:
         raise NotImplementedError("_delete_data method must be implemented for CopickObject.")
 
 
-class CopickRoot:
-    """Root of a copick project. Contains references to the runs and pickable objects.
+class CopickFeatures:
+    """Encapsulates all data pertaining to a specific feature map, i.e. the Zarr-store for the feature map.
 
     Attributes:
-        config (CopickConfig): Configuration of the copick project.
-        user_id: Unique identifier for the user.
-        session_id: Unique identifier for the session.
-        runs (List[CopickRun]): References to the runs for this project. Lazy loaded upon access.
-        pickable_objects (List[CopickObject]): References to the pickable objects for this project.
-
+        tomogram (CopickTomogram): Reference to the tomogram this feature map belongs to.
+        meta (CopickFeaturesMeta): Metadata for this feature map.
+        tomo_type (str): Type of the tomogram that the features were computed on.
+        feature_type (str): Type of the features contained.
     """
 
-    def __init__(self, config: CopickConfig):
+    def __init__(self, tomogram: "CopickTomogram", meta: CopickFeaturesMeta):
         """
-        Args:
-            config (CopickConfig): Configuration of the copick project.
-        """
-        self.config = config
-        self._runs: Optional[List["CopickRun"]] = None
-        self._objects: Optional[List[CopickObject]] = None
 
-        # If runs are specified in the config, create them
-        if config.runs is not None:
-            self._runs = [CopickRun(self, CopickRunMeta(name=run_name)) for run_name in config.runs]
+        Args:
+            tomogram: Reference to the tomogram this feature map belongs to.
+            meta: Metadata for this feature map.
+        """
+        self.meta: CopickFeaturesMeta = meta
+        self.tomogram: CopickTomogram = tomogram
 
     def __repr__(self):
-        lpo = None if self._objects is None else len(self._objects)
-        lr = None if self._runs is None else len(self._runs)
-        return f"CopickRoot(user_id={self.user_id}, len(pickable_objects)={lpo}, len(runs)={lr}) at {hex(id(self))}"
+        return f"CopickFeatures(tomo_type={self.tomo_type}, feature_type={self.feature_type}) at {hex(id(self))}"
+
+    @property
+    def tomo_type(self) -> str:
+        return self.meta.tomo_type
+
+    @property
+    def feature_type(self) -> str:
+        return self.meta.feature_type
+
+    def delete(self):
+        """Delete the feature map record."""
+        self._delete_data()
+
+        # Remove the feature map from the tomogram
+        if self in self.tomogram.features:
+            self.tomogram._features.remove(self)
+
+    def _delete_data(self):
+        """Delete the feature map data."""
+        raise NotImplementedError("_delete_data must be implemented for CopickFeatures.")
+
+    def zarr(self) -> MutableMapping:
+        """Override to return the Zarr store for this feature set. Also needs to handle creating the store if it
+        doesn't exist."""
+        raise NotImplementedError("zarr must be implemented for CopickFeatures.")
+
+    def numpy(
+        self,
+        zarr_group: str = "0",
+        slices: Tuple[slice, ...] = None,
+    ) -> np.ndarray:
+        """Returns the content of the Zarr-File for this feature map as a numpy array. Multiscale group and slices are
+        supported.
+
+        Args:
+            zarr_group: Zarr group to access.
+            slices: Tuple of slices for the axes.
+
+        Returns:
+            np.ndarray: The object as a numpy array.
+        """
+
+        loc = self.zarr()
+        group = zarr.open(loc)[zarr_group]
+        ndim = len(group.shape)
+
+        if slices is None:
+            slices = tuple(slice(None, None) for _ in range(ndim))
+
+        fits, req, avail = fits_in_memory(group, slices)
+        if not fits:
+            raise ValueError(f"Requested region does not fit in memory. Requested: {req}, Available: {avail}.")
+
+        return np.array(group[slices])
+
+    def set_region(
+        self,
+        data: np.ndarray,
+        zarr_group: str = "0",
+        slices: Tuple[slice, ...] = None,
+    ) -> None:
+        """Set the content of the Zarr-File for this feature map from a numpy array. Multiscale group and slices are
+        supported.
+
+        Args:
+            data: The data to set.
+            zarr_group: Zarr group to access.
+            slices: Tuple of slices for the axes.
+        """
+        loc = self.zarr()
+        zarr.open(loc)[zarr_group][slices] = data
+
+
+class CopickTomogram:
+    """Encapsulates all data pertaining to a specific tomogram. This includes the features for this tomogram and the
+    associated Zarr-store.
+
+    Attributes:
+        voxel_spacing (CopickVoxelSpacing): Reference to the voxel spacing this tomogram belongs to.
+        meta (CopickTomogramMeta): Metadata for this tomogram.
+        features (List[CopickFeatures]): Features for this tomogram. Either populated from config or lazily loaded when
+            `CopickTomogram.features` is accessed **for the first time**.
+        tomo_type (str): Type of the tomogram.
+    """
+
+    feature_class = CopickFeatures
+    """Class for features."""
+    feature_meta_class = CopickFeaturesMeta
+    """Class for features metadata."""
+
+    def __init__(
+        self,
+        voxel_spacing: "CopickVoxelSpacing",
+        meta: CopickTomogramMeta,
+        config: Optional["CopickConfig"] = None,
+    ):
+        self.meta = meta
+        self.voxel_spacing = voxel_spacing
+
+        self._features: Optional[List["CopickFeatures"]] = None
+        """Features for this tomogram."""
+
+        if config is not None and self.tomo_type in config.features[self.voxel_spacing.voxel_size]:
+            feat_metas = [CopickFeaturesMeta(tomo_type=self.tomo_type, feature_type=ft) for ft in config.feature_types]
+            self._features = [CopickFeatures(tomogram=self, meta=fm) for fm in feat_metas]
+
+    def __repr__(self):
+        lft = None if self._features is None else len(self._features)
+        return f"CopickTomogram(tomo_type={self.tomo_type}, len(features)={lft}) at {hex(id(self))}"
+
+    @property
+    def tomo_type(self) -> str:
+        return self.meta.tomo_type
+
+    @property
+    def features(self) -> List["CopickFeatures"]:
+        if self._features is None:
+            self._features = self.query_features()
+
+        return self._features
+
+    @features.setter
+    def features(self, value: List["CopickFeatures"]) -> None:
+        """Set the features."""
+        self._features = value
+
+    def get_features(self, feature_type: str) -> Union["CopickFeatures", None]:
+        """Get feature maps by type.
+
+        Args:
+            feature_type: Type of the feature map to retrieve.
+
+        Returns:
+            CopickFeatures: The feature map with the given type, or `None` if not found.
+        """
+        for feat in self.features:
+            if feat.feature_type == feature_type:
+                return feat
+        return None
+
+    def new_features(self, feature_type: str, exist_ok: bool = False, **kwargs) -> "CopickFeatures":
+        """Create a new feature map object. Also creates the Zarr-store for the map in the storage backend.
+
+        Args:
+            feature_type: Type of the feature map to create.
+            exist_ok: Whether to raise an error if the feature map already exists.
+            **kwargs: Additional keyword arguments for the feature map metadata.
+
+        Returns:
+            CopickFeatures: The newly created feature map object.
+
+        Raises:
+            ValueError: If a feature map with the given type already exists for this tomogram.
+        """
+        feature_type = sanitize_name(feature_type)
+
+        if feat := self.get_features(feature_type):
+            if exist_ok:
+                return feat
+            else:
+                raise ValueError(f"Feature type {feature_type} already exists for this tomogram.")
+        else:
+            fm = self.feature_meta_class(tomo_type=self.tomo_type, feature_type=feature_type, **kwargs)
+            feat = self.feature_class(tomogram=self, meta=fm)
+
+            # Append the feature set
+            if self._features is None:
+                self._features = []
+
+            self._features.append(feat)
+
+            # Create the zarr store for this feature set
+            _ = feat.zarr()
+
+        return feat
+
+    def query_features(self) -> List["CopickFeatures"]:
+        """Override this method to query for features."""
+        raise NotImplementedError("query_features must be implemented for CopickTomogram.")
+
+    def refresh_features(self) -> None:
+        """Refresh `CopickTomogram.features` from storage."""
+        self._features = self.query_features()
+
+    def refresh(self) -> None:
+        """Refresh `CopickTomogram.features` from storage."""
+        self.refresh_features()
+
+    def delete(self) -> None:
+        """Delete the tomogram record."""
+        self.delete_features()
+        self._delete_data()
+
+        # Remove the tomogram from the voxel spacing
+        if self in self.voxel_spacing.tomograms:
+            self.voxel_spacing._tomograms.remove(self)
+
+    def delete_features(self) -> None:
+        """Delete all features for this tomogram."""
+        for f in self.features:
+            self._features.remove(f)
+            f.delete()
+            del f
+
+    def _delete_data(self) -> None:
+        """Delete the tomogram data."""
+        raise NotImplementedError("_delete_data must be implemented for CopickTomogram.")
+
+    def zarr(self) -> MutableMapping:
+        """Override to return the Zarr store for this tomogram. Also needs to handle creating the store if it
+        doesn't exist."""
+        raise NotImplementedError("zarr must be implemented for CopickTomogram.")
+
+    def numpy(
+        self,
+        zarr_group: str = "0",
+        x: slice = slice(None, None),
+        y: slice = slice(None, None),
+        z: slice = slice(None, None),
+    ) -> np.ndarray:
+        """Returns the content of the Zarr-File for this tomogram as a numpy array. Multiscale group and slices are
+        supported.
+
+        Args:
+            zarr_group: Zarr group to access.
+            x: Slice for the x-axis.
+            y: Slice for the y-axis.
+            z: Slice for the z-axis.
+
+        Returns:
+            np.ndarray: The tomogram as a numpy array.
+        """
+
+        loc = self.zarr()
+        group = zarr.open(loc)[zarr_group]
+
+        fits, req, avail = fits_in_memory(group, (x, y, z))
+        if not fits:
+            raise ValueError(f"Requested region does not fit in memory. Requested: {req}, Available: {avail}.")
+
+        return np.array(zarr.open(loc)[zarr_group][z, y, x])
+
+    def from_numpy(
+        self,
+        data: np.ndarray,
+        levels: int = 3,
+        dtype: Optional[np.dtype] = np.float32,
+    ) -> None:
+        """Set the tomogram from a numpy array and compute multiscale pyramid. By default, three levels of the pyramid
+        are computed.
+
+        Args:
+            data: The segmentation as a numpy array.
+            levels: Number of levels in the multiscale pyramid.
+            dtype: Data type of the segmentation. Default is `np.float32`.
+        """
+        loc = self.zarr()
+        pyramid = volume_pyramid(data, self.voxel_spacing.voxel_size, levels, dtype=dtype)
+        write_ome_zarr_3d(loc, pyramid)
+
+    def set_region(
+        self,
+        data: np.ndarray,
+        zarr_group: str = "0",
+        x: slice = slice(None, None),
+        y: slice = slice(None, None),
+        z: slice = slice(None, None),
+    ) -> None:
+        """Set a region of the tomogram from a numpy array.
+
+        Args:
+            data: The tomogram's subregion as a numpy array.
+            zarr_group: Zarr group to access.
+            x: Slice for the x-axis.
+            y: Slice for the y-axis.
+            z: Slice for the z-axis.
+        """
+        loc = self.zarr()
+        zarr.open(loc)[zarr_group][z, y, x] = data
+
+    def _feature_factory(self) -> Tuple[Type["CopickFeatures"], Type["CopickFeaturesMeta"]]:
+        """Override this method to return the features class and features metadata class."""
+        warn(
+            "`_feature_factory` is deprecated, use `CopickTomogram.feature_class` "
+            "or `CopickTomogram.feature_meta_class` instead.",
+            DeprecationWarning,
+            stacklevel=2,
+        )
+        return self.feature_class, self.feature_meta_class
+
+
+class CopickVoxelSpacing:
+    """Encapsulates all data pertaining to a specific voxel spacing. This includes the tomograms and feature maps at
+    this voxel spacing.
+
+    Attributes:
+        run (CopickRun): Reference to the run this voxel spacing belongs to.
+        meta (CopickVoxelSpacingMeta): Metadata for this voxel spacing.
+        tomograms (List[CopickTomogram]): Tomograms for this voxel spacing. Either populated from config or lazily loaded
+            when CopickVoxelSpacing.tomograms is accessed **for the first time**.
+    """
+
+    tomogram_class = CopickTomogram
+    """Class for tomograms."""
+    tomogram_meta_class = CopickTomogramMeta
+    """Class for tomogram metadata."""
+
+    def __init__(self, run: "CopickRun", meta: CopickVoxelSpacingMeta, config: Optional[CopickConfig] = None):
+        """
+        Args:
+            run: Reference to the run this voxel spacing belongs to.
+            meta: Metadata for this voxel spacing.
+            config: Configuration of the copick project.
+        """
+        self.run = run
+        self.meta = meta
+
+        self._tomograms: Optional[List["CopickTomogram"]] = None
+        """References to the tomograms for this voxel spacing."""
+
+        if config is not None:
+            tomo_metas = [CopickTomogramMeta(tomo_type=tt) for tt in config.tomograms[self.voxel_size]]
+            self._tomograms = [CopickTomogram(voxel_spacing=self, meta=tm, config=config) for tm in tomo_metas]
+
+    def __repr__(self):
+        lts = None if self._tomograms is None else len(self._tomograms)
+        return f"CopickVoxelSpacing(voxel_size={self.voxel_size}, len(tomograms)={lts}) at {hex(id(self))}"
+
+    @property
+    def voxel_size(self) -> float:
+        return self.meta.voxel_size
+
+    def query_tomograms(self) -> List["CopickTomogram"]:
+        """Override this method to query for tomograms."""
+        raise NotImplementedError("query_tomograms must be implemented for CopickVoxelSpacing.")
+
+    @property
+    def tomograms(self) -> List["CopickTomogram"]:
+        if self._tomograms is None:
+            self._tomograms = self.query_tomograms()
+
+        return self._tomograms
+
+    def get_tomogram(self, tomo_type: str) -> Union["CopickTomogram", None]:
+        """Get tomogram by type.
+
+        Args:
+            tomo_type: Type of the tomogram to retrieve.
+
+        Returns:
+            CopickTomogram: The tomogram with the given type, or `None` if not found.
+        """
+        warn(
+            "`get_tomogram` is deprecated, use `get_tomograms` instead. Results may be incomplete",
+            DeprecationWarning,
+            stacklevel=2,
+        )
+        for tomo in self.tomograms:
+            if tomo.tomo_type == tomo_type:
+                return tomo
+        return None
+
+    def get_tomograms(self, tomo_type: str) -> List["CopickTomogram"]:
+        """Get tomograms by type.
+
+        Args:
+            tomo_type: Type of the tomograms to retrieve.
+
+        Returns:
+            List[CopickTomogram]: The tomograms with the given type.
+        """
+        tomos = [tomo for tomo in self.tomograms if tomo.tomo_type == tomo_type]
+        return tomos
+
+    def refresh_tomograms(self) -> None:
+        """Refresh `CopickVoxelSpacing.tomograms` from storage."""
+        self._tomograms = self.query_tomograms()
+
+    def refresh(self) -> None:
+        """Refresh `CopickVoxelSpacing.tomograms` from storage."""
+        self.refresh_tomograms()
+
+    def new_tomogram(self, tomo_type: str, exist_ok: bool = False, **kwargs) -> "CopickTomogram":
+        """Create a new tomogram object, also creates the Zarr-store in the storage backend.
+
+        Args:
+            tomo_type: Type of the tomogram to create.
+            exist_ok: Whether to raise an error if the tomogram already exists.
+            **kwargs: Additional keyword arguments for the tomogram metadata.
+
+        Returns:
+            CopickTomogram: The newly created tomogram object.
+
+        Raises:
+            ValueError: If a tomogram with the given type already exists for this voxel spacing.
+        """
+        tomo_type = sanitize_name(tomo_type)
+
+        if tomo := self.get_tomograms(tomo_type):
+            if exist_ok:
+                tomo = tomo[0]
+            else:
+                raise ValueError(f"Tomogram type {tomo_type} already exists for this voxel spacing.")
+        else:
+            tm = self.tomogram_meta_class(tomo_type=tomo_type, **kwargs)
+            tomo = self.tomogram_class(voxel_spacing=self, meta=tm)
+
+            # Append the tomogram
+            if self._tomograms is None:
+                self._tomograms = []
+            self._tomograms.append(tomo)
+
+            # Create the zarr store for this tomogram
+            _ = tomo.zarr()
+
+        return tomo
+
+    def ensure(self, create: bool = False) -> bool:
+        """Override to check if the voxel spacing record exists, optionally create it if it does not.
+
+        Args:
+            create: Whether to create the voxel spacing record if it does not exist.
+
+        Returns:
+            bool: True if the voxel spacing record exists, False otherwise.
+        """
+        raise NotImplementedError("ensure must be implemented for CopickVoxelSpacing.")
+
+    def _delete_data(self):
+        """Override this method to delete the voxel spacing data."""
+        raise NotImplementedError("_delete_data method must be implemented for CopickVoxelSpacing.")
+
+    def delete(self) -> None:
+        """Delete the voxel spacing record."""
+        self.delete_tomograms()
+        self._delete_data()
+
+        # Remove the voxel spacing from the run
+        if self in self.run.voxel_spacings:
+            self.run._voxel_spacings.remove(self)
+
+    def delete_tomograms(self, tomo_type: str = None) -> None:
+        """Delete a tomogram by type.
+
+        Args:
+            tomo_type: Type of the tomogram to delete.
+        """
+        if tomo_type is not None:
+            for t in self.get_tomograms(tomo_type=tomo_type):
+                self._tomograms.remove(t)
+                t.delete()
+                del t
+        else:
+            for t in self.tomograms:
+                self._tomograms.remove(t)
+                t.delete()
+                del t
+
+    def _tomogram_factory(self) -> Tuple[Type["CopickTomogram"], Type["CopickTomogramMeta"]]:
+        """Override this method to return the tomogram class."""
+        warn(
+            "`_tomogram_factory` is deprecated, use `CopickVoxelSpacing.tomogram_class` "
+            "or `CopickVoxelSpacing.tomogram_meta_class` instead.",
+            DeprecationWarning,
+            stacklevel=2,
+        )
+        return self.tomogram_class, self.tomogram_meta_class
+
+
+class CopickPicks:
+    """Encapsulates all data pertaining to a specific set of picked points. This includes the locations, orientations,
+    and other metadata for the set of points.
+
+    Attributes:
+        run (CopickRun): Reference to the run this pick belongs to.
+        meta (CopickPicksFile): Metadata for this pick.
+        points (List[CopickPoint]): Points for this pick. Either populated from storage or lazily loaded when
+            `CopickPicks.points` is accessed **for the first time**.
+        from_tool (bool): Flag to indicate if this pick was generated by a tool.
+        pickable_object_name (str): Pickable object name from `CopickConfig.pickable_objects[...].name`
+        user_id (str): Unique identifier for the user or tool name.
+        session_id (str): Unique identifier for the pick session
+        trust_orientation (bool): Flag to indicate if the angles are known for this pick or should be ignored.
+        color: Color of the pickable object this pick belongs to.
+    """
+
+    def __init__(self, run: "CopickRun", file: CopickPicksFile):
+        """
+        Args:
+            run: Reference to the run this pick belongs to.
+            file: Metadata for this set of points.
+        """
+        self.meta: CopickPicksFile = file
+        self.run: "CopickRun" = run
+
+    def __repr__(self):
+        lpt = None if self.meta.points is None else len(self.meta.points)
+        ret = (
+            f"CopickPicks(pickable_object_name={self.pickable_object_name}, user_id={self.user_id}, "
+            f"session_id={self.session_id}, len(points)={lpt}) at {hex(id(self))}"
+        )
+        return ret
+
+    def _load(self) -> CopickPicksFile:
+        """Override this method to load points from a RESTful interface or filesystem."""
+        raise NotImplementedError("load must be implemented for CopickPicks.")
+
+    def _store(self):
+        """Override this method to store points with a RESTful interface or filesystem. Also needs to handle creating
+        the file if it doesn't exist."""
+        raise NotImplementedError("store must be implemented for CopickPicks.")
+
+    def load(self) -> CopickPicksFile:
+        """Load the points from storage.
+
+        Returns:
+            CopickPicksFile: The loaded points.
+        """
+        self.meta = self._load()
+
+        return self.meta
+
+    def store(self):
+        """Store the points (set using `CopickPicks.points` property)."""
+        self._store()
+
+    @property
+    def from_tool(self) -> bool:
+        return self.session_id == "0"
+
+    @property
+    def from_user(self) -> bool:
+        return self.session_id != "0"
+
+    @property
+    def pickable_object_name(self) -> str:
+        return self.meta.pickable_object_name
 
     @property
     def user_id(self) -> str:
-        return self.config.user_id
-
-    @user_id.setter
-    def user_id(self, value: str) -> None:
-        self.config.user_id = value
+        return self.meta.user_id
 
     @property
-    def session_id(self) -> str:
-        return self.config.session_id
-
-    @session_id.setter
-    def session_id(self, value: str) -> None:
-        self.config.session_id = value
-
-    def query(self) -> List["CopickRun"]:
-        """Override this method to query for runs."""
-        pass
+    def session_id(self) -> Union[str, Literal["0"]]:
+        return self.meta.session_id
 
     @property
-    def runs(self) -> List["CopickRun"]:
-        if self._runs is None:
-            self._runs = self.query()
+    def points(self) -> List[CopickPoint]:
+        if self.meta.points is None or len(self.meta.points) == 0:
+            self.meta = self.load()
 
-        return self._runs
+        return self.meta.points
 
-    def get_run(self, name: str, **kwargs) -> Union["CopickRun", None]:
-        """Get run by name.
-
-        Args:
-            name: Name of the run to retrieve.
-            **kwargs: Additional keyword arguments for the run metadata.
-
-        Returns:
-            CopickRun: The run with the given name, or None if not found.
-        """
-        # Random access
-        if self._runs is None:
-            clz, meta_clz = self._run_factory()
-            rm = meta_clz(name=name, **kwargs)
-            run = clz(self, meta=rm)
-
-            if not run.ensure(create=False):
-                return None
-            else:
-                return run
-
-        # Access through index
-        else:
-            for run in self.runs:
-                if run.name == name:
-                    return run
-
-        return None
-
-    def _query_objects(self):
-        clz, meta_clz = self._object_factory()
-        self._objects = [clz(self, meta=obj) for obj in self.config.pickable_objects]
+    @points.setter
+    def points(self, value: List[CopickPoint]) -> None:
+        self.meta.points = value
 
     @property
-    def pickable_objects(self) -> List["CopickObject"]:
-        if self._objects is None:
-            self._query_objects()
+    def trust_orientation(self) -> bool:
+        return self.meta.trust_orientation
 
-        return self._objects
+    @property
+    def color(self) -> Union[Tuple[int, int, int, int], None]:
+        if self.run.root.get_object(self.pickable_object_name) is None:
+            raise ValueError(f"{self.pickable_object_name} is not a recognized object name (run: {self.run.name}).")
 
-    def get_object(self, name: str) -> Union["CopickObject", None]:
-        """Get object by name.
-
-        Args:
-            name: Name of the object to retrieve.
-
-        Returns:
-            CopickObject: The object with the given name, or None if not found.
-        """
-        for obj in self.pickable_objects:
-            if obj.name == name:
-                return obj
-
-        return None
+        return self.run.root.get_object(self.pickable_object_name).color
 
     def refresh(self) -> None:
-        """Refresh the list of runs."""
-        self._runs = self.query()
-        self._objects = None  # Reset objects to force reloading
+        """Refresh the points from storage."""
+        self.meta = self.load()
 
-    def save_config(self, config_path: str) -> None:
-        """Save the configuration to a JSON file.
+    def delete(self) -> None:
+        """Delete the pick record."""
+        self._delete_data()
 
-        Args:
-            config_path: Path to the configuration file to save.
-        """
-        with open(config_path, "w") as f:
-            json.dump(self.config.model_dump(), f, indent=4)
+        # Remove the pick from the run
+        if self in self.run.picks:
+            self.run._picks.remove(self)
 
-    def new_run(self, name: str, exist_ok: bool = False, **kwargs) -> "CopickRun":
-        """Create a new run.
+    def _delete_data(self) -> None:
+        """Delete the pick data."""
+        raise NotImplementedError("_delete_data must be implemented for CopickPicks.")
 
-        Args:
-            name: Name of the run to create.
-            exist_ok: Whether to raise an error if the run already exists.
-            **kwargs: Additional keyword arguments for the run metadata.
+    def numpy(self) -> Tuple[np.ndarray, np.ndarray]:
+        """Return the points as a [N, 3] numpy array (N, [x, y, z]) and the transforms as a [N, 4, 4] numpy array.
+        Format of the transforms is:
+                ```
+                [[rxx, rxy, rxz, tx],
+                 [ryx, ryy, ryz, ty],
+                 [rzx, rzy, rzz, tz],
+                 [  0,   0,   0,  1]]
+                ```
 
         Returns:
-            CopickRun: The newly created run.
-
-        Raises:
-            ValueError: If a run with the given name already exists.
+            Tuple[np.ndarray, np.ndarray]: The picks and transforms as numpy arrays.
         """
-        if name in [r.name for r in self.runs]:
-            if exist_ok:
-                run = self.get_run(name)
-            else:
-                raise ValueError(f"Run name {name} already exists.")
-        else:
-            clz, meta_clz = self._run_factory()
-            rm = meta_clz(name=name, **kwargs)
-            run = clz(self, meta=rm)
 
-            # Append the run
-            if self._runs is None:
-                self._runs = []
-            self._runs.append(run)
+        points = np.zeros((len(self.points), 3))
+        transforms = np.zeros((len(self.points), 4, 4))
 
-            # Ensure the run record exists
-            run.ensure(create=True)
+        for i, p in enumerate(self.points):
+            points[i, :] = np.array([p.location.x, p.location.y, p.location.z])
+            transforms[i, :, :] = p.transformation
 
-        return run
+        return points, transforms
 
-    def delete_run(self, name: str) -> None:
-        """Delete a run by name.
+    def from_numpy(self, positions: np.ndarray, transforms: Optional[np.ndarray] = None) -> None:
+        """Set the points and transforms from numpy arrays.
 
         Args:
-            name: Name of the run to delete.
+            positions: [N, 3] numpy array of positions (N, [x, y, z]).
+            transforms: [N, 4, 4] numpy array of orientations. If None, transforms will be set to the identity
+                matrix. Format of the transforms is:
+                ```
+                [[rxx, rxy, rxz, tx],
+                 [ryx, ryy, ryz, ty],
+                 [rzx, rzy, rzz, tz],
+                 [  0,   0,   0,  1]]
+                ```
+
         """
-        run = self.get_run(name)
 
-        if run is None:
-            return
+        if transforms is not None and positions.shape[0] != transforms.shape[0]:
+            raise ValueError("Number of positions and transforms must be the same.")
 
-        self._runs.remove(run)
-        run.delete()
-        del run
+        points = []
 
-    def _run_factory(self) -> Tuple[Type["CopickRun"], Type["CopickRunMeta"]]:
-        """Override this method to return the run class and run metadata class."""
-        return CopickRun, CopickRunMeta
+        for i in range(positions.shape[0]):
+            p = CopickPoint(location=CopickLocation(x=positions[i, 0], y=positions[i, 1], z=positions[i, 2]))
+            if transforms is not None:
+                p.transformation = transforms[i, :, :]
+            points.append(p)
 
-    def new_object(
+        self.points = points
+        self.store()
+
+
+class CopickMesh:
+    """Encapsulates all data pertaining to a specific mesh. This includes the mesh (`trimesh.parent.Geometry`) and other
+    metadata.
+
+    Attributes:
+        run (CopickRun): Reference to the run this mesh belongs to.
+        meta (CopickMeshMeta): Metadata for this mesh.
+        mesh (trimesh.parent.Geometry): Mesh for this pick. Either populated from storage or lazily loaded when
+            `CopickMesh.mesh` is accessed **for the first time**.
+        from_tool (bool): Flag to indicate if this pick was generated by a tool.
+        from_user (bool): Flag to indicate if this pick was generated by a user.
+        pickable_object_name (str): Pickable object name from `CopickConfig.pickable_objects[...].name`
+        user_id (str): Unique identifier for the user or tool name.
+        session_id (str): Unique identifier for the pick session
+        color: Color of the pickable object this pick belongs to.
+    """
+
+    def __init__(self, run: "CopickRun", meta: CopickMeshMeta, mesh: Optional["Geometry"] = None):
+        self.meta: CopickMeshMeta = meta
+        self.run: "CopickRun" = run
+
+        if mesh is not None:
+            self._mesh = mesh
+        else:
+            self._mesh = None
+
+    def __repr__(self):
+        ret = (
+            f"CopickMesh(pickable_object_name={self.pickable_object_name}, user_id={self.user_id}, "
+            f"session_id={self.session_id}) at {hex(id(self))}"
+        )
+        return ret
+
+    @property
+    def pickable_object_name(self) -> str:
+        return self.meta.pickable_object_name
+
+    @property
+    def user_id(self) -> str:
+        return self.meta.user_id
+
+    @property
+    def session_id(self) -> Union[str, Literal["0"]]:
+        return self.meta.session_id
+
+    @property
+    def color(self):
+        return self.run.root.get_object(self.pickable_object_name).color
+
+    def _load(self) -> "Geometry":
+        """Override this method to load mesh from a RESTful interface or filesystem."""
+        raise NotImplementedError("load must be implemented for CopickMesh.")
+
+    def _store(self):
+        """Override this method to store mesh with a RESTful interface or filesystem. Also needs to handle creating
+        the file if it doesn't exist."""
+        raise NotImplementedError("store must be implemented for CopickMesh.")
+
+    def load(self) -> "Geometry":
+        """Load the mesh from storage.
+
+        Returns:
+            trimesh.parent.Geometry: The loaded mesh.
+        """
+        self._mesh = self._load()
+
+        return self._mesh
+
+    def store(self):
+        """Store the mesh."""
+        self._store()
+
+    @property
+    def mesh(self) -> "Geometry":
+        if self._mesh is None:
+            self._mesh = self.load()
+
+        return self._mesh
+
+    @mesh.setter
+    def mesh(self, value: "Geometry") -> None:
+        self._mesh = value
+
+    @property
+    def from_user(self) -> bool:
+        return self.session_id != "0"
+
+    @property
+    def from_tool(self) -> bool:
+        return self.session_id == "0"
+
+    def refresh(self) -> None:
+        """Refresh `CopickMesh.mesh` from storage."""
+        self._mesh = self.load()
+
+    def delete(self) -> None:
+        """Delete the mesh record."""
+        self._delete_data()
+
+        # Remove the mesh from the run
+        if self in self.run.meshes:
+            self.run._meshes.remove(self)
+
+    def _delete_data(self) -> None:
+        """Delete the mesh data."""
+        raise NotImplementedError("_delete_data must be implemented for CopickMesh.")
+
+
+class CopickSegmentation:
+    """Encapsulates all data pertaining to a specific segmentation. This includes the Zarr-store for the segmentation
+    and other metadata.
+
+    Attributes:
+        run (CopickRun): Reference to the run this segmentation belongs to.
+        meta (CopickSegmentationMeta): Metadata for this segmentation.
+        zarr (MutableMapping): Zarr store for this segmentation. Either populated from storage or lazily loaded when
+            `CopickSegmentation.zarr` is accessed **for the first time**.
+        from_tool (bool): Flag to indicate if this segmentation was generated by a tool.
+        from_user (bool): Flag to indicate if this segmentation was generated by a user.
+        user_id (str): Unique identifier for the user or tool name.
+        session_id (str): Unique identifier for the segmentation session
+        is_multilabel (bool): Flag to indicate if this is a multilabel segmentation. If False, it is a single label
+            segmentation.
+        voxel_size (float): Voxel size of the tomogram this segmentation belongs to.
+        name (str): Pickable Object name or multilabel name of the segmentation.
+        color: Color of the pickable object this segmentation belongs to.
+    """
+
+    def __init__(self, run: "CopickRun", meta: CopickSegmentationMeta):
+        """
+
+        Args:
+            run: Reference to the run this segmentation belongs to.
+            meta: Metadata for this segmentation.
+        """
+        self.meta: CopickSegmentationMeta = meta
+        self.run: "CopickRun" = run
+
+    def __repr__(self):
+        ret = (
+            f"CopickSegmentation(user_id={self.user_id}, session_id={self.session_id}, name={self.name}, "
+            f"is_multilabel={self.is_multilabel}, voxel_size={self.voxel_size}) at {hex(id(self))}"
+        )
+        return ret
+
+    @property
+    def user_id(self) -> str:
+        return self.meta.user_id
+
+    @property
+    def session_id(self) -> Union[str, Literal["0"]]:
+        return self.meta.session_id
+
+    @property
+    def from_tool(self) -> bool:
+        return self.session_id == "0"
+
+    @property
+    def from_user(self) -> bool:
+        return self.session_id != "0"
+
+    @property
+    def is_multilabel(self) -> bool:
+        return self.meta.is_multilabel
+
+    @property
+    def voxel_size(self) -> float:
+        return self.meta.voxel_size
+
+    @property
+    def name(self) -> str:
+        return self.meta.name
+
+    @property
+    def color(self):
+        if self.is_multilabel:
+            return [128, 128, 128, 0]
+        else:
+            return self.run.root.get_object(self.name).color
+
+    def delete(self) -> None:
+        """Delete the segmentation record."""
+        self._delete_data()
+
+        # Remove the segmentation from the run
+        if self in self.run.segmentations:
+            self.run._segmentations.remove(self)
+
+    def _delete_data(self) -> None:
+        """Delete the segmentation data."""
+        raise NotImplementedError("_delete_data must be implemented for CopickSegmentation.")
+
+    def zarr(self) -> MutableMapping:
+        """Override to return the Zarr store for this segmentation. Also needs to handle creating the store if it
+        doesn't exist."""
+        raise NotImplementedError("zarr must be implemented for CopickSegmentation.")
+
+    def numpy(
         self,
-        name: str,
-        is_particle: bool,
-        label: Optional[int] = None,
-        color: Optional[Tuple[int, int, int, int]] = None,
-        emdb_id: Optional[str] = None,
-        pdb_id: Optional[str] = None,
-        identifier: Optional[str] = None,
-        map_threshold: Optional[float] = None,
-        radius: Optional[float] = None,
-        metadata: Optional[Dict[str, Any]] = None,
-        exist_ok: bool = False,
-    ) -> "CopickObject":
-        """Create a new pickable object and add it to the configuration.
+        zarr_group: str = "0",
+        x: slice = slice(None, None),
+        y: slice = slice(None, None),
+        z: slice = slice(None, None),
+    ) -> np.ndarray:
+        """Returns the content of the Zarr-File for this segmentation as a numpy array. Multiscale group and slices are
+        supported.
 
         Args:
-            name: Name of the object.
-            is_particle: Whether this object should be represented by points (True) or segmentation masks (False).
-            label: Numeric label/id for the object. If None, will use the next available label.
-            color: RGBA color for the object. If None, will use a default color.
-            emdb_id: EMDB ID for the object.
-            pdb_id: PDB ID for the object.
-            identifier: Identifier for the object (e.g. Gene Ontology ID or UniProtKB accession).
-            map_threshold: Threshold to apply to the map when rendering the isosurface.
-            radius: Radius of the particle, when displaying as a sphere.
-            metadata: Additional metadata for the object (user-defined contents).
-            exist_ok: Whether existing objects with the same name should be overwritten..
+            zarr_group: Zarr group to access.
+            x: Slice for the x-axis.
+            y: Slice for the y-axis.
+            z: Slice for the z-axis.
 
         Returns:
-            CopickObject: The newly created object.
-
-        Raises:
-            ValueError: If an object with the given name already exists and exist_ok is False.
+            np.ndarray: The segmentation as a numpy array.
         """
-        sane_name = sanitize_name(name)
 
-        if name != sane_name:
-            raise ValueError(
-                f"Object name '{name}' contains invalid characters. Use copick.escape.sanitize_name() to clean it.",
-            )
-        name = sane_name
+        loc = self.zarr()
+        group = zarr.open(loc)[zarr_group]
 
-        # Check if the object already exists
-        obj = self.get_object(name)
-        if obj and not exist_ok:
-            raise ValueError(f"Object name {name} already exists.")
+        fits, req, avail = fits_in_memory(group, (x, y, z))
+        if not fits:
+            raise ValueError(f"Requested region does not fit in memory. Requested: {req}, Available: {avail}.")
 
-        if obj:
-            obj.meta.is_particle = is_particle
-            obj.meta.label = label if label else obj.label
-            obj.meta.color = color if color else obj.color
-            obj.meta.emdb_id = emdb_id if emdb_id else obj.emdb_id
-            obj.meta.pdb_id = pdb_id if pdb_id else obj.pdb_id
-            obj.meta.identifier = identifier if identifier else obj.identifier
-            obj.meta.map_threshold = map_threshold if map_threshold else obj.map_threshold
-            obj.meta.radius = radius if radius else obj.radius
-            obj.meta.metadata = metadata if metadata else obj.metadata
-        else:
-            # Check for duplicate label BEFORE auto-assignment
-            if label is not None:
-                existing_labels = {obj.label for obj in self.config.pickable_objects if obj.label is not None}
+        return np.array(zarr.open(loc)[zarr_group][z, y, x])
 
-                if label in existing_labels:
-                    raise ValueError(f"Object label {label} already exists.")
+    def from_numpy(
+        self,
+        data: np.ndarray,
+        levels: int = 1,
+        dtype: Optional[np.dtype] = np.uint8,
+    ) -> None:
+        """Set the segmentation from a numpy array and compute multiscale pyramid. By default, no pyramid is computed
+        for segmentations.
 
-            # Auto-assign label if not provided
-            if label is None:
-                existing_labels = [obj.label for obj in self.config.pickable_objects if obj.label is not None]
-                label = max(existing_labels) + 1 if existing_labels else 1
+        Args:
+            data: The segmentation as a numpy array.
+            levels: Number of levels in the multiscale pyramid.
+            dtype: Data type of the segmentation. Default is `np.uint8`.
+        """
+        loc = self.zarr()
+        pyramid = segmentation_pyramid(data, self.voxel_size, levels, dtype=dtype)
+        write_ome_zarr_3d(loc, pyramid)
 
-            # Use default color if not provided
-            if color is None:
-                color = (100, 100, 100, 255)
+    def set_region(
+        self,
+        data: np.ndarray,
+        zarr_group: str = "0",
+        x: slice = slice(None, None),
+        y: slice = slice(None, None),
+        z: slice = slice(None, None),
+    ) -> None:
+        """Set a region of the segmentation from a numpy array.
 
-            # Create the pickable object metadata
-            pickable_meta = PickableObject(
-                name=name,
-                is_particle=is_particle,
-                label=label,
-                color=color,
-                emdb_id=emdb_id,
-                pdb_id=pdb_id,
-                identifier=identifier,
-                map_threshold=map_threshold,
-                radius=radius,
-                metadata=metadata if metadata else {},
-            )
-
-            # Add to configuration
-            self.config.pickable_objects.append(pickable_meta)
-
-            # Create the object and add to cache
-            clz, _ = self._object_factory()
-            obj = clz(self, pickable_meta, read_only=False)
-
-            # Ensure the objects cache is initialized before appending
-            if self._objects is None:
-                # This will initialize self._objects
-                _ = self.pickable_objects
-            self._objects.append(obj)
-
-        return obj
-
-    def _object_factory(self) -> Tuple[Type["CopickObject"], Type["PickableObject"]]:
-        """Override this method to return the object class and object metadata class."""
-        return CopickObject, PickableObject
+        Args:
+            data: The segmentation's subregion as a numpy array.
+            zarr_group: Zarr group to access.
+            x: Slice for the x-axis.
+            y: Slice for the y-axis.
+            z: Slice for the z-axis.
+        """
+        loc = self.zarr()
+        zarr.open(loc)[zarr_group][z, y, x] = data
 
 
 class CopickRun:
@@ -503,9 +1141,27 @@ class CopickRun:
             CopickRun.meshes is accessed **for the first time**.
         segmentations (List[CopickSegmentation]): Segmentations for this run. Either populated from config or lazily
             loaded when CopickRun.segmentations is accessed **for the first time**.
-
-
     """
+
+    picks_class = CopickPicks
+    """Class to use for picks in this run."""
+    picks_meta_class = CopickPicksFile
+    """Metadata class to use for picks in this run."""
+
+    mesh_class = CopickMesh
+    """Class to use for meshes in this run."""
+    mesh_meta_class = CopickMeshMeta
+    """Metadata class to use for meshes in this run."""
+
+    segmentation_class = CopickSegmentation
+    """Class to use for segmentations in this run."""
+    segmentation_meta_class = CopickSegmentationMeta
+    """Metadata class to use for segmentations in this run."""
+
+    voxel_spacing_class = CopickVoxelSpacing
+    """Class to use for voxel spacings in this run."""
+    voxel_spacing_meta_class = CopickVoxelSpacingMeta
+    """Metadata class to use for voxel spacings in this run."""
 
     def __init__(self, root: "CopickRoot", meta: CopickRunMeta, config: Optional["CopickConfig"] = None):
         self.meta = meta
@@ -522,50 +1178,6 @@ class CopickRun:
         self._segmentations: Optional[List["CopickSegmentation"]] = None
         """Segmentations for this run. Either populated from config or lazily loaded when
         CopickRun.segmentations is accessed for the first time."""
-
-        if config is not None:
-            voxel_spacings_metas = [
-                CopickVoxelSpacingMeta(run=self, voxel_size=vs, config=config) for vs in config.tomograms
-            ]
-            self._voxel_spacings = [CopickVoxelSpacing(run=self, meta=vs) for vs in voxel_spacings_metas]
-
-            #####################
-            # Picks from config #
-            #####################
-            # Select all available pre-picks for this run
-            avail = config.available_pre_picks.keys()
-            avail = [a for a in avail if a[0] == self.name]
-
-            # Pre-defined picks
-            for av in avail:
-                object_name = av[1]
-                prepicks = config.available_pre_picks[av]
-
-                for pp in prepicks:
-                    pm = CopickPicksFile(
-                        pickable_object_name=object_name,
-                        user_id=pp,
-                        session_id="0",
-                        run_name=self.name,
-                    )
-                    self._picks.append(CopickPicks(run=self, file=pm))
-
-            ######################
-            # Meshes from config #
-            ######################
-            for object_name, tool_names in config.available_pre_meshes.items():
-                for mesh_tool in tool_names:
-                    mm = CopickMeshMeta(pickable_object_name=object_name, user_id=mesh_tool, session_id="0")
-                    com = CopickMesh(run=self, meta=mm)
-                    self._meshes.append(com)
-
-            #############################
-            # Segmentations from config #
-            #############################
-            for seg_tool in config.available_pre_segmentations:
-                sm = CopickSegmentationMeta(run=self, user_id=seg_tool, session_id="0")
-                cos = CopickSegmentation(run=self, meta=sm)
-                self._segmentations.append(cos)
 
     def __repr__(self):
         lvs = None if self._voxel_spacings is None else len(self._voxel_spacings)
@@ -637,9 +1249,8 @@ class CopickRun:
         """
         # Random access
         if self._voxel_spacings is None:
-            clz, meta_clz = self._voxel_spacing_factory()
-            vm = meta_clz(voxel_size=voxel_size, **kwargs)
-            vs = clz(self, meta=vm)
+            vm = self.voxel_spacing_meta_class(voxel_size=voxel_size, **kwargs)
+            vs = self.voxel_spacing_class(self, meta=vm)
 
             if not vs.ensure(create=False):
                 return None
@@ -859,10 +1470,8 @@ class CopickRun:
             else:
                 raise ValueError(f"VoxelSpacing {voxel_size} already exists for this run.")
         else:
-            clz, meta_clz = self._voxel_spacing_factory()
-
-            vm = meta_clz(voxel_size=voxel_size, **kwargs)
-            vs = clz(run=self, meta=vm)
+            vm = self.voxel_spacing_meta_class(voxel_size=voxel_size, **kwargs)
+            vs = self.voxel_spacing_class(run=self, meta=vm)
 
             # Append the voxel spacing
             if self._voxel_spacings is None:
@@ -873,10 +1482,6 @@ class CopickRun:
             vs.ensure(create=True)
 
         return vs
-
-    def _voxel_spacing_factory(self) -> Tuple[Type["CopickVoxelSpacing"], Type["CopickVoxelSpacingMeta"]]:
-        """Override this method to return the voxel spacing class and voxel spacing metadata class."""
-        return CopickVoxelSpacing, CopickVoxelSpacingMeta
 
     def new_picks(
         self,
@@ -929,9 +1534,7 @@ class CopickRun:
                 run_name=self.name,
             )
 
-            clz = self._picks_factory()
-
-            picks = clz(run=self, file=pm)
+            picks = self.picks_class(run=self, file=pm)
 
             if self._picks is None:
                 self._picks = []
@@ -941,10 +1544,6 @@ class CopickRun:
             picks.store()
 
         return picks
-
-    def _picks_factory(self) -> Type["CopickPicks"]:
-        """Override this method to return the picks class."""
-        return CopickPicks
 
     def new_mesh(
         self,
@@ -992,9 +1591,7 @@ class CopickRun:
             else:
                 raise ValueError(f"Mesh for {object_name} by user/tool {uid} already exist in session {session_id}.")
         else:
-            clz, meta_clz = self._mesh_factory()
-
-            mm = meta_clz(
+            mm = self.mesh_meta_class(
                 pickable_object_name=object_name,
                 user_id=uid,
                 session_id=session_id,
@@ -1008,7 +1605,7 @@ class CopickRun:
             tmesh = trimesh.Trimesh()
             scene = tmesh.scene()
 
-            mesh = clz(run=self, meta=mm, mesh=scene)
+            mesh = self.mesh_class(run=self, meta=mm, mesh=scene)
 
             if self._meshes is None:
                 self._meshes = []
@@ -1018,10 +1615,6 @@ class CopickRun:
             mesh.store()
 
         return mesh
-
-    def _mesh_factory(self) -> Tuple[Type["CopickMesh"], Type["CopickMeshMeta"]]:
-        """Override this method to return the mesh class and mesh metadata."""
-        return CopickMesh, CopickMeshMeta
 
     def new_segmentation(
         self,
@@ -1083,9 +1676,7 @@ class CopickRun:
                     f"voxel size of {voxel_size}, and has a multilabel flag of {is_multilabel}.",
                 )
         else:
-            clz, meta_clz = self._segmentation_factory()
-
-            sm = meta_clz(
+            sm = self.segmentation_meta_class(
                 is_multilabel=is_multilabel,
                 voxel_size=voxel_size,
                 user_id=uid,
@@ -1093,7 +1684,7 @@ class CopickRun:
                 name=name,
                 **kwargs,
             )
-            seg = clz(run=self, meta=sm)
+            seg = self.segmentation_class(run=self, meta=sm)
 
             if self._segmentations is None:
                 self._segmentations = []
@@ -1104,10 +1695,6 @@ class CopickRun:
             _ = seg.zarr()
 
         return seg
-
-    def _segmentation_factory(self) -> Tuple[Type["CopickSegmentation"], Type["CopickSegmentationMeta"]]:
-        """Override this method to return the segmentation class and segmentation metadata class."""
-        return CopickSegmentation, CopickSegmentationMeta
 
     def refresh_voxel_spacings(self) -> None:
         """Refresh the voxel spacings."""
@@ -1230,914 +1817,340 @@ class CopickRun:
             s.delete()
             del s
 
-
-class CopickVoxelSpacing:
-    """Encapsulates all data pertaining to a specific voxel spacing. This includes the tomograms and feature maps at
-    this voxel spacing.
-
-    Attributes:
-        run (CopickRun): Reference to the run this voxel spacing belongs to.
-        meta (CopickVoxelSpacingMeta): Metadata for this voxel spacing.
-        tomograms (List[CopickTomogram]): Tomograms for this voxel spacing. Either populated from config or lazily loaded
-            when CopickVoxelSpacing.tomograms is accessed **for the first time**.
-    """
-
-    def __init__(self, run: CopickRun, meta: CopickVoxelSpacingMeta, config: Optional[CopickConfig] = None):
-        """
-        Args:
-            run: Reference to the run this voxel spacing belongs to.
-            meta: Metadata for this voxel spacing.
-            config: Configuration of the copick project.
-        """
-        self.run = run
-        self.meta = meta
-
-        self._tomograms: Optional[List["CopickTomogram"]] = None
-        """References to the tomograms for this voxel spacing."""
-
-        if config is not None:
-            tomo_metas = [CopickTomogramMeta(tomo_type=tt) for tt in config.tomograms[self.voxel_size]]
-            self._tomograms = [CopickTomogram(voxel_spacing=self, meta=tm, config=config) for tm in tomo_metas]
-
-    def __repr__(self):
-        lts = None if self._tomograms is None else len(self._tomograms)
-        return f"CopickVoxelSpacing(voxel_size={self.voxel_size}, len(tomograms)={lts}) at {hex(id(self))}"
-
-    @property
-    def voxel_size(self) -> float:
-        return self.meta.voxel_size
-
-    def query_tomograms(self) -> List["CopickTomogram"]:
-        """Override this method to query for tomograms."""
-        raise NotImplementedError("query_tomograms must be implemented for CopickVoxelSpacing.")
-
-    @property
-    def tomograms(self) -> List["CopickTomogram"]:
-        if self._tomograms is None:
-            self._tomograms = self.query_tomograms()
-
-        return self._tomograms
-
-    def get_tomogram(self, tomo_type: str) -> Union["CopickTomogram", None]:
-        """Get tomogram by type.
-
-        Args:
-            tomo_type: Type of the tomogram to retrieve.
-
-        Returns:
-            CopickTomogram: The tomogram with the given type, or `None` if not found.
-        """
-        from warnings import warn
-
+    def _voxel_spacing_factory(self) -> Tuple[Type[CopickVoxelSpacing], Type[CopickVoxelSpacingMeta]]:
         warn(
-            "get_tomogram is deprecated, use get_tomograms instead. Results may be incomplete",
+            "`_voxel_spacing_factory` is deprecated, use `CopickRun.voxel_spacing_class` or "
+            "`CopickRun.voxel_spacing_meta_class` instead.",
             DeprecationWarning,
             stacklevel=2,
         )
-        for tomo in self.tomograms:
-            if tomo.tomo_type == tomo_type:
-                return tomo
+        return self.voxel_spacing_class, self.voxel_spacing_meta_class
+
+    def _picks_factory(self) -> Type[CopickPicks]:
+        warn(
+            "`_picks_factory` is deprecated, use `CopickRun.picks_class` instead.",
+            DeprecationWarning,
+            stacklevel=2,
+        )
+        return self.picks_class
+
+    def _mesh_factory(self) -> Tuple[Type[CopickMesh], Type[CopickMeshMeta]]:
+        warn(
+            "`_mesh_factory` is deprecated, use `CopickRun.mesh_class` and `CopickRun.mesh_meta_class` instead.",
+            DeprecationWarning,
+            stacklevel=2,
+        )
+        return self.mesh_class, self.mesh_meta_class
+
+    def _segmentation_factory(self) -> Tuple[Type[CopickSegmentation], Type[CopickSegmentationMeta]]:
+        warn(
+            "`_segmentation_factory` is deprecated, use `CopickRun.segmentation_class` "
+            "and `CopickRun.segmentation_meta_class` instead.",
+            DeprecationWarning,
+            stacklevel=2,
+        )
+        return self.segmentation_class, self.segmentation_meta_class
+
+
+class CopickRoot:
+    """Root of a copick project. Contains references to the runs and pickable objects.
+
+    Attributes:
+        config (CopickConfig): Configuration of the copick project.
+        user_id: Unique identifier for the user.
+        session_id: Unique identifier for the session.
+        runs (List[CopickRun]): References to the runs for this project. Lazy loaded upon access.
+        pickable_objects (List[CopickObject]): References to the pickable objects for this project.
+
+    """
+
+    run_class = CopickRun
+    """Class for runs."""
+    run_meta_class = CopickRunMeta
+    """Class for run metadata."""
+
+    object_class = CopickObject
+    """Class for pickable objects."""
+    object_meta_class = PickableObject
+    """Class for pickable object metadata."""
+
+    def __init__(self, config: CopickConfig):
+        """
+        Args:
+            config (CopickConfig): Configuration of the copick project.
+        """
+        self.config = config
+        self._runs: Optional[List["CopickRun"]] = None
+        self._objects: Optional[List[CopickObject]] = None
+
+    def __repr__(self):
+        lpo = None if self._objects is None else len(self._objects)
+        lr = None if self._runs is None else len(self._runs)
+        return f"CopickRoot(user_id={self.user_id}, len(pickable_objects)={lpo}, len(runs)={lr}) at {hex(id(self))}"
+
+    @property
+    def user_id(self) -> str:
+        return self.config.user_id
+
+    @user_id.setter
+    def user_id(self, value: str) -> None:
+        self.config.user_id = value
+
+    @property
+    def session_id(self) -> str:
+        return self.config.session_id
+
+    @session_id.setter
+    def session_id(self, value: str) -> None:
+        self.config.session_id = value
+
+    def query(self) -> List["CopickRun"]:
+        """Override this method to query for runs."""
+        pass
+
+    @property
+    def runs(self) -> List["CopickRun"]:
+        if self._runs is None:
+            self._runs = self.query()
+
+        return self._runs
+
+    def get_run(self, name: str, **kwargs) -> Union["CopickRun", None]:
+        """Get run by name.
+
+        Args:
+            name: Name of the run to retrieve.
+            **kwargs: Additional keyword arguments for the run metadata.
+
+        Returns:
+            CopickRun: The run with the given name, or None if not found.
+        """
+        # Random access
+        if self._runs is None:
+            rm = self.run_meta_class(name=name, **kwargs)
+            run = self.run_class(self, meta=rm)
+
+            if not run.ensure(create=False):
+                return None
+            else:
+                return run
+
+        # Access through index
+        else:
+            for run in self.runs:
+                if run.name == name:
+                    return run
+
         return None
 
-    def get_tomograms(self, tomo_type: str) -> List["CopickTomogram"]:
-        """Get tomograms by type.
-
-        Args:
-            tomo_type: Type of the tomograms to retrieve.
-
-        Returns:
-            List[CopickTomogram]: The tomograms with the given type.
-        """
-        tomos = [tomo for tomo in self.tomograms if tomo.tomo_type == tomo_type]
-        return tomos
-
-    def refresh_tomograms(self) -> None:
-        """Refresh `CopickVoxelSpacing.tomograms` from storage."""
-        self._tomograms = self.query_tomograms()
-
-    def refresh(self) -> None:
-        """Refresh `CopickVoxelSpacing.tomograms` from storage."""
-        self.refresh_tomograms()
-
-    def new_tomogram(self, tomo_type: str, exist_ok: bool = False, **kwargs) -> "CopickTomogram":
-        """Create a new tomogram object, also creates the Zarr-store in the storage backend.
-
-        Args:
-            tomo_type: Type of the tomogram to create.
-            exist_ok: Whether to raise an error if the tomogram already exists.
-            **kwargs: Additional keyword arguments for the tomogram metadata.
-
-        Returns:
-            CopickTomogram: The newly created tomogram object.
-
-        Raises:
-            ValueError: If a tomogram with the given type already exists for this voxel spacing.
-        """
-        tomo_type = sanitize_name(tomo_type)
-
-        if tomo := self.get_tomograms(tomo_type):
-            if exist_ok:
-                tomo = tomo[0]
-            else:
-                raise ValueError(f"Tomogram type {tomo_type} already exists for this voxel spacing.")
-        else:
-            clz, meta_clz = self._tomogram_factory()
-
-            tm = meta_clz(tomo_type=tomo_type, **kwargs)
-            tomo = clz(voxel_spacing=self, meta=tm)
-
-            # Append the tomogram
-            if self._tomograms is None:
-                self._tomograms = []
-            self._tomograms.append(tomo)
-
-            # Create the zarr store for this tomogram
-            _ = tomo.zarr()
-
-        return tomo
-
-    def _tomogram_factory(self) -> Tuple[Type["CopickTomogram"], Type["CopickTomogramMeta"]]:
-        """Override this method to return the tomogram class."""
-        return CopickTomogram, CopickTomogramMeta
-
-    def ensure(self, create: bool = False) -> bool:
-        """Override to check if the voxel spacing record exists, optionally create it if it does not.
-
-        Args:
-            create: Whether to create the voxel spacing record if it does not exist.
-
-        Returns:
-            bool: True if the voxel spacing record exists, False otherwise.
-        """
-        raise NotImplementedError("ensure must be implemented for CopickVoxelSpacing.")
-
-    def _delete_data(self):
-        """Override this method to delete the voxel spacing data."""
-        raise NotImplementedError("_delete_data method must be implemented for CopickVoxelSpacing.")
-
-    def delete(self) -> None:
-        """Delete the voxel spacing record."""
-        self.delete_tomograms()
-        self._delete_data()
-
-        # Remove the voxel spacing from the run
-        if self in self.run.voxel_spacings:
-            self.run._voxel_spacings.remove(self)
-
-    def delete_tomograms(self, tomo_type: str = None) -> None:
-        """Delete a tomogram by type.
-
-        Args:
-            tomo_type: Type of the tomogram to delete.
-        """
-        if tomo_type is not None:
-            for t in self.get_tomograms(tomo_type=tomo_type):
-                self._tomograms.remove(t)
-                t.delete()
-                del t
-        else:
-            for t in self.tomograms:
-                self._tomograms.remove(t)
-                t.delete()
-                del t
-
-
-class CopickTomogram:
-    """Encapsulates all data pertaining to a specific tomogram. This includes the features for this tomogram and the
-    associated Zarr-store.
-
-    Attributes:
-        voxel_spacing (CopickVoxelSpacing): Reference to the voxel spacing this tomogram belongs to.
-        meta (CopickTomogramMeta): Metadata for this tomogram.
-        features (List[CopickFeatures]): Features for this tomogram. Either populated from config or lazily loaded when
-            `CopickTomogram.features` is accessed **for the first time**.
-        tomo_type (str): Type of the tomogram.
-    """
-
-    def __init__(
-        self,
-        voxel_spacing: "CopickVoxelSpacing",
-        meta: CopickTomogramMeta,
-        config: Optional["CopickConfig"] = None,
-    ):
-        self.meta = meta
-        self.voxel_spacing = voxel_spacing
-
-        self._features: Optional[List["CopickFeatures"]] = None
-        """Features for this tomogram."""
-
-        if config is not None and self.tomo_type in config.features[self.voxel_spacing.voxel_size]:
-            feat_metas = [CopickFeaturesMeta(tomo_type=self.tomo_type, feature_type=ft) for ft in config.feature_types]
-            self._features = [CopickFeatures(tomogram=self, meta=fm) for fm in feat_metas]
-
-    def __repr__(self):
-        lft = None if self._features is None else len(self._features)
-        return f"CopickTomogram(tomo_type={self.tomo_type}, len(features)={lft}) at {hex(id(self))}"
+    def _query_objects(self):
+        self._objects = [self.object_class(self, meta=obj) for obj in self.config.pickable_objects]
 
     @property
-    def tomo_type(self) -> str:
-        return self.meta.tomo_type
+    def pickable_objects(self) -> List["CopickObject"]:
+        if self._objects is None:
+            self._query_objects()
 
-    @property
-    def features(self) -> List["CopickFeatures"]:
-        if self._features is None:
-            self._features = self.query_features()
+        return self._objects
 
-        return self._features
-
-    @features.setter
-    def features(self, value: List["CopickFeatures"]) -> None:
-        """Set the features."""
-        self._features = value
-
-    def get_features(self, feature_type: str) -> Union["CopickFeatures", None]:
-        """Get feature maps by type.
+    def get_object(self, name: str) -> Union["CopickObject", None]:
+        """Get object by name.
 
         Args:
-            feature_type: Type of the feature map to retrieve.
+            name: Name of the object to retrieve.
 
         Returns:
-            CopickFeatures: The feature map with the given type, or `None` if not found.
+            CopickObject: The object with the given name, or None if not found.
         """
-        for feat in self.features:
-            if feat.feature_type == feature_type:
-                return feat
+        for obj in self.pickable_objects:
+            if obj.name == name:
+                return obj
+
         return None
 
-    def new_features(self, feature_type: str, exist_ok: bool = False, **kwargs) -> "CopickFeatures":
-        """Create a new feature map object. Also creates the Zarr-store for the map in the storage backend.
+    def refresh(self) -> None:
+        """Refresh the list of runs."""
+        self._runs = self.query()
+        self._objects = None  # Reset objects to force reloading
+
+    def save_config(self, config_path: str) -> None:
+        """Save the configuration to a JSON file.
 
         Args:
-            feature_type: Type of the feature map to create.
-            exist_ok: Whether to raise an error if the feature map already exists.
-            **kwargs: Additional keyword arguments for the feature map metadata.
+            config_path: Path to the configuration file to save.
+        """
+        with open(config_path, "w") as f:
+            json.dump(self.config.model_dump(), f, indent=4)
+
+    def new_run(self, name: str, exist_ok: bool = False, **kwargs) -> "CopickRun":
+        """Create a new run.
+
+        Args:
+            name: Name of the run to create.
+            exist_ok: Whether to raise an error if the run already exists.
+            **kwargs: Additional keyword arguments for the run metadata.
 
         Returns:
-            CopickFeatures: The newly created feature map object.
+            CopickRun: The newly created run.
 
         Raises:
-            ValueError: If a feature map with the given type already exists for this tomogram.
+            ValueError: If a run with the given name already exists.
         """
-        feature_type = sanitize_name(feature_type)
-
-        if feat := self.get_features(feature_type):
+        if name in [r.name for r in self.runs]:
             if exist_ok:
-                return feat
+                run = self.get_run(name)
             else:
-                raise ValueError(f"Feature type {feature_type} already exists for this tomogram.")
+                raise ValueError(f"Run name {name} already exists.")
         else:
-            clz, meta_clz = self._feature_factory()
+            rm = self.run_meta_class(name=name, **kwargs)
+            run = self.run_class(self, meta=rm)
 
-            fm = meta_clz(tomo_type=self.tomo_type, feature_type=feature_type, **kwargs)
-            feat = clz(tomogram=self, meta=fm)
+            # Append the run
+            if self._runs is None:
+                self._runs = []
+            self._runs.append(run)
 
-            # Append the feature set
-            if self._features is None:
-                self._features = []
+            # Ensure the run record exists
+            run.ensure(create=True)
 
-            self._features.append(feat)
+        return run
 
-            # Create the zarr store for this feature set
-            _ = feat.zarr()
-
-        return feat
-
-    def _feature_factory(self) -> Tuple[Type["CopickFeatures"], Type["CopickFeaturesMeta"]]:
-        """Override this method to return the features class and features metadata class."""
-        return CopickFeatures, CopickFeaturesMeta
-
-    def query_features(self) -> List["CopickFeatures"]:
-        """Override this method to query for features."""
-        raise NotImplementedError("query_features must be implemented for CopickTomogram.")
-
-    def refresh_features(self) -> None:
-        """Refresh `CopickTomogram.features` from storage."""
-        self._features = self.query_features()
-
-    def refresh(self) -> None:
-        """Refresh `CopickTomogram.features` from storage."""
-        self.refresh_features()
-
-    def delete(self) -> None:
-        """Delete the tomogram record."""
-        self.delete_features()
-        self._delete_data()
-
-        # Remove the tomogram from the voxel spacing
-        if self in self.voxel_spacing.tomograms:
-            self.voxel_spacing._tomograms.remove(self)
-
-    def delete_features(self) -> None:
-        """Delete all features for this tomogram."""
-        for f in self.features:
-            self._features.remove(f)
-            f.delete()
-            del f
-
-    def _delete_data(self) -> None:
-        """Delete the tomogram data."""
-        raise NotImplementedError("_delete_data must be implemented for CopickTomogram.")
-
-    def zarr(self) -> MutableMapping:
-        """Override to return the Zarr store for this tomogram. Also needs to handle creating the store if it
-        doesn't exist."""
-        raise NotImplementedError("zarr must be implemented for CopickTomogram.")
-
-    def numpy(
-        self,
-        zarr_group: str = "0",
-        x: slice = slice(None, None),
-        y: slice = slice(None, None),
-        z: slice = slice(None, None),
-    ) -> np.ndarray:
-        """Returns the content of the Zarr-File for this tomogram as a numpy array. Multiscale group and slices are
-        supported.
+    def delete_run(self, name: str) -> None:
+        """Delete a run by name.
 
         Args:
-            zarr_group: Zarr group to access.
-            x: Slice for the x-axis.
-            y: Slice for the y-axis.
-            z: Slice for the z-axis.
+            name: Name of the run to delete.
+        """
+        run = self.get_run(name)
+
+        if run is None:
+            return
+
+        self._runs.remove(run)
+        run.delete()
+        del run
+
+    def new_object(
+        self,
+        name: str,
+        is_particle: bool,
+        label: Optional[int] = None,
+        color: Optional[Tuple[int, int, int, int]] = None,
+        emdb_id: Optional[str] = None,
+        pdb_id: Optional[str] = None,
+        identifier: Optional[str] = None,
+        map_threshold: Optional[float] = None,
+        radius: Optional[float] = None,
+        metadata: Optional[Dict[str, Any]] = None,
+        exist_ok: bool = False,
+    ) -> "CopickObject":
+        """Create a new pickable object and add it to the configuration.
+
+        Args:
+            name: Name of the object.
+            is_particle: Whether this object should be represented by points (True) or segmentation masks (False).
+            label: Numeric label/id for the object. If None, will use the next available label.
+            color: RGBA color for the object. If None, will use a default color.
+            emdb_id: EMDB ID for the object.
+            pdb_id: PDB ID for the object.
+            identifier: Identifier for the object (e.g. Gene Ontology ID or UniProtKB accession).
+            map_threshold: Threshold to apply to the map when rendering the isosurface.
+            radius: Radius of the particle, when displaying as a sphere.
+            metadata: Additional metadata for the object (user-defined contents).
+            exist_ok: Whether existing objects with the same name should be overwritten..
 
         Returns:
-            np.ndarray: The tomogram as a numpy array.
+            CopickObject: The newly created object.
+
+        Raises:
+            ValueError: If an object with the given name already exists and exist_ok is False.
         """
-
-        loc = self.zarr()
-        group = zarr.open(loc)[zarr_group]
-
-        fits, req, avail = fits_in_memory(group, (x, y, z))
-        if not fits:
-            raise ValueError(f"Requested region does not fit in memory. Requested: {req}, Available: {avail}.")
-
-        return np.array(zarr.open(loc)[zarr_group][z, y, x])
-
-    def from_numpy(
-        self,
-        data: np.ndarray,
-        levels: int = 3,
-        dtype: Optional[np.dtype] = np.float32,
-    ) -> None:
-        """Set the tomogram from a numpy array and compute multiscale pyramid. By default, three levels of the pyramid
-        are computed.
-
-        Args:
-            data: The segmentation as a numpy array.
-            levels: Number of levels in the multiscale pyramid.
-            dtype: Data type of the segmentation. Default is `np.float32`.
-        """
-        loc = self.zarr()
-        pyramid = volume_pyramid(data, self.voxel_spacing.voxel_size, levels, dtype=dtype)
-        write_ome_zarr_3d(loc, pyramid)
-
-    def set_region(
-        self,
-        data: np.ndarray,
-        zarr_group: str = "0",
-        x: slice = slice(None, None),
-        y: slice = slice(None, None),
-        z: slice = slice(None, None),
-    ) -> None:
-        """Set a region of the tomogram from a numpy array.
-
-        Args:
-            data: The tomogram's subregion as a numpy array.
-            zarr_group: Zarr group to access.
-            x: Slice for the x-axis.
-            y: Slice for the y-axis.
-            z: Slice for the z-axis.
-        """
-        loc = self.zarr()
-        zarr.open(loc)[zarr_group][z, y, x] = data
-
-
-class CopickFeatures:
-    """Encapsulates all data pertaining to a specific feature map, i.e. the Zarr-store for the feature map.
-
-    Attributes:
-        tomogram (CopickTomogram): Reference to the tomogram this feature map belongs to.
-        meta (CopickFeaturesMeta): Metadata for this feature map.
-        tomo_type (str): Type of the tomogram that the features were computed on.
-        feature_type (str): Type of the features contained.
-    """
-
-    def __init__(self, tomogram: CopickTomogram, meta: CopickFeaturesMeta):
-        """
-
-        Args:
-            tomogram: Reference to the tomogram this feature map belongs to.
-            meta: Metadata for this feature map.
-        """
-        self.meta: CopickFeaturesMeta = meta
-        self.tomogram: CopickTomogram = tomogram
-
-    def __repr__(self):
-        return f"CopickFeatures(tomo_type={self.tomo_type}, feature_type={self.feature_type}) at {hex(id(self))}"
-
-    @property
-    def tomo_type(self) -> str:
-        return self.meta.tomo_type
-
-    @property
-    def feature_type(self) -> str:
-        return self.meta.feature_type
-
-    def delete(self):
-        """Delete the feature map record."""
-        self._delete_data()
-
-        # Remove the feature map from the tomogram
-        if self in self.tomogram.features:
-            self.tomogram._features.remove(self)
-
-    def _delete_data(self):
-        """Delete the feature map data."""
-        raise NotImplementedError("_delete_data must be implemented for CopickFeatures.")
-
-    def zarr(self) -> MutableMapping:
-        """Override to return the Zarr store for this feature set. Also needs to handle creating the store if it
-        doesn't exist."""
-        raise NotImplementedError("zarr must be implemented for CopickFeatures.")
-
-    def numpy(
-        self,
-        zarr_group: str = "0",
-        slices: Tuple[slice, ...] = None,
-    ) -> np.ndarray:
-        """Returns the content of the Zarr-File for this feature map as a numpy array. Multiscale group and slices are
-        supported.
-
-        Args:
-            zarr_group: Zarr group to access.
-            slices: Tuple of slices for the axes.
-
-        Returns:
-            np.ndarray: The object as a numpy array.
-        """
-
-        loc = self.zarr()
-        group = zarr.open(loc)[zarr_group]
-        ndim = len(group.shape)
-
-        if slices is None:
-            slices = tuple(slice(None, None) for _ in range(ndim))
-
-        fits, req, avail = fits_in_memory(group, slices)
-        if not fits:
-            raise ValueError(f"Requested region does not fit in memory. Requested: {req}, Available: {avail}.")
-
-        return np.array(group[slices])
-
-    def set_region(
-        self,
-        data: np.ndarray,
-        zarr_group: str = "0",
-        slices: Tuple[slice, ...] = None,
-    ) -> None:
-        """Set the content of the Zarr-File for this feature map from a numpy array. Multiscale group and slices are
-        supported.
-
-        Args:
-            data: The data to set.
-            zarr_group: Zarr group to access.
-            slices: Tuple of slices for the axes.
-        """
-        loc = self.zarr()
-        zarr.open(loc)[zarr_group][slices] = data
-
-
-class CopickPicks:
-    """Encapsulates all data pertaining to a specific set of picked points. This includes the locations, orientations,
-    and other metadata for the set of points.
-
-    Attributes:
-        run (CopickRun): Reference to the run this pick belongs to.
-        meta (CopickPicksFile): Metadata for this pick.
-        points (List[CopickPoint]): Points for this pick. Either populated from storage or lazily loaded when
-            `CopickPicks.points` is accessed **for the first time**.
-        from_tool (bool): Flag to indicate if this pick was generated by a tool.
-        pickable_object_name (str): Pickable object name from `CopickConfig.pickable_objects[...].name`
-        user_id (str): Unique identifier for the user or tool name.
-        session_id (str): Unique identifier for the pick session
-        trust_orientation (bool): Flag to indicate if the angles are known for this pick or should be ignored.
-        color: Color of the pickable object this pick belongs to.
-    """
-
-    def __init__(self, run: CopickRun, file: CopickPicksFile):
-        """
-        Args:
-            run: Reference to the run this pick belongs to.
-            file: Metadata for this set of points.
-        """
-        self.meta: CopickPicksFile = file
-        self.run: CopickRun = run
-
-    def __repr__(self):
-        lpt = None if self.meta.points is None else len(self.meta.points)
-        ret = (
-            f"CopickPicks(pickable_object_name={self.pickable_object_name}, user_id={self.user_id}, "
-            f"session_id={self.session_id}, len(points)={lpt}) at {hex(id(self))}"
-        )
-        return ret
-
-    def _load(self) -> CopickPicksFile:
-        """Override this method to load points from a RESTful interface or filesystem."""
-        raise NotImplementedError("load must be implemented for CopickPicks.")
-
-    def _store(self):
-        """Override this method to store points with a RESTful interface or filesystem. Also needs to handle creating
-        the file if it doesn't exist."""
-        raise NotImplementedError("store must be implemented for CopickPicks.")
-
-    def load(self) -> CopickPicksFile:
-        """Load the points from storage.
-
-        Returns:
-            CopickPicksFile: The loaded points.
-        """
-        self.meta = self._load()
-
-        return self.meta
-
-    def store(self):
-        """Store the points (set using `CopickPicks.points` property)."""
-        self._store()
-
-    @property
-    def from_tool(self) -> bool:
-        return self.session_id == "0"
-
-    @property
-    def from_user(self) -> bool:
-        return self.session_id != "0"
-
-    @property
-    def pickable_object_name(self) -> str:
-        return self.meta.pickable_object_name
-
-    @property
-    def user_id(self) -> str:
-        return self.meta.user_id
-
-    @property
-    def session_id(self) -> Union[str, Literal["0"]]:
-        return self.meta.session_id
-
-    @property
-    def points(self) -> List[CopickPoint]:
-        if self.meta.points is None or len(self.meta.points) == 0:
-            self.meta = self.load()
-
-        return self.meta.points
-
-    @points.setter
-    def points(self, value: List[CopickPoint]) -> None:
-        self.meta.points = value
-
-    @property
-    def trust_orientation(self) -> bool:
-        return self.meta.trust_orientation
-
-    @property
-    def color(self) -> Union[Tuple[int, int, int, int], None]:
-        if self.run.root.get_object(self.pickable_object_name) is None:
-            raise ValueError(f"{self.pickable_object_name} is not a recognized object name (run: {self.run.name}).")
-
-        return self.run.root.get_object(self.pickable_object_name).color
-
-    def refresh(self) -> None:
-        """Refresh the points from storage."""
-        self.meta = self.load()
-
-    def delete(self) -> None:
-        """Delete the pick record."""
-        self._delete_data()
-
-        # Remove the pick from the run
-        if self in self.run.picks:
-            self.run._picks.remove(self)
-
-    def _delete_data(self) -> None:
-        """Delete the pick data."""
-        raise NotImplementedError("_delete_data must be implemented for CopickPicks.")
-
-    def numpy(self) -> Tuple[np.ndarray, np.ndarray]:
-        """Return the points as a [N, 3] numpy array (N, [x, y, z]) and the transforms as a [N, 4, 4] numpy array.
-        Format of the transforms is:
-                ```
-                [[rxx, rxy, rxz, tx],
-                 [ryx, ryy, ryz, ty],
-                 [rzx, rzy, rzz, tz],
-                 [  0,   0,   0,  1]]
-                ```
-
-        Returns:
-            Tuple[np.ndarray, np.ndarray]: The picks and transforms as numpy arrays.
-        """
-
-        points = np.zeros((len(self.points), 3))
-        transforms = np.zeros((len(self.points), 4, 4))
-
-        for i, p in enumerate(self.points):
-            points[i, :] = np.array([p.location.x, p.location.y, p.location.z])
-            transforms[i, :, :] = p.transformation
-
-        return points, transforms
-
-    def from_numpy(self, positions: np.ndarray, transforms: Optional[np.ndarray] = None) -> None:
-        """Set the points and transforms from numpy arrays.
-
-        Args:
-            positions: [N, 3] numpy array of positions (N, [x, y, z]).
-            transforms: [N, 4, 4] numpy array of orientations. If None, transforms will be set to the identity
-                matrix. Format of the transforms is:
-                ```
-                [[rxx, rxy, rxz, tx],
-                 [ryx, ryy, ryz, ty],
-                 [rzx, rzy, rzz, tz],
-                 [  0,   0,   0,  1]]
-                ```
-
-        """
-
-        if transforms is not None and positions.shape[0] != transforms.shape[0]:
-            raise ValueError("Number of positions and transforms must be the same.")
-
-        points = []
-
-        for i in range(positions.shape[0]):
-            p = CopickPoint(location=CopickLocation(x=positions[i, 0], y=positions[i, 1], z=positions[i, 2]))
-            if transforms is not None:
-                p.transformation = transforms[i, :, :]
-            points.append(p)
-
-        self.points = points
-        self.store()
-
-
-class CopickMesh:
-    """Encapsulates all data pertaining to a specific mesh. This includes the mesh (`trimesh.parent.Geometry`) and other
-    metadata.
-
-    Attributes:
-        run (CopickRun): Reference to the run this mesh belongs to.
-        meta (CopickMeshMeta): Metadata for this mesh.
-        mesh (trimesh.parent.Geometry): Mesh for this pick. Either populated from storage or lazily loaded when
-            `CopickMesh.mesh` is accessed **for the first time**.
-        from_tool (bool): Flag to indicate if this pick was generated by a tool.
-        from_user (bool): Flag to indicate if this pick was generated by a user.
-        pickable_object_name (str): Pickable object name from `CopickConfig.pickable_objects[...].name`
-        user_id (str): Unique identifier for the user or tool name.
-        session_id (str): Unique identifier for the pick session
-        color: Color of the pickable object this pick belongs to.
-    """
-
-    def __init__(self, run: CopickRun, meta: CopickMeshMeta, mesh: Optional["Geometry"] = None):
-        self.meta: CopickMeshMeta = meta
-        self.run: CopickRun = run
-
-        if mesh is not None:
-            self._mesh = mesh
+        sane_name = sanitize_name(name)
+
+        if name != sane_name:
+            raise ValueError(
+                f"Object name '{name}' contains invalid characters. Use copick.escape.sanitize_name() to clean it.",
+            )
+        name = sane_name
+
+        # Check if the object already exists
+        obj = self.get_object(name)
+        if obj and not exist_ok:
+            raise ValueError(f"Object name {name} already exists.")
+
+        if obj:
+            obj.meta.is_particle = is_particle
+            obj.meta.label = label if label else obj.label
+            obj.meta.color = color if color else obj.color
+            obj.meta.emdb_id = emdb_id if emdb_id else obj.emdb_id
+            obj.meta.pdb_id = pdb_id if pdb_id else obj.pdb_id
+            obj.meta.identifier = identifier if identifier else obj.identifier
+            obj.meta.map_threshold = map_threshold if map_threshold else obj.map_threshold
+            obj.meta.radius = radius if radius else obj.radius
+            obj.meta.metadata = metadata if metadata else obj.metadata
         else:
-            self._mesh = None
+            # Check for duplicate label BEFORE auto-assignment
+            if label is not None:
+                existing_labels = {obj.label for obj in self.config.pickable_objects if obj.label is not None}
 
-    def __repr__(self):
-        ret = (
-            f"CopickMesh(pickable_object_name={self.pickable_object_name}, user_id={self.user_id}, "
-            f"session_id={self.session_id}) at {hex(id(self))}"
+                if label in existing_labels:
+                    raise ValueError(f"Object label {label} already exists.")
+
+            # Auto-assign label if not provided
+            if label is None:
+                existing_labels = [obj.label for obj in self.config.pickable_objects if obj.label is not None]
+                label = max(existing_labels) + 1 if existing_labels else 1
+
+            # Use default color if not provided
+            if color is None:
+                color = (100, 100, 100, 255)
+
+            # Create the pickable object metadata
+            pickable_meta = self.object_meta_class(
+                name=name,
+                is_particle=is_particle,
+                label=label,
+                color=color,
+                emdb_id=emdb_id,
+                pdb_id=pdb_id,
+                identifier=identifier,
+                map_threshold=map_threshold,
+                radius=radius,
+                metadata=metadata if metadata else {},
+            )
+
+            # Add to configuration
+            self.config.pickable_objects.append(pickable_meta)
+
+            # Create the object and add to cache
+            obj = self.object_class(self, pickable_meta, read_only=False)
+
+            # Ensure the objects cache is initialized before appending
+            if self._objects is None:
+                # This will initialize self._objects
+                _ = self.pickable_objects
+            self._objects.append(obj)
+
+        return obj
+
+    def _run_factory(self) -> Tuple[Type["CopickRun"], Type["CopickRunMeta"]]:
+        """Override this method to return the run class and run metadata class."""
+        warn(
+            "`_run_factory` is deprecated, use `CopickRoot.run_class` and CopickRoot.run_meta_class` instead.",
+            DeprecationWarning,
+            stacklevel=2,
         )
-        return ret
+        return self.run_class, self.run_meta_class
 
-    @property
-    def pickable_object_name(self) -> str:
-        return self.meta.pickable_object_name
-
-    @property
-    def user_id(self) -> str:
-        return self.meta.user_id
-
-    @property
-    def session_id(self) -> Union[str, Literal["0"]]:
-        return self.meta.session_id
-
-    @property
-    def color(self):
-        return self.run.root.get_object(self.pickable_object_name).color
-
-    def _load(self) -> "Geometry":
-        """Override this method to load mesh from a RESTful interface or filesystem."""
-        raise NotImplementedError("load must be implemented for CopickMesh.")
-
-    def _store(self):
-        """Override this method to store mesh with a RESTful interface or filesystem. Also needs to handle creating
-        the file if it doesn't exist."""
-        raise NotImplementedError("store must be implemented for CopickMesh.")
-
-    def load(self) -> "Geometry":
-        """Load the mesh from storage.
-
-        Returns:
-            trimesh.parent.Geometry: The loaded mesh.
-        """
-        self._mesh = self._load()
-
-        return self._mesh
-
-    def store(self):
-        """Store the mesh."""
-        self._store()
-
-    @property
-    def mesh(self) -> "Geometry":
-        if self._mesh is None:
-            self._mesh = self.load()
-
-        return self._mesh
-
-    @mesh.setter
-    def mesh(self, value: "Geometry") -> None:
-        self._mesh = value
-
-    @property
-    def from_user(self) -> bool:
-        return self.session_id != "0"
-
-    @property
-    def from_tool(self) -> bool:
-        return self.session_id == "0"
-
-    def refresh(self) -> None:
-        """Refresh `CopickMesh.mesh` from storage."""
-        self._mesh = self.load()
-
-    def delete(self) -> None:
-        """Delete the mesh record."""
-        self._delete_data()
-
-        # Remove the mesh from the run
-        if self in self.run.meshes:
-            self.run._meshes.remove(self)
-
-    def _delete_data(self) -> None:
-        """Delete the mesh data."""
-        raise NotImplementedError("_delete_data must be implemented for CopickMesh.")
-
-
-class CopickSegmentation:
-    """Encapsulates all data pertaining to a specific segmentation. This includes the Zarr-store for the segmentation
-    and other metadata.
-
-    Attributes:
-        run (CopickRun): Reference to the run this segmentation belongs to.
-        meta (CopickSegmentationMeta): Metadata for this segmentation.
-        zarr (MutableMapping): Zarr store for this segmentation. Either populated from storage or lazily loaded when
-            `CopickSegmentation.zarr` is accessed **for the first time**.
-        from_tool (bool): Flag to indicate if this segmentation was generated by a tool.
-        from_user (bool): Flag to indicate if this segmentation was generated by a user.
-        user_id (str): Unique identifier for the user or tool name.
-        session_id (str): Unique identifier for the segmentation session
-        is_multilabel (bool): Flag to indicate if this is a multilabel segmentation. If False, it is a single label
-            segmentation.
-        voxel_size (float): Voxel size of the tomogram this segmentation belongs to.
-        name (str): Pickable Object name or multilabel name of the segmentation.
-        color: Color of the pickable object this segmentation belongs to.
-    """
-
-    def __init__(self, run: CopickRun, meta: CopickSegmentationMeta):
-        """
-
-        Args:
-            run: Reference to the run this segmentation belongs to.
-            meta: Metadata for this segmentation.
-        """
-        self.meta: CopickSegmentationMeta = meta
-        self.run: CopickRun = run
-
-    def __repr__(self):
-        ret = (
-            f"CopickSegmentation(user_id={self.user_id}, session_id={self.session_id}, name={self.name}, "
-            f"is_multilabel={self.is_multilabel}, voxel_size={self.voxel_size}) at {hex(id(self))}"
+    def _object_factory(self) -> Tuple[Type["CopickObject"], Type[PickableObject]]:
+        """Override this method to return the object class and object metadata class."""
+        warn(
+            "`_object_factory` is deprecated, use `CopickRoot.object_class` "
+            "and `CopickRoot.object_meta_class` instead.",
+            DeprecationWarning,
+            stacklevel=2,
         )
-        return ret
-
-    @property
-    def user_id(self) -> str:
-        return self.meta.user_id
-
-    @property
-    def session_id(self) -> Union[str, Literal["0"]]:
-        return self.meta.session_id
-
-    @property
-    def from_tool(self) -> bool:
-        return self.session_id == "0"
-
-    @property
-    def from_user(self) -> bool:
-        return self.session_id != "0"
-
-    @property
-    def is_multilabel(self) -> bool:
-        return self.meta.is_multilabel
-
-    @property
-    def voxel_size(self) -> float:
-        return self.meta.voxel_size
-
-    @property
-    def name(self) -> str:
-        return self.meta.name
-
-    @property
-    def color(self):
-        if self.is_multilabel:
-            return [128, 128, 128, 0]
-        else:
-            return self.run.root.get_object(self.name).color
-
-    def delete(self) -> None:
-        """Delete the segmentation record."""
-        self._delete_data()
-
-        # Remove the segmentation from the run
-        if self in self.run.segmentations:
-            self.run._segmentations.remove(self)
-
-    def _delete_data(self) -> None:
-        """Delete the segmentation data."""
-        raise NotImplementedError("_delete_data must be implemented for CopickSegmentation.")
-
-    def zarr(self) -> MutableMapping:
-        """Override to return the Zarr store for this segmentation. Also needs to handle creating the store if it
-        doesn't exist."""
-        raise NotImplementedError("zarr must be implemented for CopickSegmentation.")
-
-    def numpy(
-        self,
-        zarr_group: str = "0",
-        x: slice = slice(None, None),
-        y: slice = slice(None, None),
-        z: slice = slice(None, None),
-    ) -> np.ndarray:
-        """Returns the content of the Zarr-File for this segmentation as a numpy array. Multiscale group and slices are
-        supported.
-
-        Args:
-            zarr_group: Zarr group to access.
-            x: Slice for the x-axis.
-            y: Slice for the y-axis.
-            z: Slice for the z-axis.
-
-        Returns:
-            np.ndarray: The segmentation as a numpy array.
-        """
-
-        loc = self.zarr()
-        group = zarr.open(loc)[zarr_group]
-
-        fits, req, avail = fits_in_memory(group, (x, y, z))
-        if not fits:
-            raise ValueError(f"Requested region does not fit in memory. Requested: {req}, Available: {avail}.")
-
-        return np.array(zarr.open(loc)[zarr_group][z, y, x])
-
-    def from_numpy(
-        self,
-        data: np.ndarray,
-        levels: int = 1,
-        dtype: Optional[np.dtype] = np.uint8,
-    ) -> None:
-        """Set the segmentation from a numpy array and compute multiscale pyramid. By default, no pyramid is computed
-        for segmentations.
-
-        Args:
-            data: The segmentation as a numpy array.
-            levels: Number of levels in the multiscale pyramid.
-            dtype: Data type of the segmentation. Default is `np.uint8`.
-        """
-        loc = self.zarr()
-        pyramid = segmentation_pyramid(data, self.voxel_size, levels, dtype=dtype)
-        write_ome_zarr_3d(loc, pyramid)
-
-    def set_region(
-        self,
-        data: np.ndarray,
-        zarr_group: str = "0",
-        x: slice = slice(None, None),
-        y: slice = slice(None, None),
-        z: slice = slice(None, None),
-    ) -> None:
-        """Set a region of the segmentation from a numpy array.
-
-        Args:
-            data: The segmentation's subregion as a numpy array.
-            zarr_group: Zarr group to access.
-            x: Slice for the x-axis.
-            y: Slice for the y-axis.
-            z: Slice for the z-axis.
-        """
-        loc = self.zarr()
-        zarr.open(loc)[zarr_group][z, y, x] = data
+        return self.object_class, self.object_meta_class
 
 
 COPICK_TYPES = (
