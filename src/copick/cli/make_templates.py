@@ -4,7 +4,7 @@ import click
 
 from copick.impl.cryoet_data_portal import CopickConfigCDP
 from copick.impl.filesystem import CopickConfigFSSpec
-from copick.models import PickableObject
+from copick.metadata import PickableObject
 
 LOCAL_OVERLAY = {
     "overlay_root": "local:///path/to/copick_project/",

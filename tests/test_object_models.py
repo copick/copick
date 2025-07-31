@@ -132,6 +132,9 @@ class TestCopickRootNewObject:
         ]
 
         for invalid_name in invalid_names:
+            import warnings
+
+            warnings.filterwarnings("ignore", category=UserWarning)
             with pytest.raises(ValueError, match="invalid characters"):
                 root.new_object(name=invalid_name, is_particle=True)
 
@@ -576,7 +579,7 @@ class TestPickableObjectModel:
 
     def test_pickable_object_model_with_metadata(self):
         """Test PickableObject model with metadata field."""
-        from copick.models import PickableObject
+        from copick.metadata import PickableObject
 
         metadata_dict = {"key1": "value1", "key2": 42}
 
@@ -586,7 +589,7 @@ class TestPickableObjectModel:
 
     def test_pickable_object_model_without_metadata(self):
         """Test PickableObject model without metadata field (should default to empty dict)."""
-        from copick.models import PickableObject
+        from copick.metadata import PickableObject
 
         obj = PickableObject(name="test-object", is_particle=True)
 
@@ -594,7 +597,7 @@ class TestPickableObjectModel:
 
     def test_pickable_object_model_with_none_metadata(self):
         """Test PickableObject model with None metadata."""
-        from copick.models import PickableObject
+        from copick.metadata import PickableObject
 
         obj = PickableObject(name="test-object", is_particle=True, metadata=None, identifier=None)
 
@@ -602,7 +605,7 @@ class TestPickableObjectModel:
 
     def test_pickable_object_model_complex_metadata(self):
         """Test PickableObject model with complex metadata structures."""
-        from copick.models import PickableObject
+        from copick.metadata import PickableObject
 
         complex_metadata = {
             "string": "value",

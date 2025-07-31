@@ -11,7 +11,7 @@ logger = get_logger(__name__)
 if TYPE_CHECKING:
     from copick.impl.cryoet_data_portal import CopickRootCDP
     from copick.impl.filesystem import CopickRootFSSpec
-    from copick.models import PickableObject
+    from copick.metadata import PickableObject
 
 
 def from_string(data: str) -> Union["CopickRootFSSpec", "CopickRootCDP"]:

@@ -1,21 +1,23 @@
 from typing import TYPE_CHECKING, List, Optional
 
+from copick.metadata import (
+    CopickFeaturesMeta,
+    CopickMeshMeta,
+    CopickPicksFile,
+    CopickSegmentationMeta,
+    CopickTomogramMeta,
+    PickableObject,
+)
 from copick.models import (
     CopickFeatures,
-    CopickFeaturesMeta,
     CopickMesh,
-    CopickMeshMeta,
     CopickObject,
     CopickPicks,
-    CopickPicksFile,
     CopickRoot,
     CopickRun,
     CopickSegmentation,
-    CopickSegmentationMeta,
     CopickTomogram,
-    CopickTomogramMeta,
     CopickVoxelSpacing,
-    PickableObject,
 )
 from copick.util.log import get_logger
 

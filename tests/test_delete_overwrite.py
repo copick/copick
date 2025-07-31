@@ -112,7 +112,7 @@ def test_delete_features(test_payload: Dict[str, Any]):
     copick_root = test_payload["root"]
     copick_run = copick_root.get_run("TS_001")
     vs = copick_run.get_voxel_spacing(10.000)
-    tomogram = vs.get_tomogram(tomo_type="wbp")
+    tomogram = vs.get_tomograms(tomo_type="wbp")[0]
     overlay_fs = test_payload["testfs_overlay"]
     overlay_loc = test_payload["testpath_overlay"]
 
@@ -323,7 +323,7 @@ def test_exist_ok_features(test_payload: Dict[str, Any]):
     copick_root = test_payload["root"]
     copick_run = copick_root.get_run("TS_001")
     vs = copick_run.get_voxel_spacing(10.000)
-    tomogram = vs.get_tomogram(tomo_type="wbp")
+    tomogram = vs.get_tomograms(tomo_type="wbp")[0]
 
     # Create a new feature
     feature_type = "exist-ok-test"
