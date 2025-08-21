@@ -22,7 +22,10 @@ def _cli(ctx):
     logger.info(f"{'-'*len(text)}")
 
 
-@click.group(short_help="Run inference on copick tomograms.")
+@click.group(
+    short_help="Run inference on copick tomograms.",
+    no_args_is_help=True,
+)
 @click.pass_context
 def inference(ctx):
     """
@@ -33,7 +36,10 @@ def inference(ctx):
     pass
 
 
-@click.group(short_help="Train a model with copick data.")
+@click.group(
+    short_help="Train a model with copick data.",
+    no_args_is_help=True,
+)
 @click.pass_context
 def training(ctx):
     """
@@ -44,7 +50,10 @@ def training(ctx):
     pass
 
 
-@click.group(short_help="Evaluate model performance.")
+@click.group(
+    short_help="Evaluate model performance.",
+    no_args_is_help=True,
+)
 @click.pass_context
 def evaluation(ctx):
     """
@@ -55,7 +64,10 @@ def evaluation(ctx):
     pass
 
 
-@click.group(short_help="Apply processing method to copick entity.")
+@click.group(
+    short_help="Apply processing method to copick entity.",
+    no_args_is_help=True,
+)
 @click.pass_context
 def process(ctx):
     """
@@ -66,7 +78,10 @@ def process(ctx):
     pass
 
 
-@click.group(short_help="Convert one copick type to another.")
+@click.group(
+    short_help="Convert one copick type to another.",
+    no_args_is_help=True,
+)
 @click.pass_context
 def convert(ctx):
     """
