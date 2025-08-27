@@ -19,6 +19,7 @@ dependencies = [
     "numcodecs<0.16.0",
     "numpy>=2.0.2",
     "ome-zarr>=0.10.2",
+    "pandas>=2.0.0",
     "psutil>=7.0.0",
     "pydantic>=2",
     "s3fs>=2025.5.1",
