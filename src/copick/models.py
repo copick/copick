@@ -2122,7 +2122,10 @@ class CopickPicks:
         self.points = points
         self.store()
 
-    def _get_tomogram_info(self, only_voxel_size: bool = False) -> Tuple[float, int | None, int | None, int | None]:
+    def _get_tomogram_info(
+        self,
+        only_voxel_size: bool = False,
+    ) -> Tuple[float, Union[int, None], Union[int, None], Union[int, None]]:
         """
         Get tomogram voxel size and dimensions for the run these picks belong to.
         Returns a tuple of (voxel_size, tomogram_x, tomogram_y, tomogram_z).
