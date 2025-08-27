@@ -1,9 +1,8 @@
 """Read a tomogram from a zarr-store into a numpy array."""
 
+import copick
 import numpy as np
 import zarr
-
-import copick
 
 # Initialize the root object from a configuration file
 root = copick.from_file("path/to/config.json")

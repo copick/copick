@@ -83,10 +83,9 @@ def run():
     # Imports
     from typing import List, Sequence
 
+    import copick
     import numpy as np
     import zarr
-
-    import copick
     from copick.models import CopickLocation, CopickPoint
 
     # Parse arguments

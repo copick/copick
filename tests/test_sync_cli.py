@@ -9,7 +9,6 @@ import numpy as np
 import pytest
 import trimesh
 from click.testing import CliRunner
-
 from copick.cli.sync import sync
 from copick.impl.filesystem import CopickRootFSSpec
 

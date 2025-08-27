@@ -2,11 +2,10 @@ import warnings
 from typing import Any, Dict
 
 import pytest
-from pydantic import ValidationError
-
 from copick.impl.filesystem import CopickRootFSSpec
 from copick.models import CopickConfig, PickableObject
 from copick.util.escape import sanitize_name
+from pydantic import ValidationError
 
 
 @pytest.fixture(params=pytest.common_cases)

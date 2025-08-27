@@ -3,12 +3,11 @@ from typing import Any, Dict
 import numpy as np
 import pytest
 import zarr
-from scipy.spatial.transform import Rotation
-from trimesh.parent import Geometry
-
 from copick.impl.filesystem import CopickRootFSSpec
 from copick.models import CopickPicksFile
 from copick.util.ome import write_ome_zarr_3d
+from scipy.spatial.transform import Rotation
+from trimesh.parent import Geometry
 
 NUMERICAL_PRECISION = 1e-8
 
