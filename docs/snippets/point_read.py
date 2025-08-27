@@ -1,7 +1,8 @@
 """Read points from a CopickPicks object."""
 
-import copick
 import numpy as np
+
+import copick
 
 # Initialize the root object from a configuration file
 root = copick.from_file("path/to/config.json")

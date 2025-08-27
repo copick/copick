@@ -2,6 +2,7 @@ from typing import Any, Dict
 
 import numpy as np
 import pytest
+
 from copick.impl.filesystem import CopickRootFSSpec
 from copick.ops.add import add_object, add_object_volume
 

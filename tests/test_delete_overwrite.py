@@ -2,6 +2,7 @@ from typing import Any, Dict
 
 import pytest
 import zarr
+
 from copick.impl.filesystem import CopickRootFSSpec
 
 

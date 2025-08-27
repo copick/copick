@@ -8,6 +8,7 @@ from typing import Any, Dict
 import numpy as np
 import pytest
 import trimesh
+
 from copick.impl.filesystem import CopickRootFSSpec
 from copick.ops.sync import sync_meshes, sync_picks, sync_segmentations, sync_tomograms
 

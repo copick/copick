@@ -3,11 +3,12 @@ from typing import Any, Dict
 import numpy as np
 import pytest
 import zarr
+from scipy.spatial.transform import Rotation
+from trimesh.parent import Geometry
+
 from copick.impl.filesystem import CopickRootFSSpec
 from copick.models import CopickPicksFile
 from copick.util.ome import write_ome_zarr_3d
-from trimesh.parent import Geometry
-from scipy.spatial.transform import Rotation
 
 NUMERICAL_PRECISION = 1e-8
 
@@ -273,9 +274,9 @@ def test_run_get_voxel_spacing(test_payload: Dict[str, Any]):
     vs = copick_run.get_voxel_spacing(10.000)
     assert vs is not None, "Voxel spacing not found"
     assert vs.voxel_size == 10.000, "Incorrect voxel size"
-    assert copick_run._voxel_spacings is None, (
-        "Random access for voxel spacing should not populate voxel spacings index"
-    )
+    assert (
+        copick_run._voxel_spacings is None
+    ), "Random access for voxel spacing should not populate voxel spacings index"
 
     vs = copick_run.get_voxel_spacing(20.000)
     assert vs is not None, "Voxel spacing not found"
@@ -452,6 +453,7 @@ def ts_001_ribosome_gapstop_csv_data():
 9,20.757652317107627,19.607337506417068,1.3313545095347206,170.5784132938702,39.762486837924975,-109.41494035897404,-112.42347682892373,-123.92662493582932,-306.6864549046528
 """
 
+
 def test_picks_read_numpy(
     test_payload: Dict[str, Any],
     ts_001_ribosome_gapstop_points,
@@ -467,9 +469,9 @@ def test_picks_read_numpy(
     picks = copick_run.get_picks(object_name="ribosome", user_id="gapstop", session_id="0")
 
     pos, ori = picks[0].numpy()
-    assert np.allclose(pos, ts_001_ribosome_gapstop_points, atol=NUMERICAL_PRECISION), (
-        "Error getting numpy array (incorrect positions)."
-    )
+    assert np.allclose(
+        pos, ts_001_ribosome_gapstop_points, atol=NUMERICAL_PRECISION,
+    ), "Error getting numpy array (incorrect positions)."
     assert np.allclose(
         ori,
         ts_001_ribosome_gapstop_transformations,
@@ -492,19 +494,17 @@ def test_picks_read_relion_df(
     ts_001_ribosome_gapstop_translated_points = ts_001_ribosome_gapstop_points + ts_001_ribosome_gapstop_translations
 
     df = picks[0].df()
-    df_points_px = (
-        df[["rlnCoordinateX", "rlnCoordinateY", "rlnCoordinateZ"]].to_numpy() * SMALLEST_VOXEL_SIZE
-    )
-    assert np.allclose(df_points_px, ts_001_ribosome_gapstop_translated_points, atol=NUMERICAL_PRECISION), (
-        "Error getting pixel coordinates from DataFrame."
-    )
+    df_points_px = df[["rlnCoordinateX", "rlnCoordinateY", "rlnCoordinateZ"]].to_numpy() * SMALLEST_VOXEL_SIZE
+    assert np.allclose(
+        df_points_px, ts_001_ribosome_gapstop_translated_points, atol=NUMERICAL_PRECISION,
+    ), "Error getting pixel coordinates from DataFrame."
 
     df_eulers = df[["rlnAngleRot", "rlnAngleTilt", "rlnAnglePsi"]].to_numpy()
     df_orientations = Rotation.from_euler("ZYZ", df_eulers, degrees=True).inv().as_matrix()
 
-    assert np.allclose(df_orientations, ts_001_ribosome_gapstop_orientations, atol=NUMERICAL_PRECISION), (
-        "Error getting orientations from DataFrame."
-    )
+    assert np.allclose(
+        df_orientations, ts_001_ribosome_gapstop_orientations, atol=NUMERICAL_PRECISION,
+    ), "Error getting orientations from DataFrame."
 
 
 def test_picks_write_numpy(test_payload: Dict[str, Any]):
@@ -573,7 +573,12 @@ def test_picks_write_numpy(test_payload: Dict[str, Any]):
         picks.from_numpy(POINTS_err, ORIENTATIONS)
 
 
-def test_picks_write_relion_df(test_payload: Dict[str, Any], ts_001_ribosome_gapstop_points, ts_001_ribosome_gapstop_transformations, ts_001_ribosome_gapstop_csv_data):
+def test_picks_write_relion_df(
+    test_payload: Dict[str, Any],
+    ts_001_ribosome_gapstop_points,
+    ts_001_ribosome_gapstop_transformations,
+    ts_001_ribosome_gapstop_csv_data,
+):
     from io import StringIO
 
     import pandas as pd
@@ -599,33 +604,56 @@ def test_picks_write_relion_df(test_payload: Dict[str, Any], ts_001_ribosome_gap
     ts_001_ribosome_gapstop_translations = ts_001_ribosome_gapstop_transformations[:, :3, 3]
     ts_001_ribosome_gapstop_translated_points = ts_001_ribosome_gapstop_points + ts_001_ribosome_gapstop_translations
 
-    assert np.allclose(new_picks_relion_4_points, ts_001_ribosome_gapstop_translated_points, atol=NUMERICAL_PRECISION), "RELION 4 points do not match expected values."
-    assert np.allclose(new_picks_relion_5_points, ts_001_ribosome_gapstop_translated_points, atol=NUMERICAL_PRECISION), "RELION 5 points do not match expected values."
+    assert np.allclose(
+        new_picks_relion_4_points, ts_001_ribosome_gapstop_translated_points, atol=NUMERICAL_PRECISION,
+    ), "RELION 4 points do not match expected values."
+    assert np.allclose(
+        new_picks_relion_5_points, ts_001_ribosome_gapstop_translated_points, atol=NUMERICAL_PRECISION,
+    ), "RELION 5 points do not match expected values."
 
     ts_001_ribosome_gapstop_orientations = ts_001_ribosome_gapstop_transformations.copy()
     ts_001_ribosome_gapstop_orientations[:, :3, 3] = 0
 
     # Checking that the orientations should match, the translations should be 0, the bottom row should be [0, 0, 0, 1]
-    assert np.allclose(new_picks_relion_4_transformations, ts_001_ribosome_gapstop_orientations, atol=NUMERICAL_PRECISION), "RELION 4 orientations do not match expected values."
-    assert np.allclose(new_picks_relion_5_transformations, ts_001_ribosome_gapstop_orientations, atol=NUMERICAL_PRECISION), "RELION 5 orientations do not match expected values."
+    assert np.allclose(
+        new_picks_relion_4_transformations, ts_001_ribosome_gapstop_orientations, atol=NUMERICAL_PRECISION,
+    ), "RELION 4 orientations do not match expected values."
+    assert np.allclose(
+        new_picks_relion_5_transformations, ts_001_ribosome_gapstop_orientations, atol=NUMERICAL_PRECISION,
+    ), "RELION 5 orientations do not match expected values."
 
-    new_picks_relion_subtomogram_orientations = copick_run.new_picks(object_name="ribosome", user_id="relion_sub_orientations", session_id="0")
+    new_picks_relion_subtomogram_orientations = copick_run.new_picks(
+        object_name="ribosome", user_id="relion_sub_orientations", session_id="0",
+    )
 
     df = pd.read_csv(StringIO(ts_001_ribosome_gapstop_csv_data))
-    df.rename(columns={
-        "rlnAngleRot": "rlnTomoSubtomogramRot",
-        "rlnAngleTilt": "rlnTomoSubtomogramTilt",
-        "rlnAnglePsi": "rlnTomoSubtomogramPsi",
-    }, inplace=True)
+    df.rename(
+        columns={
+            "rlnAngleRot": "rlnTomoSubtomogramRot",
+            "rlnAngleTilt": "rlnTomoSubtomogramTilt",
+            "rlnAnglePsi": "rlnTomoSubtomogramPsi",
+        },
+        inplace=True,
+    )
     df["rlnAngleRot"] = 0
     df["rlnAngleTilt"] = 0
     df["rlnAnglePsi"] = 0
 
     new_picks_relion_subtomogram_orientations.from_df(df)
-    new_picks_relion_subtomogram_orientations_points, new_picks_relion_subtomogram_orientations_transformations = new_picks_relion_subtomogram_orientations.numpy()
+    new_picks_relion_subtomogram_orientations_points, new_picks_relion_subtomogram_orientations_transformations = (
+        new_picks_relion_subtomogram_orientations.numpy()
+    )
 
-    assert np.allclose(new_picks_relion_subtomogram_orientations_points, ts_001_ribosome_gapstop_translated_points, atol=NUMERICAL_PRECISION), "RELION 3D subtomogram points do not match expected values."
-    assert np.allclose(new_picks_relion_subtomogram_orientations_transformations, ts_001_ribosome_gapstop_orientations, atol=NUMERICAL_PRECISION), "RELION 3D subtomogram orientations do not match expected values."
+    assert np.allclose(
+        new_picks_relion_subtomogram_orientations_points,
+        ts_001_ribosome_gapstop_translated_points,
+        atol=NUMERICAL_PRECISION,
+    ), "RELION 3D subtomogram points do not match expected values."
+    assert np.allclose(
+        new_picks_relion_subtomogram_orientations_transformations,
+        ts_001_ribosome_gapstop_orientations,
+        atol=NUMERICAL_PRECISION,
+    ), "RELION 3D subtomogram orientations do not match expected values."
 
     new_picks_relion_offsets = copick_run.new_picks(object_name="ribosome", user_id="relion_offsets", session_id="0")
     # Subtract an arbitrary value from the coordinates and add it to the "rlnOriginX/Y/ZAngst" columns
@@ -647,8 +675,13 @@ def test_picks_write_relion_df(test_payload: Dict[str, Any], ts_001_ribosome_gap
     new_picks_relion_offsets.from_df(df)
     new_picks_relion_offsets_points, new_picks_relion_offsets_transformations = new_picks_relion_offsets.numpy()
 
-    assert np.allclose(new_picks_relion_offsets_points, ts_001_ribosome_gapstop_translated_points, atol=NUMERICAL_PRECISION), "RELION offsets points do not match expected values."
-    assert np.allclose(new_picks_relion_offsets_transformations, ts_001_ribosome_gapstop_orientations, atol=NUMERICAL_PRECISION), "RELION offsets orientations do not match expected values."
+    assert np.allclose(
+        new_picks_relion_offsets_points, ts_001_ribosome_gapstop_translated_points, atol=NUMERICAL_PRECISION,
+    ), "RELION offsets points do not match expected values."
+    assert np.allclose(
+        new_picks_relion_offsets_transformations, ts_001_ribosome_gapstop_orientations, atol=NUMERICAL_PRECISION,
+    ), "RELION offsets orientations do not match expected values."
+
 
 def test_run_get_meshes(test_payload: Dict[str, Any]):
     # Setup
@@ -858,9 +891,9 @@ def test_run_new_picks(test_payload: Dict[str, Any]):
     pick7 = copick_run.new_picks(object_name="ribosome", session_id="1234")
 
     assert pick7 in copick_run.picks, "Pick not added to picks"
-    assert pick7 == copick_run.get_picks(object_name="ribosome", session_id="1234", user_id="user.test")[0], (
-        "Pick not found"
-    )
+    assert (
+        pick7 == copick_run.get_picks(object_name="ribosome", session_id="1234", user_id="user.test")[0]
+    ), "Pick not found"
 
     # Total number of picks should be 7 now
     copick_run.refresh_picks()
@@ -932,9 +965,9 @@ def test_run_new_meshes(test_payload: Dict[str, Any]):
     mesh3 = copick_run.new_mesh(object_name="membrane", session_id="1234")
 
     assert mesh3 in copick_run.meshes, "Mesh not added to meshes"
-    assert mesh3 == copick_run.get_meshes(object_name="membrane", session_id="1234", user_id="user.test")[0], (
-        "Mesh not found"
-    )
+    assert (
+        mesh3 == copick_run.get_meshes(object_name="membrane", session_id="1234", user_id="user.test")[0]
+    ), "Mesh not found"
 
     # Total number of meshes should be 5 now
     copick_run.refresh_meshes()

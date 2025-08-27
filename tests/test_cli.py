@@ -10,6 +10,7 @@ import numpy as np
 import pytest
 import zarr
 from click.testing import CliRunner
+
 from copick.cli.add import add
 from copick.cli.config import config
 from copick.cli.new import new
