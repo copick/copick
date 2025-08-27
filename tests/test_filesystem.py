@@ -7,6 +7,7 @@ from copick.impl.filesystem import CopickRootFSSpec
 from copick.models import CopickPicksFile
 from copick.util.ome import write_ome_zarr_3d
 from trimesh.parent import Geometry
+from scipy.spatial.transform import Rotation
 
 NUMERICAL_PRECISION = 1e-8
 
@@ -272,9 +273,9 @@ def test_run_get_voxel_spacing(test_payload: Dict[str, Any]):
     vs = copick_run.get_voxel_spacing(10.000)
     assert vs is not None, "Voxel spacing not found"
     assert vs.voxel_size == 10.000, "Incorrect voxel size"
-    assert (
-        copick_run._voxel_spacings is None
-    ), "Random access for voxel spacing should not populate voxel spacings index"
+    assert copick_run._voxel_spacings is None, (
+        "Random access for voxel spacing should not populate voxel spacings index"
+    )
 
     vs = copick_run.get_voxel_spacing(20.000)
     assert vs is not None, "Voxel spacing not found"
@@ -349,17 +350,9 @@ def test_run_get_picks(test_payload: Dict[str, Any]):
     assert picks[0].session_id == "0", "Incorrect session_id"
 
 
-def test_picks_read_numpy(test_payload: Dict[str, Any]):
-    # Setup
-    copick_root = test_payload["root"]
-
-    # Get run
-    copick_run = copick_root.get_run("TS_001")
-
-    # Get picks by object, user_id and session_id
-    picks = copick_run.get_picks(object_name="ribosome", user_id="gapstop", session_id="0")
-
-    POINTS = np.array(
+@pytest.fixture
+def ts_001_ribosome_gapstop_points():
+    return np.array(
         [
             [13.109512186388912, 74.71185201921038, 202.47507943202584],
             [631.4709314294199, 216.35459177569777, 153.51979459358296],
@@ -374,78 +367,144 @@ def test_picks_read_numpy(test_payload: Dict[str, Any]):
         ],
     )
 
-    ORIENTATIONS = np.array(
+
+@pytest.fixture
+def ts_001_ribosome_gapstop_transformations():
+    return np.array(
         [
             [
-                [0.1802696888767692, 0.019475241487624584, 0.4632185264983446, 0.0],
-                [0.42020360458772743, 0.4854270981677824, 0.012780814590608647, 0.0],
-                [0.9418066523433661, 0.8507950893767787, 0.7299644702208186, 0.0],
+                [0.91082157, 0.41183225, 0.02825357, 2.04080334],
+                [0.39883888, -0.86030307, -0.31749989, -1.22192711],
+                [-0.10645006, 0.30045437, -0.9478373, -4.95620327],
                 [0.0, 0.0, 0.0, 1.0],
             ],
             [
-                [0.7589795881605054, 0.8182753578641435, 0.34462449095921743, 0.0],
-                [0.11166123199466038, 0.08395314332205706, 0.7127259356888429, 0.0],
-                [0.055673679585078406, 0.47979728165943036, 0.4016764806306522, 0.0],
+                [0.25494658, -0.930823, 0.26186024, -4.15673036],
+                [0.07354863, 0.28869173, 0.95459294, 1.73078736],
+                [-0.96415395, -0.22411074, 0.14206172, -0.88387753],
                 [0.0, 0.0, 0.0, 1.0],
             ],
             [
-                [0.06368643077465541, 0.3646156429960411, 0.07002280262450244, 0.0],
-                [0.07038259510695688, 0.29026366713531204, 0.7901011234337895, 0.0],
-                [0.7926213850799262, 0.5618187101448784, 0.6160183850726514, 0.0],
+                [0.97406863, -0.12313085, -0.18981335, -1.54048992],
+                [0.10487541, 0.98909245, -0.10342766, -4.39372889],
+                [0.20047809, 0.08083889, 0.97635732, -1.8710075],
                 [0.0, 0.0, 0.0, 1.0],
             ],
             [
-                [0.7346677209045017, 0.9329046271873459, 0.4003284329218084, 0.0],
-                [0.8065667909277211, 0.7644910965444714, 0.6526147399155839, 0.0],
-                [0.6422148587410551, 0.9574440528259551, 0.33387442145109236, 0.0],
+                [0.63125354, 0.05558002, -0.77358247, -0.27267958],
+                [0.26806113, 0.92032357, 0.28486444, 1.45023474],
+                [0.72777895, -0.38718908, 0.56605867, -1.47745371],
                 [0.0, 0.0, 0.0, 1.0],
             ],
             [
-                [0.4527591644919976, 0.6228340076529896, 0.7399515177978947, 0.0],
-                [0.36761762506764994, 0.16902881059075237, 0.7938724066348071, 0.0],
-                [0.734212987305353, 0.8752945800236829, 0.6480564419758135, 0.0],
+                [-0.16909497, -0.31483618, -0.93396203, 3.25622553],
+                [0.98550232, -0.04068504, -0.16471158, 3.51267799],
+                [0.01385888, -0.94827365, 0.31715142, -0.50734273],
                 [0.0, 0.0, 0.0, 1.0],
             ],
             [
-                [0.31818719398704765, 0.21800337527051994, 0.8449385308721757, 0.0],
-                [0.43822067087734373, 0.09141458692565019, 0.30097916984093387, 0.0],
-                [0.34371330696030433, 0.7093010177714357, 0.9739682557652591, 0.0],
+                [-0.46587729, 0.80999162, 0.35619085, 2.20399113],
+                [0.87365849, 0.48488946, 0.04003821, -4.95970857],
+                [-0.14028257, 0.32984205, -0.93355504, 2.89001954],
                 [0.0, 0.0, 0.0, 1.0],
             ],
             [
-                [0.5190077415876589, 0.9224502382708699, 0.723911262619614, 0.0],
-                [0.4974963527482624, 0.6487221982847005, 0.4477711603657113, 0.0],
-                [0.9711752036309947, 0.9324137189386374, 0.8406854303886448, 0.0],
+                [-0.12243006, 0.91735533, 0.37877445, 2.32553322],
+                [-0.77156017, -0.32802754, 0.54506223, 3.06393629],
+                [0.62426419, -0.22551528, 0.74795526, -2.55255873],
                 [0.0, 0.0, 0.0, 1.0],
             ],
             [
-                [0.5954866904630542, 0.9321486216692217, 0.5388502918850757, 0.0],
-                [0.7129629202330348, 0.5215734913958031, 0.505473168619571, 0.0],
-                [0.14491946190451044, 0.9296051143502445, 0.9560582640482871, 0.0],
+                [0.704833, -0.70612128, -0.06784677, -1.28122836],
+                [0.70160862, 0.70803464, -0.08020155, -1.33420528],
+                [0.10466989, 0.00892682, 0.99446696, -2.85401946],
                 [0.0, 0.0, 0.0, 1.0],
             ],
             [
-                [0.055084832105785964, 0.8464969771473587, 0.9890811615793559, 0.0],
-                [0.05411530447521384, 0.9796933083190055, 0.7672162846141741, 0.0],
-                [0.47825664023283687, 0.9155030040986599, 0.35583007986260196, 0.0],
+                [0.19161049, 0.75988339, -0.62117843, -4.11172068],
+                [-0.57053738, -0.42874731, -0.7004733, -2.50187213],
+                [-0.79860661, 0.48862355, 0.3513894, 3.90473263],
                 [0.0, 0.0, 0.0, 1.0],
             ],
             [
-                [0.07837980771565989, 0.9521754802942424, 0.7061476278277338, 0.0],
-                [0.8144408709150506, 0.19072161285288602, 0.1759034817259575, 0.0],
-                [0.29103797580332835, 0.7906135259730082, 0.17079014782816504, 0.0],
+                [0.40646443, 0.88858526, 0.21260974, 2.53815537],
+                [-0.66079699, 0.44660241, -0.60323597, 4.90033419],
+                [-0.63097861, 0.10470209, 0.76870246, -4.43535779],
                 [0.0, 0.0, 0.0, 1.0],
             ],
         ],
     )
 
+
+@pytest.fixture
+def ts_001_ribosome_gapstop_csv_data():
+    return """\
+,rlnCoordinateX,rlnCoordinateY,rlnCoordinateZ,rlnAngleRot,rlnAngleTilt,rlnAnglePsi,rlnCenteredCoordinateXAngst,rlnCenteredCoordinateYAngst,rlnCenteredCoordinateZAngst
+0,1.515031552638891,7.348992490921039,19.751887616202584,109.50907985667635,161.4123797256452,-95.08522231005571,-304.8496844736111,-246.5100750907896,-122.48112383797417
+1,62.731420106942,21.808537913569776,15.263591706358294,-166.9143709708248,81.83283311460454,105.33981666736783,307.31420106941994,-101.91462086430224,-167.36408293641705
+2,1.172861656394964,48.87570336156122,19.00982785355548,21.960797348335795,12.483759659271382,-28.58558629047773,-308.27138343605037,168.75703361561222,-129.90172146444522
+3,29.51131069078723,4.945151032957805,1.0902298160875281,-28.013632548828017,55.52416048823932,20.215753506264058,-24.886893092127707,-270.548489670422,-309.09770183912474
+4,20.733317897548808,36.72180661034504,42.10557621871766,-89.16269015143828,71.50925798264286,-10.001718002075961,-112.66682102451193,47.21806610345044,101.05576218717658
+5,34.376813954366625,57.81581569024652,26.881236784389777,113.04015943122353,158.99594224139992,173.58649629583556,23.768139543666223,258.1581569024652,-51.18763215610221
+6,59.80157235939324,15.560544108358172,26.6497537171217,-19.86224078837036,41.586434365506726,124.79619591385287,278.0157235939324,-164.39455891641828,-53.502462828782996
+7,41.346851447046205,3.254281815343186,14.619099342274476,4.874701253810245,6.030039292898939,-49.7703366694967,93.46851447046203,-287.4571818465681,-173.80900657725525
+8,22.665940149392796,15.557694561104046,3.779392821940628,148.5398245381037,69.42767947620969,-48.43344726285531,-93.34059850607204,-164.42305438895954,-282.20607178059373
+9,20.757652317107627,19.607337506417068,1.3313545095347206,170.5784132938702,39.762486837924975,-109.41494035897404,-112.42347682892373,-123.92662493582932,-306.6864549046528
+"""
+
+def test_picks_read_numpy(
+    test_payload: Dict[str, Any],
+    ts_001_ribosome_gapstop_points,
+    ts_001_ribosome_gapstop_transformations,
+):
+    # Setup
+    copick_root = test_payload["root"]
+
+    # Get run
+    copick_run = copick_root.get_run("TS_001")
+
+    # Get picks by object, user_id and session_id
+    picks = copick_run.get_picks(object_name="ribosome", user_id="gapstop", session_id="0")
+
     pos, ori = picks[0].numpy()
-    assert np.allclose(pos, POINTS, atol=NUMERICAL_PRECISION), "Error getting numpy array (incorrect positions)."
+    assert np.allclose(pos, ts_001_ribosome_gapstop_points, atol=NUMERICAL_PRECISION), (
+        "Error getting numpy array (incorrect positions)."
+    )
     assert np.allclose(
         ori,
-        ORIENTATIONS,
+        ts_001_ribosome_gapstop_transformations,
         atol=NUMERICAL_PRECISION,
     ), "Error getting numpy array (incorrect orientations)."
+
+
+def test_picks_read_relion_df(
+    test_payload: Dict[str, Any],
+    ts_001_ribosome_gapstop_points,
+    ts_001_ribosome_gapstop_transformations,
+):
+    SMALLEST_VOXEL_SIZE = 10.0
+    copick_root = test_payload["root"]
+    copick_run = copick_root.get_run("TS_001")
+    picks = copick_run.get_picks(object_name="ribosome", user_id="gapstop", session_id="0")
+
+    ts_001_ribosome_gapstop_orientations = ts_001_ribosome_gapstop_transformations[:, :3, :3]
+    ts_001_ribosome_gapstop_translations = ts_001_ribosome_gapstop_transformations[:, :3, 3]
+    ts_001_ribosome_gapstop_translated_points = ts_001_ribosome_gapstop_points + ts_001_ribosome_gapstop_translations
+
+    df = picks[0].df()
+    df_points_px = (
+        df[["rlnCoordinateX", "rlnCoordinateY", "rlnCoordinateZ"]].to_numpy() * SMALLEST_VOXEL_SIZE
+    )
+    assert np.allclose(df_points_px, ts_001_ribosome_gapstop_translated_points, atol=NUMERICAL_PRECISION), (
+        "Error getting pixel coordinates from DataFrame."
+    )
+
+    df_eulers = df[["rlnAngleRot", "rlnAngleTilt", "rlnAnglePsi"]].to_numpy()
+    df_orientations = Rotation.from_euler("ZYZ", df_eulers, degrees=True).inv().as_matrix()
+
+    assert np.allclose(df_orientations, ts_001_ribosome_gapstop_orientations, atol=NUMERICAL_PRECISION), (
+        "Error getting orientations from DataFrame."
+    )
 
 
 def test_picks_write_numpy(test_payload: Dict[str, Any]):
@@ -513,6 +572,83 @@ def test_picks_write_numpy(test_payload: Dict[str, Any]):
     with pytest.raises(ValueError):
         picks.from_numpy(POINTS_err, ORIENTATIONS)
 
+
+def test_picks_write_relion_df(test_payload: Dict[str, Any], ts_001_ribosome_gapstop_points, ts_001_ribosome_gapstop_transformations, ts_001_ribosome_gapstop_csv_data):
+    from io import StringIO
+
+    import pandas as pd
+
+    copick_root = test_payload["root"]
+    copick_run = copick_root.get_run("TS_001")
+
+    df = pd.read_csv(StringIO(ts_001_ribosome_gapstop_csv_data))
+
+    new_picks_relion_4 = copick_run.new_picks(object_name="ribosome", user_id="relion4", session_id="0")
+    new_picks_relion_4.from_df(df)
+
+    # Remove RELION 4 columns, so must rely on RELION 5 columns
+    df.drop(columns=["rlnCoordinateX", "rlnCoordinateY", "rlnCoordinateZ"], inplace=True)
+
+    new_picks_relion_5 = copick_run.new_picks(object_name="ribosome", user_id="relion5", session_id="0")
+    new_picks_relion_5.from_df(df)
+
+    new_picks_relion_4_points, new_picks_relion_4_transformations = new_picks_relion_4.numpy()
+    new_picks_relion_5_points, new_picks_relion_5_transformations = new_picks_relion_5.numpy()
+
+    # Add translational offset stored in transformation to original points
+    ts_001_ribosome_gapstop_translations = ts_001_ribosome_gapstop_transformations[:, :3, 3]
+    ts_001_ribosome_gapstop_translated_points = ts_001_ribosome_gapstop_points + ts_001_ribosome_gapstop_translations
+
+    assert np.allclose(new_picks_relion_4_points, ts_001_ribosome_gapstop_translated_points, atol=NUMERICAL_PRECISION), "RELION 4 points do not match expected values."
+    assert np.allclose(new_picks_relion_5_points, ts_001_ribosome_gapstop_translated_points, atol=NUMERICAL_PRECISION), "RELION 5 points do not match expected values."
+
+    ts_001_ribosome_gapstop_orientations = ts_001_ribosome_gapstop_transformations.copy()
+    ts_001_ribosome_gapstop_orientations[:, :3, 3] = 0
+
+    # Checking that the orientations should match, the translations should be 0, the bottom row should be [0, 0, 0, 1]
+    assert np.allclose(new_picks_relion_4_transformations, ts_001_ribosome_gapstop_orientations, atol=NUMERICAL_PRECISION), "RELION 4 orientations do not match expected values."
+    assert np.allclose(new_picks_relion_5_transformations, ts_001_ribosome_gapstop_orientations, atol=NUMERICAL_PRECISION), "RELION 5 orientations do not match expected values."
+
+    new_picks_relion_subtomogram_orientations = copick_run.new_picks(object_name="ribosome", user_id="relion_sub_orientations", session_id="0")
+
+    df = pd.read_csv(StringIO(ts_001_ribosome_gapstop_csv_data))
+    df.rename(columns={
+        "rlnAngleRot": "rlnTomoSubtomogramRot",
+        "rlnAngleTilt": "rlnTomoSubtomogramTilt",
+        "rlnAnglePsi": "rlnTomoSubtomogramPsi",
+    }, inplace=True)
+    df["rlnAngleRot"] = 0
+    df["rlnAngleTilt"] = 0
+    df["rlnAnglePsi"] = 0
+
+    new_picks_relion_subtomogram_orientations.from_df(df)
+    new_picks_relion_subtomogram_orientations_points, new_picks_relion_subtomogram_orientations_transformations = new_picks_relion_subtomogram_orientations.numpy()
+
+    assert np.allclose(new_picks_relion_subtomogram_orientations_points, ts_001_ribosome_gapstop_translated_points, atol=NUMERICAL_PRECISION), "RELION 3D subtomogram points do not match expected values."
+    assert np.allclose(new_picks_relion_subtomogram_orientations_transformations, ts_001_ribosome_gapstop_orientations, atol=NUMERICAL_PRECISION), "RELION 3D subtomogram orientations do not match expected values."
+
+    new_picks_relion_offsets = copick_run.new_picks(object_name="ribosome", user_id="relion_offsets", session_id="0")
+    # Subtract an arbitrary value from the coordinates and add it to the "rlnOriginX/Y/ZAngst" columns
+    df = pd.read_csv(StringIO(ts_001_ribosome_gapstop_csv_data))
+    X_OFFSET_VALUE = 4.2
+    Y_OFFSET_VALUE = -0.5
+    Z_OFFSET_VALUE = 1.337
+
+    # use RELION 5 values only, so don't have to update RELION 4 values
+    df.drop(columns=["rlnCoordinateX", "rlnCoordinateY", "rlnCoordinateZ"], inplace=True)
+    df["rlnOriginXAngst"] = X_OFFSET_VALUE
+    df["rlnOriginYAngst"] = Y_OFFSET_VALUE
+    df["rlnOriginZAngst"] = Z_OFFSET_VALUE
+    # Add since the offset is subtracted from the original value in RELION code (a bit unintuitive)
+    df["rlnCenteredCoordinateXAngst"] += X_OFFSET_VALUE
+    df["rlnCenteredCoordinateYAngst"] += Y_OFFSET_VALUE
+    df["rlnCenteredCoordinateZAngst"] += Z_OFFSET_VALUE
+
+    new_picks_relion_offsets.from_df(df)
+    new_picks_relion_offsets_points, new_picks_relion_offsets_transformations = new_picks_relion_offsets.numpy()
+
+    assert np.allclose(new_picks_relion_offsets_points, ts_001_ribosome_gapstop_translated_points, atol=NUMERICAL_PRECISION), "RELION offsets points do not match expected values."
+    assert np.allclose(new_picks_relion_offsets_transformations, ts_001_ribosome_gapstop_orientations, atol=NUMERICAL_PRECISION), "RELION offsets orientations do not match expected values."
 
 def test_run_get_meshes(test_payload: Dict[str, Any]):
     # Setup
@@ -722,9 +858,9 @@ def test_run_new_picks(test_payload: Dict[str, Any]):
     pick7 = copick_run.new_picks(object_name="ribosome", session_id="1234")
 
     assert pick7 in copick_run.picks, "Pick not added to picks"
-    assert (
-        pick7 == copick_run.get_picks(object_name="ribosome", session_id="1234", user_id="user.test")[0]
-    ), "Pick not found"
+    assert pick7 == copick_run.get_picks(object_name="ribosome", session_id="1234", user_id="user.test")[0], (
+        "Pick not found"
+    )
 
     # Total number of picks should be 7 now
     copick_run.refresh_picks()
@@ -796,9 +932,9 @@ def test_run_new_meshes(test_payload: Dict[str, Any]):
     mesh3 = copick_run.new_mesh(object_name="membrane", session_id="1234")
 
     assert mesh3 in copick_run.meshes, "Mesh not added to meshes"
-    assert (
-        mesh3 == copick_run.get_meshes(object_name="membrane", session_id="1234", user_id="user.test")[0]
-    ), "Mesh not found"
+    assert mesh3 == copick_run.get_meshes(object_name="membrane", session_id="1234", user_id="user.test")[0], (
+        "Mesh not found"
+    )
 
     # Total number of meshes should be 5 now
     copick_run.refresh_meshes()
