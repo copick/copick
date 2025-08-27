@@ -470,7 +470,9 @@ def test_picks_read_numpy(
 
     pos, ori = picks[0].numpy()
     assert np.allclose(
-        pos, ts_001_ribosome_gapstop_points, atol=NUMERICAL_PRECISION,
+        pos,
+        ts_001_ribosome_gapstop_points,
+        atol=NUMERICAL_PRECISION,
     ), "Error getting numpy array (incorrect positions)."
     assert np.allclose(
         ori,
@@ -496,14 +498,18 @@ def test_picks_read_relion_df(
     df = picks[0].df()
     df_points_px = df[["rlnCoordinateX", "rlnCoordinateY", "rlnCoordinateZ"]].to_numpy() * SMALLEST_VOXEL_SIZE
     assert np.allclose(
-        df_points_px, ts_001_ribosome_gapstop_translated_points, atol=NUMERICAL_PRECISION,
+        df_points_px,
+        ts_001_ribosome_gapstop_translated_points,
+        atol=NUMERICAL_PRECISION,
     ), "Error getting pixel coordinates from DataFrame."
 
     df_eulers = df[["rlnAngleRot", "rlnAngleTilt", "rlnAnglePsi"]].to_numpy()
     df_orientations = Rotation.from_euler("ZYZ", df_eulers, degrees=True).inv().as_matrix()
 
     assert np.allclose(
-        df_orientations, ts_001_ribosome_gapstop_orientations, atol=NUMERICAL_PRECISION,
+        df_orientations,
+        ts_001_ribosome_gapstop_orientations,
+        atol=NUMERICAL_PRECISION,
     ), "Error getting orientations from DataFrame."
 
 
@@ -605,10 +611,14 @@ def test_picks_write_relion_df(
     ts_001_ribosome_gapstop_translated_points = ts_001_ribosome_gapstop_points + ts_001_ribosome_gapstop_translations
 
     assert np.allclose(
-        new_picks_relion_4_points, ts_001_ribosome_gapstop_translated_points, atol=NUMERICAL_PRECISION,
+        new_picks_relion_4_points,
+        ts_001_ribosome_gapstop_translated_points,
+        atol=NUMERICAL_PRECISION,
     ), "RELION 4 points do not match expected values."
     assert np.allclose(
-        new_picks_relion_5_points, ts_001_ribosome_gapstop_translated_points, atol=NUMERICAL_PRECISION,
+        new_picks_relion_5_points,
+        ts_001_ribosome_gapstop_translated_points,
+        atol=NUMERICAL_PRECISION,
     ), "RELION 5 points do not match expected values."
 
     ts_001_ribosome_gapstop_orientations = ts_001_ribosome_gapstop_transformations.copy()
@@ -616,14 +626,20 @@ def test_picks_write_relion_df(
 
     # Checking that the orientations should match, the translations should be 0, the bottom row should be [0, 0, 0, 1]
     assert np.allclose(
-        new_picks_relion_4_transformations, ts_001_ribosome_gapstop_orientations, atol=NUMERICAL_PRECISION,
+        new_picks_relion_4_transformations,
+        ts_001_ribosome_gapstop_orientations,
+        atol=NUMERICAL_PRECISION,
     ), "RELION 4 orientations do not match expected values."
     assert np.allclose(
-        new_picks_relion_5_transformations, ts_001_ribosome_gapstop_orientations, atol=NUMERICAL_PRECISION,
+        new_picks_relion_5_transformations,
+        ts_001_ribosome_gapstop_orientations,
+        atol=NUMERICAL_PRECISION,
     ), "RELION 5 orientations do not match expected values."
 
     new_picks_relion_subtomogram_orientations = copick_run.new_picks(
-        object_name="ribosome", user_id="relion_sub_orientations", session_id="0",
+        object_name="ribosome",
+        user_id="relion_sub_orientations",
+        session_id="0",
     )
 
     df = pd.read_csv(StringIO(ts_001_ribosome_gapstop_csv_data))
@@ -640,9 +656,10 @@ def test_picks_write_relion_df(
     df["rlnAnglePsi"] = 0
 
     new_picks_relion_subtomogram_orientations.from_df(df)
-    new_picks_relion_subtomogram_orientations_points, new_picks_relion_subtomogram_orientations_transformations = (
-        new_picks_relion_subtomogram_orientations.numpy()
-    )
+    (
+        new_picks_relion_subtomogram_orientations_points,
+        new_picks_relion_subtomogram_orientations_transformations,
+    ) = new_picks_relion_subtomogram_orientations.numpy()
 
     assert np.allclose(
         new_picks_relion_subtomogram_orientations_points,
@@ -676,10 +693,14 @@ def test_picks_write_relion_df(
     new_picks_relion_offsets_points, new_picks_relion_offsets_transformations = new_picks_relion_offsets.numpy()
 
     assert np.allclose(
-        new_picks_relion_offsets_points, ts_001_ribosome_gapstop_translated_points, atol=NUMERICAL_PRECISION,
+        new_picks_relion_offsets_points,
+        ts_001_ribosome_gapstop_translated_points,
+        atol=NUMERICAL_PRECISION,
     ), "RELION offsets points do not match expected values."
     assert np.allclose(
-        new_picks_relion_offsets_transformations, ts_001_ribosome_gapstop_orientations, atol=NUMERICAL_PRECISION,
+        new_picks_relion_offsets_transformations,
+        ts_001_ribosome_gapstop_orientations,
+        atol=NUMERICAL_PRECISION,
     ), "RELION offsets orientations do not match expected values."
 
 
