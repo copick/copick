@@ -86,7 +86,7 @@ def run():
     import copick
     import numpy as np
     import zarr
-    from copick.models import CopickLocation, CopickPoint
+    from copick.metadata import CopickLocation, CopickPoint
 
     # Parse arguments
     args = get_args()

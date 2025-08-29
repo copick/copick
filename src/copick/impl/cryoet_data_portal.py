@@ -1,7 +1,7 @@
 import json
 import re
 import warnings
-from typing import TYPE_CHECKING, Any, Dict, List, Optional, Tuple, Type, Union
+from typing import TYPE_CHECKING, Any, Dict, List, Optional, Type, Union
 
 import cryoet_data_portal as cdp
 import fsspec
@@ -21,19 +21,20 @@ from copick.impl.overlay import (
     CopickTomogramOverlay,
     CopickVoxelSpacingOverlay,
 )
-from copick.models import (
+from copick.metadata import (
     CopickConfig,
-    CopickFeaturesMeta,
+    CopickFeaturesMeta,  # noqa
     CopickLocation,
     CopickMeshMeta,
     CopickPicksFile,
     CopickPoint,
-    CopickRoot,
     CopickRunMeta,
     CopickSegmentationMeta,
     CopickTomogramMeta,
     CopickVoxelSpacingMeta,
-    PickableObject,
+)
+from copick.models import (
+    CopickRoot,
 )
 from copick.util.log import get_logger
 
@@ -520,11 +521,10 @@ class CopickTomogramMetaCDP(CopickTomogramMeta):
 
 
 class CopickTomogramCDP(CopickTomogramOverlay):
+    feature_class = CopickFeaturesCDP
+
     voxel_spacing: "CopickVoxelSpacingCDP"
     meta: CopickTomogramMetaCDP
-
-    def _feature_factory(self) -> Tuple[Type[CopickFeaturesCDP], Type["CopickFeaturesMeta"]]:
-        return CopickFeaturesCDP, CopickFeaturesMeta
 
     @property
     def tomo_type(self) -> str:
@@ -574,12 +574,11 @@ class CopickTomogramCDP(CopickTomogramOverlay):
         feature_types = [ft for ft in feature_types if not ft.startswith(".")]
 
         feature_types = list(set(feature_types))
-        clz, meta_clz = self._feature_factory()
 
         return [
-            clz(
+            self.feature_class(
                 tomogram=self,
-                meta=meta_clz(
+                meta=self.feature_meta_class(
                     tomo_type=self.tomo_type,
                     feature_type=ft,
                 ),
@@ -625,11 +624,11 @@ class CopickVoxelSpacingMetaCDP(CopickVoxelSpacingMeta):
 
 
 class CopickVoxelSpacingCDP(CopickVoxelSpacingOverlay):
+    tomogram_class = CopickTomogramCDP
+    tomogram_meta_class = CopickTomogramMeta
+
     run: "CopickRunCDP"
     meta: CopickVoxelSpacingMetaCDP
-
-    def _tomogram_factory(self) -> Tuple[Type[CopickTomogramCDP], Type[CopickTomogramMetaCDP]]:
-        return CopickTomogramCDP, CopickTomogramMetaCDP
 
     @property
     def overlay_path(self):
@@ -649,12 +648,11 @@ class CopickVoxelSpacingCDP(CopickVoxelSpacingOverlay):
 
         client = cdp.Client()
         portal_tomos = cdp.Tomogram.find(client, [cdp.Tomogram.tomogram_voxel_spacing_id == self.portal_vs_id])  # noqa
-        clz, meta_clz = self._tomogram_factory()
         tomos = []
 
         for t in portal_tomos:
-            tomo_meta = meta_clz.from_portal(t)
-            tomo = clz(voxel_spacing=self, meta=tomo_meta, read_only=True)
+            tomo_meta = self.tomogram_meta_class.from_portal(t)
+            tomo = self.tomogram_class(voxel_spacing=self, meta=tomo_meta, read_only=True)
             tomos.append(tomo)
 
         return tomos
@@ -669,12 +667,11 @@ class CopickVoxelSpacingCDP(CopickVoxelSpacingOverlay):
         tomo_types = [tt for tt in tomo_types if not tt.startswith(".")]
 
         tomo_types = list(set(tomo_types))
-        clz, meta_clz = self._tomogram_factory()
 
         return [
-            clz(
+            self.tomogram_class(
                 voxel_spacing=self,
-                meta=meta_clz(tomo_type=tt),
+                meta=self.tomogram_meta_class(tomo_type=tt),
                 read_only=False,
             )
             for tt in tomo_types
@@ -758,20 +755,19 @@ class CopickRunMetaCDP(CopickRunMeta):
 
 
 class CopickRunCDP(CopickRunOverlay):
+    picks_class = CopickPicksCDP
+
+    mesh_class = CopickMeshCDP
+    mesh_meta_class = CopickMeshMeta
+
+    segmentation_class = CopickSegmentationCDP
+    segmentation_meta_class = CopickSegmentationMetaCDP
+
+    voxel_spacing_class = CopickVoxelSpacingCDP
+    voxel_spacing_meta_class = CopickVoxelSpacingMetaCDP
+
     root: "CopickRootCDP"
     meta: CopickRunMetaCDP
-
-    def _voxel_spacing_factory(self) -> Tuple[Type[CopickVoxelSpacingCDP], Type[CopickVoxelSpacingMetaCDP]]:
-        return CopickVoxelSpacingCDP, CopickVoxelSpacingMetaCDP
-
-    def _picks_factory(self) -> Type[CopickPicksCDP]:
-        return CopickPicksCDP
-
-    def _mesh_factory(self) -> Tuple[Type[CopickMeshCDP], Type[CopickMeshMeta]]:
-        return CopickMeshCDP, CopickMeshMeta
-
-    def _segmentation_factory(self) -> Tuple[Type[CopickSegmentationCDP], Type[CopickSegmentationMetaCDP]]:
-        return CopickSegmentationCDP, CopickSegmentationMetaCDP
 
     @property
     def overlay_path(self) -> str:
@@ -800,10 +796,9 @@ class CopickRunCDP(CopickRunOverlay):
             [cdp.TomogramVoxelSpacing.run_id == self.portal_run_id],  # noqa
         )
 
-        # portal_vs = self.portal_run.tomogram_voxel_spacings
-        clz, meta_clz = self._voxel_spacing_factory()
-
-        return [clz(meta=meta_clz.from_portal(vs), run=self) for vs in portal_vs]
+        return [
+            self.voxel_spacing_class(meta=self.voxel_spacing_meta_class.from_portal(vs), run=self) for vs in portal_vs
+        ]
 
     def _query_overlay_voxel_spacings(self) -> List[CopickVoxelSpacingCDP]:
         overlay_vs_loc = f"{self.overlay_path}/VoxelSpacing"
@@ -811,11 +806,9 @@ class CopickRunCDP(CopickRunOverlay):
         opaths = [p.rstrip("/") for p in opaths]
         spacings = [float(p.replace(f"{overlay_vs_loc}", "")) for p in opaths]
 
-        clz, meta_clz = self._voxel_spacing_factory()
-
         return [
-            clz(
-                meta=meta_clz(voxel_size=s),
+            self.voxel_spacing_class(
+                meta=self.voxel_spacing_meta_class(voxel_size=s),
                 run=self,
             )
             for s in spacings
@@ -963,12 +956,10 @@ class CopickRunCDP(CopickRunOverlay):
         sessions = [n.split("_")[1] for n in names]
         objects = [n.split("_")[2] for n in names]
 
-        clz, meta_clz = self._mesh_factory()
-
         return [
-            clz(
+            self.mesh_class(
                 run=self,
-                meta=meta_clz(
+                meta=self.mesh_meta_class(
                     pickable_object_name=o,
                     user_id=u,
                     session_id=s,
@@ -996,11 +987,13 @@ class CopickRunCDP(CopickRunOverlay):
         )
 
         segmentations = []
-        clz, meta_clz = self._segmentation_factory()
 
         for af in seg_annos:
-            seg_meta = meta_clz.from_portal(af, name=go_map[af.annotation_shape.annotation.object_id])
-            seg = clz(run=self, meta=seg_meta, read_only=True)
+            seg_meta = self.segmentation_meta_class.from_portal(
+                af,
+                name=go_map[af.annotation_shape.annotation.object_id],
+            )
+            seg = self.segmentation_class(run=self, meta=seg_meta, read_only=True)
             segmentations.append(seg)
 
         return segmentations
@@ -1018,12 +1011,11 @@ class CopickRunCDP(CopickRunOverlay):
 
         # multilabel vs single label
         metas = []
-        clz, meta_clz = self._segmentation_factory()
         for n in names:
             if "multilabel" in n:
                 parts = n.split("_")
                 metas.append(
-                    meta_clz(
+                    self.segmentation_meta_class(
                         is_multilabel=True,
                         voxel_size=float(parts[0]),
                         user_id=parts[1],
@@ -1034,7 +1026,7 @@ class CopickRunCDP(CopickRunOverlay):
             else:
                 parts = n.split("_")
                 metas.append(
-                    meta_clz(
+                    self.segmentation_meta_class(
                         is_multilabel=False,
                         voxel_size=float(parts[0]),
                         user_id=parts[1],
@@ -1044,7 +1036,7 @@ class CopickRunCDP(CopickRunOverlay):
                 )
 
         return [
-            clz(
+            self.segmentation_class(
                 run=self,
                 meta=m,
                 read_only=False,
@@ -1185,6 +1177,11 @@ class CopickObjectCDP(CopickObjectOverlay):
 
 
 class CopickRootCDP(CopickRoot):
+    run_class = CopickRunCDP
+    run_meta_class = CopickRunMetaCDP
+
+    object_class = CopickObjectCDP
+
     config: CopickConfigCDP
 
     def __init__(self, config: CopickConfigCDP):
@@ -1220,12 +1217,6 @@ class CopickRootCDP(CopickRoot):
 
         return cls(CopickConfigCDP(**data))
 
-    def _run_factory(self) -> Tuple[Type[CopickRunCDP], Type[CopickRunMetaCDP]]:
-        return CopickRunCDP, CopickRunMetaCDP
-
-    def _object_factory(self) -> Tuple[Type[CopickObjectCDP], Type[PickableObject]]:
-        return CopickObjectCDP, PickableObject
-
     def query(self) -> List[CopickRunCDP]:
         client = cdp.Client()
         portal_runs = cdp.Run.find(client, [cdp.Run.dataset_id._in(self.dataset_ids)])  # noqa
@@ -1239,13 +1230,12 @@ class CopickRootCDP(CopickRoot):
 
     def _query_objects(self):
         """Override to create objects from config. For CryoET Data Portal, objects are always writable since they only exist in overlay."""
-        clz, meta_clz = self._object_factory()
         objects = []
 
         for obj_meta in self.config.pickable_objects:
             # For CryoET Data Portal, objects are always writable (read_only=False)
             # since they only exist in the overlay filesystem
-            obj = clz(self, obj_meta, read_only=False)
+            obj = self.object_class(self, obj_meta, read_only=False)
             objects.append(obj)
 
         self._objects = objects

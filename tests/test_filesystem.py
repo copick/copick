@@ -4,7 +4,7 @@ import numpy as np
 import pytest
 import zarr
 from copick.impl.filesystem import CopickRootFSSpec
-from copick.models import CopickPicksFile
+from copick.metadata import CopickPicksFile
 from copick.util.ome import write_ome_zarr_3d
 from trimesh.parent import Geometry
 
@@ -995,13 +995,13 @@ def test_vs_get_tomogram(test_payload: Dict[str, Any]):
     vs = copick_run.get_voxel_spacing(10.000)
 
     # Get tomogram
-    tomogram = vs.get_tomogram(tomo_type="denoised")
+    tomogram = vs.get_tomograms(tomo_type="denoised")[0]
     assert tomogram is not None, "Tomogram not found"
     assert tomogram.tomo_type == "denoised", "Wrong tomogram found"
 
     # Non-existing tomogram
-    tomogram = vs.get_tomogram(tomo_type="SIRT")
-    assert tomogram is None, "Tomogram should not be found"
+    tomogram = vs.get_tomograms(tomo_type="SIRT")
+    assert tomogram == [], "Tomogram should not be found"
 
 
 def test_vs_new_tomogram(test_payload: Dict[str, Any]):
@@ -1042,7 +1042,7 @@ def test_vs_new_tomogram(test_payload: Dict[str, Any]):
     zarr.create((5, 5, 5), store=tomogram.zarr())
 
     assert tomogram in vs.tomograms, "Tomogram not added to tomograms"
-    assert tomogram == vs.get_tomogram(tomo_type="SIRT"), "Tomogram not found"
+    assert tomogram == vs.get_tomograms(tomo_type="SIRT")[0], "Tomogram not found"
 
     # Total number of tomograms should be 3 now
     vs.refresh_tomograms()
@@ -1094,7 +1094,7 @@ def test_tomogram_meta(test_payload: Dict[str, Any]):
     copick_root = test_payload["root"]
     copick_run = copick_root.get_run("TS_001")
     vs = copick_run.get_voxel_spacing(10.000)
-    tomogram = vs.get_tomogram(tomo_type="denoised")
+    tomogram = vs.get_tomograms(tomo_type="denoised")[0]
 
     # Check metadata for tomogram
     assert tomogram.tomo_type == "denoised", "Incorrect tomogram type"
@@ -1105,7 +1105,7 @@ def test_tomogram_lazy(test_payload: Dict[str, Any]):
     copick_root = test_payload["root"]
     copick_run = copick_root.get_run("TS_001")
     vs = copick_run.get_voxel_spacing(10.000)
-    tomogram = vs.get_tomogram(tomo_type="wbp")
+    tomogram = vs.get_tomograms(tomo_type="wbp")[0]
 
     # Check that the features are not populated
     assert tomogram._features is None, "features should not be populated"
@@ -1124,7 +1124,7 @@ def test_tomogram_get_features(test_payload: Dict[str, Any]):
     copick_root = test_payload["root"]
     copick_run = copick_root.get_run("TS_001")
     vs = copick_run.get_voxel_spacing(10.000)
-    tomogram = vs.get_tomogram(tomo_type="wbp")
+    tomogram = vs.get_tomograms(tomo_type="wbp")[0]
 
     # Get features by type
     features = tomogram.get_features(feature_type="sobel")
@@ -1140,7 +1140,7 @@ def test_tomogram_new_features(test_payload: Dict[str, Any]):
     copick_root = test_payload["root"]
     copick_run = copick_root.get_run("TS_001")
     vs = copick_run.get_voxel_spacing(10.000)
-    tomogram = vs.get_tomogram(tomo_type="wbp")
+    tomogram = vs.get_tomograms(tomo_type="wbp")[0]
 
     overlay_fs = test_payload["testfs_overlay"]
     overlay_loc = test_payload["testpath_overlay"]
@@ -1211,7 +1211,7 @@ def test_tomogram_refresh(test_payload: Dict[str, Any]):
     copick_root = test_payload["root"]
     copick_run = copick_root.get_run("TS_001")
     vs = copick_run.get_voxel_spacing(10.000)
-    tomogram = vs.get_tomogram(tomo_type="wbp")
+    tomogram = vs.get_tomograms(tomo_type="wbp")[0]
 
     # Check that the tomogram is not populated
     assert tomogram._features is None, "Features should not be populated"
@@ -1227,7 +1227,7 @@ def test_tomogram_zarr(test_payload: Dict[str, Any]):
     copick_root = test_payload["root"]
     copick_run = copick_root.get_run("TS_001")
     vs = copick_run.get_voxel_spacing(10.000)
-    tomogram = vs.get_tomogram(tomo_type="denoised")
+    tomogram = vs.get_tomograms(tomo_type="denoised")[0]
 
     # Check zarr is readable
     arrays = list(zarr.open(tomogram.zarr(), "r").arrays())
@@ -1248,7 +1248,7 @@ def test_tomogram_read_numpy(test_payload: Dict[str, Any]):
     copick_root = test_payload["root"]
     copick_run = copick_root.get_run("TS_001")
     vs = copick_run.get_voxel_spacing(10.000)
-    tomogram = vs.get_tomogram(tomo_type="denoised")
+    tomogram = vs.get_tomograms(tomo_type="denoised")[0]
 
     # Full array
     array = tomogram.numpy()
@@ -1300,7 +1300,7 @@ def test_feature_meta(test_payload: Dict[str, Any]):
     copick_root = test_payload["root"]
     copick_run = copick_root.get_run("TS_001")
     vs = copick_run.get_voxel_spacing(10.000)
-    tomogram = vs.get_tomogram(tomo_type="wbp")
+    tomogram = vs.get_tomograms(tomo_type="wbp")[0]
     feature = tomogram.get_features(feature_type="sobel")
 
     # Check metadata for feature
@@ -1313,7 +1313,7 @@ def test_feature_zarr(test_payload: Dict[str, Any]):
     copick_root = test_payload["root"]
     copick_run = copick_root.get_run("TS_001")
     vs = copick_run.get_voxel_spacing(10.000)
-    tomogram = vs.get_tomogram(tomo_type="wbp")
+    tomogram = vs.get_tomograms(tomo_type="wbp")[0]
     feature = tomogram.get_features(feature_type="sobel")
 
     # Check zarr is readable
@@ -1335,7 +1335,7 @@ def test_feature_read_numpy(test_payload: Dict[str, Any]):
     copick_root = test_payload["root"]
     copick_run = copick_root.get_run("TS_001")
     vs = copick_run.get_voxel_spacing(10.000)
-    tomogram = vs.get_tomogram(tomo_type="wbp")
+    tomogram = vs.get_tomograms(tomo_type="wbp")[0]
     feature = tomogram.get_features(feature_type="sobel")
 
     # Full volume
@@ -1360,7 +1360,7 @@ def test_feature_write_numpy(test_payload: Dict[str, Any]):
     copick_root = test_payload["root"]
     copick_run = copick_root.get_run("TS_001")
     vs = copick_run.get_voxel_spacing(10.000)
-    tomogram = vs.get_tomogram(tomo_type="wbp")
+    tomogram = vs.get_tomograms(tomo_type="wbp")[0]
     feat = tomogram.new_features(feature_type="test")
 
     # Write zarr
@@ -1561,7 +1561,7 @@ def test_repr(test_payload: Dict[str, Any]):
     copick_root = test_payload["root"]
     copick_run = copick_root.get_run("TS_001")
     vs = copick_run.get_voxel_spacing(10.000)
-    tomogram = vs.get_tomogram(tomo_type="wbp")
+    tomogram = vs.get_tomograms(tomo_type="wbp")[0]
     feature = tomogram.get_features(feature_type="sobel")
     mesh = copick_run.get_meshes(object_name="membrane", session_id="0", user_id="membrain")[0]
     pick = copick_run.get_picks(object_name="proteasome", session_id="0", user_id="pytom")[0]
