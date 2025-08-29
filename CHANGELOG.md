@@ -1,5 +1,26 @@
 # Changelog
 
+## [1.12.0](https://github.com/copick/copick/compare/copick-v1.11.0...copick-v1.12.0) (2025-08-29)
+
+
+### ✨ Features
+
+* add RELION particles.star starfile dataframe and CopickPicks conversion ([#123](https://github.com/copick/copick/issues/123)) ([cf37305](https://github.com/copick/copick/commit/cf3730565c393dddfa1ee702447ecf8000d4b021))
+* Functional API and CLI commands for gathering statistics. ([#124](https://github.com/copick/copick/issues/124)) ([fadd9ee](https://github.com/copick/copick/commit/fadd9eef3e2e93c8a8fb92150a25fee6bc8df0e0))
+
+
+### 🐞 Bug Fixes
+
+* bump actions/checkout from 4 to 5 ([#121](https://github.com/copick/copick/issues/121)) ([7d89aed](https://github.com/copick/copick/commit/7d89aedb2b40c82103b7025559c37d3aac64abed))
+* bump chanzuckerberg/github-actions from 6.4.0 to 6.5.0 ([#119](https://github.com/copick/copick/issues/119)) ([a9d1889](https://github.com/copick/copick/commit/a9d18890d969835548c9a8269d9f215fbe702348))
+* bump chanzuckerberg/github-actions from 6.5.0 to 6.6.0 ([#122](https://github.com/copick/copick/issues/122)) ([bdb677d](https://github.com/copick/copick/commit/bdb677d505caafd75f6e71acddd2436bdf2c3cdb))
+* Fix docs examples for `get_*` API ([#126](https://github.com/copick/copick/issues/126)) ([900ebf7](https://github.com/copick/copick/commit/900ebf7077426d42c773ac325ab08a94eeb38445))
+
+
+### 📝 Documentation
+
+* Update docs to reflect fix in pip==25.2 ([#120](https://github.com/copick/copick/issues/120)) ([9e12e0b](https://github.com/copick/copick/commit/9e12e0b8900d32815571b370f2713b82065dc764))
+
 ## [1.11.0](https://github.com/copick/copick/compare/copick-v1.10.0...copick-v1.11.0) (2025-07-22)
 
 
