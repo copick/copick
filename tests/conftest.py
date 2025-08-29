@@ -14,9 +14,9 @@ import pytest
 OZ = pooch.os_cache("test_data")  # Path("/Users/utz.ermel/Documents/copick/testproject")  # pooch.os_cache("test_data")
 TOTO = pooch.create(
     path=OZ,
-    base_url="doi:10.5281/zenodo.11238625",
+    base_url="doi:10.5281/zenodo.16996074",
     registry={
-        "sample_project.zip": "md5:b06ee6f4541b1ad06c988c8ca8d09945",
+        "sample_project.zip": "md5:4d25e40fbbc3510756a0547d2e02b9b4",
     },
 )
 
