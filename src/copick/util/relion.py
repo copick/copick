@@ -1,10 +1,11 @@
 from typing import TYPE_CHECKING, Tuple, Union
 
 import numpy as np
-import pandas as pd
 import zarr
 
 if TYPE_CHECKING:
+    import pandas as pd
+
     from copick.models import CopickPicks
 
 
@@ -83,12 +84,13 @@ def get_tomogram_spacing_and_dimensions(
     return voxel_spacing.voxel_size, tomogram_x, tomogram_y, tomogram_z
 
 
-def picks_to_df_relion(picks: "CopickPicks") -> pd.DataFrame:
+def picks_to_df_relion(picks: "CopickPicks") -> "pd.DataFrame":
     """Returns the points as a pandas DataFrame with RELION columns:
     rlnCoordinateX, rlnCoordinateY, rlnCoordinateZ,
     rlnAngleRot, rlnAngleTilt, rlnAnglePsi,
     rlnCenteredCoordinateXAngst, rlnCenteredCoordinateYAngst, rlnCenteredCoordinateZAngst
     """
+    import pandas as pd
     from scipy.spatial.transform import Rotation
 
     points, _ = picks.numpy()
@@ -121,7 +123,7 @@ def picks_to_df_relion(picks: "CopickPicks") -> pd.DataFrame:
     return df
 
 
-def relion_df_to_picks(picks: "CopickPicks", df: pd.DataFrame) -> None:
+def relion_df_to_picks(picks: "CopickPicks", df: "pd.DataFrame") -> None:
     """Set the points from a pandas DataFrame with RELION columns."""
     from scipy.spatial.transform import Rotation
 
