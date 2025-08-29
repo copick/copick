@@ -61,7 +61,7 @@ def picks_stats(
     for picks_file in picks_list:
         pick_count = len(picks_file.points) if picks_file.points else 0
         total_individual_picks += pick_count
-        
+
         run_name = picks_file.run.name
         distribution_by_run[run_name] += pick_count
         distribution_by_user[picks_file.user_id] += pick_count
@@ -133,7 +133,7 @@ def meshes_stats(
         distribution_by_user[mesh.user_id] += 1
         distribution_by_session[mesh.session_id] += 1
         distribution_by_object[mesh.pickable_object_name] += 1
-        
+
         combo_key = f"{mesh.session_id}_{mesh.user_id}_{mesh.pickable_object_name}"
         session_user_object_freq[combo_key] += 1
 
@@ -156,7 +156,7 @@ def segmentations_stats(
     voxel_size: Union[float, Iterable[float], None] = None,
     parallel: bool = False,
     workers: Optional[int] = 8,
-    show_progress: bool = False,
+    show_progress: bool = True,
 ) -> Dict[str, Union[int, Dict[str, int]]]:
     """Generate statistics for segmentations in a Copick project.
 
@@ -213,7 +213,7 @@ def segmentations_stats(
         distribution_by_name[seg.name] += 1
         distribution_by_voxel_size[seg.voxel_size] += 1
         distribution_by_multilabel[str(seg.is_multilabel)] += 1
-        
+
         combo_key = f"{seg.session_id}_{seg.user_id}_{seg.name}_{seg.voxel_size}_{seg.is_multilabel}"
         combo_freq[combo_key] += 1
 

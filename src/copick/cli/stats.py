@@ -35,7 +35,7 @@ def stats(ctx):
     help="Filter by user ID. Can be specified multiple times.",
 )
 @click.option(
-    "--session-id", 
+    "--session-id",
     type=str,
     multiple=True,
     help="Filter by session ID. Can be specified multiple times.",
@@ -48,7 +48,7 @@ def stats(ctx):
 )
 @click.option(
     "--parallel/--no-parallel",
-    default=False,
+    default=True,
     help="Enable parallel processing.",
 )
 @click.option(
@@ -77,19 +77,19 @@ def picks(
     output,
 ):
     """Generate statistics for picks in the project."""
-    logger = get_logger(__name__, debug)
-    
+    get_logger(__name__, debug)
+
     if config is None:
         raise click.ClickException("Configuration file path is required. Use -c/--config option.")
-        
+
     root = from_file(config)
-    
+
     # Convert tuples to lists or None
     runs_param = list(runs) if runs else None
     user_id_param = list(user_id) if user_id else None
     session_id_param = list(session_id) if session_id else None
     object_name_param = list(object_name) if object_name else None
-    
+
     stats_data = picks_stats(
         root=root,
         runs=runs_param,
@@ -100,7 +100,7 @@ def picks(
         workers=workers,
         show_progress=True,
     )
-    
+
     if output == "json":
         click.echo(json.dumps(stats_data, indent=2))
     else:
@@ -136,7 +136,7 @@ def picks(
 )
 @click.option(
     "--parallel/--no-parallel",
-    default=False,
+    default=True,
     help="Enable parallel processing.",
 )
 @click.option(
@@ -165,19 +165,19 @@ def meshes(
     output,
 ):
     """Generate statistics for meshes in the project."""
-    logger = get_logger(__name__, debug)
-    
+    get_logger(__name__, debug)
+
     if config is None:
         raise click.ClickException("Configuration file path is required. Use -c/--config option.")
-        
+
     root = from_file(config)
-    
+
     # Convert tuples to lists or None
     runs_param = list(runs) if runs else None
     user_id_param = list(user_id) if user_id else None
     session_id_param = list(session_id) if session_id else None
     object_name_param = list(object_name) if object_name else None
-    
+
     stats_data = meshes_stats(
         root=root,
         runs=runs_param,
@@ -188,7 +188,7 @@ def meshes(
         workers=workers,
         show_progress=True,
     )
-    
+
     if output == "json":
         click.echo(json.dumps(stats_data, indent=2))
     else:
@@ -235,7 +235,7 @@ def meshes(
 )
 @click.option(
     "--parallel/--no-parallel",
-    default=False,
+    default=True,
     help="Enable parallel processing.",
 )
 @click.option(
@@ -266,20 +266,20 @@ def segmentations(
     output,
 ):
     """Generate statistics for segmentations in the project."""
-    logger = get_logger(__name__, debug)
-    
+    get_logger(__name__, debug)
+
     if config is None:
         raise click.ClickException("Configuration file path is required. Use -c/--config option.")
-        
+
     root = from_file(config)
-    
+
     # Convert tuples to lists or None
     runs_param = list(runs) if runs else None
     user_id_param = list(user_id) if user_id else None
     session_id_param = list(session_id) if session_id else None
     name_param = list(name) if name else None
     voxel_size_param = list(voxel_size) if voxel_size else None
-    
+
     stats_data = segmentations_stats(
         root=root,
         runs=runs_param,
@@ -292,7 +292,7 @@ def segmentations(
         workers=workers,
         show_progress=True,
     )
-    
+
     if output == "json":
         click.echo(json.dumps(stats_data, indent=2))
     else:
@@ -304,22 +304,22 @@ def _print_picks_table(stats_data: dict):
     click.echo("=== Picks Statistics ===")
     click.echo(f"Total individual picks: {stats_data['total_picks']}")
     click.echo(f"Total pick files: {stats_data['total_pick_files']}")
-    
+
     if stats_data["distribution_by_run"]:
         click.echo("\nDistribution by run:")
         for run, count in stats_data["distribution_by_run"].items():
             click.echo(f"  {run}: {count}")
-    
+
     if stats_data["distribution_by_user"]:
         click.echo("\nDistribution by user:")
         for user, count in stats_data["distribution_by_user"].items():
             click.echo(f"  {user}: {count}")
-    
+
     if stats_data["distribution_by_session"]:
         click.echo("\nDistribution by session:")
         for session, count in stats_data["distribution_by_session"].items():
             click.echo(f"  {session}: {count}")
-    
+
     if stats_data["distribution_by_object"]:
         click.echo("\nDistribution by object:")
         for obj, count in stats_data["distribution_by_object"].items():
@@ -330,28 +330,28 @@ def _print_meshes_table(stats_data: dict):
     """Print meshes statistics in table format."""
     click.echo("=== Meshes Statistics ===")
     click.echo(f"Total meshes: {stats_data['total_meshes']}")
-    
+
     if stats_data["distribution_by_user"]:
         click.echo("\nDistribution by user:")
         for user, count in stats_data["distribution_by_user"].items():
             click.echo(f"  {user}: {count}")
-    
+
     if stats_data["distribution_by_session"]:
         click.echo("\nDistribution by session:")
         for session, count in stats_data["distribution_by_session"].items():
             click.echo(f"  {session}: {count}")
-    
+
     if stats_data["distribution_by_object"]:
         click.echo("\nDistribution by object:")
         for obj, count in stats_data["distribution_by_object"].items():
             click.echo(f"  {obj}: {count}")
-    
+
     if stats_data["session_user_object_combinations"]:
         click.echo("\nFrequent session_user_object combinations:")
         sorted_combos = sorted(
             stats_data["session_user_object_combinations"].items(),
             key=lambda x: x[1],
-            reverse=True
+            reverse=True,
         )
         for combo, count in sorted_combos[:10]:  # Top 10
             click.echo(f"  {combo}: {count}")
@@ -361,38 +361,38 @@ def _print_segmentations_table(stats_data: dict):
     """Print segmentations statistics in table format."""
     click.echo("=== Segmentations Statistics ===")
     click.echo(f"Total segmentations: {stats_data['total_segmentations']}")
-    
+
     if stats_data["distribution_by_user"]:
         click.echo("\nDistribution by user:")
         for user, count in stats_data["distribution_by_user"].items():
             click.echo(f"  {user}: {count}")
-    
+
     if stats_data["distribution_by_session"]:
         click.echo("\nDistribution by session:")
         for session, count in stats_data["distribution_by_session"].items():
             click.echo(f"  {session}: {count}")
-    
+
     if stats_data["distribution_by_name"]:
         click.echo("\nDistribution by name:")
         for name, count in stats_data["distribution_by_name"].items():
             click.echo(f"  {name}: {count}")
-    
+
     if stats_data["distribution_by_voxel_size"]:
         click.echo("\nDistribution by voxel size:")
         for voxel_size, count in stats_data["distribution_by_voxel_size"].items():
             click.echo(f"  {voxel_size}: {count}")
-    
+
     if stats_data["distribution_by_multilabel"]:
         click.echo("\nDistribution by multilabel:")
         for multilabel, count in stats_data["distribution_by_multilabel"].items():
             click.echo(f"  {multilabel}: {count}")
-    
+
     if stats_data["session_user_voxelspacing_multilabel_combinations"]:
         click.echo("\nFrequent session_user_voxelspacing_multilabel combinations:")
         sorted_combos = sorted(
             stats_data["session_user_voxelspacing_multilabel_combinations"].items(),
             key=lambda x: x[1],
-            reverse=True
+            reverse=True,
         )
         for combo, count in sorted_combos[:10]:  # Top 10
             click.echo(f"  {combo}: {count}")

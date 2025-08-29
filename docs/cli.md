@@ -685,6 +685,134 @@ copick sync tomograms -c source_config.json --target-config target_config.json \
 
 ---
 
+### :material-chart-bar: `copick stats`
+
+Gather statistics about a Copick project's entities including picks, meshes, and segmentations.
+
+**Subcommands:**
+
+- [`copick stats picks`](#copick-stats-picks) - Generate statistics for picks in the project
+- [`copick stats meshes`](#copick-stats-meshes) - Generate statistics for meshes in the project
+- [`copick stats segmentations`](#copick-stats-segmentations) - Generate statistics for segmentations in the project
+
+#### :material-target: `copick stats picks`
+
+Generate comprehensive statistics for picks including total counts and distribution analysis.
+
+**Usage:**
+```bash
+copick stats picks [OPTIONS]
+```
+
+**Options:**
+
+| Option                  | Type    | Description                                           | Default                      |
+|-------------------------|---------|-------------------------------------------------------|------------------------------|
+| `-c, --config PATH`     | Path    | Path to the configuration file                        | Uses `COPICK_CONFIG` env var |
+| `--runs`                | String  | Specific run names to analyze (multiple allowed)     | All runs                     |
+| `--user-id`             | String  | Filter by user ID (multiple allowed)                 | All users                    |
+| `--session-id`          | String  | Filter by session ID (multiple allowed)              | All sessions                 |
+| `--object-name`         | String  | Filter by pickable object name (multiple allowed)    | All objects                  |
+| `--parallel/--no-parallel` | Boolean | Enable parallel processing                           | `no-parallel`               |
+| `--workers`             | Integer | Number of workers for parallel processing            | `8`                          |
+| `--output`              | Choice  | Output format ('json' or 'table')                    | `table`                      |
+| `--debug/--no-debug`    | Boolean | Enable debug logging                                  | `no-debug`                   |
+
+**Examples:**
+
+```bash
+# Get statistics for all picks
+copick stats picks --config config.json
+
+# Get statistics for specific runs
+copick stats picks --config config.json --runs run1 --runs run2
+
+# Get statistics for specific objects and users
+copick stats picks --config config.json --object-name ribosome --user-id alice
+
+# Output in JSON format with parallel processing
+copick stats picks --config config.json --output json --parallel --workers 12
+```
+
+#### :material-vector-triangle: `copick stats meshes`
+
+Generate statistics for meshes including counts and frequency analysis of user/session/object combinations.
+
+**Usage:**
+```bash
+copick stats meshes [OPTIONS]
+```
+
+**Options:**
+
+| Option                  | Type    | Description                                           | Default                      |
+|-------------------------|---------|-------------------------------------------------------|------------------------------|
+| `-c, --config PATH`     | Path    | Path to the configuration file                        | Uses `COPICK_CONFIG` env var |
+| `--runs`                | String  | Specific run names to analyze (multiple allowed)     | All runs                     |
+| `--user-id`             | String  | Filter by user ID (multiple allowed)                 | All users                    |
+| `--session-id`          | String  | Filter by session ID (multiple allowed)              | All sessions                 |
+| `--object-name`         | String  | Filter by pickable object name (multiple allowed)    | All objects                  |
+| `--parallel/--no-parallel` | Boolean | Enable parallel processing                           | `no-parallel`               |
+| `--workers`             | Integer | Number of workers for parallel processing            | `8`                          |
+| `--output`              | Choice  | Output format ('json' or 'table')                    | `table`                      |
+| `--debug/--no-debug`    | Boolean | Enable debug logging                                  | `no-debug`                   |
+
+**Examples:**
+
+```bash
+# Get statistics for all meshes
+copick stats meshes --config config.json
+
+# Get statistics for specific users and sessions
+copick stats meshes --config config.json --user-id analyst --session-id session1
+
+# JSON output for integration with other tools
+copick stats meshes --config config.json --output json
+```
+
+#### :material-layers: `copick stats segmentations`
+
+Generate statistics for segmentations including counts and frequency analysis by various properties.
+
+**Usage:**
+```bash
+copick stats segmentations [OPTIONS]
+```
+
+**Options:**
+
+| Option                      | Type    | Description                                           | Default                      |
+|-----------------------------|---------|-------------------------------------------------------|------------------------------|
+| `-c, --config PATH`         | Path    | Path to the configuration file                        | Uses `COPICK_CONFIG` env var |
+| `--runs`                    | String  | Specific run names to analyze (multiple allowed)     | All runs                     |
+| `--user-id`                 | String  | Filter by user ID (multiple allowed)                 | All users                    |
+| `--session-id`              | String  | Filter by session ID (multiple allowed)              | All sessions                 |
+| `--name`                    | String  | Filter by segmentation name (multiple allowed)       | All segmentations            |
+| `--voxel-size`              | Float   | Filter by voxel size (multiple allowed)              | All voxel sizes              |
+| `--multilabel/--no-multilabel` | Boolean | Filter by multilabel status                          | All types                    |
+| `--parallel/--no-parallel`  | Boolean | Enable parallel processing                            | `no-parallel`               |
+| `--workers`                 | Integer | Number of workers for parallel processing            | `8`                          |
+| `--output`                  | Choice  | Output format ('json' or 'table')                    | `table`                      |
+| `--debug/--no-debug`        | Boolean | Enable debug logging                                  | `no-debug`                   |
+
+**Examples:**
+
+```bash
+# Get statistics for all segmentations
+copick stats segmentations --config config.json
+
+# Get statistics for specific segmentation types and voxel sizes
+copick stats segmentations --config config.json --name membrane --voxel-size 10.0
+
+# Filter by multilabel segmentations only
+copick stats segmentations --config config.json --multilabel
+
+# Comprehensive analysis with parallel processing
+copick stats segmentations --config config.json --parallel --output json
+```
+
+---
+
 ### :material-information: `copick info`
 
 Display information about the Copick CLI and available plugins.
