@@ -21,7 +21,6 @@ def stats(ctx):
 
 @stats.command()
 @add_config_option
-@add_debug_option
 @click.option(
     "--runs",
     type=str,
@@ -63,11 +62,11 @@ def stats(ctx):
     default="table",
     help="Output format.",
 )
+@add_debug_option
 @click.pass_context
 def picks(
     ctx,
     config,
-    debug,
     runs,
     user_id,
     session_id,
@@ -75,6 +74,7 @@ def picks(
     parallel,
     workers,
     output,
+    debug,
 ):
     """Generate statistics for picks in the project."""
     get_logger(__name__, debug)
@@ -109,7 +109,6 @@ def picks(
 
 @stats.command()
 @add_config_option
-@add_debug_option
 @click.option(
     "--runs",
     type=str,
@@ -151,11 +150,11 @@ def picks(
     default="table",
     help="Output format.",
 )
+@add_debug_option
 @click.pass_context
 def meshes(
     ctx,
     config,
-    debug,
     runs,
     user_id,
     session_id,
@@ -163,6 +162,7 @@ def meshes(
     parallel,
     workers,
     output,
+    debug,
 ):
     """Generate statistics for meshes in the project."""
     get_logger(__name__, debug)
@@ -197,7 +197,6 @@ def meshes(
 
 @stats.command()
 @add_config_option
-@add_debug_option
 @click.option(
     "--runs",
     type=str,
@@ -250,11 +249,11 @@ def meshes(
     default="table",
     help="Output format.",
 )
+@add_debug_option
 @click.pass_context
 def segmentations(
     ctx,
     config,
-    debug,
     runs,
     user_id,
     session_id,
@@ -264,6 +263,7 @@ def segmentations(
     parallel,
     workers,
     output,
+    debug,
 ):
     """Generate statistics for segmentations in the project."""
     get_logger(__name__, debug)
