@@ -45,7 +45,7 @@ pip install "copick[all]"
 
 ## Example dataset
 
-An example dataset can be obtained from [Zenodo](https://doi.org/10.5281/zenodo.11238625).
+An example dataset can be obtained from [Zenodo](https://doi.org/10.5281/zenodo.16996074).
 
 To test with the example dataset:
 
