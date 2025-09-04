@@ -92,6 +92,21 @@ def convert(ctx):
     pass
 
 
+@click.group(
+    short_help="Perform logical operations on copick objects.",
+    no_args_is_help=True,
+)
+@click.pass_context
+def logical(ctx):
+    """
+    Logical operation commands for Copick.
+
+    This group contains commands for boolean operations, distance-based filtering,
+    and point inclusion/exclusion operations on meshes, segmentations, and picks.
+    """
+    pass
+
+
 def add_core_commands(cmd: click.group) -> click.group:
     """
     Add core commands to the CLI.
@@ -151,6 +166,11 @@ def add_plugin_commands(cmd: click.group) -> click.group:
         cmd.add_command(convert)
         for command in convert_commands:
             convert.add_command(command[0])
+
+    if logical_commands := load_plugin_commands("logical"):
+        cmd.add_command(logical)
+        for command in logical_commands:
+            logical.add_command(command[0])
 
     return cmd
 

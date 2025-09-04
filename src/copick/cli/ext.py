@@ -25,7 +25,7 @@ def load_plugin_commands(entry_point: str = "main") -> List[Tuple[click.Command,
                 logger.critical(f"Entry point '{entry_point.name}' is not a valid click command.")
                 continue
             commands.append((command_func, entry_point.dist.name))
-    elif entry_point in ["inference", "training", "evaluation", "process", "convert"]:
+    elif entry_point in ["inference", "training", "evaluation", "process", "convert", "logical"]:
         entry_points = metadata.entry_points(group=f"copick.{entry_point}.commands")
 
         for entry_point in entry_points:
