@@ -7,6 +7,7 @@ from copick.cli.config import config
 from copick.cli.ext import load_plugin_commands
 from copick.cli.info import info
 from copick.cli.new import new
+from copick.cli.stats import stats
 from copick.cli.sync import sync
 from copick.util.log import get_logger
 
@@ -123,6 +124,7 @@ def add_core_commands(cmd: click.group) -> click.group:
     cmd.add_command(config)
     cmd.add_command(info)
     cmd.add_command(new)
+    cmd.add_command(stats)
     cmd.add_command(sync)
 
     return cmd

@@ -7,9 +7,11 @@ from pydantic import AliasChoices, BaseModel, Field, field_validator
 
 from copick.util.escape import sanitize_name
 from copick.util.ome import fits_in_memory, segmentation_pyramid, volume_pyramid, write_ome_zarr_3d
+from copick.util.relion import picks_to_df_relion, relion_df_to_picks
 
 # Don't import Geometry at runtime to keep CLI snappy
 if TYPE_CHECKING:
+    import pandas as pd
     from trimesh.parent import Geometry
 
 
@@ -2120,6 +2122,20 @@ class CopickPicks:
 
         self.points = points
         self.store()
+
+    def df(self, format: str = "relion") -> "pd.DataFrame":
+        """Returns the points as a pandas DataFrame with columns based on the format."""
+        if format == "relion":
+            return picks_to_df_relion(self)
+        else:
+            raise ValueError(f"Format {format} is not supported.")
+
+    def from_df(self, df: "pd.DataFrame", format: str = "relion") -> None:
+        """Set the points from a pandas DataFrame with columns based on the format."""
+        if format == "relion":
+            relion_df_to_picks(self, df)
+        else:
+            raise ValueError(f"Format {format} is not supported.")
 
 
 class CopickMeshMeta(BaseModel):
