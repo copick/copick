@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.13.0](https://github.com/copick/copick/compare/copick-v1.12.0...copick-v1.13.0) (2025-09-05)
+
+
+### ✨ Features
+
+* Add 'logical' CLI entrypoint for plugins.  ([#127](https://github.com/copick/copick/issues/127)) ([6feb68f](https://github.com/copick/copick/commit/6feb68f03b7316ee3fd321f85e7dd1299e1661ca))
+
 ## [1.12.0](https://github.com/copick/copick/compare/copick-v1.11.0...copick-v1.12.0) (2025-08-29)
 
 
