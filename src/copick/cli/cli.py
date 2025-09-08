@@ -5,7 +5,7 @@ from copick.cli.add import add
 from copick.cli.browse import browse
 from copick.cli.config import config
 from copick.cli.ext import load_plugin_commands
-from copick.cli.info import info
+from copick.cli.info import get_installed_plugin_packages, info
 from copick.cli.new import new
 from copick.cli.stats import stats
 from copick.cli.sync import sync
@@ -18,10 +18,17 @@ logger = get_logger(__name__)
 @click.version_option(version=version, message="copick %(version)s")
 @click.pass_context
 def _cli(ctx):
-    text = f"copick {version}"
+    plugin_packages = get_installed_plugin_packages()
+    plugins = ""
+    if plugin_packages:
+        for package in sorted(plugin_packages):
+            plugins += f" {package} |"
+        plugins = plugins[:-2]
+        plugins = f"{plugins}"
+
+    text = f"copick {version} |{plugins}" if plugins else f"copick {version}"
     logger.info(text)
     logger.info(f"{'-'*len(text)}")
-
 
 @click.group(
     short_help="Run inference on copick tomograms.",
