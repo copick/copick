@@ -4,7 +4,10 @@ from copick.cli.ext import load_plugin_commands
 from copick.util.log import get_logger
 
 
-@click.command(context_settings={"show_default": True}, short_help="Display information about the Copick CLI.")
+@click.command(
+    context_settings={"show_default": True},
+    short_help="Display information about the Copick CLI.",
+)
 @click.pass_context
 def info(ctx):
     """Display information about the Copick CLI."""
@@ -17,6 +20,7 @@ def info(ctx):
         "evaluation": "Evaluation commands (copick evaluation COMMAND)",
         "process": "Processing commands (copick process COMMAND)",
         "convert": "Conversion commands (copick convert COMMAND)",
+        "logical": "Logical/Set operations (copick logical COMMAND)",
     }
 
     logged_any_command = False
