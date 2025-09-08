@@ -1,6 +1,7 @@
-import click
 from importlib import metadata
 from typing import Set
+
+import click
 
 from copick.cli.ext import load_plugin_commands
 from copick.util.log import get_logger
@@ -8,22 +9,22 @@ from copick.util.log import get_logger
 
 def get_installed_plugin_packages() -> Set[str]:
     """Get a set of installed plugin packages with their versions.
-    
+
     Returns:
         Set of strings in format "package-name version"
     """
     command_groups = ["main", "inference", "training", "evaluation", "process", "convert", "logical"]
     plugin_packages = set()
-    
+
     for group in command_groups:
         commands = load_plugin_commands(group)
-        for command, package_name in commands:
+        for _command, package_name in commands:
             try:
                 version = metadata.version(package_name)
                 plugin_packages.add(f"{package_name} {version}")
             except metadata.PackageNotFoundError:
                 plugin_packages.add(f"{package_name} (version unknown)")
-    
+
     return plugin_packages
 
 

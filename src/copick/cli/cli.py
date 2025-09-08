@@ -30,6 +30,7 @@ def _cli(ctx):
     logger.info(text)
     logger.info(f"{'-'*len(text)}")
 
+
 @click.group(
     short_help="Run inference on copick tomograms.",
     no_args_is_help=True,
