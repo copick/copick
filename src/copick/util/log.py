@@ -35,5 +35,11 @@ def get_logger(
         force=True,
     )
     gql_logger = logging.getLogger("gql")
-    gql_logger.setLevel(logging.WARN)
+    gql_logger.setLevel(logging.WARN if not debug else logging.DEBUG)
+
+    sshfs_logger = logging.getLogger("sshfs")
+    sshfs_logger.setLevel(logging.WARN if not debug else logging.DEBUG)
+
+    asyncssh_logger = logging.getLogger("asyncssh")
+    asyncssh_logger.setLevel(logging.WARN if not debug else logging.DEBUG)
     return logging.getLogger(name)
