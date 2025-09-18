@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.14.1](https://github.com/copick/copick/compare/copick-v1.14.0...copick-v1.14.1) (2025-09-18)
+
+
+### 🐞 Bug Fixes
+
+* bump actions/setup-python from 5 to 6 ([#134](https://github.com/copick/copick/issues/134)) ([3355810](https://github.com/copick/copick/commit/3355810a285bdcf8e5f0eec95215f9751f436ba2))
+
 ## [1.14.0](https://github.com/copick/copick/compare/copick-v1.13.0...copick-v1.14.0) (2025-09-11)
 
 
