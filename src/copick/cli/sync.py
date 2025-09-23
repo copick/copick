@@ -21,7 +21,11 @@ def sync(ctx):
     pass
 
 
-@sync.command(short_help="Synchronize picks between two Copick projects.")
+@sync.command(
+    short_help="Synchronize picks between two Copick projects.",
+    context_settings={"show_default": True},
+    no_args_is_help=True,
+)
 @add_config_option
 @click.option(
     "--source-dataset-ids",

@@ -43,6 +43,7 @@ def parse_object(ctx, param, value):
 @config.command(
     context_settings={"show_default": True},
     short_help="Set up a configuration file from CZDP dataset IDs.",
+    no_args_is_help=True,
 )
 @click.option(
     "-ds",
@@ -99,7 +100,11 @@ def dataportal(
     logger.info(f"Generated configuration file at {output}.")
 
 
-@config.command(context_settings={"show_default": True}, short_help="Set up a configuration file for a local project.")
+@config.command(
+    context_settings={"show_default": True},
+    short_help="Set up a configuration file for a local project.",
+    no_args_is_help=True,
+)
 @click.pass_context
 @click.option("--overlay-root", type=str, required=True, help="Overlay root path.")
 @click.option(

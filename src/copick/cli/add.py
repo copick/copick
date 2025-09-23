@@ -16,7 +16,10 @@ def add(ctx):
     pass
 
 
-@add.command(short_help="Add a tomogram to the project.")
+@add.command(
+    short_help="Add a tomogram to the project.",
+    no_args_is_help=True,
+)
 @add_config_option
 @click.option(
     "--run",
@@ -232,7 +235,10 @@ def tomogram(
     report_results(results, len(paths), logger)
 
 
-@add.command(short_help="Add a segmentation to the project.")
+@add.command(
+    short_help="Add a segmentation to the project.",
+    no_args_is_help=True,
+)
 @add_config_option
 @click.option(
     "--run",
@@ -396,7 +402,10 @@ def segmentation(
     report_results(results, len(paths), logger)
 
 
-@add.command(short_help="Add a pickable object to the project configuration.")
+@add.command(
+    short_help="Add a pickable object to the project configuration.",
+    no_args_is_help=True,
+)
 @add_config_option
 @click.option(
     "--name",
@@ -595,7 +604,10 @@ def object(
         ctx.fail(f"Error adding object: {e}")
 
 
-@add.command(short_help="Add volume data to an existing pickable object.")
+@add.command(
+    short_help="Add volume data to an existing pickable object.",
+    no_args_is_help=True,
+)
 @add_config_option
 @click.option(
     "--object-name",

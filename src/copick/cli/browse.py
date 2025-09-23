@@ -4,7 +4,10 @@ from copick.cli.util import add_config_option, add_debug_option
 from copick.util.log import get_logger
 
 
-@click.command(context_settings={"show_default": True}, short_help="Browse Copick projects.")
+@click.command(
+    context_settings={"show_default": True},
+    short_help="Browse Copick projects.",
+)
 @add_config_option
 @click.option(
     "-ds",

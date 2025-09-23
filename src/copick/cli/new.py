@@ -14,7 +14,11 @@ def new(ctx):
     pass
 
 
-@new.command(context_settings={"show_default": True}, short_help="Create empty picks for a given particle name.")
+@new.command(
+    context_settings={"show_default": True},
+    short_help="Create empty picks for a given particle name.",
+    no_args_is_help=True,
+)
 @add_config_option
 @click.option("--particle-name", type=str, required=True, help="Name of the particle to create picks for")
 @click.option("--out-user", type=str, required=False, default="copick", help="User ID to write picks to")
@@ -74,7 +78,11 @@ def picks(
         picks.store()
 
 
-@new.command(short_help="Create an empty run with the given name.", context_settings={"show_default": True})
+@new.command(
+    short_help="Create an empty run with the given name.",
+    context_settings={"show_default": True},
+    no_args_is_help=True,
+)
 @add_config_option
 @add_create_overwrite_options
 @add_debug_option
@@ -105,7 +113,11 @@ def run(
     return 0
 
 
-@new.command(short_help="Create an empty voxelspacing with the given name.", context_settings={"show_default": True})
+@new.command(
+    short_help="Create an empty voxelspacing with the given name.",
+    context_settings={"show_default": True},
+    no_args_is_help=True,
+)
 @add_config_option
 @click.option("--run", required=True, type=str, help="Name of the run to add voxel spacing to.", metavar="RUN")
 @add_create_overwrite_options

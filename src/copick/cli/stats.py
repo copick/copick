@@ -19,7 +19,11 @@ def stats(ctx):
     pass
 
 
-@stats.command()
+@stats.command(
+    short_help="Display statistics about picks.",
+    context_settings={"show_default": True},
+    no_args_is_help=True,
+)
 @add_config_option
 @click.option(
     "--runs",
@@ -107,7 +111,11 @@ def picks(
         _print_picks_table(stats_data)
 
 
-@stats.command()
+@stats.command(
+    short_help="Display statistics about meshes.",
+    context_settings={"show_default": True},
+    no_args_is_help=True,
+)
 @add_config_option
 @click.option(
     "--runs",
@@ -195,7 +203,11 @@ def meshes(
         _print_meshes_table(stats_data)
 
 
-@stats.command()
+@stats.command(
+    short_help="Display statistics about segmentations.",
+    context_settings={"show_default": True},
+    no_args_is_help=True,
+)
 @add_config_option
 @click.option(
     "--runs",
