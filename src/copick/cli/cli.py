@@ -5,8 +5,9 @@ from copick.cli.add import add
 from copick.cli.browse import browse
 from copick.cli.config import config
 from copick.cli.ext import load_plugin_commands
-from copick.cli.info import info
+from copick.cli.info import get_installed_plugin_packages, info
 from copick.cli.new import new
+from copick.cli.stats import stats
 from copick.cli.sync import sync
 from copick.util.log import get_logger
 
@@ -17,12 +18,23 @@ logger = get_logger(__name__)
 @click.version_option(version=version, message="copick %(version)s")
 @click.pass_context
 def _cli(ctx):
-    text = f"copick {version}"
+    plugin_packages = get_installed_plugin_packages()
+    plugins = ""
+    if plugin_packages:
+        for package in sorted(plugin_packages):
+            plugins += f" {package} |"
+        plugins = plugins[:-2]
+        plugins = f"{plugins}"
+
+    text = f"copick {version} |{plugins}" if plugins else f"copick {version}"
     logger.info(text)
     logger.info(f"{'-'*len(text)}")
 
 
-@click.group(short_help="Run inference on copick tomograms.")
+@click.group(
+    short_help="Run inference on copick tomograms.",
+    no_args_is_help=True,
+)
 @click.pass_context
 def inference(ctx):
     """
@@ -33,7 +45,10 @@ def inference(ctx):
     pass
 
 
-@click.group(short_help="Train a model with copick data.")
+@click.group(
+    short_help="Train a model with copick data.",
+    no_args_is_help=True,
+)
 @click.pass_context
 def training(ctx):
     """
@@ -44,7 +59,10 @@ def training(ctx):
     pass
 
 
-@click.group(short_help="Evaluate model performance.")
+@click.group(
+    short_help="Evaluate model performance.",
+    no_args_is_help=True,
+)
 @click.pass_context
 def evaluation(ctx):
     """
@@ -55,7 +73,10 @@ def evaluation(ctx):
     pass
 
 
-@click.group(short_help="Apply processing method to copick entity.")
+@click.group(
+    short_help="Apply processing method to copick entity.",
+    no_args_is_help=True,
+)
 @click.pass_context
 def process(ctx):
     """
@@ -66,13 +87,31 @@ def process(ctx):
     pass
 
 
-@click.group(short_help="Convert one copick type to another.")
+@click.group(
+    short_help="Convert one copick type to another.",
+    no_args_is_help=True,
+)
 @click.pass_context
 def convert(ctx):
     """
     Data commands for Copick.
 
     This group contains commands related to data management tasks.
+    """
+    pass
+
+
+@click.group(
+    short_help="Perform logical operations on copick objects.",
+    no_args_is_help=True,
+)
+@click.pass_context
+def logical(ctx):
+    """
+    Logical operation commands for Copick.
+
+    This group contains commands for boolean operations, distance-based filtering,
+    and point inclusion/exclusion operations on meshes, segmentations, and picks.
     """
     pass
 
@@ -93,6 +132,7 @@ def add_core_commands(cmd: click.group) -> click.group:
     cmd.add_command(config)
     cmd.add_command(info)
     cmd.add_command(new)
+    cmd.add_command(stats)
     cmd.add_command(sync)
 
     return cmd
@@ -136,6 +176,11 @@ def add_plugin_commands(cmd: click.group) -> click.group:
         cmd.add_command(convert)
         for command in convert_commands:
             convert.add_command(command[0])
+
+    if logical_commands := load_plugin_commands("logical"):
+        cmd.add_command(logical)
+        for command in logical_commands:
+            logical.add_command(command[0])
 
     return cmd
 
