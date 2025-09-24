@@ -75,7 +75,7 @@ def get_tomogram_spacing_and_dimensions(
     tomogram = voxel_spacing.tomograms[0]
     if len(voxel_spacing.tomograms) > 1:
         warn(
-            f"Multiple tomograms for voxel spacing {voxel_spacing.voxel_size} found, using the first one ({tomogram.tomo_type}) for converting the coordinates.",
+            f"Multiple tomograms for voxel spacing {voxel_spacing.voxel_size} found, using ({tomogram.tomo_type}) for converting the coordinates.",
             UserWarning,
             stacklevel=2,
         )
@@ -98,8 +98,14 @@ def picks_to_df_relion(picks: "CopickPicks") -> "pd.DataFrame":
     translations = transforms[:, :3, 3]
     points += translations
     rots = transforms[:, :3, :3]
-    r = Rotation.from_matrix(rots)
-    eulers = r.inv().as_euler("ZYZ", degrees=True)
+    eulers = np.zeros((rots.shape[0], 3))
+    for i, Rmat in enumerate(rots):
+        if np.allclose(Rmat, np.eye(3)):
+            # handle identity rotation to prevent excessive scipy UserWarning
+            eulers[i] = np.array([0.0, 0.0, 0.0])
+        else:
+            r = Rotation.from_matrix(Rmat)
+            eulers[i] = r.inv().as_euler("ZYZ", degrees=True)
     voxel_size, tomogram_x, tomogram_y, tomogram_z = get_tomogram_spacing_and_dimensions(picks, only_voxel_size=False)
     points_px = points / voxel_size
     centered_points = points.copy()
