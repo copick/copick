@@ -1,5 +1,16 @@
 # Changelog
 
+## [1.14.1](https://github.com/copick/copick/compare/copick-v1.14.0...copick-v1.14.1) (2025-09-30)
+
+
+### 🐞 Bug Fixes
+
+* bump actions/setup-python from 5 to 6 ([#134](https://github.com/copick/copick/issues/134)) ([3355810](https://github.com/copick/copick/commit/3355810a285bdcf8e5f0eec95215f9751f436ba2))
+* bump chanzuckerberg/github-actions from 6.6.0 to 6.8.1 ([#135](https://github.com/copick/copick/issues/135)) ([dcd6e02](https://github.com/copick/copick/commit/dcd6e02772bc3ad64ebd3762d697455e366ce20e))
+* bump chanzuckerberg/github-actions from 6.8.1 to 6.9.0 ([#139](https://github.com/copick/copick/issues/139)) ([db4cdb6](https://github.com/copick/copick/commit/db4cdb6d4bcf0dca2617e85d0f2f073e1a7d0b63))
+* Consistently show help when no args provided. ([#137](https://github.com/copick/copick/issues/137)) ([b03299e](https://github.com/copick/copick/commit/b03299e9520548475b84f5c11050f4c18619044b))
+* Improve warnings when using copick to RELION-friendly DataFrame method ([#138](https://github.com/copick/copick/issues/138)) ([9d68f50](https://github.com/copick/copick/commit/9d68f5015f9398b9516bc6085619a23afdf21765))
+
 ## [1.14.0](https://github.com/copick/copick/compare/copick-v1.13.0...copick-v1.14.0) (2025-09-11)
 
 
