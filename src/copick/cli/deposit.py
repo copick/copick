@@ -34,37 +34,37 @@ from copick.util.log import get_logger
     default=None,
 )
 @click.option(
-    "--picks-uris",
+    "--picks",
     type=str,
     multiple=True,
     help="URIs to filter picks (e.g., 'proteasome:*/*' or 'ribosome:user1/*'). Can be specified multiple times. If not specified, skips picks entirely.",
 )
 @click.option(
-    "--meshes-uris",
+    "--meshes",
     type=str,
     multiple=True,
     help="URIs to filter meshes. Can be specified multiple times. If not specified, skips meshes entirely.",
 )
 @click.option(
-    "--segmentations-uris",
+    "--segmentations",
     type=str,
     multiple=True,
     help="URIs to filter segmentations (e.g., 'membrane:*/*@10.0'). Can be specified multiple times. If not specified, skips segmentations entirely.",
 )
 @click.option(
-    "--tomograms-uris",
+    "--tomograms",
     type=str,
     multiple=True,
     help="URIs to filter tomograms (e.g., 'wbp@10.0'). Can be specified multiple times. If not specified, skips tomograms entirely.",
 )
 @click.option(
-    "--features-uris",
+    "--features",
     type=str,
     multiple=True,
     help="URIs to filter features (e.g., 'wbp@10.0:cellcanvas'). Can be specified multiple times. If not specified, skips features entirely.",
 )
 @click.option(
-    "--n-workers",
+    "--max-workers",
     type=int,
     help="Number of parallel workers for processing runs.",
     default=8,
@@ -77,12 +77,12 @@ def deposit(
     run_names,
     run_name_prefix,
     run_name_regex,
-    picks_uris,
-    meshes_uris,
-    segmentations_uris,
-    tomograms_uris,
-    features_uris,
-    n_workers,
+    picks,
+    meshes,
+    segmentations,
+    tomograms,
+    features,
+    max_workers,
     debug,
 ):
     """Create a depositable view of a copick project using symlinks.
@@ -99,32 +99,32 @@ def deposit(
     \b
     # Deposit all runs from a filesystem project
     copick deposit -c filesystem_config.json --target-dir /path/to/deposit \\
-        --picks-uris "*:*/*" --meshes-uris "*:*/*"
+        --picks "*:*/*" --meshes "*:*/*"
 
     \b
     # Deposit from a data portal project (automatic run name transformation)
     # Runs will be named like: 10301_TS_001_<portal_run_id>
     copick deposit -c portal_config.json --target-dir /path/to/deposit \\
-        --picks-uris "proteasome:*/*" --picks-uris "ribosome:*/*" \\
-        --segmentations-uris "membrane:*/*@10.0"
+        --picks "proteasome:*/*" --picks "ribosome:*/*" \\
+        --segmentations "membrane:*/*@10.0"
 
     \b
     # Deposit with explicit prefix override
     copick deposit -c config.json --target-dir /path/to/deposit \\
         --run-names "TS_001,TS_002" --run-name-prefix "custom_prefix_" \\
-        --picks-uris "*:*/*"
+        --picks "*:*/*"
 
     \b
     # Deposit with regex to extract run names
     copick deposit -c config.json --target-dir /path/to/deposit \\
-        --run-name-regex "^(TS_\\d+).*" --tomograms-uris "wbp@10.0"
+        --run-name-regex "^(TS_\\d+).*" --tomograms "wbp@10.0"
 
     \b
     # Multiple projects to same target (successive executions)
     copick deposit -c project1.json --target-dir /deposit --run-name-prefix "proj1_" \\
-        --picks-uris "*:*/*"
+        --picks "*:*/*"
     copick deposit -c project2.json --target-dir /deposit --run-name-prefix "proj2_" \\
-        --picks-uris "*:*/*"
+        --picks "*:*/*"
 
     Notes:
     - For data portal projects, run names are automatically transformed from portal run IDs
@@ -143,11 +143,11 @@ def deposit(
         run_names_list = [name.strip() for name in run_names.split(",") if name.strip()]
 
     # Convert tuple to list or None
-    picks_uris_list = list(picks_uris) if picks_uris else None
-    meshes_uris_list = list(meshes_uris) if meshes_uris else None
-    segmentations_uris_list = list(segmentations_uris) if segmentations_uris else None
-    tomograms_uris_list = list(tomograms_uris) if tomograms_uris else None
-    features_uris_list = list(features_uris) if features_uris else None
+    picks_uris_list = list(picks) if picks else None
+    meshes_uris_list = list(meshes) if meshes else None
+    segmentations_uris_list = list(segmentations) if segmentations else None
+    tomograms_uris_list = list(tomograms) if tomograms else None
+    features_uris_list = list(features) if features else None
 
     # Call the deposit operation
     deposit_op(
@@ -161,7 +161,7 @@ def deposit(
         segmentations_uris=segmentations_uris_list,
         tomograms_uris=tomograms_uris_list,
         features_uris=features_uris_list,
-        n_workers=n_workers,
+        n_workers=max_workers,
     )
 
     logger.info("Deposit operation completed successfully.")
