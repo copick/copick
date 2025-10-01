@@ -1,7 +1,6 @@
 import click
 
 from copick.cli.util import add_config_option, add_debug_option
-from copick.ops.deposit import deposit as deposit_op
 from copick.util.log import get_logger
 
 
@@ -134,6 +133,8 @@ def deposit(
     - Symlinks that already exist and point to the correct source are skipped.
     - Read-only data from the portal cannot be symlinked and will raise an error.
     """
+    from copick.ops.deposit import deposit as deposit_op
+
     logger = get_logger(__name__, debug=debug)
 
     # Parse run_names from comma-separated string to list
