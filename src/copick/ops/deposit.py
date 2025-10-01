@@ -1,4 +1,5 @@
 import os
+import re
 from pathlib import Path
 from typing import Any, Dict, List, Optional, Union
 
@@ -117,6 +118,7 @@ def deposit_run(
     run: CopickRun,
     target_dir: str,
     run_name_prefix: str = "",
+    run_name_regex: Optional[str] = None,
     picks_uris: Optional[List[str]] = None,
     meshes_uris: Optional[List[str]] = None,
     segmentations_uris: Optional[List[str]] = None,
@@ -129,6 +131,8 @@ def deposit_run(
         run: The copick run to process.
         target_dir: The target directory for the deposited view.
         run_name_prefix: Prefix to prepend to the run name (e.g., "ds123_rn001_").
+        run_name_regex: Optional regex to extract run name from copick run name. Run name will be taken from the
+            first group defined using parentheses in the pattern.
         picks_uris: List of URIs to filter picks. If None, skip picks entirely.
         meshes_uris: List of URIs to filter meshes. If None, skip meshes entirely.
         segmentations_uris: List of URIs to filter segmentations. If None, skip segmentations entirely.
@@ -143,8 +147,20 @@ def deposit_run(
     processed = 0
     errors = []
 
+    # Determine the run name, applying regex if provided
+    output_run_name = run.name
+    if run_name_regex:
+        # Match run name with regex
+        match = re.search(run_name_regex, run.name)
+        if match:
+            output_run_name = match.group(1)
+        else:
+            if logger:
+                logger.exception(f"Run name {run.name} does not match regex {run_name_regex}.")
+            raise ValueError(f"Run name {run.name} does not match regex {run_name_regex}.")
+
     # Construct the prefixed run name
-    prefixed_run_name = f"{run_name_prefix}{run.name}"
+    prefixed_run_name = f"{run_name_prefix}{output_run_name}"
     run_dir = Path(target_dir) / "ExperimentRuns" / prefixed_run_name
 
     # Process picks
@@ -235,6 +251,7 @@ def deposit(
     target_dir: str,
     run_names: Optional[List[str]] = None,
     run_name_prefix: str = "",
+    run_name_regex: Optional[str] = None,
     picks_uris: Optional[List[str]] = None,
     meshes_uris: Optional[List[str]] = None,
     segmentations_uris: Optional[List[str]] = None,
@@ -249,14 +266,7 @@ def deposit(
     actual data files, allowing multiple projects to be deposited into the same target
     directory through successive executions.
 
-    Directory Structure Created:
-        <target_dir>/ExperimentRuns/<prefixed_run_name>/
-            Picks/{user_id}_{session_id}_{object_name}.json
-            Meshes/{user_id}_{session_id}_{object_name}.glb
-            Segmentations/{voxel_size:.3f}_{user_id}_{session_id}_{name}[-multilabel].zarr
-            VoxelSpacing{voxel_size:.3f}/
-                {tomo_type}.zarr
-                {tomo_type}_{feature_type}_features.zarr
+    The directory structure created conforms to the standard copick filesystem layout.
 
     Args:
         config: Path to the copick configuration file.
@@ -265,6 +275,8 @@ def deposit(
         run_name_prefix: Prefix to prepend to all run names. For data portal projects, if not
             provided, automatically constructs "{dataset_id}_{portal_run_name}_" for each run.
             For filesystem projects or when explicitly provided, uses the same prefix for all runs.
+        run_name_regex: Optional regex to define how to extract run names from copick run names. Run names will be
+            extracted from the first group defined using parentheses in the pattern.
         picks_uris: List of URIs to filter picks (e.g., ["proteasome:*/*", "ribosome:user1/*"]).
             If None, skips picks entirely.
         meshes_uris: List of URIs to filter meshes. If None, skips meshes entirely.
@@ -337,6 +349,7 @@ def deposit(
         {
             "target_dir": target_dir,
             "run_name_prefix": prefix,
+            "run_name_regex": run_name_regex,
             "picks_uris": picks_uris,
             "meshes_uris": meshes_uris,
             "segmentations_uris": segmentations_uris,
