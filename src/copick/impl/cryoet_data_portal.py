@@ -751,10 +751,16 @@ class CopickVoxelSpacingCDP(CopickVoxelSpacingOverlay):
 class CopickRunMetaCDP(CopickRunMeta):
     portal_run_id: Optional[int] = None
     portal_run_name: Optional[str] = None
+    portal_dataset_id: Optional[int] = None
 
     @classmethod
     def from_portal(cls, source: cdp.Run):
-        return cls(name=f"{source.id}", portal_run_id=source.id, portal_run_name=source.name)
+        return cls(
+            name=f"{source.id}",
+            portal_run_id=source.id,
+            portal_run_name=source.name,
+            portal_dataset_id=source.dataset_id,
+        )
 
 
 class CopickRunCDP(CopickRunOverlay):
@@ -788,6 +794,10 @@ class CopickRunCDP(CopickRunOverlay):
     @property
     def portal_run_name(self) -> str:
         return self.meta.name
+
+    @property
+    def portal_dataset_id(self) -> int:
+        return self.meta.portal_dataset_id
 
     def _query_static_voxel_spacings(self) -> List[CopickVoxelSpacingCDP]:
         # VoxelSpacings only added on overlay
