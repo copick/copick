@@ -14,8 +14,8 @@ class TestParseURI:
 
     def test_parse_pick_uri_complete(self):
         """Test parsing a complete pick URI."""
-        result = parse_copick_uri("ribosome:gapstop/0", "pick")
-        assert result["object_type"] == "pick"
+        result = parse_copick_uri("ribosome:gapstop/0", "picks")
+        assert result["object_type"] == "picks"
         assert result["pattern_type"] == "glob"
         assert result["object_name"] == "ribosome"
         assert result["user_id"] == "gapstop"
@@ -24,27 +24,27 @@ class TestParseURI:
     def test_parse_pick_uri_incomplete(self):
         """Test parsing incomplete pick URIs with wildcard defaults."""
         # Just object name
-        result = parse_copick_uri("ribosome", "pick")
+        result = parse_copick_uri("ribosome", "picks")
         assert result["object_name"] == "ribosome"
         assert result["user_id"] == "*"
         assert result["session_id"] == "*"
 
         # Object name and user ID
-        result = parse_copick_uri("ribosome:gapstop", "pick")
+        result = parse_copick_uri("ribosome:gapstop", "picks")
         assert result["object_name"] == "ribosome"
         assert result["user_id"] == "gapstop"
         assert result["session_id"] == "*"
 
     def test_parse_pick_uri_glob_patterns(self):
         """Test parsing pick URIs with glob patterns."""
-        result = parse_copick_uri("ribo*:gapstop/*", "pick")
+        result = parse_copick_uri("ribo*:gapstop/*", "picks")
         assert result["object_name"] == "ribo*"
         assert result["user_id"] == "gapstop"
         assert result["session_id"] == "*"
 
     def test_parse_pick_uri_regex(self):
         """Test parsing pick URIs with regex patterns."""
-        result = parse_copick_uri("re:ribo.*:gapstop/\\d+", "pick")
+        result = parse_copick_uri("re:ribo.*:gapstop/\\d+", "picks")
         assert result["pattern_type"] == "regex"
         assert result["object_name"] == "ribo.*"
         assert result["user_id"] == "gapstop"
@@ -162,7 +162,7 @@ class TestSerializeURI:
             assert "/" in uri
 
             # Parse it back
-            parsed = parse_copick_uri(uri, "pick")
+            parsed = parse_copick_uri(uri, "picks")
             assert parsed["object_name"] == pick.pickable_object_name
             assert parsed["user_id"] == pick.user_id
             assert parsed["session_id"] == pick.session_id
@@ -258,7 +258,7 @@ class TestSerializeURI:
     def test_serialize_from_dict_picks(self):
         """Test serializing picks from dict parameters."""
         uri = serialize_copick_uri_from_dict(
-            object_type="pick",
+            object_type="picks",
             object_name="ribosome",
             user_id="gapstop",
             session_id="0",
@@ -299,7 +299,7 @@ class TestSerializeURI:
     def test_serialize_from_dict_missing_params(self):
         """Test that missing required parameters raise errors."""
         with pytest.raises(ValueError, match="require"):
-            serialize_copick_uri_from_dict(object_type="pick", object_name="ribosome")
+            serialize_copick_uri_from_dict(object_type="picks", object_name="ribosome")
 
 
 class TestResolveObjects:
@@ -317,7 +317,7 @@ class TestResolveObjects:
             pick = run.picks[0]
             uri = f"{pick.pickable_object_name}:{pick.user_id}/{pick.session_id}"
 
-            resolved = resolve_copick_objects(uri, root, "pick", run.name)
+            resolved = resolve_copick_objects(uri, root, "picks", run.name)
             assert len(resolved) == 1
             assert resolved[0].pickable_object_name == pick.pickable_object_name
             assert resolved[0].user_id == pick.user_id
@@ -330,7 +330,7 @@ class TestResolveObjects:
         root = copick.from_file(str(fixture["cfg_file"]))
 
         # Get all picks for ribosome
-        resolved = resolve_copick_objects("ribosome", root, "pick")
+        resolved = resolve_copick_objects("ribosome", root, "picks")
         ribosome_picks = [p for p in resolved if p.pickable_object_name == "ribosome"]
         assert len(ribosome_picks) > 0
 
@@ -345,7 +345,7 @@ class TestResolveObjects:
         root = copick.from_file(str(fixture["cfg_file"]))
 
         # Match all picks with user_id starting with 'gap'
-        resolved = resolve_copick_objects("*:gap*/*", root, "pick")
+        resolved = resolve_copick_objects("*:gap*/*", root, "picks")
         assert len(resolved) > 0
 
         for pick in resolved:
@@ -488,7 +488,7 @@ class TestGetObjectsByType:
         fixture = request.getfixturevalue(case)
         root = copick.from_file(str(fixture["cfg_file"]))
 
-        picks = get_copick_objects_by_type(root, "pick")
+        picks = get_copick_objects_by_type(root, "picks")
         assert len(picks) > 0
         assert all(hasattr(p, "pickable_object_name") for p in picks)
 
@@ -499,7 +499,7 @@ class TestGetObjectsByType:
         root = copick.from_file(str(fixture["cfg_file"]))
 
         # Get all ribosome picks
-        picks = get_copick_objects_by_type(root, "pick", object_name="ribosome")
+        picks = get_copick_objects_by_type(root, "picks", object_name="ribosome")
         assert all(p.pickable_object_name == "ribosome" for p in picks)
 
     @pytest.mark.parametrize("case", pytest.common_cases)
@@ -509,7 +509,7 @@ class TestGetObjectsByType:
         root = copick.from_file(str(fixture["cfg_file"]))
 
         run = root.runs[0]
-        picks = get_copick_objects_by_type(root, "pick", run_name=run.name)
+        picks = get_copick_objects_by_type(root, "picks", run_name=run.name)
 
         # All picks should belong to the specified run
         for pick in picks:
@@ -558,7 +558,7 @@ class TestGetObjectsByType:
         root = copick.from_file(str(local["cfg_file"]))
 
         with pytest.raises(ValueError, match="not found"):
-            get_copick_objects_by_type(root, "pick", run_name="nonexistent_run")
+            get_copick_objects_by_type(root, "picks", run_name="nonexistent_run")
 
 
 class TestPatternMatching:
@@ -571,7 +571,7 @@ class TestPatternMatching:
         root = copick.from_file(str(fixture["cfg_file"]))
 
         # Match picks with numeric session IDs
-        resolved = resolve_copick_objects("re:.*:.*/(\\d+)", root, "pick")
+        resolved = resolve_copick_objects("re:.*:.*/(\\d+)", root, "picks")
 
         if resolved:
             for pick in resolved:
