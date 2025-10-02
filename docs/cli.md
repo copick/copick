@@ -685,6 +685,101 @@ copick sync tomograms -c source_config.json --target-config target_config.json \
 
 ---
 
+### :material-folder-arrow-right: `copick deposit`
+
+Create a depositable view of a copick project using symlinks.
+
+This command creates a hierarchical directory structure suitable for uploading to the cryoET data portal. It operates on a single copick config and creates symlinks to the actual data files, allowing multiple projects to be deposited into the same target directory through successive executions.
+
+**Usage:**
+```bash
+copick deposit [OPTIONS]
+```
+
+**Options:**
+
+| Option                  | Type    | Description                                                                                                                                                      | Default                      |
+|-------------------------|---------|------------------------------------------------------------------------------------------------------------------------------------------------------------------|------------------------------|
+| `-c, --config PATH`     | Path    | Path to the configuration file                                                                                                                                   | Uses `COPICK_CONFIG` env var |
+| `--target-dir PATH`     | Path    | Target directory for the deposited view (required)                                                                                                               | None                         |
+| `--run-names TEXT`      | String  | Comma-separated list of specific run names to process. If not specified, processes all runs                                                                      | `""` (all runs)              |
+| `--run-name-prefix TEXT`| String  | Prefix to prepend to all run names. For data portal projects, if not provided, automatically constructs `{dataset_id}_{portal_run_name}_` for each run          | `""`                         |
+| `--run-name-regex TEXT` | String  | Optional regex to define how to extract run names from copick run names. Run names will be extracted from the first group defined using parentheses             | None                         |
+| `--picks TEXT`          | String  | URIs to filter picks (e.g., `proteasome:*/*` or `ribosome:user1/*`). Can be specified multiple times. If not specified, skips picks entirely                    | None                         |
+| `--meshes TEXT`         | String  | URIs to filter meshes. Can be specified multiple times. If not specified, skips meshes entirely                                                                 | None                         |
+| `--segmentations TEXT`  | String  | URIs to filter segmentations (e.g., `membrane:*/*@10.0`). Can be specified multiple times. If not specified, skips segmentations entirely                       | None                         |
+| `--tomograms TEXT`      | String  | URIs to filter tomograms (e.g., `wbp@10.0`). Can be specified multiple times. If not specified, skips tomograms entirely                                        | None                         |
+| `--features TEXT`       | String  | URIs to filter features (e.g., `wbp@10.0:cellcanvas`). Can be specified multiple times. If not specified, skips features entirely                               | None                         |
+| `--max-workers INTEGER` | Integer | Number of parallel workers for processing runs                                                                                                                   | `8`                          |
+| `--debug / --no-debug`  | Boolean | Enable debug logging                                                                                                                                             | `no-debug`                   |
+
+**Examples:**
+
+```bash
+# Deposit all runs from a filesystem project with all picks and meshes
+copick deposit -c filesystem_config.json --target-dir /path/to/deposit \
+    --picks "*:*/*" --meshes "*:*/*"
+
+# Deposit from a data portal project (automatic run name transformation)
+# Runs will be named like: 10301_TS_001_<portal_run_id>
+copick deposit -c portal_config.json --target-dir /path/to/deposit \
+    --picks "proteasome:*/*" --picks "ribosome:*/*" \
+    --segmentations "membrane:*/*@10.0"
+
+# Deposit specific runs with explicit prefix override
+copick deposit -c config.json --target-dir /path/to/deposit \
+    --run-names "TS_001,TS_002" --run-name-prefix "custom_prefix_" \
+    --picks "*:*/*"
+
+# Deposit with regex to extract run names
+# For runs named "TS_001_processed", this extracts "TS_001"
+copick deposit -c config.json --target-dir /path/to/deposit \
+    --run-name-regex "^(TS_\d+).*" --tomograms "wbp@10.0"
+
+# Deposit specific data types with filters
+copick deposit -c config.json --target-dir /path/to/deposit \
+    --picks "proteasome:*/*" --picks "ribosome:analyst1/*" \
+    --segmentations "membrane:*/*@10.0" --segmentations "organelle:*/*@10.0" \
+    --tomograms "wbp@10.0" --tomograms "denoised@10.0"
+
+# Multiple projects to same target (successive executions)
+copick deposit -c project1.json --target-dir /deposit --run-name-prefix "proj1_" \
+    --picks "*:*/*"
+copick deposit -c project2.json --target-dir /deposit --run-name-prefix "proj2_" \
+    --picks "*:*/*"
+
+# Complex deposit with multiple filters and settings
+copick deposit -c config.json --target-dir /path/to/deposit \
+    --run-names "TS_001,TS_002,TS_003" \
+    --picks "proteasome:*/*" --picks "ribosome:*/*" \
+    --meshes "membrane:*/*" \
+    --segmentations "membrane:*/*@10.0" \
+    --tomograms "wbp@10.0" \
+    --features "wbp@10.0:cellcanvas" \
+    --max-workers 16
+```
+
+!!! info "URI Syntax"
+    The deposit command uses URI patterns to filter which data to include:
+
+    - **Picks/Meshes**: `object_name:user_id/session_id` (e.g., `ribosome:user1/*` or `*:*/*` for all)
+    - **Segmentations**: `name:user_id/session_id@voxel_size` (e.g., `membrane:*/*@10.0`)
+    - **Tomograms**: `tomo_type@voxel_size` (e.g., `wbp@10.0`)
+    - **Features**: `tomo_type@voxel_size:feature_type` (e.g., `wbp@10.0:cellcanvas`)
+
+    Use `*` as a wildcard to match all values in that position.
+
+!!! tip "Data Portal Projects"
+    For data portal projects, run names are automatically transformed from portal run IDs to `{dataset_id}_{portal_run_name}_{portal_run_id}` unless `--run-name-prefix` is explicitly provided. This ensures unique run names when depositing multiple datasets.
+
+!!! warning "Important Notes"
+    - Multiple executions to the same `target-dir` are safe and idempotent
+    - Symlinks that already exist and point to the correct source are skipped
+    - Read-only data from the portal cannot be symlinked and will raise an error
+    - Data must be in the overlay (writable) to be deposited
+
+---
+
 ### :material-chart-bar: `copick stats`
 
 Gather statistics about a Copick project's entities including picks, meshes, and segmentations.
@@ -1049,6 +1144,48 @@ copick sync tomograms -c source_config.json --target-config target_config.json \
     --log
 ```
 
+### Create Depositable View for Data Portal
+
+Prepare your copick project for upload to the CryoET Data Portal:
+
+```bash
+# Basic deposit with all picks and meshes from a filesystem project
+copick deposit -c project.json --target-dir /path/to/deposit \
+    --picks "*:*/*" --meshes "*:*/*"
+
+# Deposit specific data types with filters
+copick deposit -c project.json --target-dir /path/to/deposit \
+    --picks "ribosome:*/*" --picks "proteasome:*/*" \
+    --segmentations "membrane:*/*@10.0" \
+    --tomograms "wbp@10.0"
+
+# Deposit from data portal project (automatic run naming)
+# Runs will be transformed to: {dataset_id}_{portal_run_name}_{portal_run_id}
+copick deposit -c portal_config.json --target-dir /path/to/deposit \
+    --picks "proteasome:*/*" --meshes "membrane:*/*"
+
+# Deposit specific runs with custom prefix
+copick deposit -c project.json --target-dir /path/to/deposit \
+    --run-names "TS_001,TS_002,TS_003" \
+    --run-name-prefix "experiment_A_" \
+    --picks "*:*/*" --max-workers 16
+
+# Use regex to extract run names
+# For runs like "Position_60_7_Vol_CTF", extracts "Position_60_7"
+copick deposit -c project.json --target-dir /path/to/deposit \
+    --run-name-regex "^(Position_.*)_Vol_CTF" \
+    --tomograms "wbp@10.0" --tomograms "denoised@10.0"
+
+# Deposit multiple projects to same target directory (successive executions)
+copick deposit -c project1.json --target-dir /deposit --run-name-prefix "proj1_" \
+    --picks "*:*/*"
+copick deposit -c project2.json --target-dir /deposit --run-name-prefix "proj2_" \
+    --picks "*:*/*"
+
+# Verify the deposited structure
+ls -la /deposit/ExperimentRuns/
+```
+
 ### Development and Debugging
 
 Debug and test your Copick workflows:
@@ -1068,4 +1205,8 @@ copick add tomogram --config project.json --run TEST_RUN --debug data/test_tomog
 
 # Test synchronization with debug logging
 copick sync picks -c source_config.json --target-config target_config.json --debug --log
+
+# Test deposit with debug logging
+copick deposit -c project.json --target-dir /tmp/test_deposit \
+    --picks "*:*/*" --debug
 ```
