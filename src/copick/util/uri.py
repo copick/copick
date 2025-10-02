@@ -36,7 +36,7 @@ def parse_copick_uri(uri: str, object_type: str) -> Dict[str, Any]:
 
     Args:
         uri (str): The copick URI to parse.
-        object_type (str): Type of object ('pick', 'mesh', 'segmentation', 'tomogram', 'feature').
+        object_type (str): Type of object ('picks', 'mesh', 'segmentation', 'tomogram', 'feature').
 
     Returns:
         Dict[str, Any]: A dictionary containing the parsed components.
@@ -62,7 +62,7 @@ def parse_copick_uri(uri: str, object_type: str) -> Dict[str, Any]:
         # Flatten single-value lists
         query_params = {k: v[0] if len(v) == 1 else v for k, v in query_params.items()}
 
-    if object_type in ("pick", "mesh"):
+    if object_type in ("picks", "mesh"):
         # Pattern: object_name:user_id/session_id
         # Support incomplete patterns: 'obj' → 'obj:*/*', 'obj:user' → 'obj:user/*'
         parts = uri.split(":")
@@ -179,7 +179,7 @@ def parse_copick_uri(uri: str, object_type: str) -> Dict[str, Any]:
 
     else:
         raise ValueError(
-            f"Unknown object type: {object_type}. Must be one of: pick, mesh, segmentation, tomogram, feature",
+            f"Unknown object type: {object_type}. Must be one of: picks, mesh, segmentation, tomogram, feature",
         )
 
 
@@ -235,7 +235,7 @@ def serialize_copick_uri_from_dict(
     """Serialize copick object parameters into a URI according to copick URI schemes.
 
     Args:
-        object_type (str): Type of copick object ('pick', 'mesh', 'segmentation', 'tomogram', 'feature')
+        object_type (str): Type of copick object ('picks', 'mesh', 'segmentation', 'tomogram', 'feature')
         object_name (str, optional): Object name for picks/meshes
         name (str, optional): Name for segmentations
         user_id (str, optional): User ID for picks/meshes/segmentations
@@ -251,7 +251,7 @@ def serialize_copick_uri_from_dict(
     Raises:
         ValueError: If required parameters are missing for the given object type
     """
-    if object_type == "pick":
+    if object_type == "picks":
         if not all([object_name, user_id, session_id]):
             raise ValueError("Picks require object_name, user_id, and session_id")
         return f"{object_name}:{user_id}/{session_id}"
@@ -302,7 +302,7 @@ def resolve_copick_objects(
     Args:
         uri (str): The copick URI to resolve.
         root (CopickRoot): The copick root to search in.
-        object_type (str): Type of object ('pick', 'mesh', 'segmentation', 'tomogram', 'feature').
+        object_type (str): Type of object ('picks', 'mesh', 'segmentation', 'tomogram', 'feature').
         run_name (str, optional): Specific run name to search in. If None, searches all runs.
 
     Returns:
@@ -335,7 +335,7 @@ def get_copick_objects_by_type(
 
     Args:
         root (CopickRoot): The copick root to search in.
-        object_type (str): The type of objects to retrieve ('pick', 'mesh', 'segmentation', 'tomogram', 'feature').
+        object_type (str): The type of objects to retrieve ('picks', 'mesh', 'segmentation', 'tomogram', 'feature').
         run_name (str, optional): Specific run name to search in.
         **filters: Additional filters based on object type.
                   For picks/meshes: object_name, user_id, session_id
@@ -361,7 +361,7 @@ def get_copick_objects_by_type(
 
     # Dispatch to type-specific handler
     handlers = {
-        "pick": _get_picks_from_runs,
+        "picks": _get_picks_from_runs,
         "mesh": _get_meshes_from_runs,
         "segmentation": _get_segmentations_from_runs,
         "tomogram": _get_tomograms_from_runs,
@@ -370,7 +370,7 @@ def get_copick_objects_by_type(
 
     if object_type not in handlers:
         raise ValueError(
-            f"Unknown object type: {object_type}. Must be one of: pick, mesh, segmentation, tomogram, feature",
+            f"Unknown object type: {object_type}. Must be one of: picks, mesh, segmentation, tomogram, feature",
         )
 
     return handlers[object_type](runs_to_search, filters)
