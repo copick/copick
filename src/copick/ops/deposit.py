@@ -167,7 +167,7 @@ def deposit_run(
     if picks_uris is not None:
         for uri in picks_uris:
             try:
-                picks_list = resolve_copick_objects(uri, run.root, "pick", run.name)
+                picks_list = resolve_copick_objects(uri, run.root, "picks", run.name)
                 for pick in picks_list:
                     source = _get_file_path(pick)
                     filename = f"{pick.user_id}_{pick.session_id}_{pick.pickable_object_name}.json"
