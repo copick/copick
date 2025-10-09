@@ -16,6 +16,7 @@ from copick.impl.filesystem import (
     CopickFeaturesFSSpec,
     CopickMeshFSSpec,
     CopickPicksFSSpec,
+    CopickRootFSSpec,
     CopickSegmentationFSSpec,
     CopickTomogramFSSpec,
 )
@@ -268,6 +269,11 @@ def deposit(
 
     The directory structure created conforms to the standard copick filesystem layout.
 
+    **Important**: This operation requires local filesystem storage for both the source
+    copick project and the target directory. Symlinks cannot be created with remote
+    filesystems (S3, SSH, SMB, etc.). If you need to deposit data from a remote filesystem,
+    you must first download it to local storage.
+
     Args:
         config: Path to the copick configuration file.
         target_dir: Target directory for the deposited view.
@@ -328,6 +334,29 @@ def deposit(
     """
     # Load the copick root
     root = copick.from_file(config)
+
+    # Check if filesystems are local (symlinks only work with local filesystems)
+    if isinstance(root, CopickRootFSSpec):
+        overlay_protocol = root.fs_overlay.protocol
+        static_protocol = root.fs_static.protocol if root.fs_static else None
+
+        # fsspec protocols can be string or tuple
+        def is_local_protocol(protocol):
+            if protocol is None:
+                return True
+            if isinstance(protocol, (list, tuple)):
+                return any(p in ("file", "local") for p in protocol)
+            return protocol in ("file", "local")
+
+        overlay_is_local = is_local_protocol(overlay_protocol)
+        static_is_local = is_local_protocol(static_protocol)
+
+        if not (overlay_is_local and static_is_local):
+            raise ValueError(
+                "Deposit operation requires local filesystem storage. "
+                "Symlinks cannot be created with remote filesystems (S3, SSH, SMB, etc.). "
+                f"Current filesystems: overlay={overlay_protocol}, static={static_protocol}",
+            )
 
     # Get the runs to process
     runs = root.runs if run_names is None else [root.get_run(name) for name in run_names]

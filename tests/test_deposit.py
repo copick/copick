@@ -54,9 +54,13 @@ def _check_directory_structure(target_dir: Path, expected_runs: list) -> bool:
     return set(deposited_runs) == set(expected_runs)
 
 
-@pytest.fixture(params=pytest.common_cases)
+@pytest.fixture(params=["local_overlay_only", "local"])
 def test_payload(request) -> Dict[str, Any]:
-    """Reuse the existing test payload fixture."""
+    """Test deposit only with local filesystem configurations.
+
+    Deposit operations require local filesystems because they create symlinks,
+    which are not supported by remote filesystems (S3, SSH, SMB, etc.).
+    """
     from copick.impl.filesystem import CopickRootFSSpec
 
     payload = request.getfixturevalue(request.param)
