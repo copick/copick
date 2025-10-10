@@ -157,7 +157,7 @@ def deposit_run(
             output_run_name = match.group(1)
         else:
             if logger:
-                logger.exception(f"Run name {run.name} does not match regex {run_name_regex}.")
+                logger.error(f"Run name {run.name} does not match regex {run_name_regex}.")
             raise ValueError(f"Run name {run.name} does not match regex {run_name_regex}.")
 
     # Construct the prefixed run name
