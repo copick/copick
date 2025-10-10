@@ -4,6 +4,7 @@ from copick import __version__ as version
 from copick.cli.add import add
 from copick.cli.browse import browse
 from copick.cli.config import config
+from copick.cli.deposit import deposit
 from copick.cli.ext import load_plugin_commands
 from copick.cli.info import get_installed_plugin_packages, info
 from copick.cli.new import new
@@ -130,6 +131,7 @@ def add_core_commands(cmd: click.group) -> click.group:
     cmd.add_command(add)
     cmd.add_command(browse)
     cmd.add_command(config)
+    cmd.add_command(deposit)
     cmd.add_command(info)
     cmd.add_command(new)
     cmd.add_command(stats)
