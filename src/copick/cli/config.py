@@ -6,7 +6,7 @@ from copick.cli.util import add_debug_option
 from copick.util.log import get_logger
 
 
-@click.group(short_help="Manage copick configuration files.")
+@click.group(short_help="Create and manage copick configuration files.")
 @click.pass_context
 def config(ctx):
     """Manage copick configuration files."""
