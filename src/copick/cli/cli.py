@@ -117,6 +117,21 @@ def logical(ctx):
     pass
 
 
+@click.group(
+    short_help="Setup and manage external integrations.",
+    no_args_is_help=True,
+)
+@click.pass_context
+def setup(ctx):
+    """
+    Setup commands for Copick.
+
+    This group contains commands for setting up and managing external integrations
+    like MCP servers, database connections, and other third-party tools.
+    """
+    pass
+
+
 def add_core_commands(cmd: click.group) -> click.group:
     """
     Add core commands to the CLI.
@@ -183,6 +198,11 @@ def add_plugin_commands(cmd: click.group) -> click.group:
         cmd.add_command(logical)
         for command in logical_commands:
             logical.add_command(command[0])
+
+    if setup_commands := load_plugin_commands("setup"):
+        cmd.add_command(setup)
+        for command in setup_commands:
+            setup.add_command(command[0])
 
     return cmd
 
