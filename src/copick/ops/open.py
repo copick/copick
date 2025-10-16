@@ -41,6 +41,11 @@ def from_string(data: str) -> Union["CopickRootFSSpec", "CopickRootCDP"]:
         return CopickRootFSSpec(CopickConfigFSSpec(**data))
     elif data["config_type"] == "cryoet_data_portal":
         return CopickRootCDP(CopickConfigCDP(**data))
+    else:
+        raise ValueError(
+            f"Unknown config_type: {data['config_type']}. Supported types are 'filesystem' and "
+            f"'cryoet_data_portal'.",
+        )
 
 
 def from_file(path: str) -> Union["CopickRootFSSpec", "CopickRootCDP"]:
