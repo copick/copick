@@ -7,6 +7,7 @@ from copick.cli.config import config
 from copick.cli.cp import cp
 from copick.cli.deposit import deposit
 from copick.cli.ext import load_plugin_commands
+from copick.cli.grouped_cli import GroupedCommandGroup
 from copick.cli.info import get_installed_plugin_packages, info
 from copick.cli.mv import mv
 from copick.cli.new import new
@@ -17,8 +18,15 @@ from copick.util.log import get_logger
 
 logger = get_logger(__name__)
 
+# Define command categories for organized help output
+COMMAND_CATEGORIES = {
+    "Data Management": ["add", "cp", "mv", "new", "rm", "sync"],
+    "Data Processing": ["convert", "inference", "logical", "process", "training", "evaluation"],
+    "Utilities": ["browse", "config", "deposit", "info", "setup", "stats"],
+}
 
-@click.group()
+
+@click.group(cls=GroupedCommandGroup, command_categories=COMMAND_CATEGORIES)
 @click.version_option(version=version, message="copick %(version)s")
 @click.pass_context
 def _cli(ctx):
