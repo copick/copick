@@ -98,12 +98,12 @@ def rm(
         is_pattern = (
             parsed.get("pattern_type") == "regex"
             or "*" in str(parsed.get("object_name", ""))
-            or "*" in parsed.get("user_id", "")
-            or "*" in parsed.get("session_id", "")
-            or "*" in parsed.get("name", "")
-            or "*" in parsed.get("tomo_type", "")
-            or "*" in parsed.get("feature_type", "")
-            or "*" in parsed.get("voxel_spacing", "")
+            or "*" in str(parsed.get("user_id", ""))
+            or "*" in str(parsed.get("session_id", ""))
+            or "*" in str(parsed.get("name", ""))
+            or "*" in str(parsed.get("tomo_type", ""))
+            or "*" in str(parsed.get("feature_type", ""))
+            or "*" in str(parsed.get("voxel_spacing", ""))
         )
     except ValueError as e:
         logger.error(f"Invalid URI: {e}")
