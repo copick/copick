@@ -1,5 +1,20 @@
 # Changelog
 
+## [1.16.0](https://github.com/copick/copick/compare/copick-v1.15.0...copick-v1.16.0) (2025-10-16)
+
+
+### ✨ Features
+
+* Add copick setup group ([#146](https://github.com/copick/copick/issues/146)) ([50138c2](https://github.com/copick/copick/commit/50138c232fa95f0590b51b59fa7f00795f4ad2e1))
+* Add data management commands ([#147](https://github.com/copick/copick/issues/147)) ([b23fd40](https://github.com/copick/copick/commit/b23fd403d95e8fc29788f76b919e1d05086b1686))
+* Organize top-level copick CLI ([#148](https://github.com/copick/copick/issues/148)) ([8d07358](https://github.com/copick/copick/commit/8d0735817abdc9ac999173610417a97a6b6f539a))
+
+
+### 🐞 Bug Fixes
+
+* bump astral-sh/setup-uv from 6 to 7 ([#143](https://github.com/copick/copick/issues/143)) ([ab98cdc](https://github.com/copick/copick/commit/ab98cdc8f1a1b2b08d22102bb62c62ad4e7c2040))
+* Raise error if unknown config type is passed. ([#144](https://github.com/copick/copick/issues/144)) ([e1aa599](https://github.com/copick/copick/commit/e1aa59983cd84e068a6103cc24e97d0f4e7c982c))
+
 ## [1.15.0](https://github.com/copick/copick/compare/copick-v1.14.0...copick-v1.15.0) (2025-10-10)
 
 
