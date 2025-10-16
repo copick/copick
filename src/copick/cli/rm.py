@@ -32,6 +32,14 @@ from copick.util.log import get_logger
     help="Required for pattern-based deletions (safety measure).",
     show_default=True,
 )
+@click.option(
+    "--workers",
+    "-w",
+    type=int,
+    default=8,
+    help="Number of parallel worker processes.",
+    show_default=True,
+)
 @add_debug_option
 @click.argument(
     "object_type",
@@ -45,6 +53,7 @@ def rm(
     run: str,
     dry_run: bool,
     force: bool,
+    workers: int,
     object_type: str,
     uri: str,
     debug: bool,
@@ -84,7 +93,7 @@ def rm(
     """
     # Deferred import for performance
     import copick
-    from copick.ops.manage import remove_copick_objects
+    from copick.ops.manage import remove_copick_objects_batch
     from copick.util.uri import parse_copick_uri
 
     logger = get_logger(__name__, debug=debug)
@@ -127,30 +136,54 @@ def rm(
 
     if run:
         logger.info(f"Operating on run: {run}")
+        run_names = [run]
     else:
         logger.info("Operating on all runs")
+        run_names = None
 
     # Execute removal
     try:
-        result = remove_copick_objects(
+        results = remove_copick_objects_batch(
             root=root,
             object_type=object_type,
             uri=uri,
-            run_name=run,
+            run_names=run_names,
             dry_run=dry_run,
-            log=debug,
+            workers=workers,
         )
 
+        # Aggregate results
+        successful = sum(1 for r in results.values() if r and r.get("deleted", 0) > 0)
+        total_deleted = sum(r.get("deleted", 0) for r in results.values() if r)
+        all_objects = []
+        all_errors = []
+
+        for result in results.values():
+            if result:
+                all_objects.extend(result.get("objects", []))
+                all_errors.extend(result.get("errors", []))
+
         # Report results
+        logger.info(f"Completed: {successful}/{len(results)} runs processed successfully")
         if dry_run:
-            logger.info(f"[DRY RUN] Would delete {result['deleted']} objects:")
-            for obj_uri in result["objects"]:
+            logger.info(f"[DRY RUN] Would delete {total_deleted} objects:")
+            for obj_uri in all_objects[:10]:
                 logger.info(f"  - {obj_uri}")
+            if len(all_objects) > 10:
+                logger.info(f"  ... and {len(all_objects) - 10} more objects")
         else:
-            logger.info(f"Successfully deleted {result['deleted']} objects")
+            logger.info(f"Successfully deleted {total_deleted} objects")
             if debug:
-                for obj_uri in result["objects"]:
+                for obj_uri in all_objects:
                     logger.debug(f"  Deleted: {obj_uri}")
+
+        # Report errors
+        if all_errors:
+            logger.error(f"Encountered {len(all_errors)} errors:")
+            for error in all_errors[:5]:
+                logger.error(f"  - {error}")
+            if len(all_errors) > 5:
+                logger.error(f"  ... and {len(all_errors) - 5} more errors")
 
     except Exception as e:
         logger.error(f"Failed to remove objects: {e}")
