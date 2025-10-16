@@ -33,9 +33,9 @@ def _validate_target_template(
     is_pattern = (
         source_params.get("pattern_type") == "regex"
         or "*" in str(source_params.get("object_name", ""))
-        or "*" in source_params.get("user_id", "")
-        or "*" in source_params.get("session_id", "")
-        or (object_type == "segmentation" and "*" in source_params.get("name", ""))
+        or "*" in str(source_params.get("user_id", ""))
+        or "*" in str(source_params.get("session_id", ""))
+        or (object_type == "segmentation" and "*" in str(source_params.get("name", "")))
     )
 
     # If source matches multiple objects or is a pattern, target must use templates
