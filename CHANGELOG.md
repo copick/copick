@@ -1,5 +1,18 @@
 # Changelog
 
+## [1.17.0](https://github.com/copick/copick/compare/copick-v1.16.0...copick-v1.17.0) (2025-10-17)
+
+
+### ✨ Features
+
+* Switch to rich for logging and progress bars. ([#150](https://github.com/copick/copick/issues/150)) ([a0b9e4d](https://github.com/copick/copick/commit/a0b9e4dea0a48d72fb42f5cd8f7202a776da35b5))
+
+
+### 🐞 Bug Fixes
+
+* Add rich dependency. ([#152](https://github.com/copick/copick/issues/152)) ([90ddf5e](https://github.com/copick/copick/commit/90ddf5e59f41947203ca1a82b6fbb5dc869c471d))
+* Repair cp, mv, rm behavior ([#149](https://github.com/copick/copick/issues/149)) ([d9d652f](https://github.com/copick/copick/commit/d9d652f534311287fcc1257063db3b02fc9968f7))
+
 ## [1.16.0](https://github.com/copick/copick/compare/copick-v1.15.0...copick-v1.16.0) (2025-10-16)
 
 
