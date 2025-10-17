@@ -29,6 +29,7 @@ dependencies = [
     "trimesh>=4.6.12",
     "zarr<3",
     "sshfs>=2025.2.0",
+    "rich>=14.0.0",
 ]
 authors = [
     { name = "Utz H. Ermel", email = "utz.ermel@czii.org" },
