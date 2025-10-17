@@ -1,5 +1,6 @@
 import logging
-import sys
+
+from rich.logging import RichHandler
 
 
 def get_logger(
@@ -31,8 +32,8 @@ def get_logger(
         level=level,
         format=log_format,
         datefmt=date_format,
-        stream=sys.stderr,
         force=True,
+        handlers=[RichHandler(level=level, show_time=debug, show_level=debug)],
     )
     gql_logger = logging.getLogger("gql")
     gql_logger.setLevel(logging.WARN if not debug else logging.DEBUG)

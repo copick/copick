@@ -1,7 +1,7 @@
 from concurrent.futures import ProcessPoolExecutor, ThreadPoolExecutor, as_completed
 from typing import Any, Callable, Dict, Iterable, Literal, Union
 
-from tqdm.auto import tqdm
+from rich.progress import Progress
 
 from copick.models import CopickRoot, CopickRun
 from copick.util.log import get_logger
@@ -68,19 +68,28 @@ def map_runs(
                 raise ValueError(f"Invalid run type: {type(run)}")
 
         ret = {}
-        for fut in tqdm(
-            as_completed(results),
-            total=len(results),
-            desc=task_desc,
-            unit="runs",
-            disable=not show_progress,
-        ):
-            run_name = results[fut]
-            try:
-                ret[run_name] = fut.result()
-            except Exception as e:
-                logger.error(f"Error processing run {run_name}", exc_info=e)
-                ret[run_name] = None
+        if show_progress:
+            with Progress() as progress:
+                task = progress.add_task(
+                    task_desc or "Processing runs",
+                    total=len(results),
+                )
+                for fut in as_completed(results):
+                    run_name = results[fut]
+                    try:
+                        ret[run_name] = fut.result()
+                    except Exception as e:
+                        logger.error(f"Error processing run {run_name}", exc_info=e)
+                        ret[run_name] = None
+                    progress.advance(task)
+        else:
+            for fut in as_completed(results):
+                run_name = results[fut]
+                try:
+                    ret[run_name] = fut.result()
+                except Exception as e:
+                    logger.error(f"Error processing run {run_name}", exc_info=e)
+                    ret[run_name] = None
 
     return ret
 
