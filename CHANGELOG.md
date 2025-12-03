@@ -1,5 +1,18 @@
 # Changelog
 
+## [1.17.1](https://github.com/copick/copick/compare/copick-v1.17.0...copick-v1.17.1) (2025-12-03)
+
+
+### 🐞 Bug Fixes
+
+* bump actions/checkout from 5 to 6 ([#156](https://github.com/copick/copick/issues/156)) ([23a69a6](https://github.com/copick/copick/commit/23a69a648471bb958557d0829b9bf9b05b453438))
+* bump chanzuckerberg/github-actions from 6.10.0 to 6.11.1 ([#155](https://github.com/copick/copick/issues/155)) ([03d0f47](https://github.com/copick/copick/commit/03d0f47e7de28da94be1e4738cf0770c20170a4d))
+
+
+### 🧹 Miscellaneous Chores
+
+* bump version to create zenodo DOI ([#157](https://github.com/copick/copick/issues/157)) ([6896da3](https://github.com/copick/copick/commit/6896da31e869b06514e4cfee9e01dbf11fd54d1a))
+
 ## [1.17.0](https://github.com/copick/copick/compare/copick-v1.16.0...copick-v1.17.0) (2025-10-17)
 
 
