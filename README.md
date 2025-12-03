@@ -8,6 +8,7 @@
 [![Tests](https://github.com/copick/copick/workflows/tests/badge.svg)](https://github.com/copick/copick/actions/workflows/test.yml)
 [![codecov](https://codecov.io/gh/copick/copick/branch/main/graph/badge.svg)](https://codecov.io/gh/copick/copick)
 [![Docs](https://github.com/copick/copick/workflows/docs/badge.svg)](https://copick.github.io/copick/)
+[![DOI](https://zenodo.org/badge/777827788.svg)](https://doi.org/10.5281/zenodo.17799611)
 
 </div>
 
