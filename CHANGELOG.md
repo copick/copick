@@ -1,5 +1,17 @@
 # Changelog
 
+## [1.17.2](https://github.com/copick/copick/compare/copick-v1.17.1...copick-v1.17.2) (2026-01-26)
+
+
+### 🐞 Bug Fixes
+
+* bump chanzuckerberg/github-actions from 6.11.1 to 6.13.0 ([#164](https://github.com/copick/copick/issues/164)) ([cefda08](https://github.com/copick/copick/commit/cefda08b2c9eb9ef05f02abc59b3df4aa20d2b01))
+
+
+### 🧹 Miscellaneous Chores
+
+* add zenodo DOI badge. ([#159](https://github.com/copick/copick/issues/159)) ([1e060f6](https://github.com/copick/copick/commit/1e060f68ac56bdb8d8be4c0e8c44ffc25da0b966))
+
 ## [1.17.1](https://github.com/copick/copick/compare/copick-v1.17.0...copick-v1.17.1) (2025-12-03)
 
 
