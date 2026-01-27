@@ -15,7 +15,7 @@ dependencies = [
     "cryoet-data-portal>=4.4.1",
     "distinctipy>=1.3.4",
     "dynamotable>=0.2.0",
-    "emfile>=0.4.0",
+    "emfile==0.3.0",
     "fsspec>=2025.5.1",
     "mrcfile>=1.5.4",
     "numcodecs<0.16.0",
