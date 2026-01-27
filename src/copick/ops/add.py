@@ -9,8 +9,10 @@ from ome_zarr.writer import write_multiscale
 from copick.models import (
     CopickFeatures,
     CopickObject,
+    CopickPicks,
     CopickRoot,
     CopickRun,
+    CopickSegmentation,
     CopickTomogram,
     CopickVoxelSpacing,
 )
@@ -551,3 +553,716 @@ def add_object_volume(
         logging.log(logging.INFO, f"Added volume data to object {object_name}.")
 
     return obj
+
+
+# =============================================================================
+# Picks Import Functions
+# =============================================================================
+
+
+def add_picks(
+    root: CopickRoot,
+    run_name: str,
+    path: str,
+    object_name: str,
+    user_id: str,
+    session_id: str,
+    voxel_spacing: float,
+    file_type: Optional[str] = None,
+    tomogram_dimensions: Optional[Tuple[int, int, int]] = None,
+    create: bool = True,
+    exist_ok: bool = False,
+    overwrite: bool = False,
+    log: bool = False,
+) -> CopickPicks:
+    """Add picks to a copick run from various file formats.
+
+    Args:
+        root: The copick root object.
+        run_name: Name of the run to add picks to.
+        path: Path to the picks file.
+        object_name: Name of the pickable object.
+        user_id: User ID for the picks.
+        session_id: Session ID for the picks.
+        voxel_spacing: Voxel spacing in Angstrom (for coordinate conversion).
+        file_type: File type ("em", "star", "dynamo", "csv"). Auto-detected if None.
+        tomogram_dimensions: (X, Y, Z) dimensions in voxels (required for EM format).
+        create: Create the run if it doesn't exist.
+        exist_ok: Don't raise error if picks already exist.
+        overwrite: Overwrite existing picks.
+        log: Log the operation.
+
+    Returns:
+        The created CopickPicks object.
+
+    Raises:
+        ValueError: If file type cannot be determined or is unsupported.
+    """
+    from copick.util.formats import get_picks_format_from_extension
+
+    # Auto-detect file type if not provided
+    if file_type is None:
+        file_type = get_picks_format_from_extension(path)
+        if file_type is None:
+            e = ValueError(f"Could not determine file type from path: {path}")
+            if log:
+                logging.exception(e)
+            raise e
+
+    file_type = file_type.lower()
+
+    if file_type == "em":
+        return _add_picks_em(
+            root=root,
+            run_name=run_name,
+            path=path,
+            object_name=object_name,
+            user_id=user_id,
+            session_id=session_id,
+            voxel_spacing=voxel_spacing,
+            tomogram_dimensions=tomogram_dimensions,
+            create=create,
+            exist_ok=exist_ok,
+            overwrite=overwrite,
+            log=log,
+        )
+    elif file_type == "star":
+        return _add_picks_star(
+            root=root,
+            run_name=run_name,
+            path=path,
+            object_name=object_name,
+            user_id=user_id,
+            session_id=session_id,
+            voxel_spacing=voxel_spacing,
+            create=create,
+            exist_ok=exist_ok,
+            overwrite=overwrite,
+            log=log,
+        )
+    elif file_type == "dynamo":
+        return _add_picks_dynamo(
+            root=root,
+            run_name=run_name,
+            path=path,
+            object_name=object_name,
+            user_id=user_id,
+            session_id=session_id,
+            voxel_spacing=voxel_spacing,
+            create=create,
+            exist_ok=exist_ok,
+            overwrite=overwrite,
+            log=log,
+        )
+    elif file_type == "csv":
+        # CSV returns a dict of picks by run_name, return the one for specified run
+        results = _add_picks_csv(
+            root=root,
+            path=path,
+            object_name=object_name,
+            user_id=user_id,
+            session_id=session_id,
+            create=create,
+            exist_ok=exist_ok,
+            overwrite=overwrite,
+            log=log,
+        )
+        if run_name in results:
+            return results[run_name]
+        elif len(results) == 1:
+            return list(results.values())[0]
+        else:
+            e = ValueError(f"Run {run_name} not found in CSV file. Available runs: {list(results.keys())}")
+            if log:
+                logging.exception(e)
+            raise e
+    else:
+        e = ValueError(f"Unsupported file type: {file_type}")
+        if log:
+            logging.exception(e)
+        raise e
+
+
+def _add_picks_em(
+    root: CopickRoot,
+    run_name: str,
+    path: str,
+    object_name: str,
+    user_id: str,
+    session_id: str,
+    voxel_spacing: float,
+    tomogram_dimensions: Optional[Tuple[int, int, int]] = None,
+    create: bool = True,
+    exist_ok: bool = False,
+    overwrite: bool = False,
+    log: bool = False,
+) -> CopickPicks:
+    """Add picks from a TOM toolbox EM motivelist file.
+
+    Args:
+        root: The copick root object.
+        run_name: Name of the run.
+        path: Path to the EM file.
+        object_name: Name of the pickable object.
+        user_id: User ID for the picks.
+        session_id: Session ID for the picks.
+        voxel_spacing: Voxel spacing in Angstrom.
+        tomogram_dimensions: (X, Y, Z) dimensions in voxels. If None, will try to get from run.
+        create: Create run if it doesn't exist.
+        exist_ok: Don't raise error if picks exist.
+        overwrite: Overwrite existing picks.
+        log: Log the operation.
+
+    Returns:
+        The created CopickPicks object.
+    """
+    from copick.util.formats import em_to_copick_transform, read_em_motivelist
+
+    # Read the EM file
+    positions_px, eulers_deg, scores = read_em_motivelist(path)
+
+    # Get or create run
+    runobj = get_or_create_run(root, run_name, create=create, log=log)
+
+    # Get tomogram dimensions if not provided
+    if tomogram_dimensions is None:
+        # Try to get from the run's tomograms
+        vs_with_tomo = [vs for vs in runobj.voxel_spacings if vs.tomograms]
+        if not vs_with_tomo:
+            e = ValueError(
+                "tomogram_dimensions must be provided for EM import when no tomograms exist in the run.",
+            )
+            if log:
+                logging.exception(e)
+            raise e
+        # Use the smallest voxel spacing with a tomogram
+        vs = min(vs_with_tomo, key=lambda x: x.voxel_size)
+        tomo = vs.tomograms[0]
+        z, y, x = zarr.open(tomo.zarr())["0"].shape
+        tomogram_dimensions = (x, y, z)
+
+    # Convert to copick format
+    points_angstrom, transforms = em_to_copick_transform(
+        positions_px,
+        eulers_deg,
+        voxel_spacing,
+        tomogram_dimensions,
+    )
+
+    # Create the picks
+    picks = runobj.new_picks(
+        object_name=object_name,
+        user_id=user_id,
+        session_id=session_id,
+        exist_ok=exist_ok or overwrite,
+    )
+
+    picks.from_numpy(points_angstrom, transforms)
+
+    if log:
+        logging.info(f"Added {len(points_angstrom)} picks from EM file to run {run_name}.")
+
+    return picks
+
+
+def _add_picks_star(
+    root: CopickRoot,
+    run_name: str,
+    path: str,
+    object_name: str,
+    user_id: str,
+    session_id: str,
+    voxel_spacing: float,
+    create: bool = True,
+    exist_ok: bool = False,
+    overwrite: bool = False,
+    log: bool = False,
+) -> CopickPicks:
+    """Add picks from a RELION STAR file.
+
+    Args:
+        root: The copick root object.
+        run_name: Name of the run.
+        path: Path to the STAR file.
+        object_name: Name of the pickable object.
+        user_id: User ID for the picks.
+        session_id: Session ID for the picks.
+        voxel_spacing: Voxel spacing in Angstrom (for coordinate conversion).
+        create: Create run if it doesn't exist.
+        exist_ok: Don't raise error if picks exist.
+        overwrite: Overwrite existing picks.
+        log: Log the operation.
+
+    Returns:
+        The created CopickPicks object.
+    """
+    from scipy.spatial.transform import Rotation
+
+    from copick.util.formats import read_star_particles
+
+    # Read the STAR file
+    df = read_star_particles(path)
+
+    # Extract pixel coordinates and convert to Angstrom
+    if {"rlnCoordinateX", "rlnCoordinateY", "rlnCoordinateZ"}.issubset(df.columns):
+        positions_px = df[["rlnCoordinateX", "rlnCoordinateY", "rlnCoordinateZ"]].to_numpy()
+    else:
+        raise ValueError("STAR file must contain rlnCoordinateX, rlnCoordinateY, rlnCoordinateZ columns")
+
+    positions_angstrom = positions_px * voxel_spacing
+
+    # Extract Euler angles and convert to 4x4 transformation matrices
+    N = len(positions_angstrom)
+    transforms = np.zeros((N, 4, 4), dtype=float)
+    transforms[:, 3, 3] = 1.0
+
+    if {"rlnAngleRot", "rlnAngleTilt", "rlnAnglePsi"}.issubset(df.columns):
+        angles = df[["rlnAngleRot", "rlnAngleTilt", "rlnAnglePsi"]].to_numpy()
+        transforms[:, :3, :3] = Rotation.from_euler("ZYZ", angles, degrees=True).inv().as_matrix()
+    else:
+        transforms[:, :3, :3] = np.eye(3)
+
+    # Get or create run
+    runobj = get_or_create_run(root, run_name, create=create, log=log)
+
+    # Create the picks
+    picks = runobj.new_picks(
+        object_name=object_name,
+        user_id=user_id,
+        session_id=session_id,
+        exist_ok=exist_ok or overwrite,
+    )
+
+    picks.from_numpy(positions_angstrom, transforms)
+
+    if log:
+        logging.info(f"Added {len(positions_angstrom)} picks from STAR file to run {run_name}.")
+
+    return picks
+
+
+def _add_picks_dynamo(
+    root: CopickRoot,
+    run_name: str,
+    path: str,
+    object_name: str,
+    user_id: str,
+    session_id: str,
+    voxel_spacing: float,
+    create: bool = True,
+    exist_ok: bool = False,
+    overwrite: bool = False,
+    log: bool = False,
+) -> CopickPicks:
+    """Add picks from a Dynamo table file.
+
+    Args:
+        root: The copick root object.
+        run_name: Name of the run.
+        path: Path to the .tbl file.
+        object_name: Name of the pickable object.
+        user_id: User ID for the picks.
+        session_id: Session ID for the picks.
+        voxel_spacing: Voxel spacing in Angstrom.
+        create: Create run if it doesn't exist.
+        exist_ok: Don't raise error if picks exist.
+        overwrite: Overwrite existing picks.
+        log: Log the operation.
+
+    Returns:
+        The created CopickPicks object.
+    """
+    from copick.util.formats import dynamo_to_copick_transform, read_dynamo_table
+
+    # Read the Dynamo table
+    positions_px, eulers_deg, shifts_px, scores = read_dynamo_table(path)
+
+    # Convert to copick format
+    points_angstrom, transforms = dynamo_to_copick_transform(
+        positions_px,
+        eulers_deg,
+        shifts_px,
+        voxel_spacing,
+    )
+
+    # Get or create run
+    runobj = get_or_create_run(root, run_name, create=create, log=log)
+
+    # Create the picks
+    picks = runobj.new_picks(
+        object_name=object_name,
+        user_id=user_id,
+        session_id=session_id,
+        exist_ok=exist_ok or overwrite,
+    )
+
+    picks.from_numpy(points_angstrom, transforms)
+
+    if log:
+        logging.info(f"Added {len(points_angstrom)} picks from Dynamo table to run {run_name}.")
+
+    return picks
+
+
+def _add_picks_csv(
+    root: CopickRoot,
+    path: str,
+    object_name: str,
+    user_id: str,
+    session_id: str,
+    create: bool = True,
+    exist_ok: bool = False,
+    overwrite: bool = False,
+    log: bool = False,
+) -> Dict[str, CopickPicks]:
+    """Add picks from a copick CSV file.
+
+    The CSV file contains a run_name column, so picks are grouped by run.
+
+    Args:
+        root: The copick root object.
+        path: Path to the CSV file.
+        object_name: Name of the pickable object.
+        user_id: User ID for the picks.
+        session_id: Session ID for the picks.
+        create: Create runs if they don't exist.
+        exist_ok: Don't raise error if picks exist.
+        overwrite: Overwrite existing picks.
+        log: Log the operation.
+
+    Returns:
+        Dictionary mapping run names to created CopickPicks objects.
+    """
+    from copick.util.formats import csv_to_copick_arrays, read_picks_csv
+
+    # Read the CSV file
+    df = read_picks_csv(path)
+
+    # Convert to copick arrays grouped by run
+    run_data = csv_to_copick_arrays(df)
+
+    results = {}
+    for run_name, (positions, transforms, _scores) in run_data.items():
+        # Get or create run
+        runobj = get_or_create_run(root, run_name, create=create, log=log)
+
+        # Create the picks
+        picks = runobj.new_picks(
+            object_name=object_name,
+            user_id=user_id,
+            session_id=session_id,
+            exist_ok=exist_ok or overwrite,
+        )
+
+        picks.from_numpy(positions, transforms)
+        results[run_name] = picks
+
+        if log:
+            logging.info(f"Added {len(positions)} picks from CSV to run {run_name}.")
+
+    return results
+
+
+# =============================================================================
+# Extended Tomogram Import Functions
+# =============================================================================
+
+
+def _add_tomogram_tiff(
+    root: CopickRoot,
+    run: str,
+    tomo_type: str,
+    volume_file: str,
+    voxel_spacing: float,
+    create: bool = True,
+    exist_ok: bool = False,
+    overwrite: bool = False,
+    create_pyramid: bool = False,
+    pyramid_levels: int = 3,
+    chunks: Tuple[int, ...] = (256, 256, 256),
+    meta: Dict[str, Any] = None,
+    log: bool = False,
+) -> CopickTomogram:
+    """Add a tomogram from a TIFF stack to a copick run.
+
+    Args:
+        root: The copick root object.
+        run: The name of the run.
+        tomo_type: The type of tomogram.
+        volume_file: Path to the TIFF file.
+        voxel_spacing: Voxel spacing in Angstrom (required for TIFF).
+        create: Create the object if it doesn't exist.
+        exist_ok: Don't raise error if volume exists.
+        overwrite: Overwrite if exists.
+        create_pyramid: Create multiscale pyramid.
+        pyramid_levels: Number of pyramid levels.
+        chunks: Chunk size for Zarr store.
+        meta: Optional metadata.
+        log: Log the operation.
+
+    Returns:
+        The created CopickTomogram object.
+    """
+    from copick.util.formats import read_tiff_volume
+
+    if voxel_spacing is None:
+        e = ValueError("voxel_spacing must be provided for TIFF import.")
+        if log:
+            logging.exception(e)
+        raise e
+
+    volume = read_tiff_volume(volume_file)
+
+    return add_tomogram(
+        root,
+        run,
+        tomo_type,
+        volume,
+        voxel_spacing=voxel_spacing,
+        create=create,
+        exist_ok=exist_ok,
+        overwrite=overwrite,
+        create_pyramid=create_pyramid,
+        pyramid_levels=pyramid_levels,
+        chunks=chunks,
+        meta=meta,
+        log=log,
+    )
+
+
+def _add_tomogram_em(
+    root: CopickRoot,
+    run: str,
+    tomo_type: str,
+    volume_file: str,
+    voxel_spacing: float,
+    create: bool = True,
+    exist_ok: bool = False,
+    overwrite: bool = False,
+    create_pyramid: bool = False,
+    pyramid_levels: int = 3,
+    chunks: Tuple[int, ...] = (256, 256, 256),
+    meta: Dict[str, Any] = None,
+    log: bool = False,
+) -> CopickTomogram:
+    """Add a tomogram from a TOM toolbox EM volume to a copick run.
+
+    Args:
+        root: The copick root object.
+        run: The name of the run.
+        tomo_type: The type of tomogram.
+        volume_file: Path to the EM file.
+        voxel_spacing: Voxel spacing in Angstrom (required for EM).
+        create: Create the object if it doesn't exist.
+        exist_ok: Don't raise error if volume exists.
+        overwrite: Overwrite if exists.
+        create_pyramid: Create multiscale pyramid.
+        pyramid_levels: Number of pyramid levels.
+        chunks: Chunk size for Zarr store.
+        meta: Optional metadata.
+        log: Log the operation.
+
+    Returns:
+        The created CopickTomogram object.
+    """
+    from copick.util.formats import read_em_volume
+
+    if voxel_spacing is None:
+        e = ValueError("voxel_spacing must be provided for EM import.")
+        if log:
+            logging.exception(e)
+        raise e
+
+    volume = read_em_volume(volume_file)
+
+    return add_tomogram(
+        root,
+        run,
+        tomo_type,
+        volume,
+        voxel_spacing=voxel_spacing,
+        create=create,
+        exist_ok=exist_ok,
+        overwrite=overwrite,
+        create_pyramid=create_pyramid,
+        pyramid_levels=pyramid_levels,
+        chunks=chunks,
+        meta=meta,
+        log=log,
+    )
+
+
+# =============================================================================
+# Extended Segmentation Import Functions
+# =============================================================================
+
+
+def _add_segmentation_from_array(
+    root: CopickRoot,
+    run: str,
+    volume: np.ndarray,
+    voxel_spacing: float,
+    name: str,
+    user_id: str,
+    session_id: str,
+    multilabel: bool = False,
+    create: bool = True,
+    exist_ok: bool = False,
+    overwrite: bool = False,
+    log: bool = False,
+) -> CopickSegmentation:
+    """Add a segmentation from a numpy array.
+
+    Args:
+        root: The copick root object.
+        run: The name of the run.
+        volume: The segmentation volume as numpy array.
+        voxel_spacing: Voxel spacing in Angstrom.
+        name: Name of the segmentation.
+        user_id: User ID for the segmentation.
+        session_id: Session ID for the segmentation.
+        multilabel: Whether this is a multilabel segmentation.
+        create: Create run if it doesn't exist.
+        exist_ok: Don't raise error if segmentation exists.
+        overwrite: Overwrite if exists.
+        log: Log the operation.
+
+    Returns:
+        The created CopickSegmentation object.
+    """
+    runobj = get_or_create_run(root, run, create=create)
+
+    segmentation = runobj.new_segmentation(
+        name=name,
+        user_id=user_id,
+        is_multilabel=multilabel,
+        voxel_size=voxel_spacing,
+        session_id=session_id,
+        exist_ok=exist_ok,
+        overwrite=overwrite,
+    )
+
+    segmentation.from_numpy(volume)
+
+    if log:
+        logging.info(f"Added segmentation {name} to run {run}.")
+
+    return segmentation
+
+
+def _add_segmentation_tiff(
+    root: CopickRoot,
+    run: str,
+    volume_file: str,
+    voxel_spacing: float,
+    name: str,
+    user_id: str,
+    session_id: str,
+    multilabel: bool = False,
+    create: bool = True,
+    exist_ok: bool = False,
+    overwrite: bool = False,
+    log: bool = False,
+) -> CopickSegmentation:
+    """Add a segmentation from a TIFF stack.
+
+    Args:
+        root: The copick root object.
+        run: The name of the run.
+        volume_file: Path to the TIFF file.
+        voxel_spacing: Voxel spacing in Angstrom.
+        name: Name of the segmentation.
+        user_id: User ID for the segmentation.
+        session_id: Session ID for the segmentation.
+        multilabel: Whether this is a multilabel segmentation.
+        create: Create run if it doesn't exist.
+        exist_ok: Don't raise error if segmentation exists.
+        overwrite: Overwrite if exists.
+        log: Log the operation.
+
+    Returns:
+        The created CopickSegmentation object.
+    """
+    from copick.util.formats import read_tiff_volume
+
+    if voxel_spacing is None:
+        e = ValueError("voxel_spacing must be provided for TIFF import.")
+        if log:
+            logging.exception(e)
+        raise e
+
+    volume = read_tiff_volume(volume_file)
+
+    return _add_segmentation_from_array(
+        root=root,
+        run=run,
+        volume=volume,
+        voxel_spacing=voxel_spacing,
+        name=name,
+        user_id=user_id,
+        session_id=session_id,
+        multilabel=multilabel,
+        create=create,
+        exist_ok=exist_ok,
+        overwrite=overwrite,
+        log=log,
+    )
+
+
+def _add_segmentation_em(
+    root: CopickRoot,
+    run: str,
+    volume_file: str,
+    voxel_spacing: float,
+    name: str,
+    user_id: str,
+    session_id: str,
+    multilabel: bool = False,
+    create: bool = True,
+    exist_ok: bool = False,
+    overwrite: bool = False,
+    log: bool = False,
+) -> CopickSegmentation:
+    """Add a segmentation from a TOM toolbox EM volume.
+
+    Args:
+        root: The copick root object.
+        run: The name of the run.
+        volume_file: Path to the EM file.
+        voxel_spacing: Voxel spacing in Angstrom.
+        name: Name of the segmentation.
+        user_id: User ID for the segmentation.
+        session_id: Session ID for the segmentation.
+        multilabel: Whether this is a multilabel segmentation.
+        create: Create run if it doesn't exist.
+        exist_ok: Don't raise error if segmentation exists.
+        overwrite: Overwrite if exists.
+        log: Log the operation.
+
+    Returns:
+        The created CopickSegmentation object.
+    """
+    from copick.util.formats import read_em_volume
+
+    if voxel_spacing is None:
+        e = ValueError("voxel_spacing must be provided for EM import.")
+        if log:
+            logging.exception(e)
+        raise e
+
+    volume = read_em_volume(volume_file)
+
+    return _add_segmentation_from_array(
+        root=root,
+        run=run,
+        volume=volume,
+        voxel_spacing=voxel_spacing,
+        name=name,
+        user_id=user_id,
+        session_id=session_id,
+        multilabel=multilabel,
+        create=create,
+        exist_ok=exist_ok,
+        overwrite=overwrite,
+        log=log,
+    )

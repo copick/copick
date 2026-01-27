@@ -10,6 +10,7 @@ services:
       - S3_IGNORE_SUBDOMAIN_BUCKETNAME=True
     volumes:
       - ./bin/s3:/moto/bin
+    restart: on-failure
 
   openssh-server:
     profiles:

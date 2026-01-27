@@ -6,6 +6,7 @@ from copick.cli.browse import browse
 from copick.cli.config import config
 from copick.cli.cp import cp
 from copick.cli.deposit import deposit
+from copick.cli.export import export
 from copick.cli.ext import load_plugin_commands
 from copick.cli.grouped_cli import GroupedCommandGroup
 from copick.cli.info import get_installed_plugin_packages, info
@@ -20,7 +21,7 @@ logger = get_logger(__name__)
 
 # Define command categories for organized help output
 COMMAND_CATEGORIES = {
-    "Data Management": ["add", "cp", "mv", "new", "rm", "sync"],
+    "Data Management": ["add", "cp", "export", "mv", "new", "rm", "sync"],
     "Data Processing": ["convert", "inference", "logical", "process", "training", "evaluation"],
     "Utilities": ["browse", "config", "deposit", "info", "setup", "stats"],
 }
@@ -159,6 +160,7 @@ def add_core_commands(cmd: click.group) -> click.group:
     cmd.add_command(config)
     cmd.add_command(cp)
     cmd.add_command(deposit)
+    cmd.add_command(export)
     cmd.add_command(info)
     cmd.add_command(mv)
     cmd.add_command(new)
