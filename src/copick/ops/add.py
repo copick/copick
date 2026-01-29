@@ -904,6 +904,223 @@ def _add_picks_dynamo(
     return picks
 
 
+def _add_picks_dynamo_grouped(
+    root: CopickRoot,
+    path: str,
+    object_name: str,
+    user_id: str,
+    session_id: str,
+    voxel_spacing: float,
+    index_to_run: Dict[int, str],
+    create: bool = True,
+    exist_ok: bool = False,
+    overwrite: bool = False,
+    log: bool = False,
+) -> Dict[str, CopickPicks]:
+    """Add picks from a Dynamo table file, grouping by tomogram index.
+
+    Args:
+        root: The copick root object.
+        path: Path to the .tbl file.
+        object_name: Name of the pickable object.
+        user_id: User ID for the picks.
+        session_id: Session ID for the picks.
+        voxel_spacing: Voxel spacing in Angstrom.
+        index_to_run: Mapping from tomogram index to run name.
+        create: Create run if it doesn't exist.
+        exist_ok: Don't raise error if picks exist.
+        overwrite: Overwrite existing picks.
+        log: Log the operation.
+
+    Returns:
+        Dictionary mapping run names to created CopickPicks objects.
+    """
+    from copick.util.formats import dynamo_to_copick_transform, read_dynamo_table
+
+    # Read the Dynamo table with tomogram indices
+    positions_px, eulers_deg, shifts_px, scores, tomo_indices = read_dynamo_table(
+        path,
+        include_tomo_index=True,
+    )
+
+    # Group particles by tomogram index
+    unique_indices = np.unique(tomo_indices)
+    results = {}
+    skipped_count = 0
+
+    for tomo_idx in unique_indices:
+        tomo_idx = int(tomo_idx)
+
+        # Check if this index is in the mapping
+        if tomo_idx not in index_to_run:
+            mask = tomo_indices == tomo_idx
+            skipped_count += np.sum(mask)
+            if log:
+                logging.warning(
+                    f"Tomogram index {tomo_idx} not found in mapping, skipping {np.sum(mask)} particles.",
+                )
+            continue
+
+        run_name = index_to_run[tomo_idx]
+
+        # Get particles for this tomogram
+        mask = tomo_indices == tomo_idx
+        pos_subset = positions_px[mask]
+        euler_subset = eulers_deg[mask]
+        shift_subset = shifts_px[mask]
+
+        # Convert to copick format
+        points_angstrom, transforms = dynamo_to_copick_transform(
+            pos_subset,
+            euler_subset,
+            shift_subset,
+            voxel_spacing,
+        )
+
+        # Get or create run
+        runobj = get_or_create_run(root, run_name, create=create, log=log)
+
+        # Create the picks
+        picks = runobj.new_picks(
+            object_name=object_name,
+            user_id=user_id,
+            session_id=session_id,
+            exist_ok=exist_ok or overwrite,
+        )
+
+        picks.from_numpy(points_angstrom, transforms)
+        results[run_name] = picks
+
+        if log:
+            logging.info(
+                f"Added {len(points_angstrom)} picks from Dynamo table to run {run_name}.",
+            )
+
+    if skipped_count > 0 and log:
+        logging.warning(f"Total skipped particles due to unmapped indices: {skipped_count}")
+
+    return results
+
+
+def _add_picks_em_grouped(
+    root: CopickRoot,
+    path: str,
+    object_name: str,
+    user_id: str,
+    session_id: str,
+    voxel_spacing: float,
+    index_to_run: Dict[int, str],
+    tomo_index_row: int = 3,
+    tomogram_dimensions: Optional[Tuple[int, int, int]] = None,
+    create: bool = True,
+    exist_ok: bool = False,
+    overwrite: bool = False,
+    log: bool = False,
+) -> Dict[str, CopickPicks]:
+    """Add picks from a TOM toolbox EM motivelist file, grouping by tomogram index.
+
+    Args:
+        root: The copick root object.
+        path: Path to the EM file.
+        object_name: Name of the pickable object.
+        user_id: User ID for the picks.
+        session_id: Session ID for the picks.
+        voxel_spacing: Voxel spacing in Angstrom.
+        index_to_run: Mapping from tomogram index to run name.
+        tomo_index_row: Row index (0-based) containing tomogram indices (default: 3).
+        tomogram_dimensions: (X, Y, Z) dimensions in voxels. If None, will try to get from each run.
+        create: Create run if it doesn't exist.
+        exist_ok: Don't raise error if picks exist.
+        overwrite: Overwrite existing picks.
+        log: Log the operation.
+
+    Returns:
+        Dictionary mapping run names to created CopickPicks objects.
+    """
+    from copick.util.formats import em_to_copick_transform, read_em_motivelist
+
+    # Read the EM file with tomogram indices
+    positions_px, eulers_deg, scores, tomo_indices = read_em_motivelist(
+        path,
+        include_tomo_index=True,
+        tomo_index_row=tomo_index_row,
+    )
+
+    # Group particles by tomogram index
+    unique_indices = np.unique(tomo_indices)
+    results = {}
+    skipped_count = 0
+
+    for tomo_idx in unique_indices:
+        tomo_idx = int(tomo_idx)
+
+        # Check if this index is in the mapping
+        if tomo_idx not in index_to_run:
+            mask = tomo_indices == tomo_idx
+            skipped_count += np.sum(mask)
+            if log:
+                logging.warning(
+                    f"Tomogram index {tomo_idx} not found in mapping, skipping {np.sum(mask)} particles.",
+                )
+            continue
+
+        run_name = index_to_run[tomo_idx]
+
+        # Get particles for this tomogram
+        mask = tomo_indices == tomo_idx
+        pos_subset = positions_px[mask]
+        euler_subset = eulers_deg[mask]
+
+        # Get or create run
+        runobj = get_or_create_run(root, run_name, create=create, log=log)
+
+        # Get tomogram dimensions if not provided
+        run_tomo_dims = tomogram_dimensions
+        if run_tomo_dims is None:
+            # Try to get from the run's tomograms
+            vs_with_tomo = [vs for vs in runobj.voxel_spacings if vs.tomograms]
+            if not vs_with_tomo:
+                if log:
+                    logging.warning(
+                        f"tomogram_dimensions not provided and no tomograms in run {run_name}, "
+                        f"skipping {len(pos_subset)} particles.",
+                    )
+                skipped_count += len(pos_subset)
+                continue
+            # Use the smallest voxel spacing with a tomogram
+            vs = min(vs_with_tomo, key=lambda x: x.voxel_size)
+            tomo = vs.tomograms[0]
+            z, y, x = zarr.open(tomo.zarr())["0"].shape
+            run_tomo_dims = (x, y, z)
+
+        # Convert to copick format
+        points_angstrom, transforms = em_to_copick_transform(
+            pos_subset,
+            euler_subset,
+            voxel_spacing,
+            run_tomo_dims,
+        )
+
+        # Create the picks
+        picks = runobj.new_picks(
+            object_name=object_name,
+            user_id=user_id,
+            session_id=session_id,
+            exist_ok=exist_ok or overwrite,
+        )
+
+        picks.from_numpy(points_angstrom, transforms)
+        results[run_name] = picks
+
+        if log:
+            logging.info(f"Added {len(points_angstrom)} picks from EM file to run {run_name}.")
+
+    if skipped_count > 0 and log:
+        logging.warning(f"Total skipped particles due to unmapped indices: {skipped_count}")
+
+    return results
+
+
 def _add_picks_csv(
     root: CopickRoot,
     path: str,

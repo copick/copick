@@ -12,7 +12,7 @@ Supported formats:
 - TIFF stacks (via tifffile package)
 """
 
-from typing import TYPE_CHECKING, Dict, Optional, Tuple
+from typing import TYPE_CHECKING, Dict, Optional, Tuple, Union
 
 import numpy as np
 
@@ -67,6 +67,107 @@ def get_volume_format_from_extension(path: str) -> Optional[str]:
     }
     ext = path.split(".")[-1].lower()
     return formats.get(ext, None)
+
+
+# =============================================================================
+# Tomogram Index Mapping Utilities
+# =============================================================================
+
+
+def read_index_map(path: str) -> Dict[int, str]:
+    """Read a tomogram index-to-run name mapping file.
+
+    The file should be a CSV or TSV with two columns:
+    - Column 1: Tomogram index (integer)
+    - Column 2: Run name (string)
+
+    The delimiter is auto-detected (comma or tab).
+
+    Args:
+        path: Path to the mapping file (CSV or TSV).
+
+    Returns:
+        Dictionary mapping tomogram index (int) to run name (str).
+
+    Raises:
+        ValueError: If file format is invalid or contains duplicate indices.
+    """
+    import pandas as pd
+
+    # Try to auto-detect delimiter
+    with open(path) as f:
+        first_line = f.readline()
+
+    delimiter = "\t" if "\t" in first_line else ","
+
+    df = pd.read_csv(path, sep=delimiter, header=None, names=["index", "run_name"])
+
+    if df.shape[1] < 2:
+        raise ValueError(
+            f"Index map file must have at least 2 columns (index, run_name), got {df.shape[1]} columns",
+        )
+
+    # Convert to dict
+    indices = df["index"].astype(int).tolist()
+    run_names = df["run_name"].astype(str).tolist()
+
+    # Check for duplicates
+    if len(indices) != len(set(indices)):
+        duplicates = [i for i in set(indices) if indices.count(i) > 1]
+        raise ValueError(f"Duplicate tomogram indices in mapping: {duplicates}")
+
+    return dict(zip(indices, run_names))
+
+
+def read_dynamo_tomolist(path: str) -> Dict[int, str]:
+    """Read a Dynamo tomolist file and extract run names from MRC paths.
+
+    Dynamo tomolists are TSV files with two columns:
+    - Column 1: Tomogram index (integer)
+    - Column 2: Path to MRC/REC file
+
+    Run names are extracted from the filenames (without extension).
+
+    Args:
+        path: Path to the Dynamo tomolist file.
+
+    Returns:
+        Dictionary mapping tomogram index (int) to run name (str).
+
+    Raises:
+        ValueError: If file format is invalid or contains duplicate indices.
+    """
+    import os
+
+    import pandas as pd
+
+    df = pd.read_csv(path, sep="\t", header=None, names=["index", "mrc_path"])
+
+    if df.shape[1] < 2:
+        raise ValueError(
+            f"Dynamo tomolist must have at least 2 columns (index, path), got {df.shape[1]} columns",
+        )
+
+    index_to_run = {}
+    for _, row in df.iterrows():
+        tomo_idx = int(row["index"])
+        mrc_path = str(row["mrc_path"])
+
+        # Extract filename without extension as run name
+        basename = os.path.basename(mrc_path)
+        # Handle both .mrc and .rec extensions
+        if basename.endswith(".mrc") or basename.endswith(".rec"):
+            run_name = basename[:-4]
+        else:
+            # Strip any extension
+            run_name = os.path.splitext(basename)[0]
+
+        if tomo_idx in index_to_run:
+            raise ValueError(f"Duplicate tomogram index in tomolist: {tomo_idx}")
+
+        index_to_run[tomo_idx] = run_name
+
+    return index_to_run
 
 
 # =============================================================================
@@ -190,7 +291,11 @@ def points_and_rotations_to_transforms(
 
 def read_dynamo_table(
     path: str,
-) -> Tuple[np.ndarray, np.ndarray, np.ndarray, np.ndarray]:
+    include_tomo_index: bool = False,
+) -> Union[
+    Tuple[np.ndarray, np.ndarray, np.ndarray, np.ndarray],
+    Tuple[np.ndarray, np.ndarray, np.ndarray, np.ndarray, np.ndarray],
+]:
     """Read a Dynamo table file.
 
     Dynamo uses ZXZ intrinsic Euler convention with coordinates in pixels
@@ -198,10 +303,12 @@ def read_dynamo_table(
 
     Args:
         path: Path to the .tbl file.
+        include_tomo_index: If True, also return the tomogram index column.
 
     Returns:
-        Tuple of (positions [N, 3] in pixels, eulers [N, 3] in degrees,
-                  shifts [N, 3] in pixels, scores [N]).
+        If include_tomo_index=False: Tuple of (positions [N, 3] in pixels,
+            eulers [N, 3] in degrees, shifts [N, 3] in pixels, scores [N]).
+        If include_tomo_index=True: Same as above plus tomo_indices [N] as integers.
     """
     import dynamotable
 
@@ -218,6 +325,11 @@ def read_dynamo_table(
 
     # Cross-correlation score (column 10)
     scores = df["cc"].to_numpy() if "cc" in df.columns else np.ones(len(df))
+
+    if include_tomo_index:
+        # Tomogram index (column 2 - "tomo")
+        tomo_indices = df["tomo"].to_numpy().astype(int)
+        return positions, eulers, shifts, scores, tomo_indices
 
     return positions, eulers, shifts, scores
 
@@ -350,12 +462,14 @@ def copick_to_dynamo_transform(
 
 def read_em_motivelist(
     path: str,
-) -> Tuple[np.ndarray, np.ndarray, np.ndarray]:
+    include_tomo_index: bool = False,
+    tomo_index_row: int = 3,
+) -> Union[Tuple[np.ndarray, np.ndarray, np.ndarray], Tuple[np.ndarray, np.ndarray, np.ndarray, np.ndarray]]:
     """Read a TOM toolbox EM motivelist.
 
     TOM motivelists store particle positions and angles in a 2D array where:
     - Row 0-2: Position shifts (dx, dy, dz) - usually applied during alignment
-    - Row 3: Tomogram index
+    - Row 3: Tomogram index (default location, configurable via tomo_index_row)
     - Row 4: Particle class
     - Row 5: Subtomogram filename (unused here, just index)
     - Row 6: Score/CCC
@@ -364,10 +478,13 @@ def read_em_motivelist(
 
     Args:
         path: Path to the EM file.
+        include_tomo_index: If True, also return the tomogram indices.
+        tomo_index_row: Row index (0-based) containing tomogram indices (default: 3).
 
     Returns:
-        Tuple of (positions [N, 3] in pixels, eulers [N, 3] in degrees,
-                  scores [N]).
+        If include_tomo_index=False: Tuple of (positions [N, 3] in pixels,
+            eulers [N, 3] in degrees, scores [N]).
+        If include_tomo_index=True: Same as above plus tomo_indices [N] as integers.
     """
     import emfile
 
@@ -388,6 +505,14 @@ def read_em_motivelist(
 
     # Scores (row 6)
     scores = data[6, :]
+
+    if include_tomo_index:
+        if tomo_index_row >= data.shape[0]:
+            raise ValueError(
+                f"tomo_index_row={tomo_index_row} exceeds data shape {data.shape}",
+            )
+        tomo_indices = data[tomo_index_row, :].astype(int)
+        return positions, eulers, scores, tomo_indices
 
     return positions, eulers, scores
 

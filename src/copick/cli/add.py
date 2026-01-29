@@ -849,6 +849,31 @@ def object_volume(
     help="File type ('em', 'star', 'dynamo', 'csv'). Will guess type based on extension if omitted.",
 )
 @click.option(
+    "--index-map",
+    required=False,
+    type=click.Path(exists=True),
+    default=None,
+    help="Path to a CSV/TSV file mapping tomogram index to run name (2 columns: index, run_name). "
+    "Enables multi-tomogram import from Dynamo tables or EM motivelists. "
+    "Mutually exclusive with --run and --run-regex.",
+)
+@click.option(
+    "--tomolist",
+    required=False,
+    type=click.Path(exists=True),
+    default=None,
+    help="Path to a Dynamo tomolist file (2-column TSV: index, MRC path). "
+    "Run names are extracted from MRC filenames. Only valid with --file-type dynamo.",
+)
+@click.option(
+    "--tomo-index-row",
+    required=False,
+    type=int,
+    default=3,
+    show_default=True,
+    help="Row index (0-based) containing tomogram index in EM files. Only valid with --file-type em.",
+)
+@click.option(
     "--max-workers",
     required=False,
     type=int,
@@ -875,6 +900,9 @@ def picks(
     session_id: str,
     voxel_size: float,
     file_type: str,
+    index_map: str,
+    tomolist: str,
+    tomo_index_row: int,
     max_workers: int,
     path: str,
     create: bool,
@@ -916,6 +944,21 @@ def picks(
     \b
     # Import from multiple files using glob pattern
     copick add picks "*.star" -c config.json --object-name ribosome --voxel-size 10.0
+
+    \b
+    # Import Dynamo table with multiple tomograms using index map
+    copick add picks particles.tbl -c config.json --object-name ribosome \\
+        --voxel-size 10.0 --index-map tomo_mapping.csv
+
+    \b
+    # Import Dynamo table using tomolist (run names from MRC filenames)
+    copick add picks particles.tbl -c config.json --object-name ribosome \\
+        --voxel-size 10.0 --tomolist tomograms.doc
+
+    \b
+    # Import EM motivelist with index map
+    copick add picks motivelist.em -c config.json --object-name ribosome \\
+        --voxel-size 10.0 --index-map tomo_mapping.csv
     """
     import copick
     from copick.ops.add import add_picks as add_picks_op
@@ -945,6 +988,76 @@ def picks(
     ft = file_type.lower() if file_type else get_picks_format_from_extension(paths[0])
     if ft in ["em", "star", "dynamo"] and voxel_size is None:
         ctx.fail(f"--voxel-size is required for {ft.upper()} format import.")
+
+    # Validate index mapping options
+    if index_map or tomolist:
+        if run:
+            ctx.fail("--run cannot be used with --index-map or --tomolist")
+        if run_regex != "(.*)":
+            ctx.fail("--run-regex cannot be used with --index-map or --tomolist")
+
+    if tomolist and ft != "dynamo":
+        ctx.fail("--tomolist is only valid with --file-type dynamo")
+
+    if tomo_index_row != 3 and ft != "em":
+        ctx.fail("--tomo-index-row is only valid with --file-type em")
+
+    # Handle grouped import (index-map or tomolist provided)
+    if index_map or tomolist:
+        from copick.ops.add import _add_picks_dynamo_grouped, _add_picks_em_grouped
+        from copick.util.formats import read_dynamo_tomolist, read_index_map
+
+        # Parse the index-to-run mapping
+        if tomolist:
+            index_to_run = read_dynamo_tomolist(tomolist)
+            logger.info(f"Loaded tomolist with {len(index_to_run)} tomograms")
+        else:
+            index_to_run = read_index_map(index_map)
+            logger.info(f"Loaded index map with {len(index_to_run)} entries")
+
+        # Process each file with grouped import
+        total_runs = set()
+        for p in paths:
+            try:
+                if ft == "dynamo":
+                    results = _add_picks_dynamo_grouped(
+                        root=root,
+                        path=p,
+                        object_name=object_name,
+                        user_id=user_id,
+                        session_id=session_id,
+                        voxel_spacing=voxel_size,
+                        index_to_run=index_to_run,
+                        create=create,
+                        exist_ok=overwrite,
+                        overwrite=overwrite,
+                        log=debug,
+                    )
+                elif ft == "em":
+                    results = _add_picks_em_grouped(
+                        root=root,
+                        path=p,
+                        object_name=object_name,
+                        user_id=user_id,
+                        session_id=session_id,
+                        voxel_spacing=voxel_size,
+                        index_to_run=index_to_run,
+                        tomo_index_row=tomo_index_row,
+                        create=create,
+                        exist_ok=overwrite,
+                        overwrite=overwrite,
+                        log=debug,
+                    )
+                else:
+                    ctx.fail(f"Grouped import (--index-map/--tomolist) not supported for format: {ft}")
+
+                total_runs.update(results.keys())
+                logger.info(f"Imported picks from {p} to {len(results)} runs")
+            except Exception as e:
+                logger.error(f"Failed to import picks from {p}: {e}")
+
+        logger.info(f"Successfully imported picks to {len(total_runs)} runs total")
+        return
 
     # For CSV files, we handle them specially since they contain run_name column
     if ft == "csv":
