@@ -122,7 +122,7 @@ def read_index_map(path: str) -> Dict[int, str]:
 def read_dynamo_tomolist(path: str) -> Dict[int, str]:
     """Read a Dynamo tomolist file and extract run names from MRC paths.
 
-    Dynamo tomolists are TSV files with two columns:
+    Dynamo tomolists are whitespace-delimited files with two columns:
     - Column 1: Tomogram index (integer)
     - Column 2: Path to MRC/REC file
 
@@ -141,7 +141,8 @@ def read_dynamo_tomolist(path: str) -> Dict[int, str]:
 
     import pandas as pd
 
-    df = pd.read_csv(path, sep="\t", header=None, names=["index", "mrc_path"])
+    # Use regex whitespace splitting to handle both tab and space delimiters
+    df = pd.read_csv(path, sep=r"\s+", header=None, names=["index", "mrc_path"])
 
     if df.shape[1] < 2:
         raise ValueError(
