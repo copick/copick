@@ -639,11 +639,14 @@ def em_to_copick_transform(
 
     TOM toolbox uses:
     - Center-origin coordinates in pixels
-    - ZXZ Euler convention (typically)
+    - ZXZ Euler convention (same as Dynamo - intrinsic, passive)
 
     Copick uses:
     - Corner-origin coordinates in Angstrom
     - 4x4 affine matrices
+
+    The conversion uses intrinsic zxz with inversion to match the canonical
+    conversion path (same as Dynamo, verified via eulerangles library).
 
     Args:
         positions_px: Coordinates in pixels (center-origin) [N, 3].
@@ -654,6 +657,8 @@ def em_to_copick_transform(
     Returns:
         Tuple of (points_angstrom [N, 3], transforms [N, 4, 4]).
     """
+    from scipy.spatial.transform import Rotation
+
     # Convert from center-origin to corner-origin
     center_offset = np.array(tomogram_dimensions) / 2.0
     positions_corner = positions_px + center_offset
@@ -661,8 +666,10 @@ def em_to_copick_transform(
     # Convert to Angstrom
     points_angstrom = positions_corner * voxel_size
 
-    # Convert Euler angles to rotation matrices (ZXZ convention)
-    rotations = euler_to_matrix(eulers_deg, convention="ZXZ", degrees=True)
+    # Convert Euler angles to rotation matrices
+    # Use intrinsic zxz (lowercase) with inversion to match RELION convention
+    # Same as Dynamo conversion
+    rotations = Rotation.from_euler("zxz", eulers_deg, degrees=True).inv().as_matrix()
 
     # Create identity transforms (no additional translation beyond point location)
     N = positions_px.shape[0]
@@ -681,6 +688,8 @@ def copick_to_em_transform(
 ) -> Tuple[np.ndarray, np.ndarray]:
     """Convert copick format to TOM/EM coordinates.
 
+    This is the inverse of em_to_copick_transform.
+
     Args:
         points_angstrom: Coordinates in Angstrom (corner-origin) [N, 3].
         transforms: 4x4 affine matrices [N, 4, 4].
@@ -690,6 +699,8 @@ def copick_to_em_transform(
     Returns:
         Tuple of (positions_px [N, 3] center-origin, eulers_deg [N, 3]).
     """
+    from scipy.spatial.transform import Rotation
+
     # Extract rotations from transforms
     _, rotations = transforms_to_points_and_rotations(transforms)
 
@@ -701,7 +712,16 @@ def copick_to_em_transform(
     positions_px = positions_corner_px - center_offset
 
     # Convert rotation matrices to ZXZ Euler angles
-    eulers_deg = matrix_to_euler(rotations, convention="ZXZ", degrees=True)
+    # Use intrinsic zxz with inversion (inverse of import conversion)
+    # Same as Dynamo export
+    N = rotations.shape[0]
+    eulers_deg = np.zeros((N, 3), dtype=float)
+    for i, Rmat in enumerate(rotations):
+        if np.allclose(Rmat, np.eye(3)):
+            eulers_deg[i] = np.array([0.0, 0.0, 0.0])
+        else:
+            r = Rotation.from_matrix(Rmat)
+            eulers_deg[i] = r.inv().as_euler("zxz", degrees=True)
 
     return positions_px, eulers_deg
 
