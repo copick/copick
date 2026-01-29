@@ -395,7 +395,7 @@ def dynamo_to_copick_transform(
     """Convert Dynamo coordinates to copick format.
 
     Dynamo uses:
-    - ZXZ intrinsic Euler convention
+    - ZXZ Euler convention (intrinsic, passive)
     - Coordinates in pixels (corner-origin)
     - Separate shifts from coordinates
 
@@ -404,20 +404,26 @@ def dynamo_to_copick_transform(
     - Coordinates in Angstrom (corner-origin)
     - Shifts encoded in the matrix translation
 
+    The conversion uses intrinsic zxz with inversion to match the canonical
+    Dynamo → RELION → copick conversion path (verified via eulerangles library).
+
     Args:
         positions_px: Coordinates in pixels [N, 3].
-        eulers_deg: ZXZ Euler angles in degrees [N, 3].
+        eulers_deg: ZXZ Euler angles in degrees [N, 3] as (tdrot, tilt, narot).
         shifts_px: Shifts in pixels [N, 3].
         voxel_size: Voxel size in Angstrom.
 
     Returns:
         Tuple of (points_angstrom [N, 3], transforms [N, 4, 4]).
     """
+    from scipy.spatial.transform import Rotation
+
     # Convert coordinates to Angstrom
     points_angstrom = positions_px * voxel_size
 
-    # Convert Euler angles to rotation matrices (ZXZ convention)
-    rotations = euler_to_matrix(eulers_deg, convention="ZXZ", degrees=True)
+    # Convert Euler angles to rotation matrices
+    # Use intrinsic zxz (lowercase) with inversion to match RELION convention
+    rotations = Rotation.from_euler("zxz", eulers_deg, degrees=True).inv().as_matrix()
 
     # Convert shifts to Angstrom and apply to transform
     shifts_angstrom = shifts_px * voxel_size
