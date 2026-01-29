@@ -486,14 +486,19 @@ def read_em_motivelist(
 ) -> Union[Tuple[np.ndarray, np.ndarray, np.ndarray], Tuple[np.ndarray, np.ndarray, np.ndarray, np.ndarray]]:
     """Read a TOM toolbox EM motivelist.
 
-    TOM motivelists store particle positions and angles in a 2D array where:
+    TOM motivelists store particle positions and angles in an array where:
     - Row 0-2: Position shifts (dx, dy, dz) - usually applied during alignment
     - Row 3: Tomogram index (default location, configurable via tomo_index_row)
     - Row 4: Particle class
     - Row 5: Subtomogram filename (unused here, just index)
     - Row 6: Score/CCC
     - Row 7-9: Position (x, y, z) in pixels (center-origin convention)
-    - Row 16-18: Euler angles (phi, psi, theta) - typically ZXZ
+    - Row 16: Phi (first Z rotation)
+    - Row 17: Psi (third Z rotation)
+    - Row 18: Theta (second X rotation)
+
+    Note: Euler angles are stored as [phi, psi, theta] in rows 16-18, but the
+    ZXZ rotation order is phi-theta-psi. This follows the Artiatomi/ArtiaX convention.
 
     Args:
         path: Path to the EM file.
@@ -502,7 +507,7 @@ def read_em_motivelist(
 
     Returns:
         If include_tomo_index=False: Tuple of (positions [N, 3] in pixels,
-            eulers [N, 3] in degrees, scores [N]).
+            eulers [N, 3] in degrees as [phi, theta, psi], scores [N]).
         If include_tomo_index=True: Same as above plus tomo_indices [N] as integers.
     """
     import emfile
@@ -532,8 +537,13 @@ def read_em_motivelist(
     # Positions (rows 7-9, 0-indexed)
     positions = data[7:10, :].T  # Shape: (N, 3)
 
-    # Euler angles (rows 16-18, 0-indexed)
-    eulers = data[16:19, :].T  # Shape: (N, 3)
+    # Euler angles: stored as [phi, psi, theta] in rows [16, 17, 18]
+    # but ZXZ rotation order is phi-theta-psi, so reorder to [phi, theta, psi]
+    # Row 16 = phi, Row 17 = psi, Row 18 = theta
+    phi = data[16, :]
+    psi = data[17, :]
+    theta = data[18, :]
+    eulers = np.column_stack([phi, theta, psi])  # Shape: (N, 3) as [phi, theta, psi]
 
     # Scores (row 6)
     scores = data[6, :]
@@ -561,10 +571,13 @@ def write_em_motivelist(
     TOM toolbox uses MATLAB/Fortran ordering, so the output shape is (1, N, 20)
     where N is the number of particles and 20 is the number of data fields.
 
+    Euler angles are expected as [phi, theta, psi] (ZXZ rotation order) but are
+    stored as [phi, psi, theta] in columns [16, 17, 18] per Artiatomi convention.
+
     Args:
         path: Output path for the EM file.
-        positions: Array of shape (N, 3) with coordinates in pixels.
-        eulers: Array of shape (N, 3) with Euler angles in degrees.
+        positions: Array of shape (N, 3) with coordinates in pixels (center-origin).
+        eulers: Array of shape (N, 3) with Euler angles in degrees as [phi, theta, psi].
         scores: Optional array of shape (N,) with scores.
         tomogram_index: Tomogram index for all particles.
     """
@@ -597,8 +610,11 @@ def write_em_motivelist(
     # Positions (columns 7-9)
     data[0, :, 7:10] = positions
 
-    # Euler angles (columns 16-18)
-    data[0, :, 16:19] = eulers
+    # Euler angles: input is [phi, theta, psi] but stored as [phi, psi, theta]
+    # Column 16 = phi, Column 17 = psi, Column 18 = theta
+    data[0, :, 16] = eulers[:, 0]  # phi
+    data[0, :, 17] = eulers[:, 2]  # psi (3rd rotation, stored in column 17)
+    data[0, :, 18] = eulers[:, 1]  # theta (2nd rotation, stored in column 18)
 
     emfile.write(path, data)
 
@@ -639,18 +655,15 @@ def em_to_copick_transform(
 
     TOM toolbox uses:
     - Center-origin coordinates in pixels
-    - ZXZ Euler convention (same as Dynamo - intrinsic, passive)
+    - ZXZ intrinsic Euler convention (Artiatomi/ArtiaX convention)
 
     Copick uses:
     - Corner-origin coordinates in Angstrom
     - 4x4 affine matrices
 
-    The conversion uses intrinsic zxz with inversion to match the canonical
-    conversion path (same as Dynamo, verified via eulerangles library).
-
     Args:
         positions_px: Coordinates in pixels (center-origin) [N, 3].
-        eulers_deg: ZXZ Euler angles in degrees [N, 3].
+        eulers_deg: ZXZ Euler angles in degrees [N, 3] as [phi, theta, psi].
         voxel_size: Voxel size in Angstrom.
         tomogram_dimensions: (X, Y, Z) dimensions of tomogram in voxels.
 
@@ -667,9 +680,8 @@ def em_to_copick_transform(
     points_angstrom = positions_corner * voxel_size
 
     # Convert Euler angles to rotation matrices
-    # Use intrinsic zxz (lowercase) with inversion to match RELION convention
-    # Same as Dynamo conversion
-    rotations = Rotation.from_euler("zxz", eulers_deg, degrees=True).inv().as_matrix()
+    # Use intrinsic zxz (lowercase) as per Artiatomi/ArtiaX convention
+    rotations = Rotation.from_euler("zxz", eulers_deg, degrees=True).as_matrix()
 
     # Create identity transforms (no additional translation beyond point location)
     N = positions_px.shape[0]
@@ -697,7 +709,7 @@ def copick_to_em_transform(
         tomogram_dimensions: (X, Y, Z) dimensions of tomogram in voxels.
 
     Returns:
-        Tuple of (positions_px [N, 3] center-origin, eulers_deg [N, 3]).
+        Tuple of (positions_px [N, 3] center-origin, eulers_deg [N, 3] as [phi, theta, psi]).
     """
     from scipy.spatial.transform import Rotation
 
@@ -712,8 +724,7 @@ def copick_to_em_transform(
     positions_px = positions_corner_px - center_offset
 
     # Convert rotation matrices to ZXZ Euler angles
-    # Use intrinsic zxz with inversion (inverse of import conversion)
-    # Same as Dynamo export
+    # Use intrinsic zxz as per Artiatomi/ArtiaX convention
     N = rotations.shape[0]
     eulers_deg = np.zeros((N, 3), dtype=float)
     for i, Rmat in enumerate(rotations):
@@ -721,7 +732,7 @@ def copick_to_em_transform(
             eulers_deg[i] = np.array([0.0, 0.0, 0.0])
         else:
             r = Rotation.from_matrix(Rmat)
-            eulers_deg[i] = r.inv().as_euler("zxz", degrees=True)
+            eulers_deg[i] = r.as_euler("zxz", degrees=True)
 
     return positions_px, eulers_deg
 
