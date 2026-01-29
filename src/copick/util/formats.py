@@ -45,7 +45,7 @@ def get_picks_format_from_extension(path: str) -> Optional[str]:
         "csv": "csv",
     }
     ext = path.split(".")[-1].lower()
-    return formats.get(ext, None)
+    return formats.get(ext)
 
 
 def get_volume_format_from_extension(path: str) -> Optional[str]:
@@ -66,7 +66,7 @@ def get_volume_format_from_extension(path: str) -> Optional[str]:
         "em": "em",
     }
     ext = path.split(".")[-1].lower()
-    return formats.get(ext, None)
+    return formats.get(ext)
 
 
 # =============================================================================
@@ -441,6 +441,8 @@ def copick_to_dynamo_transform(
 ) -> Tuple[np.ndarray, np.ndarray, np.ndarray]:
     """Convert copick format to Dynamo coordinates.
 
+    This is the inverse of dynamo_to_copick_transform.
+
     Args:
         points_angstrom: Coordinates in Angstrom [N, 3].
         transforms: 4x4 affine matrices [N, 4, 4].
@@ -449,6 +451,8 @@ def copick_to_dynamo_transform(
     Returns:
         Tuple of (positions_px [N, 3], eulers_deg [N, 3], shifts_px [N, 3]).
     """
+    from scipy.spatial.transform import Rotation
+
     # Extract translations and rotations from transforms
     translations, rotations = transforms_to_points_and_rotations(transforms)
 
@@ -457,7 +461,15 @@ def copick_to_dynamo_transform(
     shifts_px = translations / voxel_size
 
     # Convert rotation matrices to ZXZ Euler angles
-    eulers_deg = matrix_to_euler(rotations, convention="ZXZ", degrees=True)
+    # Use intrinsic zxz with inversion (inverse of import conversion)
+    N = rotations.shape[0]
+    eulers_deg = np.zeros((N, 3), dtype=float)
+    for i, Rmat in enumerate(rotations):
+        if np.allclose(Rmat, np.eye(3)):
+            eulers_deg[i] = np.array([0.0, 0.0, 0.0])
+        else:
+            r = Rotation.from_matrix(Rmat)
+            eulers_deg[i] = r.inv().as_euler("zxz", degrees=True)
 
     return positions_px, eulers_deg, shifts_px
 
