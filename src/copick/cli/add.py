@@ -97,12 +97,30 @@ def add(ctx):
     show_default=True,
     help="Maximum number of worker threads.",
 )
+@click.option(
+    "--tomolist",
+    required=False,
+    type=click.Path(exists=True),
+    default=None,
+    help="Path to Dynamo tomolist file (2-column TSV: index, MRC path). "
+    "Imports all tomograms listed, using filenames as run names. "
+    "Mutually exclusive with PATH, --run, and --run-regex.",
+)
+@click.option(
+    "--index-map",
+    required=False,
+    type=click.Path(exists=True),
+    default=None,
+    help="Path to CSV/TSV mapping tomogram index to run name. "
+    "Only used with --tomolist to override filename-based run names.",
+)
 @add_create_overwrite_options
 @add_debug_option
 @click.argument(
     "path",
-    required=True,
+    required=False,
     type=str,
+    default=None,
     metavar="PATH",
 )
 @click.pass_context
@@ -117,8 +135,10 @@ def tomogram(
     create_pyramid: bool,
     pyramid_levels: int,
     chunk_size: str,
-    path: str,
     max_workers: int,
+    tomolist: str,
+    index_map: str,
+    path: str,
     create: bool,
     overwrite: bool,
     debug: bool,
@@ -127,6 +147,25 @@ def tomogram(
     Add a tomogram to the project.
 
     PATH: Path to the tomogram file (MRC or Zarr format) or glob pattern.
+    Can be omitted if --tomolist is used.
+
+    Examples:
+
+    \b
+    # Import single tomogram
+    copick add tomogram tomo.mrc -c config.json
+
+    \b
+    # Import from glob pattern
+    copick add tomogram "*.mrc" -c config.json
+
+    \b
+    # Import from Dynamo tomolist (run names from MRC filenames)
+    copick add tomogram -c config.json --tomolist tomograms.doc
+
+    \b
+    # Import from tomolist with custom run names
+    copick add tomogram -c config.json --tomolist tomograms.doc --index-map run_mapping.csv
     """
     # Deferred imports for performance
     import copick
@@ -138,7 +177,63 @@ def tomogram(
     # Get root
     root = copick.from_file(config)
 
-    if "*" in path:
+    # Validate mutually exclusive options
+    if tomolist:
+        if run:
+            ctx.fail("--run cannot be used with --tomolist")
+        if run_regex != "(.*)":
+            ctx.fail("--run-regex cannot be used with --tomolist")
+        if path:
+            ctx.fail("PATH argument cannot be used with --tomolist")
+    elif not path:
+        ctx.fail("Either PATH or --tomolist must be provided")
+
+    if index_map and not tomolist:
+        ctx.fail("--index-map can only be used with --tomolist")
+
+    # Handle tomolist import
+    if tomolist:
+        from copick.util.formats import read_dynamo_tomolist, read_index_map
+
+        # Parse tomolist to get index → path mapping
+        index_to_path = {}
+        with open(tomolist) as f:
+            for line in f:
+                line = line.strip()
+                if not line:
+                    continue
+                parts = line.split("\t")
+                if len(parts) >= 2:
+                    idx = int(parts[0])
+                    mrc_path = parts[1].strip()
+                    index_to_path[idx] = mrc_path
+
+        # Get run names (from index-map or from filenames)
+        index_to_run = read_index_map(index_map) if index_map else read_dynamo_tomolist(tomolist)
+
+        # Build paths list and run_to_file mapping
+        paths = []
+        run_to_file = {}
+        for idx, mrc_path in index_to_path.items():
+            if idx in index_to_run:
+                run_name = index_to_run[idx]
+                if not os.path.exists(mrc_path):
+                    logger.warning(f"File not found: {mrc_path}, skipping")
+                    continue
+                paths.append(mrc_path)
+                if run_name in run_to_file:
+                    logger.warning(f"Duplicate run name {run_name}, skipping {mrc_path}")
+                    continue
+                run_to_file[run_name] = mrc_path
+            else:
+                logger.warning(f"Index {idx} not in mapping, skipping {mrc_path}")
+
+        if not paths:
+            ctx.fail("No valid tomograms found in tomolist")
+
+        logger.info(f"Found {len(run_to_file)} tomograms to import from tomolist")
+
+    elif "*" in path:
         # If glob pattern is used, the run name can not be used
         if run:
             logger.warning("Run name is ignored when using glob patterns.")
@@ -154,7 +249,7 @@ def tomogram(
         # Single file path
         paths = [path]
 
-    # Files extension validation before processing
+    # Files extension validation before processing (skip exists check for tomolist - already done)
     if not file_type:
         for p in paths:
             ext = get_volume_format_from_extension(p)
@@ -162,14 +257,15 @@ def tomogram(
                 raise ValueError(
                     f"Unsupported file format for {p}. Supported formats are 'mrc', 'zarr', 'tiff', and 'em'.",
                 )
-            if not os.path.exists(p):
+            if not tomolist and not os.path.exists(p):
                 raise FileNotFoundError(f"File not found: {p}")
 
     # Convert chunk arg
     chunk_size: Tuple[int, int, int] = tuple(map(int, chunk_size.split(",")[:3]))
 
-    # Prepare runs and group files
-    run_to_file = prepare_runs_from_paths(root, paths, run, run_regex, create, logger)
+    # Prepare runs and group files (skip for tomolist - already built run_to_file)
+    if not tomolist:
+        run_to_file = prepare_runs_from_paths(root, paths, run, run_regex, create, logger)
 
     def import_tomogram(run_obj, file_path, **kwargs):
         """Process one tomogram file for a single run"""
