@@ -620,7 +620,6 @@ def add_picks(
             user_id=user_id,
             session_id=session_id,
             voxel_spacing=voxel_spacing,
-            tomogram_dimensions=tomogram_dimensions,
             create=create,
             exist_ok=exist_ok,
             overwrite=overwrite,
