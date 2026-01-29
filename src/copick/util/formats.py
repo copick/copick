@@ -507,7 +507,7 @@ def read_em_motivelist(
     """
     import emfile
 
-    data, _header = emfile.read(path)
+    _header, data = emfile.read(path)
 
     # EM files can have different shapes, typically (20, N) or similar
     if data.ndim == 1:
