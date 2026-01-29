@@ -509,12 +509,25 @@ def read_em_motivelist(
 
     _header, data = emfile.read(path)
 
-    # EM files can have different shapes, typically (20, N) or similar
+    # Squeeze any leading singleton dimensions
+    data = np.squeeze(data)
+
+    # EM files can have different shapes
+    # Expected: (20, N) where 20 is rows and N is particles
+    # Some files have (N, 20) which needs transposing
     if data.ndim == 1:
         data = data.reshape(-1, 1)
+    elif data.ndim == 2:
+        # If shape is (N, 20) instead of (20, N), transpose it
+        if data.shape[1] == 20 and data.shape[0] != 20:
+            data = data.T
+        elif data.shape[0] != 20 and data.shape[1] != 20:
+            raise ValueError(f"EM motivelist has unexpected shape: {data.shape}, expected (20, N) or (N, 20)")
+    else:
+        raise ValueError(f"EM motivelist has unexpected shape: {data.shape}")
 
     if data.shape[0] < 19:
-        raise ValueError(f"EM motivelist has unexpected shape: {data.shape}")
+        raise ValueError(f"EM motivelist has unexpected shape: {data.shape}, need at least 19 rows")
 
     # Positions (rows 7-9, 0-indexed)
     positions = data[7:10, :].T  # Shape: (N, 3)
@@ -545,6 +558,9 @@ def write_em_motivelist(
 ) -> None:
     """Write a TOM toolbox EM motivelist.
 
+    TOM toolbox uses MATLAB/Fortran ordering, so the output shape is (1, N, 20)
+    where N is the number of particles and 20 is the number of data fields.
+
     Args:
         path: Output path for the EM file.
         positions: Array of shape (N, 3) with coordinates in pixels.
@@ -559,29 +575,30 @@ def write_em_motivelist(
     if scores is None:
         scores = np.ones(N)
 
-    # Create standard TOM motivelist structure (20 rows x N columns)
-    data = np.zeros((20, N), dtype=np.float32)
+    # Create standard TOM motivelist structure
+    # Shape: (1, N, 20) for MATLAB/Fortran compatibility
+    data = np.zeros((1, N, 20), dtype=np.float32)
 
-    # Position shifts (rows 0-2) - typically zero for initial list
-    data[0:3, :] = 0.0
+    # Position shifts (columns 0-2) - typically zero for initial list
+    data[0, :, 0:3] = 0.0
 
-    # Tomogram index (row 3)
-    data[3, :] = tomogram_index
+    # Tomogram index (column 3)
+    data[0, :, 3] = tomogram_index
 
-    # Class (row 4) - default to 1
-    data[4, :] = 1
+    # Class (column 4) - default to 1
+    data[0, :, 4] = 1
 
-    # Particle index (row 5)
-    data[5, :] = np.arange(1, N + 1)
+    # Particle index (column 5)
+    data[0, :, 5] = np.arange(1, N + 1)
 
-    # Score (row 6)
-    data[6, :] = scores
+    # Score (column 6)
+    data[0, :, 6] = scores
 
-    # Positions (rows 7-9)
-    data[7:10, :] = positions.T
+    # Positions (columns 7-9)
+    data[0, :, 7:10] = positions
 
-    # Euler angles (rows 16-18)
-    data[16:19, :] = eulers.T
+    # Euler angles (columns 16-18)
+    data[0, :, 16:19] = eulers
 
     emfile.write(path, data)
 
