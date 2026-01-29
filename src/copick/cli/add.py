@@ -965,7 +965,7 @@ def object_volume(
     "--tomo-index-row",
     required=False,
     type=int,
-    default=3,
+    default=4,
     show_default=True,
     help="Row index (0-based) containing tomogram index in EM files. Only valid with --file-type em.",
 )
@@ -1095,7 +1095,7 @@ def picks(
     if tomolist and ft != "dynamo":
         ctx.fail("--tomolist is only valid with --file-type dynamo")
 
-    if tomo_index_row != 3 and ft != "em":
+    if tomo_index_row != 4 and ft != "em":
         ctx.fail("--tomo-index-row is only valid with --file-type em")
 
     # Handle grouped import (index-map or tomolist provided)

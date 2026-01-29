@@ -691,7 +691,6 @@ def _add_picks_em(
     user_id: str,
     session_id: str,
     voxel_spacing: float,
-    tomogram_dimensions: Optional[Tuple[int, int, int]] = None,
     create: bool = True,
     exist_ok: bool = False,
     overwrite: bool = False,
@@ -707,7 +706,6 @@ def _add_picks_em(
         user_id: User ID for the picks.
         session_id: Session ID for the picks.
         voxel_spacing: Voxel spacing in Angstrom.
-        tomogram_dimensions: (X, Y, Z) dimensions in voxels. If None, will try to get from run.
         create: Create run if it doesn't exist.
         exist_ok: Don't raise error if picks exist.
         overwrite: Overwrite existing picks.
@@ -724,29 +722,11 @@ def _add_picks_em(
     # Get or create run
     runobj = get_or_create_run(root, run_name, create=create, log=log)
 
-    # Get tomogram dimensions if not provided
-    if tomogram_dimensions is None:
-        # Try to get from the run's tomograms
-        vs_with_tomo = [vs for vs in runobj.voxel_spacings if vs.tomograms]
-        if not vs_with_tomo:
-            e = ValueError(
-                "tomogram_dimensions must be provided for EM import when no tomograms exist in the run.",
-            )
-            if log:
-                logging.exception(e)
-            raise e
-        # Use the smallest voxel spacing with a tomogram
-        vs = min(vs_with_tomo, key=lambda x: x.voxel_size)
-        tomo = vs.tomograms[0]
-        z, y, x = zarr.open(tomo.zarr())["0"].shape
-        tomogram_dimensions = (x, y, z)
-
-    # Convert to copick format
+    # Convert to copick format (no tomogram dimensions needed - TOM uses corner-origin)
     points_angstrom, transforms = em_to_copick_transform(
         positions_px,
         eulers_deg,
         voxel_spacing,
-        tomogram_dimensions,
     )
 
     # Create the picks
@@ -1010,8 +990,7 @@ def _add_picks_em_grouped(
     session_id: str,
     voxel_spacing: float,
     index_to_run: Dict[int, str],
-    tomo_index_row: int = 3,
-    tomogram_dimensions: Optional[Tuple[int, int, int]] = None,
+    tomo_index_row: int = 4,
     create: bool = True,
     exist_ok: bool = False,
     overwrite: bool = False,
@@ -1027,8 +1006,7 @@ def _add_picks_em_grouped(
         session_id: Session ID for the picks.
         voxel_spacing: Voxel spacing in Angstrom.
         index_to_run: Mapping from tomogram index to run name.
-        tomo_index_row: Row index (0-based) containing tomogram indices (default: 3).
-        tomogram_dimensions: (X, Y, Z) dimensions in voxels. If None, will try to get from each run.
+        tomo_index_row: Row index (0-based) containing tomogram indices (default: 4).
         create: Create run if it doesn't exist.
         exist_ok: Don't raise error if picks exist.
         overwrite: Overwrite existing picks.
@@ -1074,31 +1052,11 @@ def _add_picks_em_grouped(
         # Get or create run
         runobj = get_or_create_run(root, run_name, create=create, log=log)
 
-        # Get tomogram dimensions if not provided
-        run_tomo_dims = tomogram_dimensions
-        if run_tomo_dims is None:
-            # Try to get from the run's tomograms
-            vs_with_tomo = [vs for vs in runobj.voxel_spacings if vs.tomograms]
-            if not vs_with_tomo:
-                if log:
-                    logging.warning(
-                        f"tomogram_dimensions not provided and no tomograms in run {run_name}, "
-                        f"skipping {len(pos_subset)} particles.",
-                    )
-                skipped_count += len(pos_subset)
-                continue
-            # Use the smallest voxel spacing with a tomogram
-            vs = min(vs_with_tomo, key=lambda x: x.voxel_size)
-            tomo = vs.tomograms[0]
-            z, y, x = zarr.open(tomo.zarr())["0"].shape
-            run_tomo_dims = (x, y, z)
-
-        # Convert to copick format
+        # Convert to copick format (no tomogram dimensions needed - TOM uses corner-origin)
         points_angstrom, transforms = em_to_copick_transform(
             pos_subset,
             euler_subset,
             voxel_spacing,
-            run_tomo_dims,
         )
 
         # Create the picks
