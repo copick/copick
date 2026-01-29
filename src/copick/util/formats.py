@@ -107,9 +107,9 @@ def read_index_map(path: str) -> Dict[int, str]:
             f"Index map file must have at least 2 columns (index, run_name), got {df.shape[1]} columns",
         )
 
-    # Convert to dict
+    # Convert to dict (strip whitespace to handle Windows line endings)
     indices = df["index"].astype(int).tolist()
-    run_names = df["run_name"].astype(str).tolist()
+    run_names = df["run_name"].astype(str).str.strip().tolist()
 
     # Check for duplicates
     if len(indices) != len(set(indices)):
@@ -151,7 +151,7 @@ def read_dynamo_tomolist(path: str) -> Dict[int, str]:
     index_to_run = {}
     for _, row in df.iterrows():
         tomo_idx = int(row["index"])
-        mrc_path = str(row["mrc_path"])
+        mrc_path = str(row["mrc_path"]).strip()  # Strip whitespace to handle Windows line endings
 
         # Extract filename without extension as run name
         basename = os.path.basename(mrc_path)
