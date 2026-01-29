@@ -13,7 +13,17 @@ def get_installed_plugin_packages() -> Set[str]:
     Returns:
         Set of strings in format "package-name version"
     """
-    command_groups = ["main", "inference", "training", "evaluation", "process", "convert", "logical"]
+    command_groups = [
+        "main",
+        "inference",
+        "training",
+        "evaluation",
+        "process",
+        "convert",
+        "logical",
+        "setup",
+        "stats",
+    ]
     plugin_packages = set()
 
     for group in command_groups:
