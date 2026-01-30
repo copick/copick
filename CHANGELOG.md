@@ -1,5 +1,24 @@
 # Changelog
 
+## [1.18.0](https://github.com/copick/copick/compare/copick-v1.17.2...copick-v1.18.0) (2026-01-30)
+
+
+### ✨ Features
+
+* Add download entrypoint. ([#176](https://github.com/copick/copick/issues/176)) ([531dc68](https://github.com/copick/copick/commit/531dc68cc8e4360d997f079b8c0508d2ffec6835))
+
+
+### 🐞 Bug Fixes
+
+* bump aiohttp from 3.12.13 to 3.13.3 ([#166](https://github.com/copick/copick/issues/166)) ([8913194](https://github.com/copick/copick/commit/8913194773b942f9255f5c61f188f182864acc79))
+* bump pillow from 11.2.1 to 11.3.0 ([#173](https://github.com/copick/copick/issues/173)) ([c513713](https://github.com/copick/copick/commit/c513713f9f80ab4cbaa2001eade356c1a49a4705))
+* bump pre-commit from 4.2.0 to 4.3.0 ([#167](https://github.com/copick/copick/issues/167)) ([17ac929](https://github.com/copick/copick/commit/17ac92958cbd3b38cda77b7363fdb93e6ca818e4))
+* bump psutil from 7.0.0 to 7.2.1 ([#169](https://github.com/copick/copick/issues/169)) ([c39886e](https://github.com/copick/copick/commit/c39886e20d5ee84faa9eeb9e8d60b35135d6a8cd))
+* bump pymdown-extensions from 10.15 to 10.16.1 ([#172](https://github.com/copick/copick/issues/172)) ([63420f2](https://github.com/copick/copick/commit/63420f24faec306a1d9f6f7762790c631b0aa100))
+* bump rich from 14.0.0 to 14.3.1 ([#168](https://github.com/copick/copick/issues/168)) ([6fbd40b](https://github.com/copick/copick/commit/6fbd40bd5f1aba0217e2b2679120b42b6e74b57e))
+* bump virtualenv from 20.31.2 to 20.36.1 ([#165](https://github.com/copick/copick/issues/165)) ([7f24b42](https://github.com/copick/copick/commit/7f24b42ab0a84779bbc80bc2cb07ad9de542a3d2))
+* Make copick-mcp appear in terminal logs. ([#175](https://github.com/copick/copick/issues/175)) ([a257dea](https://github.com/copick/copick/commit/a257dea8d66d8097da269a3af8478ade2a238aee))
+
 ## [1.17.2](https://github.com/copick/copick/compare/copick-v1.17.1...copick-v1.17.2) (2026-01-26)
 
 
