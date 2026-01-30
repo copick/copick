@@ -336,6 +336,9 @@ copick add picks [OPTIONS] PATH
     - `score` (optional): Confidence score
     - `instance_id` (optional): Instance identifier
 
+!!! tip "Format-Specific Conventions"
+    For details on coordinate systems and Euler angle conventions for each format, see the docstrings in `copick.util.formats`.
+
 **Examples:**
 
 ```bash
@@ -819,6 +822,9 @@ copick export picks [OPTIONS]
 | STAR   | `.star`   | RELION particle star files with optional optics group |
 | Dynamo | `.tbl`    | Dynamo table format |
 | CSV    | `.csv`    | CSV with run_name, coordinates (Angstrom), 4x4 transformation matrix, score, instance_id |
+
+!!! tip "Format-Specific Conventions"
+    For details on coordinate systems and Euler angle conventions for each format, see the docstrings in `copick.util.formats`.
 
 **Examples:**
 

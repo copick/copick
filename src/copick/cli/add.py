@@ -967,7 +967,8 @@ def object_volume(
     type=int,
     default=4,
     show_default=True,
-    help="Row index (0-based) containing tomogram index in EM files. Only valid with --file-type em.",
+    help="Row index (0-based) for tomogram index in EM motivelists. "
+    "Default is row 4 (Artiatomi convention). Only valid with --file-type em.",
 )
 @click.option(
     "--max-workers",
@@ -1055,6 +1056,9 @@ def picks(
     # Import EM motivelist with index map
     copick add picks motivelist.em -c config.json --object-name ribosome \\
         --voxel-size 10.0 --index-map tomo_mapping.csv
+
+    For format-specific conventions (coordinate systems, Euler angle conventions),
+    see the documentation or the docstrings in copick.util.formats.
     """
     import copick
     from copick.ops.add import add_picks as add_picks_op

@@ -102,6 +102,9 @@ def picks(
     # Export all picks to CSV format
     copick export picks -c config.json --picks-uri "*:*/*" \\
         --output-dir ./output --output-format csv
+
+    For format-specific conventions (coordinate systems, Euler angle conventions),
+    see the documentation or the docstrings in copick.util.formats.
     """
     from copick.ops.export import export as export_op
 
