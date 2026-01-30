@@ -114,6 +114,14 @@ def add(ctx):
     help="Path to CSV/TSV mapping tomogram index to run name. "
     "Only used with --tomolist to override filename-based run names.",
 )
+@click.option(
+    "--transpose",
+    required=False,
+    type=str,
+    default=None,
+    help="Transpose volume axes. Specify target axis order, e.g., '2,1,0' to reverse all axes, "
+    "'0,2,1' to swap Y and X. Default: no transposition.",
+)
 @add_create_overwrite_options
 @add_debug_option
 @click.argument(
@@ -138,6 +146,7 @@ def tomogram(
     max_workers: int,
     tomolist: str,
     index_map: str,
+    transpose: str,
     path: str,
     create: bool,
     overwrite: bool,
@@ -292,6 +301,7 @@ def tomogram(
                     create_pyramid=create_pyramid,
                     pyramid_levels=pyramid_levels,
                     chunks=chunk_size,
+                    transpose=transpose,
                     create=create,
                     overwrite=overwrite,
                     exist_ok=overwrite,
@@ -307,6 +317,7 @@ def tomogram(
                     create_pyramid=create_pyramid,
                     pyramid_levels=pyramid_levels,
                     chunks=chunk_size,
+                    transpose=transpose,
                     create=create,
                     overwrite=overwrite,
                     exist_ok=overwrite,
@@ -324,6 +335,7 @@ def tomogram(
                     create_pyramid=create_pyramid,
                     pyramid_levels=pyramid_levels,
                     chunks=chunk_size,
+                    transpose=transpose,
                     create=create,
                     overwrite=overwrite,
                     exist_ok=overwrite,
@@ -341,6 +353,7 @@ def tomogram(
                     create_pyramid=create_pyramid,
                     pyramid_levels=pyramid_levels,
                     chunks=chunk_size,
+                    transpose=transpose,
                     create=create,
                     overwrite=overwrite,
                     exist_ok=overwrite,
@@ -448,6 +461,14 @@ def tomogram(
     show_default=True,
     help="Maximum number of worker threads.",
 )
+@click.option(
+    "--transpose",
+    required=False,
+    type=str,
+    default=None,
+    help="Transpose volume axes. Specify target axis order, e.g., '2,1,0' to reverse all axes, "
+    "'0,2,1' to swap Y and X. Default: no transposition.",
+)
 @add_create_overwrite_options
 @add_debug_option
 @click.argument(
@@ -468,6 +489,7 @@ def segmentation(
     session_id: str,
     file_type: str,
     max_workers: int,
+    transpose: str,
     path: str,
     create: bool,
     overwrite: bool,
@@ -529,6 +551,7 @@ def segmentation(
                     user_id,
                     session_id,
                     multilabel=True,
+                    transpose=transpose,
                     create=create,
                     overwrite=overwrite,
                     exist_ok=overwrite,
@@ -546,6 +569,7 @@ def segmentation(
                     user_id,
                     session_id,
                     multilabel=True,
+                    transpose=transpose,
                     create=create,
                     exist_ok=overwrite,
                     overwrite=overwrite,
@@ -563,6 +587,7 @@ def segmentation(
                     user_id,
                     session_id,
                     multilabel=True,
+                    transpose=transpose,
                     create=create,
                     exist_ok=overwrite,
                     overwrite=overwrite,

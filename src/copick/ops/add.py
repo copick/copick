@@ -130,6 +130,7 @@ def add_tomogram(
     create_pyramid: bool = False,
     pyramid_levels: int = 3,
     chunks: Tuple[int, ...] = (256, 256, 256),
+    transpose: Optional[str] = None,
     meta: Dict[str, Any] = None,
     log: bool = False,
 ) -> CopickTomogram:
@@ -142,7 +143,16 @@ def add_tomogram(
         exist_ok (bool, optional): If True, do not raise an error if the volume already exists. Defaults to False.
         overwrite (bool, optional): Overwrite the object if it exists. Defaults to False.
         run (str, optional): The run the tomogram is part of. Default: Name of the input file.
+        transpose (str, optional): Transpose axes. E.g., '2,1,0' to reverse all axes. Default: None.
     """
+
+    # Apply transpose if specified
+    if transpose:
+        axes = tuple(int(x.strip()) for x in transpose.split(","))
+        if isinstance(volume, dict):
+            volume = {k: np.transpose(v, axes) for k, v in volume.items()}
+        else:
+            volume = np.transpose(volume, axes)
 
     # Validate input
     if isinstance(volume, np.ndarray) and voxel_spacing is None:
@@ -212,6 +222,7 @@ def _add_tomogram_mrc(
     create_pyramid: bool = False,
     pyramid_levels: int = 3,
     chunks: Tuple[int, ...] = (256, 256, 256),
+    transpose: Optional[str] = None,
     meta: Dict[str, Any] = None,
     log: bool = False,
 ) -> CopickTomogram:
@@ -224,6 +235,7 @@ def _add_tomogram_mrc(
         exist_ok (bool, optional): If True, do not raise an error if the volume already exists. Defaults to False.
         overwrite (bool, optional): Overwrite the object if it exists. Defaults to False.
         run (str, optional): The run the tomogram is part of. Default: Name of the input file.
+        transpose (str, optional): Transpose axes. E.g., '2,1,0' to reverse all axes. Default: None.
     """
 
     with mrcfile.open(volume_file) as mrc:
@@ -245,6 +257,7 @@ def _add_tomogram_mrc(
         create_pyramid=create_pyramid,
         pyramid_levels=pyramid_levels,
         chunks=chunks,
+        transpose=transpose,
         meta=meta,
         log=log,
     )
@@ -262,6 +275,7 @@ def _add_tomogram_zarr(
     create_pyramid: bool = False,
     pyramid_levels: int = 3,
     chunks: Tuple[int, int, int] = (256, 256, 256),
+    transpose: Optional[str] = None,
     meta: Dict[str, Any] = None,
     log: bool = False,
 ) -> CopickTomogram:
@@ -274,6 +288,7 @@ def _add_tomogram_zarr(
         exist_ok (bool, optional): If True, do not raise an error if the volume already exists. Defaults to False.
         overwrite (bool, optional): Overwrite the object if it exists. Defaults to False.
         run (str, optional): The run the tomogram is part of. Default: Name of the input file.
+        transpose (str, optional): Transpose axes. E.g., '2,1,0' to reverse all axes. Default: None.
     """
 
     zarr_group = zarr.open(volume_file)
@@ -296,6 +311,7 @@ def _add_tomogram_zarr(
         create_pyramid=create_pyramid,
         pyramid_levels=pyramid_levels,
         chunks=chunks,
+        transpose=transpose,
         meta=meta,
         log=log,
     )
@@ -370,6 +386,7 @@ def add_segmentation(
     user_id: str,
     session_id: str,
     multilabel: bool = False,
+    transpose: Optional[str] = None,
     create: bool = True,
     exist_ok: bool = False,
     overwrite: bool = False,
@@ -384,6 +401,7 @@ def add_segmentation(
         create (bool, optional): Create the object if it does not exist. Defaults to True.
         exist_ok (bool, optional): If True, do not raise an error if the segmentation already exists. Defaults to False.
         overwrite (bool, optional): Overwrite the object if it exists. Defaults to False.
+        transpose (str, optional): Transpose axes. E.g., '2,1,0' to reverse all axes. Default: None.
     """
 
     # Read the Segmentation Mask
@@ -392,6 +410,11 @@ def add_segmentation(
             volume = mrc.data
     else:
         raise ValueError(f"Unsupported file type: {mask_path}")
+
+    # Apply transpose if specified
+    if transpose:
+        axes = tuple(int(x.strip()) for x in transpose.split(","))
+        volume = np.transpose(volume, axes)
 
     # Attempt to get run and voxel spacing
     runobj = get_or_create_run(root, run, create=create)
@@ -1154,6 +1177,7 @@ def _add_tomogram_tiff(
     create_pyramid: bool = False,
     pyramid_levels: int = 3,
     chunks: Tuple[int, ...] = (256, 256, 256),
+    transpose: Optional[str] = None,
     meta: Dict[str, Any] = None,
     log: bool = False,
 ) -> CopickTomogram:
@@ -1171,6 +1195,7 @@ def _add_tomogram_tiff(
         create_pyramid: Create multiscale pyramid.
         pyramid_levels: Number of pyramid levels.
         chunks: Chunk size for Zarr store.
+        transpose: Transpose axes. E.g., '2,1,0' to reverse all axes. Default: None.
         meta: Optional metadata.
         log: Log the operation.
 
@@ -1199,6 +1224,7 @@ def _add_tomogram_tiff(
         create_pyramid=create_pyramid,
         pyramid_levels=pyramid_levels,
         chunks=chunks,
+        transpose=transpose,
         meta=meta,
         log=log,
     )
@@ -1216,6 +1242,7 @@ def _add_tomogram_em(
     create_pyramid: bool = False,
     pyramid_levels: int = 3,
     chunks: Tuple[int, ...] = (256, 256, 256),
+    transpose: Optional[str] = None,
     meta: Dict[str, Any] = None,
     log: bool = False,
 ) -> CopickTomogram:
@@ -1233,6 +1260,7 @@ def _add_tomogram_em(
         create_pyramid: Create multiscale pyramid.
         pyramid_levels: Number of pyramid levels.
         chunks: Chunk size for Zarr store.
+        transpose: Transpose axes. E.g., '2,1,0' to reverse all axes. Default: None.
         meta: Optional metadata.
         log: Log the operation.
 
@@ -1261,6 +1289,7 @@ def _add_tomogram_em(
         create_pyramid=create_pyramid,
         pyramid_levels=pyramid_levels,
         chunks=chunks,
+        transpose=transpose,
         meta=meta,
         log=log,
     )
@@ -1280,6 +1309,7 @@ def _add_segmentation_from_array(
     user_id: str,
     session_id: str,
     multilabel: bool = False,
+    transpose: Optional[str] = None,
     create: bool = True,
     exist_ok: bool = False,
     overwrite: bool = False,
@@ -1296,6 +1326,7 @@ def _add_segmentation_from_array(
         user_id: User ID for the segmentation.
         session_id: Session ID for the segmentation.
         multilabel: Whether this is a multilabel segmentation.
+        transpose: Transpose axes. E.g., '2,1,0' to reverse all axes. Default: None.
         create: Create run if it doesn't exist.
         exist_ok: Don't raise error if segmentation exists.
         overwrite: Overwrite if exists.
@@ -1304,6 +1335,11 @@ def _add_segmentation_from_array(
     Returns:
         The created CopickSegmentation object.
     """
+    # Apply transpose if specified
+    if transpose:
+        axes = tuple(int(x.strip()) for x in transpose.split(","))
+        volume = np.transpose(volume, axes)
+
     runobj = get_or_create_run(root, run, create=create)
 
     segmentation = runobj.new_segmentation(
@@ -1333,6 +1369,7 @@ def _add_segmentation_tiff(
     user_id: str,
     session_id: str,
     multilabel: bool = False,
+    transpose: Optional[str] = None,
     create: bool = True,
     exist_ok: bool = False,
     overwrite: bool = False,
@@ -1349,6 +1386,7 @@ def _add_segmentation_tiff(
         user_id: User ID for the segmentation.
         session_id: Session ID for the segmentation.
         multilabel: Whether this is a multilabel segmentation.
+        transpose: Transpose axes. E.g., '2,1,0' to reverse all axes. Default: None.
         create: Create run if it doesn't exist.
         exist_ok: Don't raise error if segmentation exists.
         overwrite: Overwrite if exists.
@@ -1376,6 +1414,7 @@ def _add_segmentation_tiff(
         user_id=user_id,
         session_id=session_id,
         multilabel=multilabel,
+        transpose=transpose,
         create=create,
         exist_ok=exist_ok,
         overwrite=overwrite,
@@ -1392,6 +1431,7 @@ def _add_segmentation_em(
     user_id: str,
     session_id: str,
     multilabel: bool = False,
+    transpose: Optional[str] = None,
     create: bool = True,
     exist_ok: bool = False,
     overwrite: bool = False,
@@ -1408,6 +1448,7 @@ def _add_segmentation_em(
         user_id: User ID for the segmentation.
         session_id: Session ID for the segmentation.
         multilabel: Whether this is a multilabel segmentation.
+        transpose: Transpose axes. E.g., '2,1,0' to reverse all axes. Default: None.
         create: Create run if it doesn't exist.
         exist_ok: Don't raise error if segmentation exists.
         overwrite: Overwrite if exists.
@@ -1435,6 +1476,7 @@ def _add_segmentation_em(
         user_id=user_id,
         session_id=session_id,
         multilabel=multilabel,
+        transpose=transpose,
         create=create,
         exist_ok=exist_ok,
         overwrite=overwrite,
