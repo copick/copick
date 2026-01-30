@@ -22,7 +22,7 @@ logger = get_logger(__name__)
 COMMAND_CATEGORIES = {
     "Data Management": ["add", "cp", "mv", "new", "rm", "sync"],
     "Data Processing": ["convert", "inference", "logical", "process", "training", "evaluation"],
-    "Utilities": ["browse", "config", "deposit", "info", "setup", "stats"],
+    "Utilities": ["browse", "config", "deposit", "info", "setup", "stats", "download"],
 }
 
 
@@ -40,7 +40,7 @@ def _cli(ctx):
 
     text = f"copick {version} |{plugins}" if plugins else f"copick {version}"
     logger.info(text)
-    logger.info(f"{'-'*len(text)}")
+    logger.info(f"{'-' * len(text)}")
 
 
 @click.group(
@@ -143,6 +143,20 @@ def setup(ctx):
     pass
 
 
+@click.group(
+    short_help="Download data and metadata for STA.",
+    no_args_is_help=True,
+)
+@click.pass_context
+def download(ctx):
+    """
+    Download commands for Copick.
+
+    This group contains commands for downloading data necessary for downstream tasks, such as subtomogram averaging.
+    """
+    pass
+
+
 def add_core_commands(cmd: click.group) -> click.group:
     """
     Add core commands to the CLI.
@@ -217,6 +231,11 @@ def add_plugin_commands(cmd: click.group) -> click.group:
         cmd.add_command(setup)
         for command in setup_commands:
             setup.add_command(command[0])
+
+    if download_commands := load_plugin_commands("download"):
+        cmd.add_command(download)
+        for command in download_commands:
+            download.add_command(command[0])
 
     return cmd
 
