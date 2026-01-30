@@ -266,7 +266,7 @@ def tomogram(
 
 
 @export.command(
-    short_help="Export segmentations to external formats (MRC, TIFF, Zarr).",
+    short_help="Export segmentations to external formats (MRC, TIFF, Zarr, EM).",
     no_args_is_help=True,
 )
 @add_config_option
@@ -286,7 +286,7 @@ def tomogram(
 @click.option(
     "--output-format",
     required=True,
-    type=click.Choice(["mrc", "tiff", "zarr"], case_sensitive=False),
+    type=click.Choice(["mrc", "tiff", "zarr", "em"], case_sensitive=False),
     help="Output format for segmentations.",
 )
 @click.option(

@@ -484,6 +484,8 @@ def export_segmentation(
         return _export_segmentation_tiff(segmentation, output_path, level, compression, log=log)
     elif output_format == "zarr":
         return _export_segmentation_zarr(segmentation, output_path, copy_all_levels, log=log)
+    elif output_format == "em":
+        return _export_segmentation_em(segmentation, output_path, level, log=log)
     else:
         raise ValueError(f"Unsupported output format: {output_format}")
 
@@ -561,6 +563,39 @@ def _export_segmentation_tiff(
 
     if log:
         logging.info(f"Exported segmentation to TIFF: {output_path}")
+
+    return output_path
+
+
+def _export_segmentation_em(
+    segmentation: "CopickSegmentation",
+    output_path: str,
+    level: int = 0,
+    log: bool = False,
+) -> str:
+    """Export segmentation to TOM toolbox EM format.
+
+    Args:
+        segmentation: The CopickSegmentation object to export.
+        output_path: Path for the output EM file.
+        level: Pyramid level to export.
+        log: Log the operation.
+
+    Returns:
+        Path to the created output file.
+    """
+    from copick.util.formats import write_em_volume
+
+    # Get the data
+    zarr_group = zarr.open(segmentation.zarr())
+    volume = np.array(zarr_group[str(level)])
+
+    # Write EM file
+    os.makedirs(os.path.dirname(output_path) or ".", exist_ok=True)
+    write_em_volume(output_path, volume)
+
+    if log:
+        logging.info(f"Exported segmentation to EM: {output_path}")
 
     return output_path
 

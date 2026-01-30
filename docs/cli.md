@@ -789,7 +789,7 @@ Export copick data to external formats for use with other cryo-ET tools.
 
 - [`copick export picks`](#copick-export-picks) - Export picks to EM, STAR, Dynamo, or CSV formats
 - [`copick export tomogram`](#copick-export-tomogram) - Export tomograms to MRC, TIFF, or Zarr formats
-- [`copick export segmentation`](#copick-export-segmentation) - Export segmentations to MRC, TIFF, or Zarr formats
+- [`copick export segmentation`](#copick-export-segmentation) - Export segmentations to MRC, TIFF, Zarr, or EM formats
 
 #### :material-target: `copick export picks`
 
@@ -894,7 +894,7 @@ copick export tomogram -c config.json --tomogram-uri "wbp@10.0" \
 
 #### :material-layers: `copick export segmentation`
 
-Export segmentations to external file formats (MRC, TIFF stack, or Zarr).
+Export segmentations to external file formats (MRC, TIFF stack, Zarr, or EM).
 
 **Usage:**
 ```bash
@@ -908,9 +908,9 @@ copick export segmentation [OPTIONS]
 | `-c, --config PATH`                 | Path    | Path to the configuration file                                                                  | Uses `COPICK_CONFIG` env var |
 | `--segmentation-uri TEXT`           | String  | URI to filter segmentations for export (e.g., 'membrane:user1/*@10.0') (required)               | None                         |
 | `--output-dir PATH`                 | Path    | Output directory for exported files (required)                                                  | None                         |
-| `--output-format CHOICE`            | String  | Output format: 'mrc', 'tiff', or 'zarr' (required)                                              | None                         |
+| `--output-format CHOICE`            | String  | Output format: 'mrc', 'tiff', 'zarr', or 'em' (required)                                        | None                         |
 | `--run-names TEXT`                  | String  | Comma-separated list of run names to export. If not specified, exports from all runs.           | `""`                         |
-| `--level INTEGER`                   | Integer | Pyramid level to export (for MRC and TIFF)                                                      | `0`                          |
+| `--level INTEGER`                   | Integer | Pyramid level to export (for MRC, TIFF, and EM)                                                 | `0`                          |
 | `--compression CHOICE`              | String  | Compression method for TIFF output: 'lzw', 'zlib', 'jpeg', or 'none'                            | None                         |
 | `--copy-all-levels/--level-only`    | Boolean | Copy all pyramid levels for Zarr output                                                         | `copy-all-levels`            |
 | `--max-workers INTEGER`             | Integer | Number of parallel workers                                                                      | `8`                          |
