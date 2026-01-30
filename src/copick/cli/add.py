@@ -233,6 +233,13 @@ def tomogram(
 
         logger.info(f"Found {len(run_to_file)} tomograms to import from tomolist")
 
+        # Create runs if they don't exist
+        if create:
+            for run_name in run_to_file:
+                if not root.get_run(run_name):
+                    root.new_run(run_name)
+                    logger.info(f"Created run: {run_name}")
+
     elif "*" in path:
         # If glob pattern is used, the run name can not be used
         if run:

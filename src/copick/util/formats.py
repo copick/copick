@@ -640,7 +640,8 @@ def read_em_volume(path: str) -> np.ndarray:
     """
     import emfile
 
-    return emfile.read(path)
+    _header, data = emfile.read(path)
+    return data
 
 
 def write_em_volume(path: str, volume: np.ndarray) -> None:
