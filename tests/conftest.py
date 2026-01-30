@@ -11,6 +11,10 @@ import fsspec
 import pooch
 import pytest
 
+# Directory containing this conftest.py file - used for resolving relative paths
+TESTS_DIR = Path(__file__).parent
+DOCKER_COMPOSE_FILE = TESTS_DIR / "docker-compose.yml"
+
 OZ = pooch.os_cache("test_data")  # Path("/Users/utz.ermel/Documents/copick/testproject")  # pooch.os_cache("test_data")
 TOTO = pooch.create(
     path=OZ,
@@ -138,9 +142,11 @@ if importlib_util.find_spec("s3fs") and RUN_ALL:
 
     @pytest.fixture(scope="session")
     def s3_container():
-        os.system("docker compose -f ./tests/docker-compose.yml --profile s3fs up -d")
+        os.system(f"docker compose -f {DOCKER_COMPOSE_FILE} --profile s3fs up -d")
+        # Wait for moto server to be ready
+        time.sleep(2)
         yield "s3://test-bucket/"
-        os.system("docker compose -f ./tests/docker-compose.yml --profile '*' stop")
+        os.system(f"docker compose -f {DOCKER_COMPOSE_FILE} --profile s3fs stop")
 
     @pytest.fixture
     def s3_overlay_only(s3_container, base_project_directory, base_config_overlay_only):
@@ -150,7 +156,7 @@ if importlib_util.find_spec("s3fs") and RUN_ALL:
 
         # To ensure that each test has a unique project directory, generate UUID names
         project_directory = f"{s3_container}sample_project_overlay_only_{uuid.uuid1()}/"
-        os.system(f'bash ./tests/seed_moto.sh "{base_project_directory}" "{project_directory}"')
+        os.system(f'bash "{TESTS_DIR / "seed_moto.sh"}" "{base_project_directory}" "{project_directory}"')
 
         # Open baseline config
         with open(base_config_overlay_only, "r") as f:
@@ -190,10 +196,10 @@ if importlib_util.find_spec("s3fs") and RUN_ALL:
 
         # To ensure that each test has a unique project directory, generate UUID names
         project_directory = f"{s3_container}sample_project_{uuid.uuid1()}/"
-        os.system(f'bash ./tests/seed_moto.sh "{base_project_directory}" "{project_directory}"')
+        os.system(f'bash "{TESTS_DIR / "seed_moto.sh"}" "{base_project_directory}" "{project_directory}"')
 
         overlay_directory = f"{s3_container}sample_overlay_{uuid.uuid1()}/"
-        os.system(f'bash ./tests/seed_moto.sh "{base_overlay_directory}" "{overlay_directory}"')
+        os.system(f'bash "{TESTS_DIR / "seed_moto.sh"}" "{base_overlay_directory}" "{overlay_directory}"')
 
         # Open baseline config
         with open(base_config_overlay_only, "r") as f:
@@ -241,13 +247,12 @@ if importlib_util.find_spec("sshfs") and RUN_ALL:
 
     @pytest.fixture(scope="session")
     def ssh_container():
-        os.system("docker compose -f ./tests/docker-compose.yml --profile sshfs up -d")
-        # On startup we need to wait a second for the service to start, otherwise the first test fails.
-        # Let's not talk about how long it took to figure this out.
-        time.sleep(1)
+        os.system(f"docker compose -f {DOCKER_COMPOSE_FILE} --profile sshfs up -d")
+        # On startup we need to wait for the service to fully initialize (user creation, SSH setup).
+        time.sleep(3)
         yield "ssh:///tmp/"
-        os.system("docker compose -f ./tests/docker-compose.yml --profile '*' stop")
-        os.system("docker compose -f ./tests/docker-compose.yml --profile '*' rm -f")
+        os.system(f"docker compose -f {DOCKER_COMPOSE_FILE} --profile sshfs stop")
+        os.system(f"docker compose -f {DOCKER_COMPOSE_FILE} --profile sshfs rm -f")
 
     @pytest.fixture
     def ssh_overlay_only(ssh_container, base_project_directory, base_config_overlay_only):
@@ -258,7 +263,7 @@ if importlib_util.find_spec("sshfs") and RUN_ALL:
         # To ensure that each test has a unique project directory, generate UUID names
         project_directory = f"{ssh_container}sample_project_{uuid.uuid1()}"
         project_directory_stripped = project_directory.replace("ssh://", "")
-        os.system(f'bash ./tests/seed_ssh.sh "{base_project_directory}/*" "{project_directory_stripped}"')
+        os.system(f'bash "{TESTS_DIR / "seed_ssh.sh"}" "{base_project_directory}/*" "{project_directory_stripped}"')
 
         # Open baseline config
         with open(base_config_overlay_only, "r") as f:
@@ -300,11 +305,11 @@ if importlib_util.find_spec("sshfs") and RUN_ALL:
         # To ensure that each test has a unique project directory, generate UUID names
         project_directory = f"{ssh_container}sample_project_{uuid.uuid1()}"
         project_directory_stripped = project_directory.replace("ssh://", "")
-        os.system(f'bash ./tests/seed_ssh.sh "{base_project_directory}/*" "{project_directory_stripped}"')
+        os.system(f'bash "{TESTS_DIR / "seed_ssh.sh"}" "{base_project_directory}/*" "{project_directory_stripped}"')
 
         overlay_directory = f"{ssh_container}sample_overlay_{uuid.uuid1()}"
         overlay_directory_stripped = overlay_directory.replace("ssh://", "")
-        os.system(f'bash ./tests/seed_ssh.sh "{base_overlay_directory}/*" "{overlay_directory_stripped}"')
+        os.system(f'bash "{TESTS_DIR / "seed_ssh.sh"}" "{base_overlay_directory}/*" "{overlay_directory_stripped}"')
 
         # Open baseline config
         with open(base_config_overlay_only, "r") as f:
@@ -354,11 +359,11 @@ if importlib_util.find_spec("smbclient") and RUN_ALL:
 
     @pytest.fixture(scope="session")
     def smb_container():
-        os.system("docker compose -f ./tests/docker-compose.yml --profile smb up -d")
-        # On startup we need to wait a second for the service to start, otherwise the first test fails.
-        time.sleep(2)
+        os.system(f"docker compose -f {DOCKER_COMPOSE_FILE} --profile smb up -d")
+        # On startup we need to wait for the service to fully initialize.
+        time.sleep(3)
         yield "smb:///data/"
-        os.system("docker compose -f ./tests/docker-compose.yml --profile '*' stop")
+        os.system(f"docker compose -f {DOCKER_COMPOSE_FILE} --profile smb stop")
 
     @pytest.fixture
     def smb_overlay_only(smb_container, base_project_directory, base_config_overlay_only):
@@ -369,7 +374,7 @@ if importlib_util.find_spec("smbclient") and RUN_ALL:
         # To ensure that each test has a unique project directory, generate UUID names
         project_directory = f"{smb_container}sample_project_{uuid.uuid1()}"
         project_directory_stripped = project_directory.replace("smb:///data/", "")
-        os.system(f'bash ./tests/seed_smb.sh "{base_project_directory}/*" "{project_directory_stripped}"')
+        os.system(f'bash "{TESTS_DIR / "seed_smb.sh"}" "{base_project_directory}/*" "{project_directory_stripped}"')
 
         # Open baseline config
         with open(base_config_overlay_only, "r") as f:
@@ -400,7 +405,7 @@ if importlib_util.find_spec("smbclient") and RUN_ALL:
 
         if CLEANUP:
             shutil.rmtree(temp_dir)
-            shutil.rmtree(f"tests/bin/smb/{project_directory_stripped}")
+            shutil.rmtree(TESTS_DIR / "bin" / "smb" / project_directory_stripped)
 
     @pytest.fixture
     def smb(smb_container, base_project_directory, base_overlay_directory, base_config_overlay_only):
@@ -411,11 +416,11 @@ if importlib_util.find_spec("smbclient") and RUN_ALL:
         # To ensure that each test has a unique project directory, generate UUID names
         project_directory = f"{smb_container}sample_project_{uuid.uuid1()}"
         project_directory_stripped = project_directory.replace("smb:///data/", "")
-        os.system(f'bash ./tests/seed_smb.sh "{base_project_directory}/*" "{project_directory_stripped}"')
+        os.system(f'bash "{TESTS_DIR / "seed_smb.sh"}" "{base_project_directory}/*" "{project_directory_stripped}"')
 
         overlay_directory = f"{smb_container}sample_overlay_{uuid.uuid1()}"
         overlay_directory_stripped = overlay_directory.replace("smb:///data/", "")
-        os.system(f'bash ./tests/seed_smb.sh "{base_overlay_directory}/*" "{overlay_directory_stripped}"')
+        os.system(f'bash "{TESTS_DIR / "seed_smb.sh"}" "{base_overlay_directory}/*" "{overlay_directory_stripped}"')
 
         # Open baseline config
         with open(base_config_overlay_only, "r") as f:
@@ -454,8 +459,8 @@ if importlib_util.find_spec("smbclient") and RUN_ALL:
 
         if CLEANUP:
             shutil.rmtree(temp_dir)
-            shutil.rmtree(f"tests/bin/smb/{project_directory_stripped}")
-            shutil.rmtree(f"tests/bin/smb/{overlay_directory_stripped}")
+            shutil.rmtree(TESTS_DIR / "bin" / "smb" / project_directory_stripped)
+            shutil.rmtree(TESTS_DIR / "bin" / "smb" / overlay_directory_stripped)
 
     # COMMON_CASES.extend(["smb_overlay_only", "smb"])
 

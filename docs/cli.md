@@ -150,6 +150,7 @@ Add entities to Copick projects.
 
 - [`copick add tomogram`](#copick-add-tomogram) - Add a tomogram to the project
 - [`copick add segmentation`](#copick-add-segmentation) - Add a segmentation to the project
+- [`copick add picks`](#copick-add-picks) - Add picks from external formats (EM, STAR, Dynamo, CSV)
 - [`copick add object`](#copick-add-object) - Add a pickable object to the project configuration
 - [`copick add object-volume`](#copick-add-object-volume) - Add volume data to an existing pickable object
 
@@ -176,7 +177,7 @@ copick add tomogram [OPTIONS] PATH
 | `--run TEXT`                             | String  | The name of the run. If not specified, will use the name of the file (stripping extension), ignored if PATH is glob pattern. | `""`                         |
 | `--run-regex TEXT`                       | String  | Regular expression to extract the run name from the filename. The regex should capture the run name in the first group.      | `(.*)`                       |
 | `--tomo-type TEXT`                       | String  | The name of the tomogram (e.g. wbp)                                                                                          | `wbp`                        |
-| `--file-type TEXT`                       | String  | The file type ('mrc' or 'zarr')                                                                                              | Auto-detected                |
+| `--file-type TEXT`                       | String  | The file type ('mrc', 'zarr', 'tiff', or 'em')                                                                               | Auto-detected                |
 | `--voxel_size FLOAT`                     | Float   | Voxel size in Angstrom (overrides header value)                                                                              | None                         |
 | `--create-pyramid / --no-create-pyramid` | Boolean | Compute the multiscale pyramid                                                                                               | `create-pyramid`             |
 | `--pyramid-levels INTEGER`               | Integer | Number of pyramid levels (each level is 2x downscaling)                                                                      | `3`                          |
@@ -221,11 +222,17 @@ copick add tomogram --config config.json --run-regex "^(Position_.*)_Vol_CTF" da
 
 # Use regex with glob pattern for multiple files with structured naming
 copick add tomogram --config config.json --run-regex "^(Position_.*)_Vol_CTF" data/Position_*_Vol_CTF.mrc
+
+# Add tomogram from TIFF stack
+copick add tomogram --config config.json --run TS_001 --voxel_size 10.0 --file-type tiff data/tomogram_stack.tif
+
+# Add tomogram from EM file (TOM toolbox format)
+copick add tomogram --config config.json --run TS_001 --voxel_size 10.0 --file-type em data/tomogram.em
 ```
 
 #### :material-layers: `copick add segmentation`
 
-Add one or more segmentations to the project from MRC or Zarr files.
+Add one or more segmentations to the project from MRC, Zarr, TIFF, or EM files.
 
 **Usage:**
 ```bash
@@ -236,7 +243,7 @@ copick add segmentation [OPTIONS] PATH
 
 | Argument | Type | Description                                                                       |
 |----------|------|-----------------------------------------------------------------------------------|
-| `PATH`   | Path | Path to segmentation file(s) (MRC or Zarr format) or glob pattern (e.g., `*.mrc`) |
+| `PATH`   | Path | Path to segmentation file(s) (MRC, Zarr, TIFF, or EM format) or glob pattern (e.g., `*.mrc`) |
 
 **Options:**
 
@@ -249,6 +256,7 @@ copick add segmentation [OPTIONS] PATH
 | `--name TEXT`                  | String  | Name of the segmentation                                                                                                     | None                         |
 | `--user-id TEXT`               | String  | User ID of the segmentation                                                                                                  | `copick`                     |
 | `--session-id TEXT`            | String  | Session ID of the segmentation                                                                                               | `1`                          |
+| `--file-type TEXT`             | String  | The file type ('mrc', 'zarr', 'tiff', or 'em')                                                                               | Auto-detected                |
 | `--overwrite / --no-overwrite` | Boolean | Overwrite the object if it exists                                                                                            | `no-overwrite`               |
 | `--create / --no-create`       | Boolean | Create the object if it does not exist                                                                                       | `create`                     |
 | `--debug / --no-debug`         | Boolean | Enable debug logging                                                                                                         | `no-debug`                   |
@@ -271,6 +279,94 @@ copick add segmentation --config config.json --run TS_001 --name membrane --voxe
 # Extract run names using regex pattern for segmentations
 # For file "Position_60_7_Vol_CTF.mrc", this will create run "Position_60_7"
 copick add segmentation --config config.json --run-regex "^(Position_.*)_Vol_CTF" --name membrane data/Position_60_7_Vol_CTF.mrc
+
+# Add segmentation from TIFF stack
+copick add segmentation --config config.json --run TS_001 --name membrane --voxel-size 10.0 --file-type tiff data/membrane_stack.tif
+
+# Add segmentation from EM file
+copick add segmentation --config config.json --run TS_001 --name organelle --voxel-size 10.0 --file-type em data/organelle.em
+```
+
+#### :material-target: `copick add picks`
+
+Add picks from external file formats (EM motivelists, STAR files, Dynamo tables, or CSV files).
+
+**Usage:**
+```bash
+copick add picks [OPTIONS] PATH
+```
+
+**Arguments:**
+
+| Argument | Type | Description                                                                     |
+|----------|------|---------------------------------------------------------------------------------|
+| `PATH`   | Path | Path to picks file (EM, STAR, Dynamo .tbl, or CSV format) or glob pattern       |
+
+**Options:**
+
+| Option                         | Type    | Description                                                                                                                  | Default                      |
+|--------------------------------|---------|------------------------------------------------------------------------------------------------------------------------------|------------------------------|
+| `-c, --config PATH`            | Path    | Path to the configuration file                                                                                               | Uses `COPICK_CONFIG` env var |
+| `--run TEXT`                   | String  | The name of the run (not needed for CSV format which includes run_name column)                                               | `""`                         |
+| `--run-regex TEXT`             | String  | Regular expression to extract the run name from the filename. The regex should capture the run name in the first group.      | `(.*)`                       |
+| `--object-name TEXT`           | String  | Name of the pickable object (required)                                                                                       | None                         |
+| `--user-id TEXT`               | String  | User ID for the picks                                                                                                        | `copick`                     |
+| `--session-id TEXT`            | String  | Session ID for the picks                                                                                                     | `1`                          |
+| `--voxel-size FLOAT`           | Float   | Voxel size in Angstrom (required for EM, STAR, Dynamo formats)                                                               | None                         |
+| `--file-type CHOICE`           | String  | Input file type: 'em', 'star', 'dynamo', 'csv'. Auto-detected from extension if not specified.                               | Auto-detected                |
+| `--overwrite / --no-overwrite` | Boolean | Overwrite the object if it exists                                                                                            | `no-overwrite`               |
+| `--create / --no-create`       | Boolean | Create the run if it does not exist                                                                                          | `create`                     |
+| `--debug / --no-debug`         | Boolean | Enable debug logging                                                                                                         | `no-debug`                   |
+
+**Supported File Formats:**
+
+| Format | Extension | Description |
+|--------|-----------|-------------|
+| EM     | `.em`     | TOM toolbox motivelist format (positions, Euler angles) |
+| STAR   | `.star`   | RELION particle star files |
+| Dynamo | `.tbl`    | Dynamo table format |
+| CSV    | `.csv`    | CSV with run_name, coordinates (Angstrom), 4x4 transformation matrix |
+
+!!! info "CSV Format"
+    CSV files should include the following columns:
+
+    - `run_name`: Name of the run for each pick
+    - `x`, `y`, `z`: Coordinates in Angstrom (corner-origin)
+    - `m00` through `m33`: 16 columns for the 4x4 transformation matrix
+    - `score` (optional): Confidence score
+    - `instance_id` (optional): Instance identifier
+
+!!! tip "Format-Specific Conventions"
+    For details on coordinate systems and Euler angle conventions for each format, see the docstrings in `copick.util.formats`.
+
+**Examples:**
+
+```bash
+# Import picks from EM motivelist
+copick add picks --config config.json --run TS_001 --object-name ribosome \
+    --user-id user1 --session-id 1 --voxel-size 10.0 data/particles.em
+
+# Import picks from STAR file
+copick add picks --config config.json --run TS_001 --object-name ribosome \
+    --user-id analyst --session-id 1 --voxel-size 10.0 data/particles.star
+
+# Import picks from Dynamo table
+copick add picks --config config.json --run TS_001 --object-name proteasome \
+    --user-id user1 --session-id 1 --voxel-size 10.0 data/table.tbl
+
+# Import picks from CSV (run names are in the file)
+copick add picks --config config.json --object-name ribosome \
+    --user-id user1 --session-id 1 data/particles.csv
+
+# Import multiple files using glob pattern with regex for run names
+copick add picks --config config.json --run-regex "^(TS_\d+)_particles" \
+    --object-name ribosome --user-id user1 --session-id 1 --voxel-size 10.0 \
+    "data/*_particles.em"
+
+# Import with explicit file type specification
+copick add picks --config config.json --run TS_001 --object-name ribosome \
+    --user-id user1 --session-id 1 --voxel-size 10.0 --file-type star \
+    data/particles.dat
 ```
 
 #### :material-shape: `copick add object`
@@ -681,6 +777,164 @@ copick sync tomograms -c source_config.json --target-config target_config.json \
     --voxel-spacings "10.0" \
     --source-tomo-types "wbp,denoised" --target-tomo-types "wbp:processed,denoised:clean" \
     --exist-ok --max-workers 6 --log
+```
+
+---
+
+### :material-export: `copick export`
+
+Export copick data to external formats for use with other cryo-ET tools.
+
+**Subcommands:**
+
+- [`copick export picks`](#copick-export-picks) - Export picks to EM, STAR, Dynamo, or CSV formats
+- [`copick export tomogram`](#copick-export-tomogram) - Export tomograms to MRC, TIFF, or Zarr formats
+- [`copick export segmentation`](#copick-export-segmentation) - Export segmentations to MRC, TIFF, Zarr, or EM formats
+
+#### :material-target: `copick export picks`
+
+Export picks to external file formats (EM motivelists, STAR files, Dynamo tables, or CSV).
+
+**Usage:**
+```bash
+copick export picks [OPTIONS]
+```
+
+**Options:**
+
+| Option                         | Type    | Description                                                                                | Default                      |
+|--------------------------------|---------|--------------------------------------------------------------------------------------------|------------------------------|
+| `-c, --config PATH`            | Path    | Path to the configuration file                                                             | Uses `COPICK_CONFIG` env var |
+| `--picks-uri TEXT`             | String  | URI to filter picks for export (e.g., 'ribosome:user1/*' or '*:*/*') (required)            | None                         |
+| `--output-dir PATH`            | Path    | Output directory for exported files (required)                                             | None                         |
+| `--output-format CHOICE`       | String  | Output format: 'em', 'star', 'dynamo', or 'csv' (required)                                 | None                         |
+| `--run-names TEXT`             | String  | Comma-separated list of run names to export. If not specified, exports from all runs.      | `""`                         |
+| `--voxel-size FLOAT`           | Float   | Voxel size in Angstrom (required for EM, STAR, and Dynamo formats)                         | None                         |
+| `--include-optics/--no-include-optics` | Boolean | Include optics group in STAR file output                                            | `include-optics`             |
+| `--max-workers INTEGER`        | Integer | Number of parallel workers                                                                 | `8`                          |
+| `--debug / --no-debug`         | Boolean | Enable debug logging                                                                       | `no-debug`                   |
+
+**Output Formats:**
+
+| Format | Extension | Description |
+|--------|-----------|-------------|
+| EM     | `.em`     | TOM toolbox motivelist format with positions and Euler angles |
+| STAR   | `.star`   | RELION particle star files with optional optics group |
+| Dynamo | `.tbl`    | Dynamo table format |
+| CSV    | `.csv`    | CSV with run_name, coordinates (Angstrom), 4x4 transformation matrix, score, instance_id |
+
+!!! tip "Format-Specific Conventions"
+    For details on coordinate systems and Euler angle conventions for each format, see the docstrings in `copick.util.formats`.
+
+**Examples:**
+
+```bash
+# Export all picks from user1 to EM format
+copick export picks -c config.json --picks-uri "ribosome:user1/*" \
+    --output-dir ./output --output-format em --voxel-size 10.0
+
+# Export all picks to STAR format with optics
+copick export picks -c config.json --picks-uri "*:*/*" \
+    --output-dir ./output --output-format star --voxel-size 10.0 --include-optics
+
+# Export specific runs to Dynamo table format
+copick export picks -c config.json --picks-uri "ribosome:*/*" \
+    --output-dir ./output --output-format dynamo --voxel-size 10.0 \
+    --run-names "TS_001,TS_002"
+
+# Export all picks to CSV format (no voxel size required)
+copick export picks -c config.json --picks-uri "*:*/*" \
+    --output-dir ./output --output-format csv
+```
+
+#### :material-cube: `copick export tomogram`
+
+Export tomograms to external file formats (MRC, TIFF stack, or Zarr).
+
+**Usage:**
+```bash
+copick export tomogram [OPTIONS]
+```
+
+**Options:**
+
+| Option                              | Type    | Description                                                                                | Default                      |
+|-------------------------------------|---------|--------------------------------------------------------------------------------------------|------------------------------|
+| `-c, --config PATH`                 | Path    | Path to the configuration file                                                             | Uses `COPICK_CONFIG` env var |
+| `--tomogram-uri TEXT`               | String  | URI to filter tomograms for export (e.g., 'wbp@10.0' or '*@*') (required)                  | None                         |
+| `--output-dir PATH`                 | Path    | Output directory for exported files (required)                                             | None                         |
+| `--output-format CHOICE`            | String  | Output format: 'mrc', 'tiff', or 'zarr' (required)                                         | None                         |
+| `--run-names TEXT`                  | String  | Comma-separated list of run names to export. If not specified, exports from all runs.      | `""`                         |
+| `--level INTEGER`                   | Integer | Pyramid level to export (for MRC and TIFF)                                                 | `0`                          |
+| `--compression CHOICE`              | String  | Compression method for TIFF output: 'lzw', 'zlib', 'jpeg', or 'none'                       | None                         |
+| `--copy-all-levels/--level-only`    | Boolean | Copy all pyramid levels for Zarr output                                                    | `copy-all-levels`            |
+| `--max-workers INTEGER`             | Integer | Number of parallel workers                                                                 | `8`                          |
+| `--debug / --no-debug`              | Boolean | Enable debug logging                                                                       | `no-debug`                   |
+
+**Examples:**
+
+```bash
+# Export all wbp tomograms at 10A to MRC
+copick export tomogram -c config.json --tomogram-uri "wbp@10.0" \
+    --output-dir ./output --output-format mrc
+
+# Export tomograms to TIFF with compression
+copick export tomogram -c config.json --tomogram-uri "wbp@10.0" \
+    --output-dir ./output --output-format tiff --compression lzw
+
+# Export tomograms to Zarr (copy all levels)
+copick export tomogram -c config.json --tomogram-uri "*@*" \
+    --output-dir ./output --output-format zarr --copy-all-levels
+
+# Export specific level from specific runs
+copick export tomogram -c config.json --tomogram-uri "wbp@10.0" \
+    --output-dir ./output --output-format mrc --level 1 \
+    --run-names "TS_001,TS_002"
+```
+
+#### :material-layers: `copick export segmentation`
+
+Export segmentations to external file formats (MRC, TIFF stack, Zarr, or EM).
+
+**Usage:**
+```bash
+copick export segmentation [OPTIONS]
+```
+
+**Options:**
+
+| Option                              | Type    | Description                                                                                     | Default                      |
+|-------------------------------------|---------|-------------------------------------------------------------------------------------------------|------------------------------|
+| `-c, --config PATH`                 | Path    | Path to the configuration file                                                                  | Uses `COPICK_CONFIG` env var |
+| `--segmentation-uri TEXT`           | String  | URI to filter segmentations for export (e.g., 'membrane:user1/*@10.0') (required)               | None                         |
+| `--output-dir PATH`                 | Path    | Output directory for exported files (required)                                                  | None                         |
+| `--output-format CHOICE`            | String  | Output format: 'mrc', 'tiff', 'zarr', or 'em' (required)                                        | None                         |
+| `--run-names TEXT`                  | String  | Comma-separated list of run names to export. If not specified, exports from all runs.           | `""`                         |
+| `--level INTEGER`                   | Integer | Pyramid level to export (for MRC, TIFF, and EM)                                                 | `0`                          |
+| `--compression CHOICE`              | String  | Compression method for TIFF output: 'lzw', 'zlib', 'jpeg', or 'none'                            | None                         |
+| `--copy-all-levels/--level-only`    | Boolean | Copy all pyramid levels for Zarr output                                                         | `copy-all-levels`            |
+| `--max-workers INTEGER`             | Integer | Number of parallel workers                                                                      | `8`                          |
+| `--debug / --no-debug`              | Boolean | Enable debug logging                                                                            | `no-debug`                   |
+
+**Examples:**
+
+```bash
+# Export all membrane segmentations to MRC
+copick export segmentation -c config.json --segmentation-uri "membrane:*/*@10.0" \
+    --output-dir ./output --output-format mrc
+
+# Export segmentations to TIFF with compression
+copick export segmentation -c config.json --segmentation-uri "membrane:user1/*@10.0" \
+    --output-dir ./output --output-format tiff --compression lzw
+
+# Export segmentations to Zarr (copy all levels)
+copick export segmentation -c config.json --segmentation-uri "*:*/*@*" \
+    --output-dir ./output --output-format zarr --copy-all-levels
+
+# Export specific level from specific runs
+copick export segmentation -c config.json --segmentation-uri "membrane:*/*@10.0" \
+    --output-dir ./output --output-format mrc --level 0 \
+    --run-names "TS_001,TS_002"
 ```
 
 ---
@@ -1142,6 +1396,86 @@ copick sync tomograms -c source_config.json --target-config target_config.json \
     --voxel-spacings "10.0" \
     --source-tomo-types "wbp,denoised" --target-tomo-types "wbp:processed,denoised:clean" \
     --log
+```
+
+### Import and Export Data
+
+Import data from external tools and export for downstream processing:
+
+```bash
+# === IMPORT FROM EXTERNAL TOOLS ===
+
+# Import picks from RELION STAR file
+copick add picks -c project.json --run TS_001 --object-name ribosome \
+    --user-id analyst --session-id 1 --voxel-size 10.0 \
+    data/particles.star
+
+# Import picks from Dynamo table
+copick add picks -c project.json --run TS_001 --object-name proteasome \
+    --user-id analyst --session-id 1 --voxel-size 10.0 \
+    data/table.tbl
+
+# Import picks from TOM toolbox EM motivelist
+copick add picks -c project.json --run TS_001 --object-name ribosome \
+    --user-id analyst --session-id 1 --voxel-size 10.0 \
+    data/motivelist.em
+
+# Import picks from CSV (includes run names)
+copick add picks -c project.json --object-name ribosome \
+    --user-id analyst --session-id 1 \
+    data/particles.csv
+
+# Import tomogram from TIFF stack
+copick add tomogram -c project.json --run TS_001 \
+    --voxel_size 10.0 --file-type tiff \
+    data/tomogram_stack.tif
+
+# Import segmentation from EM file
+copick add segmentation -c project.json --run TS_001 --name membrane \
+    --voxel-size 10.0 --file-type em \
+    data/membrane.em
+
+# === EXPORT FOR DOWNSTREAM TOOLS ===
+
+# Export picks to RELION STAR format for subtomogram averaging
+copick export picks -c project.json --picks-uri "ribosome:*/*" \
+    --output-dir ./relion_project --output-format star \
+    --voxel-size 10.0 --include-optics
+
+# Export picks to Dynamo format
+copick export picks -c project.json --picks-uri "proteasome:analyst/*" \
+    --output-dir ./dynamo_project --output-format dynamo \
+    --voxel-size 10.0
+
+# Export picks to CSV for custom analysis
+copick export picks -c project.json --picks-uri "*:*/*" \
+    --output-dir ./analysis --output-format csv
+
+# Export tomograms to MRC for external tools
+copick export tomogram -c project.json --tomogram-uri "wbp@10.0" \
+    --output-dir ./tomograms --output-format mrc
+
+# Export segmentations to TIFF for visualization
+copick export segmentation -c project.json --segmentation-uri "membrane:*/*@10.0" \
+    --output-dir ./segmentations --output-format tiff --compression lzw
+
+# === ROUND-TRIP WORKFLOWS ===
+
+# 1. Export picks to RELION, refine, and re-import
+copick export picks -c project.json --picks-uri "ribosome:initial/*" \
+    --output-dir ./relion --output-format star --voxel-size 10.0
+# ... run RELION refinement ...
+copick add picks -c project.json --run TS_001 --object-name ribosome \
+    --user-id refined --session-id 1 --voxel-size 10.0 \
+    ./relion/refined_particles.star
+
+# 2. Export to Dynamo, process, and re-import
+copick export picks -c project.json --picks-uri "proteasome:*/*" \
+    --output-dir ./dynamo --output-format dynamo --voxel-size 10.0
+# ... run Dynamo processing ...
+copick add picks -c project.json --run TS_001 --object-name proteasome \
+    --user-id dynamo --session-id 1 --voxel-size 10.0 \
+    ./dynamo/processed_table.tbl
 ```
 
 ### Create Depositable View for Data Portal
