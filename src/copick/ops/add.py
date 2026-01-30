@@ -131,6 +131,7 @@ def add_tomogram(
     pyramid_levels: int = 3,
     chunks: Tuple[int, ...] = (256, 256, 256),
     transpose: Optional[str] = None,
+    flip: Optional[str] = None,
     meta: Dict[str, Any] = None,
     log: bool = False,
 ) -> CopickTomogram:
@@ -144,6 +145,7 @@ def add_tomogram(
         overwrite (bool, optional): Overwrite the object if it exists. Defaults to False.
         run (str, optional): The run the tomogram is part of. Default: Name of the input file.
         transpose (str, optional): Transpose axes. E.g., '2,1,0' to reverse all axes. Default: None.
+        flip (str, optional): Flip axes. E.g., '0' to flip Z, '0,2' to flip Z and X. Default: None.
     """
 
     # Apply transpose if specified
@@ -153,6 +155,16 @@ def add_tomogram(
             volume = {k: np.transpose(v, axes) for k, v in volume.items()}
         else:
             volume = np.transpose(volume, axes)
+
+    # Apply flip if specified (after transpose)
+    if flip:
+        flip_axes = tuple(int(x.strip()) for x in flip.split(","))
+        if isinstance(volume, dict):
+            for axis in flip_axes:
+                volume = {k: np.flip(v, axis=axis) for k, v in volume.items()}
+        else:
+            for axis in flip_axes:
+                volume = np.flip(volume, axis=axis)
 
     # Validate input
     if isinstance(volume, np.ndarray) and voxel_spacing is None:
@@ -223,6 +235,7 @@ def _add_tomogram_mrc(
     pyramid_levels: int = 3,
     chunks: Tuple[int, ...] = (256, 256, 256),
     transpose: Optional[str] = None,
+    flip: Optional[str] = None,
     meta: Dict[str, Any] = None,
     log: bool = False,
 ) -> CopickTomogram:
@@ -236,6 +249,7 @@ def _add_tomogram_mrc(
         overwrite (bool, optional): Overwrite the object if it exists. Defaults to False.
         run (str, optional): The run the tomogram is part of. Default: Name of the input file.
         transpose (str, optional): Transpose axes. E.g., '2,1,0' to reverse all axes. Default: None.
+        flip (str, optional): Flip axes. E.g., '0' to flip Z, '0,2' to flip Z and X. Default: None.
     """
 
     with mrcfile.open(volume_file) as mrc:
@@ -258,6 +272,7 @@ def _add_tomogram_mrc(
         pyramid_levels=pyramid_levels,
         chunks=chunks,
         transpose=transpose,
+        flip=flip,
         meta=meta,
         log=log,
     )
@@ -276,6 +291,7 @@ def _add_tomogram_zarr(
     pyramid_levels: int = 3,
     chunks: Tuple[int, int, int] = (256, 256, 256),
     transpose: Optional[str] = None,
+    flip: Optional[str] = None,
     meta: Dict[str, Any] = None,
     log: bool = False,
 ) -> CopickTomogram:
@@ -289,6 +305,7 @@ def _add_tomogram_zarr(
         overwrite (bool, optional): Overwrite the object if it exists. Defaults to False.
         run (str, optional): The run the tomogram is part of. Default: Name of the input file.
         transpose (str, optional): Transpose axes. E.g., '2,1,0' to reverse all axes. Default: None.
+        flip (str, optional): Flip axes. E.g., '0' to flip Z, '0,2' to flip Z and X. Default: None.
     """
 
     zarr_group = zarr.open(volume_file)
@@ -312,6 +329,7 @@ def _add_tomogram_zarr(
         pyramid_levels=pyramid_levels,
         chunks=chunks,
         transpose=transpose,
+        flip=flip,
         meta=meta,
         log=log,
     )
@@ -387,6 +405,7 @@ def add_segmentation(
     session_id: str,
     multilabel: bool = False,
     transpose: Optional[str] = None,
+    flip: Optional[str] = None,
     create: bool = True,
     exist_ok: bool = False,
     overwrite: bool = False,
@@ -402,6 +421,7 @@ def add_segmentation(
         exist_ok (bool, optional): If True, do not raise an error if the segmentation already exists. Defaults to False.
         overwrite (bool, optional): Overwrite the object if it exists. Defaults to False.
         transpose (str, optional): Transpose axes. E.g., '2,1,0' to reverse all axes. Default: None.
+        flip (str, optional): Flip axes. E.g., '0' to flip Z, '0,2' to flip Z and X. Default: None.
     """
 
     # Read the Segmentation Mask
@@ -415,6 +435,12 @@ def add_segmentation(
     if transpose:
         axes = tuple(int(x.strip()) for x in transpose.split(","))
         volume = np.transpose(volume, axes)
+
+    # Apply flip if specified (after transpose)
+    if flip:
+        flip_axes = tuple(int(x.strip()) for x in flip.split(","))
+        for axis in flip_axes:
+            volume = np.flip(volume, axis=axis)
 
     # Attempt to get run and voxel spacing
     runobj = get_or_create_run(root, run, create=create)
@@ -1178,6 +1204,7 @@ def _add_tomogram_tiff(
     pyramid_levels: int = 3,
     chunks: Tuple[int, ...] = (256, 256, 256),
     transpose: Optional[str] = None,
+    flip: Optional[str] = None,
     meta: Dict[str, Any] = None,
     log: bool = False,
 ) -> CopickTomogram:
@@ -1196,6 +1223,7 @@ def _add_tomogram_tiff(
         pyramid_levels: Number of pyramid levels.
         chunks: Chunk size for Zarr store.
         transpose: Transpose axes. E.g., '2,1,0' to reverse all axes. Default: None.
+        flip: Flip axes. E.g., '0' to flip Z, '0,2' to flip Z and X. Default: None.
         meta: Optional metadata.
         log: Log the operation.
 
@@ -1225,6 +1253,7 @@ def _add_tomogram_tiff(
         pyramid_levels=pyramid_levels,
         chunks=chunks,
         transpose=transpose,
+        flip=flip,
         meta=meta,
         log=log,
     )
@@ -1243,6 +1272,7 @@ def _add_tomogram_em(
     pyramid_levels: int = 3,
     chunks: Tuple[int, ...] = (256, 256, 256),
     transpose: Optional[str] = None,
+    flip: Optional[str] = None,
     meta: Dict[str, Any] = None,
     log: bool = False,
 ) -> CopickTomogram:
@@ -1261,6 +1291,7 @@ def _add_tomogram_em(
         pyramid_levels: Number of pyramid levels.
         chunks: Chunk size for Zarr store.
         transpose: Transpose axes. E.g., '2,1,0' to reverse all axes. Default: None.
+        flip: Flip axes. E.g., '0' to flip Z, '0,2' to flip Z and X. Default: None.
         meta: Optional metadata.
         log: Log the operation.
 
@@ -1290,6 +1321,7 @@ def _add_tomogram_em(
         pyramid_levels=pyramid_levels,
         chunks=chunks,
         transpose=transpose,
+        flip=flip,
         meta=meta,
         log=log,
     )
@@ -1310,6 +1342,7 @@ def _add_segmentation_from_array(
     session_id: str,
     multilabel: bool = False,
     transpose: Optional[str] = None,
+    flip: Optional[str] = None,
     create: bool = True,
     exist_ok: bool = False,
     overwrite: bool = False,
@@ -1327,6 +1360,7 @@ def _add_segmentation_from_array(
         session_id: Session ID for the segmentation.
         multilabel: Whether this is a multilabel segmentation.
         transpose: Transpose axes. E.g., '2,1,0' to reverse all axes. Default: None.
+        flip: Flip axes. E.g., '0' to flip Z, '0,2' to flip Z and X. Default: None.
         create: Create run if it doesn't exist.
         exist_ok: Don't raise error if segmentation exists.
         overwrite: Overwrite if exists.
@@ -1339,6 +1373,12 @@ def _add_segmentation_from_array(
     if transpose:
         axes = tuple(int(x.strip()) for x in transpose.split(","))
         volume = np.transpose(volume, axes)
+
+    # Apply flip if specified (after transpose)
+    if flip:
+        flip_axes = tuple(int(x.strip()) for x in flip.split(","))
+        for axis in flip_axes:
+            volume = np.flip(volume, axis=axis)
 
     runobj = get_or_create_run(root, run, create=create)
 
@@ -1370,6 +1410,7 @@ def _add_segmentation_tiff(
     session_id: str,
     multilabel: bool = False,
     transpose: Optional[str] = None,
+    flip: Optional[str] = None,
     create: bool = True,
     exist_ok: bool = False,
     overwrite: bool = False,
@@ -1387,6 +1428,7 @@ def _add_segmentation_tiff(
         session_id: Session ID for the segmentation.
         multilabel: Whether this is a multilabel segmentation.
         transpose: Transpose axes. E.g., '2,1,0' to reverse all axes. Default: None.
+        flip: Flip axes. E.g., '0' to flip Z, '0,2' to flip Z and X. Default: None.
         create: Create run if it doesn't exist.
         exist_ok: Don't raise error if segmentation exists.
         overwrite: Overwrite if exists.
@@ -1415,6 +1457,7 @@ def _add_segmentation_tiff(
         session_id=session_id,
         multilabel=multilabel,
         transpose=transpose,
+        flip=flip,
         create=create,
         exist_ok=exist_ok,
         overwrite=overwrite,
@@ -1432,6 +1475,7 @@ def _add_segmentation_em(
     session_id: str,
     multilabel: bool = False,
     transpose: Optional[str] = None,
+    flip: Optional[str] = None,
     create: bool = True,
     exist_ok: bool = False,
     overwrite: bool = False,
@@ -1449,6 +1493,7 @@ def _add_segmentation_em(
         session_id: Session ID for the segmentation.
         multilabel: Whether this is a multilabel segmentation.
         transpose: Transpose axes. E.g., '2,1,0' to reverse all axes. Default: None.
+        flip: Flip axes. E.g., '0' to flip Z, '0,2' to flip Z and X. Default: None.
         create: Create run if it doesn't exist.
         exist_ok: Don't raise error if segmentation exists.
         overwrite: Overwrite if exists.
@@ -1477,6 +1522,7 @@ def _add_segmentation_em(
         session_id=session_id,
         multilabel=multilabel,
         transpose=transpose,
+        flip=flip,
         create=create,
         exist_ok=exist_ok,
         overwrite=overwrite,

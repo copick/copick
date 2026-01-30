@@ -122,6 +122,14 @@ def add(ctx):
     help="Transpose volume axes. Specify target axis order, e.g., '2,1,0' to reverse all axes, "
     "'0,2,1' to swap Y and X. Default: no transposition.",
 )
+@click.option(
+    "--flip",
+    required=False,
+    type=str,
+    default=None,
+    help="Flip (reverse) volume along specified axes. Comma-separated axis indices, "
+    "e.g., '0' to flip Z, '0,2' to flip Z and X. Default: no flipping.",
+)
 @add_create_overwrite_options
 @add_debug_option
 @click.argument(
@@ -147,6 +155,7 @@ def tomogram(
     tomolist: str,
     index_map: str,
     transpose: str,
+    flip: str,
     path: str,
     create: bool,
     overwrite: bool,
@@ -302,6 +311,7 @@ def tomogram(
                     pyramid_levels=pyramid_levels,
                     chunks=chunk_size,
                     transpose=transpose,
+                    flip=flip,
                     create=create,
                     overwrite=overwrite,
                     exist_ok=overwrite,
@@ -318,6 +328,7 @@ def tomogram(
                     pyramid_levels=pyramid_levels,
                     chunks=chunk_size,
                     transpose=transpose,
+                    flip=flip,
                     create=create,
                     overwrite=overwrite,
                     exist_ok=overwrite,
@@ -336,6 +347,7 @@ def tomogram(
                     pyramid_levels=pyramid_levels,
                     chunks=chunk_size,
                     transpose=transpose,
+                    flip=flip,
                     create=create,
                     overwrite=overwrite,
                     exist_ok=overwrite,
@@ -354,6 +366,7 @@ def tomogram(
                     pyramid_levels=pyramid_levels,
                     chunks=chunk_size,
                     transpose=transpose,
+                    flip=flip,
                     create=create,
                     overwrite=overwrite,
                     exist_ok=overwrite,
@@ -469,6 +482,14 @@ def tomogram(
     help="Transpose volume axes. Specify target axis order, e.g., '2,1,0' to reverse all axes, "
     "'0,2,1' to swap Y and X. Default: no transposition.",
 )
+@click.option(
+    "--flip",
+    required=False,
+    type=str,
+    default=None,
+    help="Flip (reverse) volume along specified axes. Comma-separated axis indices, "
+    "e.g., '0' to flip Z, '0,2' to flip Z and X. Default: no flipping.",
+)
 @add_create_overwrite_options
 @add_debug_option
 @click.argument(
@@ -490,6 +511,7 @@ def segmentation(
     file_type: str,
     max_workers: int,
     transpose: str,
+    flip: str,
     path: str,
     create: bool,
     overwrite: bool,
@@ -552,6 +574,7 @@ def segmentation(
                     session_id,
                     multilabel=True,
                     transpose=transpose,
+                    flip=flip,
                     create=create,
                     overwrite=overwrite,
                     exist_ok=overwrite,
@@ -570,6 +593,7 @@ def segmentation(
                     session_id,
                     multilabel=True,
                     transpose=transpose,
+                    flip=flip,
                     create=create,
                     exist_ok=overwrite,
                     overwrite=overwrite,
@@ -588,6 +612,7 @@ def segmentation(
                     session_id,
                     multilabel=True,
                     transpose=transpose,
+                    flip=flip,
                     create=create,
                     exist_ok=overwrite,
                     overwrite=overwrite,
