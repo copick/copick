@@ -226,7 +226,7 @@ def fits_in_memory(array: zarr.Group, slices: Tuple[slice, ...]) -> Tuple[bool, 
     """
 
     num_elem = []
-    for dim, sl in zip(array.shape, slices):
+    for dim, sl in zip(array.shape, slices, strict=True):
         num_elem.append(len(range(*sl.indices(dim))))
 
     requested = np.prod(np.array(num_elem)) * array.itemsize

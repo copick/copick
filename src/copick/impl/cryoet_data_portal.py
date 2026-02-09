@@ -902,7 +902,6 @@ class CopickRunCDP(CopickRunOverlay):
         sessions = [n.split("_")[1] for n in names]
         objects = [n.split("_")[2] for n in names]
 
-        # TODO: zip(strict=True) (replace once python 3.9 is EOL)
         assert len(users) == len(sessions) == len(objects)
 
         return [
@@ -915,7 +914,7 @@ class CopickRunCDP(CopickRunOverlay):
                 ),
                 read_only=False,
             )
-            for u, s, o in zip(users, sessions, objects)
+            for u, s, o in zip(users, sessions, objects, strict=True)
         ]
 
     def get_picks(
@@ -985,7 +984,7 @@ class CopickRunCDP(CopickRunOverlay):
                 ),
                 read_only=False,
             )
-            for u, s, o in zip(users, sessions, objects)  # , strict=True)
+            for u, s, o in zip(users, sessions, objects, strict=True)
         ]
 
     def _query_static_segmentations(self) -> List[CopickSegmentationCDP]:
