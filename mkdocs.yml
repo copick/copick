@@ -41,6 +41,7 @@ nav:
       - Copick and Album: "examples/tutorials/album.md"
       - Detecting Sample Boundaries: "examples/tutorials/sample_boundaries.md"
       - Copick and membrain-seg: "examples/tutorials/membrain.md"
+      - Copick-MCP: "examples/tutorials/copick_mcp.md"
     - Snippets: "examples/snippets.md"
 
   - Tools: tools.md
