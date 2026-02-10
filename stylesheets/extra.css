@@ -3,4 +3,17 @@
 }
 .md-typeset .center-table :is(td,th):not([align]) {
   text-align: initial; /* Reset alignment for table cells */
+  vertical-align: middle;
+}
+.large {
+  font-size: 18px;
+}
+.side-by-side {
+  display: flex;
+  align-items: center;
+  gap: 1.5rem;
+}
+
+.side-by-side > div {
+  flex: 1;
 }

@@ -75,6 +75,11 @@
     <label class="md-overlay" for="__drawer"></label>
     <div data-md-component="skip">
       
+        
+        <a href="#chimerax-copick-plugin-tutorial" class="md-skip">
+          Skip to content
+        </a>
+      
     </div>
     <div data-md-component="announce">
       
@@ -163,11 +168,18 @@
       </label>
       <nav class="md-search__options" aria-label="Search">
         
+          <a href="javascript:void(0)" class="md-search__icon md-icon" title="Share" aria-label="Share" data-clipboard data-clipboard-text="" data-md-component="search-share" tabindex="-1">
+            
+            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M18 16.08c-.76 0-1.44.3-1.96.77L8.91 12.7c.05-.23.09-.46.09-.7s-.04-.47-.09-.7l7.05-4.11c.54.5 1.25.81 2.04.81a3 3 0 0 0 3-3 3 3 0 0 0-3-3 3 3 0 0 0-3 3c0 .24.04.47.09.7L8.04 9.81C7.5 9.31 6.79 9 6 9a3 3 0 0 0-3 3 3 3 0 0 0 3 3c.79 0 1.5-.31 2.04-.81l7.12 4.15c-.05.21-.08.43-.08.66 0 1.61 1.31 2.91 2.92 2.91s2.92-1.3 2.92-2.91A2.92 2.92 0 0 0 18 16.08"/></svg>
+          </a>
+        
         <button type="reset" class="md-search__icon md-icon" title="Clear" aria-label="Clear" tabindex="-1">
           
           <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M19 6.41 17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/></svg>
         </button>
       </nav>
+      
+        <div class="md-search__suggest" data-md-component="search-suggest"></div>
       
     </form>
     <div class="md-search__output">
@@ -656,6 +668,21 @@
       <input class="md-nav__toggle md-toggle" type="checkbox" id="__toc">
       
       
+        
+      
+      
+        <label class="md-nav__link md-nav__link--active" for="__toc">
+          
+  
+  
+  <span class="md-ellipsis">
+    ChimeraX-Copick
+    
+  </span>
+  
+
+          <span class="md-nav__icon md-icon"></span>
+        </label>
       
       <a href="./" class="md-nav__link md-nav__link--active">
         
@@ -668,6 +695,361 @@
   
 
       </a>
+      
+        
+
+<nav class="md-nav md-nav--secondary" aria-label="Table of contents">
+  
+  
+  
+    
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      Table of contents
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#installation" class="md-nav__link">
+    <span class="md-ellipsis">
+      Installation
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Installation">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#1-download-chimerax" class="md-nav__link">
+    <span class="md-ellipsis">
+      1. Download ChimeraX
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#2-install-the-copick-plugin" class="md-nav__link">
+    <span class="md-ellipsis">
+      2. Install the Copick Plugin
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#setup-remote-data-access" class="md-nav__link">
+    <span class="md-ellipsis">
+      Setup Remote Data Access
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#1-opening-a-copick-project" class="md-nav__link">
+    <span class="md-ellipsis">
+      1. Opening a Copick Project
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="1. Opening a Copick Project">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#understanding-the-main-interface" class="md-nav__link">
+    <span class="md-ellipsis">
+      Understanding the Main Interface
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#2-adding-an-object-type" class="md-nav__link">
+    <span class="md-ellipsis">
+      2. Adding an Object Type
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="2. Adding an Object Type">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#opening-the-edit-object-types-dialog" class="md-nav__link">
+    <span class="md-ellipsis">
+      Opening the Edit Object Types Dialog
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#the-edit-object-types-dialog" class="md-nav__link">
+    <span class="md-ellipsis">
+      The Edit Object Types Dialog
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="The Edit Object Types Dialog">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#table-management-buttons" class="md-nav__link">
+    <span class="md-ellipsis">
+      Table Management Buttons
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#creating-a-new-object-type" class="md-nav__link">
+    <span class="md-ellipsis">
+      Creating a New Object Type
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#3-opening-a-tomogram" class="md-nav__link">
+    <span class="md-ellipsis">
+      3. Opening a Tomogram
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="3. Opening a Tomogram">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#the-3d-visualization-interface" class="md-nav__link">
+    <span class="md-ellipsis">
+      The 3D Visualization Interface
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#visualization-modes" class="md-nav__link">
+    <span class="md-ellipsis">
+      Visualization Modes
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#adjusting-contrast" class="md-nav__link">
+    <span class="md-ellipsis">
+      Adjusting Contrast
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#4-creating-a-new-particle-list" class="md-nav__link">
+    <span class="md-ellipsis">
+      4. Creating a New Particle List
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="4. Creating a New Particle List">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#steps-to-create-a-new-pick-set" class="md-nav__link">
+    <span class="md-ellipsis">
+      Steps to Create a New Pick Set
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#what-happens-next" class="md-nav__link">
+    <span class="md-ellipsis">
+      What Happens Next
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#5-picking-particles" class="md-nav__link">
+    <span class="md-ellipsis">
+      5. Picking Particles
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="5. Picking Particles">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#placing-particles" class="md-nav__link">
+    <span class="md-ellipsis">
+      Placing Particles
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#mouse-modes-for-picking" class="md-nav__link">
+    <span class="md-ellipsis">
+      Mouse Modes for Picking
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#navigating-between-particles" class="md-nav__link">
+    <span class="md-ellipsis">
+      Navigating Between Particles
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#editing-particles" class="md-nav__link">
+    <span class="md-ellipsis">
+      Editing Particles
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#controlling-particle-display" class="md-nav__link">
+    <span class="md-ellipsis">
+      Controlling Particle Display
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#saving-your-work" class="md-nav__link">
+    <span class="md-ellipsis">
+      Saving Your Work
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#quick-reference-keyboard-shortcuts" class="md-nav__link">
+    <span class="md-ellipsis">
+      Quick Reference: Keyboard Shortcuts
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Quick Reference: Keyboard Shortcuts">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#particles" class="md-nav__link">
+    <span class="md-ellipsis">
+      Particles
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#picking" class="md-nav__link">
+    <span class="md-ellipsis">
+      Picking
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#visualization" class="md-nav__link">
+    <span class="md-ellipsis">
+      Visualization
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#transparency" class="md-nav__link">
+    <span class="md-ellipsis">
+      Transparency
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#info" class="md-nav__link">
+    <span class="md-ellipsis">
+      Info
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#troubleshooting" class="md-nav__link">
+    <span class="md-ellipsis">
+      Troubleshooting
+    </span>
+  </a>
+  
+</li>
+      
+    </ul>
+  
+</nav>
       
     </li>
   
@@ -1783,6 +2165,352 @@
   
   
   
+    
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      Table of contents
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#installation" class="md-nav__link">
+    <span class="md-ellipsis">
+      Installation
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Installation">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#1-download-chimerax" class="md-nav__link">
+    <span class="md-ellipsis">
+      1. Download ChimeraX
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#2-install-the-copick-plugin" class="md-nav__link">
+    <span class="md-ellipsis">
+      2. Install the Copick Plugin
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#setup-remote-data-access" class="md-nav__link">
+    <span class="md-ellipsis">
+      Setup Remote Data Access
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#1-opening-a-copick-project" class="md-nav__link">
+    <span class="md-ellipsis">
+      1. Opening a Copick Project
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="1. Opening a Copick Project">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#understanding-the-main-interface" class="md-nav__link">
+    <span class="md-ellipsis">
+      Understanding the Main Interface
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#2-adding-an-object-type" class="md-nav__link">
+    <span class="md-ellipsis">
+      2. Adding an Object Type
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="2. Adding an Object Type">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#opening-the-edit-object-types-dialog" class="md-nav__link">
+    <span class="md-ellipsis">
+      Opening the Edit Object Types Dialog
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#the-edit-object-types-dialog" class="md-nav__link">
+    <span class="md-ellipsis">
+      The Edit Object Types Dialog
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="The Edit Object Types Dialog">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#table-management-buttons" class="md-nav__link">
+    <span class="md-ellipsis">
+      Table Management Buttons
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#creating-a-new-object-type" class="md-nav__link">
+    <span class="md-ellipsis">
+      Creating a New Object Type
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#3-opening-a-tomogram" class="md-nav__link">
+    <span class="md-ellipsis">
+      3. Opening a Tomogram
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="3. Opening a Tomogram">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#the-3d-visualization-interface" class="md-nav__link">
+    <span class="md-ellipsis">
+      The 3D Visualization Interface
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#visualization-modes" class="md-nav__link">
+    <span class="md-ellipsis">
+      Visualization Modes
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#adjusting-contrast" class="md-nav__link">
+    <span class="md-ellipsis">
+      Adjusting Contrast
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#4-creating-a-new-particle-list" class="md-nav__link">
+    <span class="md-ellipsis">
+      4. Creating a New Particle List
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="4. Creating a New Particle List">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#steps-to-create-a-new-pick-set" class="md-nav__link">
+    <span class="md-ellipsis">
+      Steps to Create a New Pick Set
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#what-happens-next" class="md-nav__link">
+    <span class="md-ellipsis">
+      What Happens Next
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#5-picking-particles" class="md-nav__link">
+    <span class="md-ellipsis">
+      5. Picking Particles
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="5. Picking Particles">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#placing-particles" class="md-nav__link">
+    <span class="md-ellipsis">
+      Placing Particles
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#mouse-modes-for-picking" class="md-nav__link">
+    <span class="md-ellipsis">
+      Mouse Modes for Picking
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#navigating-between-particles" class="md-nav__link">
+    <span class="md-ellipsis">
+      Navigating Between Particles
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#editing-particles" class="md-nav__link">
+    <span class="md-ellipsis">
+      Editing Particles
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#controlling-particle-display" class="md-nav__link">
+    <span class="md-ellipsis">
+      Controlling Particle Display
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#saving-your-work" class="md-nav__link">
+    <span class="md-ellipsis">
+      Saving Your Work
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#quick-reference-keyboard-shortcuts" class="md-nav__link">
+    <span class="md-ellipsis">
+      Quick Reference: Keyboard Shortcuts
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Quick Reference: Keyboard Shortcuts">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#particles" class="md-nav__link">
+    <span class="md-ellipsis">
+      Particles
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#picking" class="md-nav__link">
+    <span class="md-ellipsis">
+      Picking
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#visualization" class="md-nav__link">
+    <span class="md-ellipsis">
+      Visualization
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#transparency" class="md-nav__link">
+    <span class="md-ellipsis">
+      Transparency
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#info" class="md-nav__link">
+    <span class="md-ellipsis">
+      Info
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#troubleshooting" class="md-nav__link">
+    <span class="md-ellipsis">
+      Troubleshooting
+    </span>
+  </a>
+  
+</li>
+      
+    </ul>
   
 </nav>
                   </div>
@@ -1801,9 +2529,891 @@
   
 
 
-  <h1>ChimeraX-Copick</h1>
-
-<p>coming soon!</p>
+<h1 id="chimerax-copick-plugin-tutorial">ChimeraX-Copick Plugin Tutorial</h1>
+<div class="admonition warning">
+<p class="admonition-title">Mouse Required</p>
+<p>We strongly recommend using a mouse for this workflow, as <strong>right-clicking</strong> is essential for placing and manipulating picks.</p>
+</div>
+<hr />
+<h2 id="installation">Installation</h2>
+<h3 id="1-download-chimerax">1. Download ChimeraX</h3>
+<p>Download and install ChimeraX from the <a href="https://www.cgl.ucsf.edu/chimerax/" target="_blank">official website</a></p>
+<h3 id="2-install-the-copick-plugin">2. Install the Copick Plugin</h3>
+<ol>
+<li>Open ChimeraX</li>
+<li>Go to <a href="javascript:void(0);" title="&lt;img src='../../../assets/chimerax_tutorial/toolshed_install_more_tools.png'&gt;"><strong>Tools &gt; More Tools...</strong></a> to open the toolshed</li>
+<li>Search for <code>copick</code> in the search bar</li>
+<li>Download and install the copick plugin by clicking on <strong>Install</strong></li>
+</ol>
+<figure>
+  <img alt="Toolshed" src="../../../assets/chimerax_tutorial/toolshed_full.png" width="100%" />
+<br />
+<figcaption>copick on the ChimeraX toolshed.</figcaption>
+</figure>
+<hr />
+<h2 id="setup-remote-data-access">Setup Remote Data Access</h2>
+<div class="admonition info">
+<p class="admonition-title">Optional Step</p>
+<p>Skip this section if your data is already available on your local machine.</p>
+</div>
+<div class="tabbed-set tabbed-alternate" data-tabs="1:3"><input checked="checked" id="__tabbed_1_1" name="__tabbed_1" type="radio" /><input id="__tabbed_1_2" name="__tabbed_1" type="radio" /><input id="__tabbed_1_3" name="__tabbed_1" type="radio" /><div class="tabbed-labels"><label for="__tabbed_1_1">SSH Tunnel Configuration</label><label for="__tabbed_1_2">AWS S3 Configuration</label><label for="__tabbed_1_3">cryoET data portal</label></div>
+<div class="tabbed-content">
+<div class="tabbed-block">
+<p>If your data is stored on a remote server (available via ssh), you'll need to establish an SSH tunnel:</p>
+<div class="language-bash highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a>ssh<span class="w"> </span>-L<span class="w"> </span><span class="m">2222</span>:localhost:22<span class="w"> </span>username@your-remote-server
+</span></code></pre></div>
+<p>This command creates a local port forwarding from port 2222 to the remote server's port 22, allowing secure access to remote data.</p>
+</div>
+<div class="tabbed-block">
+<p>If your data is stored in an S3 bucket, ensure you have the necessary <a href="https://docs.aws.amazon.com/cli/latest/topic/s3-config.html">credentials configured</a>
+using the AWS CLI. S3 credentials need to be set in the environment where ChimeraX is launched, or specified in the
+<a href="https://copick.github.io/copick/examples/setup/aws_s3/">copick configuration file</a>.</p>
+</div>
+<div class="tabbed-block">
+<p>If you are using a copick configuration based on the cryoET data portal no additional setup is required. The plugin
+will automatically connect to the portal and retrieve available datasets.</p>
+</div>
+</div>
+</div>
+<hr />
+<h2 id="1-opening-a-copick-project">1. Opening a Copick Project</h2>
+<p>To load a copick project into ChimeraX:</p>
+<ol>
+<li>Open ChimeraX</li>
+<li>
+<p>In the command line at the bottom, enter:
+   <div class="language-text highlight"><pre><span></span><code><span id="__span-1-1"><a id="__codelineno-1-1" name="__codelineno-1-1" href="#__codelineno-1-1"></a>copick start /path/to/your/config.json
+</span></code></pre></div></p>
+<details class="example">
+<summary>Example Config - Used in this tutorial.</summary>
+<div class="language-json highlight"><pre><span></span><code><span id="__span-2-1"><a id="__codelineno-2-1" name="__codelineno-2-1" href="#__codelineno-2-1"></a><span class="p">{</span>
+</span><span id="__span-2-2"><a id="__codelineno-2-2" name="__codelineno-2-2" href="#__codelineno-2-2"></a><span class="w">  </span><span class="nt">&quot;name&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;CZ cryoET Data Portal Dataset&quot;</span><span class="p">,</span>
+</span><span id="__span-2-3"><a id="__codelineno-2-3" name="__codelineno-2-3" href="#__codelineno-2-3"></a><span class="w">  </span><span class="nt">&quot;description&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;This copick project contains data from datasets (10426,).&quot;</span><span class="p">,</span>
+</span><span id="__span-2-4"><a id="__codelineno-2-4" name="__codelineno-2-4" href="#__codelineno-2-4"></a><span class="w">  </span><span class="nt">&quot;version&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;1.18.0&quot;</span><span class="p">,</span>
+</span><span id="__span-2-5"><a id="__codelineno-2-5" name="__codelineno-2-5" href="#__codelineno-2-5"></a><span class="w">  </span><span class="nt">&quot;pickable_objects&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">[</span>
+</span><span id="__span-2-6"><a id="__codelineno-2-6" name="__codelineno-2-6" href="#__codelineno-2-6"></a><span class="w">  </span><span class="p">],</span>
+</span><span id="__span-2-7"><a id="__codelineno-2-7" name="__codelineno-2-7" href="#__codelineno-2-7"></a><span class="w">  </span><span class="nt">&quot;user_id&quot;</span><span class="p">:</span><span class="w"> </span><span class="kc">null</span><span class="p">,</span>
+</span><span id="__span-2-8"><a id="__codelineno-2-8" name="__codelineno-2-8" href="#__codelineno-2-8"></a><span class="w">  </span><span class="nt">&quot;session_id&quot;</span><span class="p">:</span><span class="w"> </span><span class="kc">null</span><span class="p">,</span>
+</span><span id="__span-2-9"><a id="__codelineno-2-9" name="__codelineno-2-9" href="#__codelineno-2-9"></a><span class="w">  </span><span class="nt">&quot;config_type&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;cryoet_data_portal&quot;</span><span class="p">,</span>
+</span><span id="__span-2-10"><a id="__codelineno-2-10" name="__codelineno-2-10" href="#__codelineno-2-10"></a><span class="w">  </span><span class="nt">&quot;overlay_root&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;local:///tmp/project/&quot;</span><span class="p">,</span>
+</span><span id="__span-2-11"><a id="__codelineno-2-11" name="__codelineno-2-11" href="#__codelineno-2-11"></a><span class="w">  </span><span class="nt">&quot;dataset_ids&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">[</span>
+</span><span id="__span-2-12"><a id="__codelineno-2-12" name="__codelineno-2-12" href="#__codelineno-2-12"></a><span class="w">      </span><span class="mi">10426</span>
+</span><span id="__span-2-13"><a id="__codelineno-2-13" name="__codelineno-2-13" href="#__codelineno-2-13"></a><span class="w">  </span><span class="p">],</span>
+</span><span id="__span-2-14"><a id="__codelineno-2-14" name="__codelineno-2-14" href="#__codelineno-2-14"></a><span class="w">  </span><span class="nt">&quot;overlay_fs_args&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
+</span><span id="__span-2-15"><a id="__codelineno-2-15" name="__codelineno-2-15" href="#__codelineno-2-15"></a><span class="w">      </span><span class="nt">&quot;auto_mkdir&quot;</span><span class="p">:</span><span class="w"> </span><span class="kc">true</span>
+</span><span id="__span-2-16"><a id="__codelineno-2-16" name="__codelineno-2-16" href="#__codelineno-2-16"></a><span class="w">  </span><span class="p">}</span>
+</span><span id="__span-2-17"><a id="__codelineno-2-17" name="__codelineno-2-17" href="#__codelineno-2-17"></a><span class="p">}</span>
+</span></code></pre></div>
+<p>Results will be stored in <code>/tmp/project/</code> Refer to the <a href="examples/overview.md">Examples</a> for more information on
+creating config files.</p>
+</details>
+</li>
+<li>
+<p>Press <span class="keys"><kbd class="key-enter">Enter</kbd></span></p>
+</li>
+</ol>
+<p>The plugin will launch and display the <strong>Annotation Panel</strong> on the left side of the window along with a <strong>Run Gallery</strong>
+showing thumbnail previews of all available tomograms.</p>
+<figure>
+  <img alt="Main GUI" src="../../../assets/chimerax_tutorial/main_gui_overview.png" width="100%" />
+<br />
+<figcaption>Run Gallery showing thumbnail previews of all available tomograms. Each thumbnail displays a central
+              slice preview with the run name.</figcaption>
+</figure>
+<h3 id="understanding-the-main-interface">Understanding the Main Interface</h3>
+<p>The <strong>Annotation Panel</strong> contains three main tabs (one for each annotation type). The <strong>Tomogram Panel</strong> contains a
+hierarchical view of the image data (Run -&gt; VoxelSpacing -&gt; Tomogram).</p>
+<div class="side-by-side">
+<div>
+<p><strong>Annotation Panel</strong></p>
+<div>
+<p><img alt="Annotation Panel" src="../../../assets/chimerax_tutorial/main_gui_annotation_panel.png" /></p>
+</div>
+<div>
+<table>
+<thead>
+<tr>
+<th style="text-align: center;">Icon</th>
+<th style="text-align: center;">Button</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td style="text-align: center;"><span style="font-size: 2.5em;">📄</span></td>
+<td style="text-align: center;"><strong>New</strong></td>
+<td>New annotation set</td>
+</tr>
+<tr>
+<td style="text-align: center;"><span style="font-size: 2.5em;">📋</span></td>
+<td style="text-align: center;"><strong>Copy</strong></td>
+<td>Copy annotation set</td>
+</tr>
+<tr>
+<td style="text-align: center;"><span style="font-size: 2.5em;">❌</span></td>
+<td style="text-align: center;"><strong>Delete</strong></td>
+<td>Delete annotation</td>
+</tr>
+<tr>
+<td style="text-align: center;"><span style="font-size: 2.5em;">🔍</span></td>
+<td style="text-align: center;"><strong>Search</strong></td>
+<td>Search/filter annotations by name</td>
+</tr>
+</tbody>
+</table>
+</div>
+</div>
+<div>
+<p><strong>Tomogram Panel</strong></p>
+<div>
+<p><img alt="Tomogram Panel" src="../../../assets/chimerax_tutorial/main_gui_tomogram_panel.png" /></p>
+</div>
+<div>
+<table>
+<thead>
+<tr>
+<th style="text-align: center;">Icon</th>
+<th style="text-align: center;">Button</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td style="text-align: center;"><span style="font-size: 2.5em;">🧊</span></td>
+<td style="text-align: center;"><strong>3D View</strong></td>
+<td>Switch to 3D tomogram view</td>
+</tr>
+<tr>
+<td style="text-align: center;"><span style="font-size: 2.5em;">ℹ️</span></td>
+<td style="text-align: center;"><strong>Info</strong></td>
+<td>Show detailed run information</td>
+</tr>
+<tr>
+<td style="text-align: center;"><span style="font-size: 2.5em;">📸</span></td>
+<td style="text-align: center;"><strong>Gallery</strong></td>
+<td>Return to gallery view</td>
+</tr>
+<tr>
+<td style="text-align: center;"><span style="font-size: 2.5em;">🔍</span></td>
+<td style="text-align: center;"><strong>Search</strong></td>
+<td>Search/filter runs by name</td>
+</tr>
+</tbody>
+</table>
+</div>
+</div>
+</div>
+<hr />
+<h2 id="2-adding-an-object-type">2. Adding an Object Type</h2>
+<p>Before you can pick particles of a specific type, you need to define <strong>Pickable Object Types</strong> in your configuration.</p>
+<h3 id="opening-the-edit-object-types-dialog">Opening the Edit Object Types Dialog</h3>
+<p>In the Copick Annotation Panel, click the <a href="javascript:void(0);" title="&lt;img src='../../../assets/chimerax_tutorial/add_object_button.png'&gt;">✏️ Edit Object Types</a> button (pencil icon) at the top.</p>
+<h3 id="the-edit-object-types-dialog">The Edit Object Types Dialog</h3>
+<p>The dialog has two main sections: A table showing all currently defined pickable objects and a configuration form
+for new objects.</p>
+<figure>
+  <img alt="Edit Object" src="../../../assets/chimerax_tutorial/add_object_dialog.png" width="100%" />
+<br />
+<figcaption>Empty "Edit Objects" dialog with sections highlighted.</figcaption>
+</figure>
+<h4 id="table-management-buttons">Table Management Buttons</h4>
+<div class="center-table">
+<table>
+<thead>
+<tr>
+<th style="text-align: center;">Icon</th>
+<th style="text-align: center;">Button</th>
+<th>Action</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td style="text-align: center;">✏️</td>
+<td style="text-align: center;"><strong>Edit Selected</strong></td>
+<td>Modify the selected object</td>
+</tr>
+<tr>
+<td style="text-align: center;">❌</td>
+<td style="text-align: center;"><strong>Delete Selected</strong></td>
+<td>Remove the selected object</td>
+</tr>
+<tr>
+<td style="text-align: center;">📄</td>
+<td style="text-align: center;"><strong>Add New</strong></td>
+<td>Create a new object type</td>
+</tr>
+</tbody>
+</table>
+</div>
+<h3 id="creating-a-new-object-type">Creating a New Object Type</h3>
+<ol>
+<li>
+<p>Click the <a href="javascript:void(0);" title="&lt;img src='../../../assets/chimerax_tutorial/add_object_add_new.png'&gt;">📄 Add New</a> button</p>
+</li>
+<li>
+<p>Fill in the <strong>Object Configuration</strong> form:</p>
+</li>
+</ol>
+<div class="tabbed-set tabbed-alternate" data-tabs="2:2"><input checked="checked" id="__tabbed_2_1" name="__tabbed_2" type="radio" /><input id="__tabbed_2_2" name="__tabbed_2" type="radio" /><div class="tabbed-labels"><label for="__tabbed_2_1">Basic Properties (Required)</label><label for="__tabbed_2_2">Optional Properties</label></div>
+<div class="tabbed-content">
+<div class="tabbed-block">
+<div class="center-table" markdown>
+<table>
+<thead>
+<tr>
+<th>Field</th>
+<th>Description</th>
+<th>Example</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Name</td>
+<td>Unique identifier (e.g., "ribosome", "atp-synthase")</td>
+<td>`cytosolic-ribosome</td>
+</tr>
+<tr>
+<td>Is Particle</td>
+<td><span class="twemoji"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="m10 17-5-5 1.41-1.42L10 14.17l7.59-7.59L19 8m0-5H5c-1.11 0-2 .89-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V5a2 2 0 0 0-2-2"/></svg></span> for point picks, <span class="twemoji"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M19 3H5c-1.11 0-2 .89-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V5a2 2 0 0 0-2-2m0 2v14H5V5z"/></svg></span> for segmentation masks</td>
+<td><span class="twemoji"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="m10 17-5-5 1.41-1.42L10 14.17l7.59-7.59L19 8m0-5H5c-1.11 0-2 .89-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V5a2 2 0 0 0-2-2"/></svg></span></td>
+</tr>
+<tr>
+<td>Label</td>
+<td>Unique numeric identifier (auto-increments)</td>
+<td>1</td>
+</tr>
+<tr>
+<td>Color</td>
+<td>Click the color box to choose visualization color</td>
+<td>#155728</td>
+</tr>
+</tbody>
+</table>
+</div>
+</div>
+<div class="tabbed-block">
+<div class="center-table" markdown>
+<table>
+<thead>
+<tr>
+<th>Field</th>
+<th>Description</th>
+<th>Example</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>EMDB ID</strong></td>
+<td>Link to EMDB entry (e.g., EMD-1234)</td>
+<td>N/A</td>
+</tr>
+<tr>
+<td><strong>PDB ID</strong></td>
+<td>Link to PDB structure (e.g., 1ABC)</td>
+<td>N/A</td>
+</tr>
+<tr>
+<td><strong>Identifier</strong></td>
+<td>GO term or UniProt ID</td>
+<td>GO:0022626</td>
+</tr>
+<tr>
+<td><strong>Map Threshold</strong></td>
+<td>Isosurface threshold for visualization</td>
+<td>N/A</td>
+</tr>
+<tr>
+<td><strong>Radius (Å)</strong></td>
+<td>Particle display radius in Angstroms</td>
+<td>150</td>
+</tr>
+</tbody>
+</table>
+</div>
+</div>
+</div>
+</div>
+<figure>
+  <img alt="Edit Object" src="../../../assets/chimerax_tutorial/add_object_params.png" width="100%" />
+<br />
+<figcaption>Edit Objects Dialog form with metadata fields filled in.</figcaption>
+</figure>
+<ol>
+<li>
+<p>Click the <a href="javascript:void(0);" title="&lt;img src='../../../assets/chimerax_tutorial/add_object_save_object.png'&gt;">✅ Save Object</a> button to add the new object type</p>
+</li>
+<li>
+<p>The status will show a success message</p>
+</li>
+<li>
+<p>Click <a href="javascript:void(0);" title="&lt;img src='../../../assets/chimerax_tutorial/add_object_save_close.png'&gt;"><strong>Save &amp; Close</strong></a> to apply changes to your configuration</p>
+</li>
+</ol>
+<figure>
+  <img alt="Edit Object" src="../../../assets/chimerax_tutorial/add_object_finish.png" width="100%" />
+<br />
+<figcaption>Edit Objects Dialog with a new object added.</figcaption>
+</figure>
+<div class="admonition success">
+<p class="admonition-title">Changes Saved</p>
+<p>Changes to object types are saved to your configuration file and persist across sessions.</p>
+</div>
+<hr />
+<h2 id="3-opening-a-tomogram">3. Opening a Tomogram</h2>
+<div class="tabbed-set tabbed-alternate" data-tabs="3:2"><input checked="checked" id="__tabbed_3_1" name="__tabbed_3" type="radio" /><input id="__tabbed_3_2" name="__tabbed_3" type="radio" /><div class="tabbed-labels"><label for="__tabbed_3_1">From the Gallery View</label><label for="__tabbed_3_2">From the Tree View</label></div>
+<div class="tabbed-content">
+<div class="tabbed-block">
+<ol>
+<li>In the <strong>Run Gallery</strong>, browse available tomograms as thumbnails</li>
+<li>Click on any thumbnail to select that tomogram/run</li>
+<li>The tomogram will load into the 3D viewer</li>
+</ol>
+</div>
+<div class="tabbed-block">
+<ol>
+<li>Expand a <strong>Run</strong> in the tree view by clicking the arrow <span class="twemoji"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M8.59 16.58 13.17 12 8.59 7.41 10 6l6 6-6 6z"/></svg></span></li>
+<li>Expand a <strong>Voxel Spacing</strong> (e.g., "10.0")</li>
+<li><strong>Double-click</strong> on a tomogram type (e.g., "wbp" or "denoised")</li>
+</ol>
+</div>
+</div>
+</div>
+<h3 id="the-3d-visualization-interface">The 3D Visualization Interface</h3>
+<p>Once a tomogram is loaded, ChimeraX displays:</p>
+<figure>
+  <img alt="Opened Tomogram" src="../../../assets/chimerax_tutorial/main_gui_view_tomogram.png" width="100%" />
+<br />
+<figcaption>ChimeraX picking interface: Copick Control Panel (left), tomogram visualization (center), toolbar (top),
+              and navigation panels (right).</figcaption>
+</figure>
+<h3 id="visualization-modes">Visualization Modes</h3>
+<p>Use keyboard shortcuts to switch display modes:</p>
+<div class="center-table">
+<table>
+<thead>
+<tr>
+<th style="text-align: center;">Icon</th>
+<th style="text-align: center;">Shortcut</th>
+<th>Mode</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td style="text-align: center;"><img alt="Slab" src="../../../assets/chimerax_tutorial/slab.png" width="30" /></td>
+<td style="text-align: center;"><span class="keys"><kbd class="key-q">Q</kbd><span>+</span><kbd class="key-q">Q</kbd></span></td>
+<td>Tilted Slab</td>
+<td>Single plane view (default)</td>
+</tr>
+<tr>
+<td style="text-align: center;"><img alt="Orthoplanes" src="../../../assets/chimerax_tutorial/orthoplanes.png" width="30" /></td>
+<td style="text-align: center;"><span class="keys"><kbd class="key-e">E</kbd><span>+</span><kbd class="key-e">E</kbd></span></td>
+<td>Orthoplanes</td>
+<td>XY, XZ, YZ planes simultaneously</td>
+</tr>
+<tr>
+<td style="text-align: center;"><img alt="Volume" src="../../../assets/chimerax_tutorial/fullvolume.png" width="30" /></td>
+<td style="text-align: center;"><span class="keys"><kbd class="key-e">E</kbd><span>+</span><kbd class="key-e">E</kbd></span></td>
+<td>Volume Rendering</td>
+<td>Density-based olume rendering</td>
+</tr>
+<tr>
+<td style="text-align: center;"><img alt="Surface" src="../../../assets/chimerax_tutorial/view_surface.png" width="30" /></td>
+<td style="text-align: center;"><span class="keys"><kbd class="key-e">E</kbd><span>+</span><kbd class="key-e">E</kbd></span></td>
+<td>Isosurface</td>
+<td>Threshold and compute isosurface</td>
+</tr>
+<tr>
+<td style="text-align: center;"><img alt="Picks" src="../../../assets/chimerax_tutorial/view_xy.png" width="30" /></td>
+<td style="text-align: center;"><span class="keys"><kbd class="key-x">X</kbd><span>+</span><kbd class="key-x">X</kbd></span></td>
+<td>XY View</td>
+<td>View from Z axis</td>
+</tr>
+<tr>
+<td style="text-align: center;"><img alt="Picks" src="../../../assets/chimerax_tutorial/view_yz.png" width="30" /></td>
+<td style="text-align: center;"><span class="keys"><kbd class="key-y">Y</kbd><span>+</span><kbd class="key-y">Y</kbd></span></td>
+<td>YZ View</td>
+<td>View from X axis</td>
+</tr>
+<tr>
+<td style="text-align: center;"><img alt="Picks" src="../../../assets/chimerax_tutorial/view_xz.png" width="30" /></td>
+<td style="text-align: center;"><span class="keys"><kbd class="key-z">Z</kbd><span>+</span><kbd class="key-z">Z</kbd></span></td>
+<td>XZ View</td>
+<td>View from Y axis</td>
+</tr>
+</tbody>
+</table>
+</div>
+<h3 id="adjusting-contrast">Adjusting Contrast</h3>
+<p>Use the <a href="javascript:void(0);" title="&lt;img src='../../../assets/chimerax_tutorial/tomogram_contrast.png'&gt;">Contrast</a> panel (right side) to adjust visualization:</p>
+<ul>
+<li><strong>Center</strong>: Midpoint of the grayscale range</li>
+<li><strong>Width</strong>: Contrast range</li>
+</ul>
+<div class="admonition tip">
+<p class="admonition-title">Invert Contrast</p>
+<p>Press <span class="keys"><kbd class="key-period">.</kbd><span>+</span><kbd class="key-period">.</kbd></span> (two periods) to quickly invert contrast for better particle visibility.</p>
+</div>
+<hr />
+<h2 id="4-creating-a-new-particle-list">4. Creating a New Particle List</h2>
+<p>A <strong>Particle List</strong> (Pick Set) is a collection of particle locations for a specific object type.</p>
+<h3 id="steps-to-create-a-new-pick-set">Steps to Create a New Pick Set</h3>
+<ol>
+<li>
+<p>Ensure you have a tomogram open</p>
+</li>
+<li>
+<p>In the <strong>Picks</strong> tab of the Copick Annotation Panel, click the
+   <a href="javascript:void(0);" title="&lt;img src='../../../assets/chimerax_tutorial/pick_new_particle_list.png'&gt;">📄 New</a> button
+   (document icon) in the bottom-right corner</p>
+</li>
+<li>
+<p>The <strong>Create New Pick</strong> dialog appears:</p>
+</li>
+</ol>
+<div class="side-by-side">
+<div>
+<p><img alt="Create New Pick dialog" src="../../../assets/chimerax_tutorial/pick_new_picks_dialog.png" /></p>
+</div>
+<div>
+<table>
+<thead>
+<tr>
+<th>Field</th>
+<th>Description</th>
+<th>Default</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Object</strong></td>
+<td>Select the particle type to pick</td>
+<td>First in list</td>
+</tr>
+<tr>
+<td><strong>User ID</strong></td>
+<td>Your identifier</td>
+<td>From config or "ArtiaX"</td>
+</tr>
+<tr>
+<td><strong>Session ID</strong></td>
+<td>Unique session identifier</td>
+<td>"manual-1", "manual-2", etc.</td>
+</tr>
+</tbody>
+</table>
+</div>
+</div>
+<ol>
+<li>
+<p>Select your desired <strong>Object</strong> from the dropdown (objects are color-coded)</p>
+</li>
+<li>
+<p>Optionally modify the <strong>User ID</strong> and <strong>Session ID</strong></p>
+</li>
+<li>
+<p>Click <strong>Create</strong></p>
+</li>
+</ol>
+<h3 id="what-happens-next">What Happens Next</h3>
+<p>After creating the pick set:</p>
+<ul>
+<li>[x] A new entry appears in the <strong>Picks</strong> table</li>
+<li>[x] The mouse mode automatically switches to <strong>"mark plane"</strong> for picking</li>
+<li>[x] You can now start placing particles!</li>
+</ul>
+<div class="side-by-side">
+<div>
+<p><img alt="Create New Pick dialog" src="../../../assets/chimerax_tutorial/pick_picks_set_added.png" /></p>
+</div>
+<div>
+<p>The Picks table displays:</p>
+<table>
+<thead>
+<tr>
+<th>Column</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>User/Tool</strong></td>
+<td>Who created the picks</td>
+</tr>
+<tr>
+<td><strong>Object</strong></td>
+<td>Particle type (color-coded)</td>
+</tr>
+<tr>
+<td><strong>Session</strong></td>
+<td>Session identifier</td>
+</tr>
+</tbody>
+</table>
+</div>
+</div>
+<div class="admonition info">
+<p class="admonition-title">Info</p>
+<p>Apart from the picks we just created for manual picking you can now also see two (read-only) sets of ribosome
+coordinates from the cryoET data portal! Objects are found/matched via the Gene Ontology identifier.</p>
+</div>
+<hr />
+<h2 id="5-picking-particles">5. Picking Particles</h2>
+<h3 id="placing-particles">Placing Particles</h3>
+<p>With a pick set selected and mouse mode set to "mark plane":</p>
+<ol>
+<li>
+<p><strong>Navigate</strong> to the region of interest using:</p>
+<ul>
+<li><span class="keys"><kbd class="key-shift">Shift</kbd></span> + Mouse wheel to scroll through Z-planes</li>
+<li><span class="keys"><kbd class="key-f">F</kbd><span>+</span><kbd class="key-f">F</kbd></span> shortcut for "move planes" mode (need to switch back to "mark plane" after use!)</li>
+</ul>
+</li>
+<li>
+<p><strong>Right-click</strong> on the tomogram where you see a particle</p>
+</li>
+<li>
+<p>The particle marker appears at the clicked location</p>
+</li>
+</ol>
+<figure>
+  <img alt="Picked" src="../../../assets/chimerax_tutorial/pick_actual_picks_added.png" width="100%" />
+<br />
+<figcaption>A tomogram with selected particles. </figcaption>
+</figure>
+<h3 id="mouse-modes-for-picking">Mouse Modes for Picking</h3>
+<div class="center-table">
+<table>
+<thead>
+<tr>
+<th style="text-align: center;">Shortcut</th>
+<th>Mode</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td style="text-align: center;"><span class="keys"><kbd class="key-a">A</kbd><span>+</span><kbd class="key-p">P</kbd></span></td>
+<td>Mark Plane</td>
+<td><strong>Add</strong> particles on current plane (default for new picks)</td>
+</tr>
+<tr>
+<td style="text-align: center;"><span class="keys"><kbd class="key-d">D</kbd><span>+</span><kbd class="key-p">P</kbd></span></td>
+<td>Delete Picked</td>
+<td><strong>Remove</strong> particle under cursor</td>
+</tr>
+<tr>
+<td style="text-align: center;"><span class="keys"><kbd class="key-s">S</kbd><span>+</span><kbd class="key-s">S</kbd></span></td>
+<td>Select</td>
+<td><strong>Select</strong> particles for batch operations</td>
+</tr>
+</tbody>
+</table>
+</div>
+<div class="admonition info">
+<p class="admonition-title">Info</p>
+<p>The active mouse mode is always displayed at the top of the canvas!</p>
+</div>
+<h3 id="navigating-between-particles">Navigating Between Particles</h3>
+<p>Use the <a href="javascript:void(0);" title="&lt;img src='../../../assets/chimerax_tutorial/pick_stepper.png'&gt;">Stepper Widget</a> below the Picks table:</p>
+<div class="side-by-side">
+<div>
+<table>
+<thead>
+<tr>
+<th style="text-align: center;">Control</th>
+<th>Action</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td style="text-align: center;"><code>&lt;&lt;</code></td>
+<td>Jump to previous particle</td>
+</tr>
+<tr>
+<td style="text-align: center;"><code>&gt;&gt;</code></td>
+<td>Jump to next particle</td>
+</tr>
+<tr>
+<td style="text-align: center;">Index</td>
+<td>Shows current particle number</td>
+</tr>
+</tbody>
+</table>
+</div>
+<div>
+<p><strong>Keyboard shortcuts:</strong></p>
+<ul>
+<li><span class="keys"><kbd class="key-a">A</kbd><span>+</span><kbd class="key-a">A</kbd></span> - Previous particle</li>
+<li><span class="keys"><kbd class="key-d">D</kbd><span>+</span><kbd class="key-d">D</kbd></span> - Next particle</li>
+</ul>
+</div>
+</div>
+<h3 id="editing-particles">Editing Particles</h3>
+<div class="tabbed-set tabbed-alternate" data-tabs="4:3"><input checked="checked" id="__tabbed_4_1" name="__tabbed_4" type="radio" /><input id="__tabbed_4_2" name="__tabbed_4" type="radio" /><input id="__tabbed_4_3" name="__tabbed_4" type="radio" /><div class="tabbed-labels"><label for="__tabbed_4_1">Moving Particles</label><label for="__tabbed_4_2">Deleting Single Particle</label><label for="__tabbed_4_3">Deleting Multiple Particles</label></div>
+<div class="tabbed-content">
+<div class="tabbed-block">
+<ol>
+<li>Press <span class="keys"><kbd class="key-s">S</kbd><span>+</span><kbd class="key-s">S</kbd></span> or select "Select" mode</li>
+<li>Click on a particle to select it</li>
+<li>Use toolbar buttons:<ul>
+<li><a href="javascript:void(0);" title="&lt;img src='../../../assets/chimerax_tutorial/translate_selected.png'&gt;">Translate Selected Particles</a></li>
+<li><a href="javascript:void(0);" title="&lt;img src='../../../assets/chimerax_tutorial/rotate_selected.png'&gt;">Rotate Selected Particles</a></li>
+</ul>
+</li>
+</ol>
+</div>
+<div class="tabbed-block">
+<ul>
+<li>Press <span class="keys"><kbd class="key-minus">-</kbd><span>+</span><kbd class="key-minus">-</kbd></span> to remove the currently active particle</li>
+<li>Or press <span class="keys"><kbd class="key-d">D</kbd><span>+</span><kbd class="key-p">P</kbd></span> for "delete picked" mode, then right-click on particles</li>
+</ul>
+</div>
+<div class="tabbed-block">
+<ol>
+<li>Press <span class="keys"><kbd class="key-s">S</kbd><span>+</span><kbd class="key-s">S</kbd></span> for select mode</li>
+<li>Click particles to select them (or <span class="keys"><kbd class="key-s">S</kbd><span>+</span><kbd class="key-a">A</kbd></span> to select all)</li>
+<li>Press <span class="keys"><kbd class="key-d">D</kbd><span>+</span><kbd class="key-s">S</kbd></span> to delete selected particles</li>
+</ol>
+</div>
+</div>
+</div>
+<h3 id="controlling-particle-display">Controlling Particle Display</h3>
+<div class="center-table">
+<table>
+<thead>
+<tr>
+<th style="text-align: center;">Shortcut</th>
+<th>Effect</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td style="text-align: center;"><span class="keys"><kbd class="key-w">W</kbd><span>+</span><kbd class="key-w">W</kbd></span></td>
+<td>Toggle particle list visibility (show/hide all)</td>
+</tr>
+<tr>
+<td style="text-align: center;"><span class="keys"><kbd class="key-0">0</kbd><span>+</span><kbd class="key-0">0</kbd></span></td>
+<td>Set 0% transparency (fully opaque)</td>
+</tr>
+<tr>
+<td style="text-align: center;"><span class="keys"><kbd class="key-5">5</kbd><span>+</span><kbd class="key-5">5</kbd></span></td>
+<td>Set 50% transparency</td>
+</tr>
+<tr>
+<td style="text-align: center;"><span class="keys"><kbd class="key-8">8</kbd><span>+</span><kbd class="key-8">8</kbd></span></td>
+<td>Set 80% transparency</td>
+</tr>
+</tbody>
+</table>
+</div>
+<hr />
+<h2 id="saving-your-work">Saving Your Work</h2>
+<div class="admonition success">
+<p class="admonition-title">Automatic Saving</p>
+<p><strong>Picks are automatically saved</strong> when you:</p>
+<ul>
+<li>Switch to a different tomogram</li>
+<li>Close the Copick tool</li>
+<li>Exit ChimeraX</li>
+</ul>
+</div>
+<p>The picks are stored in the overlay directory specified in your copick configuration.</p>
+<hr />
+<h2 id="quick-reference-keyboard-shortcuts">Quick Reference: Keyboard Shortcuts</h2>
+<div class="admonition tip">
+<p class="admonition-title">Show All Shortcuts</p>
+<p>Press <span class="keys"><kbd class="key-question">?</kbd></span> to display all shortcuts in the ChimeraX log window.</p>
+</div>
+<h3 id="particles">Particles</h3>
+<div class="center-table">
+<table>
+<thead>
+<tr>
+<th style="text-align: center;">Shortcut</th>
+<th>Action</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td style="text-align: center;"><span class="keys"><kbd class="key-w">W</kbd><span>+</span><kbd class="key-w">W</kbd></span></td>
+<td>Toggle particle display</td>
+</tr>
+<tr>
+<td style="text-align: center;"><span class="keys"><kbd class="key-a">A</kbd><span>+</span><kbd class="key-a">A</kbd></span></td>
+<td>Previous particle</td>
+</tr>
+<tr>
+<td style="text-align: center;"><span class="keys"><kbd class="key-d">D</kbd><span>+</span><kbd class="key-d">D</kbd></span></td>
+<td>Next particle</td>
+</tr>
+<tr>
+<td style="text-align: center;"><span class="keys"><kbd class="key-s">S</kbd><span>+</span><kbd class="key-a">A</kbd></span></td>
+<td>Select all particles</td>
+</tr>
+<tr>
+<td style="text-align: center;"><span class="keys"><kbd class="key-minus">-</kbd><span>+</span><kbd class="key-minus">-</kbd></span></td>
+<td>Remove active particle</td>
+</tr>
+</tbody>
+</table>
+</div>
+<h3 id="picking">Picking</h3>
+<div class="center-table">
+<table>
+<thead>
+<tr>
+<th style="text-align: center;">Shortcut</th>
+<th>Action</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td style="text-align: center;"><span class="keys"><kbd class="key-a">A</kbd><span>+</span><kbd class="key-p">P</kbd></span></td>
+<td>Add on plane mode</td>
+</tr>
+<tr>
+<td style="text-align: center;"><span class="keys"><kbd class="key-d">D</kbd><span>+</span><kbd class="key-p">P</kbd></span></td>
+<td>Delete picked mode</td>
+</tr>
+<tr>
+<td style="text-align: center;"><span class="keys"><kbd class="key-s">S</kbd><span>+</span><kbd class="key-s">S</kbd></span></td>
+<td>Select mode</td>
+</tr>
+<tr>
+<td style="text-align: center;"><span class="keys"><kbd class="key-d">D</kbd><span>+</span><kbd class="key-s">S</kbd></span></td>
+<td>Delete selected particles</td>
+</tr>
+</tbody>
+</table>
+</div>
+<h3 id="visualization">Visualization</h3>
+<div class="center-table">
+<table>
+<thead>
+<tr>
+<th style="text-align: center;">Shortcut</th>
+<th>Action</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td style="text-align: center;"><span class="keys"><kbd class="key-q">Q</kbd><span>+</span><kbd class="key-q">Q</kbd></span></td>
+<td>Single plane (slab)</td>
+</tr>
+<tr>
+<td style="text-align: center;"><span class="keys"><kbd class="key-e">E</kbd><span>+</span><kbd class="key-e">E</kbd></span></td>
+<td>Orthoplanes</td>
+</tr>
+<tr>
+<td style="text-align: center;"><span class="keys"><kbd class="key-x">X</kbd><span>+</span><kbd class="key-x">X</kbd></span></td>
+<td>XY view</td>
+</tr>
+<tr>
+<td style="text-align: center;"><span class="keys"><kbd class="key-y">Y</kbd><span>+</span><kbd class="key-y">Y</kbd></span></td>
+<td>YZ view</td>
+</tr>
+<tr>
+<td style="text-align: center;"><span class="keys"><kbd class="key-z">Z</kbd><span>+</span><kbd class="key-z">Z</kbd></span></td>
+<td>XZ view</td>
+</tr>
+<tr>
+<td style="text-align: center;"><span class="keys"><kbd class="key-c">C</kbd><span>+</span><kbd class="key-c">C</kbd></span></td>
+<td>Toggle clipping</td>
+</tr>
+<tr>
+<td style="text-align: center;"><span class="keys"><kbd class="key-f">F</kbd><span>+</span><kbd class="key-f">F</kbd></span></td>
+<td>Move planes mode</td>
+</tr>
+<tr>
+<td style="text-align: center;"><span class="keys"><kbd class="key-r">R</kbd><span>+</span><kbd class="key-r">R</kbd></span></td>
+<td>Rotate slab mode</td>
+</tr>
+<tr>
+<td style="text-align: center;"><span class="keys"><kbd class="key-period">.</kbd><span>+</span><kbd class="key-period">.</kbd></span></td>
+<td>Invert contrast</td>
+</tr>
+</tbody>
+</table>
+</div>
+<h3 id="transparency">Transparency</h3>
+<div class="center-table">
+<table>
+<thead>
+<tr>
+<th style="text-align: center;">Shortcut</th>
+<th>Action</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td style="text-align: center;"><span class="keys"><kbd class="key-0">0</kbd><span>+</span><kbd class="key-0">0</kbd></span></td>
+<td>0% transparency (opaque)</td>
+</tr>
+<tr>
+<td style="text-align: center;"><span class="keys"><kbd class="key-5">5</kbd><span>+</span><kbd class="key-5">5</kbd></span></td>
+<td>50% transparency</td>
+</tr>
+<tr>
+<td style="text-align: center;"><span class="keys"><kbd class="key-8">8</kbd><span>+</span><kbd class="key-8">8</kbd></span></td>
+<td>80% transparency</td>
+</tr>
+</tbody>
+</table>
+</div>
+<h3 id="info">Info</h3>
+<div class="center-table">
+<table>
+<thead>
+<tr>
+<th style="text-align: center;">Shortcut</th>
+<th>Action</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td style="text-align: center;"><span class="keys"><kbd class="key-i">I</kbd><span>+</span><kbd class="key-l">L</kbd></span></td>
+<td>Toggle info label</td>
+</tr>
+<tr>
+<td style="text-align: center;"><span class="keys"><kbd class="key-question">?</kbd></span></td>
+<td>Show all shortcuts</td>
+</tr>
+</tbody>
+</table>
+</div>
+<hr />
+<h2 id="troubleshooting">Troubleshooting</h2>
+<details class="question">
+<summary>Picks aren't appearing</summary>
+<ul>
+<li>Ensure a pick set is selected in the Picks table</li>
+<li>Check that mouse mode is set to "mark plane" (<span class="keys"><kbd class="key-a">A</kbd><span>+</span><kbd class="key-p">P</kbd></span>)</li>
+<li>Verify you're <strong>right-clicking</strong>, not left-clicking</li>
+</ul>
+</details>
+<details class="question">
+<summary>Can't see particles</summary>
+<ul>
+<li>Press <span class="keys"><kbd class="key-w">W</kbd><span>+</span><kbd class="key-w">W</kbd></span> to toggle visibility</li>
+<li>Adjust transparency with <span class="keys"><kbd class="key-0">0</kbd><span>+</span><kbd class="key-0">0</kbd></span>, <span class="keys"><kbd class="key-5">5</kbd><span>+</span><kbd class="key-5">5</kbd></span>, or <span class="keys"><kbd class="key-8">8</kbd><span>+</span><kbd class="key-8">8</kbd></span></li>
+</ul>
+</details>
+<details class="question">
+<summary>Keyboard shortcuts not working</summary>
+<p>Run <code>cks</code> in the ChimeraX command line to enable Copick keyboard shortcuts:
+<div class="language-text highlight"><pre><span></span><code><span id="__span-3-1"><a id="__codelineno-3-1" name="__codelineno-3-1" href="#__codelineno-3-1"></a>cks
+</span></code></pre></div></p>
+</details>
+<details class="question">
+<summary>Tomogram not loading</summary>
+<ul>
+<li>Check that your config file path is correct</li>
+<li>Verify the data files exist at the paths specified in the config</li>
+<li>For remote data, ensure your SSH tunnel is active</li>
+</ul>
+</details>
+<hr />
 
 
 
@@ -1856,7 +3466,7 @@
     
     
       
-      <script id="__config" type="application/json">{"base": "../../..", "features": ["content.code.copy"], "search": "../../../assets/javascripts/workers/search.d50fe291.min.js", "tags": null, "translations": {"clipboard.copied": "Copied to clipboard", "clipboard.copy": "Copy to clipboard", "search.result.more.one": "1 more on this page", "search.result.more.other": "# more on this page", "search.result.none": "No matching documents", "search.result.one": "1 matching document", "search.result.other": "# matching documents", "search.result.placeholder": "Type to start searching", "search.result.term.missing": "Missing", "select.version": "Select version"}, "version": null}</script>
+      <script id="__config" type="application/json">{"base": "../../..", "features": ["content.code.copy", "search.highlight", "search.share", "search.suggest", "content.tooltips"], "search": "../../../assets/javascripts/workers/search.d50fe291.min.js", "tags": null, "translations": {"clipboard.copied": "Copied to clipboard", "clipboard.copy": "Copy to clipboard", "search.result.more.one": "1 more on this page", "search.result.more.other": "# more on this page", "search.result.none": "No matching documents", "search.result.one": "1 matching document", "search.result.other": "# matching documents", "search.result.placeholder": "Type to start searching", "search.result.term.missing": "Missing", "select.version": "Select version"}, "version": null}</script>
     
     
       <script src="../../../assets/javascripts/bundle.13a4f30d.min.js"></script>

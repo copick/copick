@@ -168,11 +168,18 @@
       </label>
       <nav class="md-search__options" aria-label="Search">
         
+          <a href="javascript:void(0)" class="md-search__icon md-icon" title="Share" aria-label="Share" data-clipboard data-clipboard-text="" data-md-component="search-share" tabindex="-1">
+            
+            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M18 16.08c-.76 0-1.44.3-1.96.77L8.91 12.7c.05-.23.09-.46.09-.7s-.04-.47-.09-.7l7.05-4.11c.54.5 1.25.81 2.04.81a3 3 0 0 0 3-3 3 3 0 0 0-3-3 3 3 0 0 0-3 3c0 .24.04.47.09.7L8.04 9.81C7.5 9.31 6.79 9 6 9a3 3 0 0 0-3 3 3 3 0 0 0 3 3c.79 0 1.5-.31 2.04-.81l7.12 4.15c-.05.21-.08.43-.08.66 0 1.61 1.31 2.91 2.92 2.91s2.92-1.3 2.92-2.91A2.92 2.92 0 0 0 18 16.08"/></svg>
+          </a>
+        
         <button type="reset" class="md-search__icon md-icon" title="Clear" aria-label="Clear" tabindex="-1">
           
           <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M19 6.41 17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/></svg>
         </button>
       </nav>
+      
+        <div class="md-search__suggest" data-md-component="search-suggest"></div>
       
     </form>
     <div class="md-search__output">
@@ -2576,7 +2583,7 @@ methods to overlay data from two sources. The overlay implementations are define
 
     <div class="doc doc-contents first">
             <p class="doc doc-class-bases">
-              Bases: <code><a class="autorefs autorefs-internal" title="            copick.models.CopickRun" href="../../base_classes/data_entity_models/CopickRun/#copick.models.CopickRun">CopickRun</a></code></p>
+              Bases: <code><a class="autorefs autorefs-internal" title="&lt;code class=&quot;doc-symbol doc-symbol-heading doc-symbol-class&quot;&gt;&lt;/code&gt;            &lt;span class=&quot;doc doc-object-name doc-class-name&quot;&gt;copick.models.CopickRun&lt;/span&gt;" href="../../base_classes/data_entity_models/CopickRun/#copick.models.CopickRun">CopickRun</a></code></p>
 
 
         <p>CopickRun class that queries two different storage locations for runs. The first location is read-only (static)
@@ -2620,7 +2627,7 @@ and the second location is writable (overlay).</p>
 <p><span class="doc-section-title">Returns:</span></p>
     <ul>
         <li class="doc-section-item field-body">
-              <code><span title="typing.List">List</span>[<a class="autorefs autorefs-internal" title="            copick.impl.overlay.CopickVoxelSpacingOverlay" href="#copick.impl.overlay.CopickVoxelSpacingOverlay">CopickVoxelSpacingOverlay</a>]</code>
+              <code><span title="typing.List">List</span>[<a class="autorefs autorefs-internal" title="&lt;code class=&quot;doc-symbol doc-symbol-heading doc-symbol-class&quot;&gt;&lt;/code&gt;            &lt;span class=&quot;doc doc-object-name doc-class-name&quot;&gt;copick.impl.overlay.CopickVoxelSpacingOverlay&lt;/span&gt;" href="#copick.impl.overlay.CopickVoxelSpacingOverlay">CopickVoxelSpacingOverlay</a>]</code>
           –
           <div class="doc-md-description">
             <p>List[CopickVoxelSpacingOverlay]: List of read-only voxel spacings.</p>
@@ -2652,7 +2659,7 @@ and the second location is writable (overlay).</p>
 <p><span class="doc-section-title">Returns:</span></p>
     <ul>
         <li class="doc-section-item field-body">
-              <code><span title="typing.List">List</span>[<a class="autorefs autorefs-internal" title="            copick.impl.overlay.CopickVoxelSpacingOverlay" href="#copick.impl.overlay.CopickVoxelSpacingOverlay">CopickVoxelSpacingOverlay</a>]</code>
+              <code><span title="typing.List">List</span>[<a class="autorefs autorefs-internal" title="&lt;code class=&quot;doc-symbol doc-symbol-heading doc-symbol-class&quot;&gt;&lt;/code&gt;            &lt;span class=&quot;doc doc-object-name doc-class-name&quot;&gt;copick.impl.overlay.CopickVoxelSpacingOverlay&lt;/span&gt;" href="#copick.impl.overlay.CopickVoxelSpacingOverlay">CopickVoxelSpacingOverlay</a>]</code>
           –
           <div class="doc-md-description">
             <p>List[CopickVoxelSpacingOverlay]: List of writable voxel spacings.</p>
@@ -2684,7 +2691,7 @@ and the second location is writable (overlay).</p>
 <p><span class="doc-section-title">Returns:</span></p>
     <ul>
         <li class="doc-section-item field-body">
-              <code><span title="typing.List">List</span>[<a class="autorefs autorefs-internal" title="            copick.impl.overlay.CopickVoxelSpacingOverlay" href="#copick.impl.overlay.CopickVoxelSpacingOverlay">CopickVoxelSpacingOverlay</a>]</code>
+              <code><span title="typing.List">List</span>[<a class="autorefs autorefs-internal" title="&lt;code class=&quot;doc-symbol doc-symbol-heading doc-symbol-class&quot;&gt;&lt;/code&gt;            &lt;span class=&quot;doc doc-object-name doc-class-name&quot;&gt;copick.impl.overlay.CopickVoxelSpacingOverlay&lt;/span&gt;" href="#copick.impl.overlay.CopickVoxelSpacingOverlay">CopickVoxelSpacingOverlay</a>]</code>
           –
           <div class="doc-md-description">
             <p>List[CopickVoxelSpacingOverlay]: List of voxel spacings from both sources.</p>
@@ -2716,7 +2723,7 @@ and the second location is writable (overlay).</p>
 <p><span class="doc-section-title">Returns:</span></p>
     <ul>
         <li class="doc-section-item field-body">
-              <code><span title="typing.List">List</span>[<a class="autorefs autorefs-internal" title="            copick.impl.overlay.CopickPicksOverlay" href="#copick.impl.overlay.CopickPicksOverlay">CopickPicksOverlay</a>]</code>
+              <code><span title="typing.List">List</span>[<a class="autorefs autorefs-internal" title="&lt;code class=&quot;doc-symbol doc-symbol-heading doc-symbol-class&quot;&gt;&lt;/code&gt;            &lt;span class=&quot;doc doc-object-name doc-class-name&quot;&gt;copick.impl.overlay.CopickPicksOverlay&lt;/span&gt;" href="#copick.impl.overlay.CopickPicksOverlay">CopickPicksOverlay</a>]</code>
           –
           <div class="doc-md-description">
             <p>List[CopickPicksOverlay]: List of read-only picks.</p>
@@ -2748,7 +2755,7 @@ and the second location is writable (overlay).</p>
 <p><span class="doc-section-title">Returns:</span></p>
     <ul>
         <li class="doc-section-item field-body">
-              <code><span title="typing.List">List</span>[<a class="autorefs autorefs-internal" title="            copick.impl.overlay.CopickPicksOverlay" href="#copick.impl.overlay.CopickPicksOverlay">CopickPicksOverlay</a>]</code>
+              <code><span title="typing.List">List</span>[<a class="autorefs autorefs-internal" title="&lt;code class=&quot;doc-symbol doc-symbol-heading doc-symbol-class&quot;&gt;&lt;/code&gt;            &lt;span class=&quot;doc doc-object-name doc-class-name&quot;&gt;copick.impl.overlay.CopickPicksOverlay&lt;/span&gt;" href="#copick.impl.overlay.CopickPicksOverlay">CopickPicksOverlay</a>]</code>
           –
           <div class="doc-md-description">
             <p>List[CopickPicksOverlay]: List of writable picks.</p>
@@ -2780,7 +2787,7 @@ and the second location is writable (overlay).</p>
 <p><span class="doc-section-title">Returns:</span></p>
     <ul>
         <li class="doc-section-item field-body">
-              <code><span title="typing.List">List</span>[<a class="autorefs autorefs-internal" title="            copick.impl.overlay.CopickPicksOverlay" href="#copick.impl.overlay.CopickPicksOverlay">CopickPicksOverlay</a>]</code>
+              <code><span title="typing.List">List</span>[<a class="autorefs autorefs-internal" title="&lt;code class=&quot;doc-symbol doc-symbol-heading doc-symbol-class&quot;&gt;&lt;/code&gt;            &lt;span class=&quot;doc doc-object-name doc-class-name&quot;&gt;copick.impl.overlay.CopickPicksOverlay&lt;/span&gt;" href="#copick.impl.overlay.CopickPicksOverlay">CopickPicksOverlay</a>]</code>
           –
           <div class="doc-md-description">
             <p>List[CopickPicksOverlay]: List of picks from both sources.</p>
@@ -2812,7 +2819,7 @@ and the second location is writable (overlay).</p>
 <p><span class="doc-section-title">Returns:</span></p>
     <ul>
         <li class="doc-section-item field-body">
-              <code><span title="typing.List">List</span>[<a class="autorefs autorefs-internal" title="            copick.impl.overlay.CopickMeshOverlay" href="#copick.impl.overlay.CopickMeshOverlay">CopickMeshOverlay</a>]</code>
+              <code><span title="typing.List">List</span>[<a class="autorefs autorefs-internal" title="&lt;code class=&quot;doc-symbol doc-symbol-heading doc-symbol-class&quot;&gt;&lt;/code&gt;            &lt;span class=&quot;doc doc-object-name doc-class-name&quot;&gt;copick.impl.overlay.CopickMeshOverlay&lt;/span&gt;" href="#copick.impl.overlay.CopickMeshOverlay">CopickMeshOverlay</a>]</code>
           –
           <div class="doc-md-description">
             <p>List[CopickMeshOverlay]: List of read-only meshes.</p>
@@ -2844,7 +2851,7 @@ and the second location is writable (overlay).</p>
 <p><span class="doc-section-title">Returns:</span></p>
     <ul>
         <li class="doc-section-item field-body">
-              <code><span title="typing.List">List</span>[<a class="autorefs autorefs-internal" title="            copick.impl.overlay.CopickMeshOverlay" href="#copick.impl.overlay.CopickMeshOverlay">CopickMeshOverlay</a>]</code>
+              <code><span title="typing.List">List</span>[<a class="autorefs autorefs-internal" title="&lt;code class=&quot;doc-symbol doc-symbol-heading doc-symbol-class&quot;&gt;&lt;/code&gt;            &lt;span class=&quot;doc doc-object-name doc-class-name&quot;&gt;copick.impl.overlay.CopickMeshOverlay&lt;/span&gt;" href="#copick.impl.overlay.CopickMeshOverlay">CopickMeshOverlay</a>]</code>
           –
           <div class="doc-md-description">
             <p>List[CopickMeshOverlay]: List of writable meshes.</p>
@@ -2876,7 +2883,7 @@ and the second location is writable (overlay).</p>
 <p><span class="doc-section-title">Returns:</span></p>
     <ul>
         <li class="doc-section-item field-body">
-              <code><span title="typing.List">List</span>[<a class="autorefs autorefs-internal" title="            copick.impl.overlay.CopickMeshOverlay" href="#copick.impl.overlay.CopickMeshOverlay">CopickMeshOverlay</a>]</code>
+              <code><span title="typing.List">List</span>[<a class="autorefs autorefs-internal" title="&lt;code class=&quot;doc-symbol doc-symbol-heading doc-symbol-class&quot;&gt;&lt;/code&gt;            &lt;span class=&quot;doc doc-object-name doc-class-name&quot;&gt;copick.impl.overlay.CopickMeshOverlay&lt;/span&gt;" href="#copick.impl.overlay.CopickMeshOverlay">CopickMeshOverlay</a>]</code>
           –
           <div class="doc-md-description">
             <p>List[CopickMeshOverlay]: List of meshes from both sources.</p>
@@ -2908,7 +2915,7 @@ and the second location is writable (overlay).</p>
 <p><span class="doc-section-title">Returns:</span></p>
     <ul>
         <li class="doc-section-item field-body">
-              <code><span title="typing.List">List</span>[<a class="autorefs autorefs-internal" title="            copick.impl.overlay.CopickSegmentationOverlay" href="#copick.impl.overlay.CopickSegmentationOverlay">CopickSegmentationOverlay</a>]</code>
+              <code><span title="typing.List">List</span>[<a class="autorefs autorefs-internal" title="&lt;code class=&quot;doc-symbol doc-symbol-heading doc-symbol-class&quot;&gt;&lt;/code&gt;            &lt;span class=&quot;doc doc-object-name doc-class-name&quot;&gt;copick.impl.overlay.CopickSegmentationOverlay&lt;/span&gt;" href="#copick.impl.overlay.CopickSegmentationOverlay">CopickSegmentationOverlay</a>]</code>
           –
           <div class="doc-md-description">
             <p>List[CopickSegmentationOverlay]: List of read-only segmentations.</p>
@@ -2940,7 +2947,7 @@ and the second location is writable (overlay).</p>
 <p><span class="doc-section-title">Returns:</span></p>
     <ul>
         <li class="doc-section-item field-body">
-              <code><span title="typing.List">List</span>[<a class="autorefs autorefs-internal" title="            copick.impl.overlay.CopickSegmentationOverlay" href="#copick.impl.overlay.CopickSegmentationOverlay">CopickSegmentationOverlay</a>]</code>
+              <code><span title="typing.List">List</span>[<a class="autorefs autorefs-internal" title="&lt;code class=&quot;doc-symbol doc-symbol-heading doc-symbol-class&quot;&gt;&lt;/code&gt;            &lt;span class=&quot;doc doc-object-name doc-class-name&quot;&gt;copick.impl.overlay.CopickSegmentationOverlay&lt;/span&gt;" href="#copick.impl.overlay.CopickSegmentationOverlay">CopickSegmentationOverlay</a>]</code>
           –
           <div class="doc-md-description">
             <p>List[CopickSegmentationOverlay]: List of writable segmentations.</p>
@@ -2972,7 +2979,7 @@ and the second location is writable (overlay).</p>
 <p><span class="doc-section-title">Returns:</span></p>
     <ul>
         <li class="doc-section-item field-body">
-              <code><span title="typing.List">List</span>[<a class="autorefs autorefs-internal" title="            copick.impl.overlay.CopickSegmentationOverlay" href="#copick.impl.overlay.CopickSegmentationOverlay">CopickSegmentationOverlay</a>]</code>
+              <code><span title="typing.List">List</span>[<a class="autorefs autorefs-internal" title="&lt;code class=&quot;doc-symbol doc-symbol-heading doc-symbol-class&quot;&gt;&lt;/code&gt;            &lt;span class=&quot;doc doc-object-name doc-class-name&quot;&gt;copick.impl.overlay.CopickSegmentationOverlay&lt;/span&gt;" href="#copick.impl.overlay.CopickSegmentationOverlay">CopickSegmentationOverlay</a>]</code>
           –
           <div class="doc-md-description">
             <p>List[CopickSegmentationOverlay]: List of segmentations from both sources.</p>
@@ -3009,7 +3016,7 @@ and the second location is writable (overlay).</p>
 
     <div class="doc doc-contents first">
             <p class="doc doc-class-bases">
-              Bases: <code><a class="autorefs autorefs-internal" title="            copick.models.CopickObject" href="../../base_classes/data_entity_models/CopickObject/#copick.models.CopickObject">CopickObject</a></code></p>
+              Bases: <code><a class="autorefs autorefs-internal" title="&lt;code class=&quot;doc-symbol doc-symbol-heading doc-symbol-class&quot;&gt;&lt;/code&gt;            &lt;span class=&quot;doc doc-object-name doc-class-name&quot;&gt;copick.models.CopickObject&lt;/span&gt;" href="../../base_classes/data_entity_models/CopickObject/#copick.models.CopickObject">CopickObject</a></code></p>
 
 
         <p>CopickObject class that keeps track of whether the object is read-only.</p>
@@ -3090,7 +3097,7 @@ and the second location is writable (overlay).</p>
 
     <div class="doc doc-contents first">
             <p class="doc doc-class-bases">
-              Bases: <code><a class="autorefs autorefs-internal" title="            copick.models.CopickPicks" href="../../base_classes/data_entity_models/CopickPicks/#copick.models.CopickPicks">CopickPicks</a></code></p>
+              Bases: <code><a class="autorefs autorefs-internal" title="&lt;code class=&quot;doc-symbol doc-symbol-heading doc-symbol-class&quot;&gt;&lt;/code&gt;            &lt;span class=&quot;doc doc-object-name doc-class-name&quot;&gt;copick.models.CopickPicks&lt;/span&gt;" href="../../base_classes/data_entity_models/CopickPicks/#copick.models.CopickPicks">CopickPicks</a></code></p>
 
 
         <p>CopickPicks class that keeps track of whether the picks are read-only.</p>
@@ -3191,7 +3198,7 @@ and the second location is writable (overlay).</p>
 
     <div class="doc doc-contents first">
             <p class="doc doc-class-bases">
-              Bases: <code><a class="autorefs autorefs-internal" title="            copick.models.CopickMesh" href="../../base_classes/data_entity_models/CopickMesh/#copick.models.CopickMesh">CopickMesh</a></code></p>
+              Bases: <code><a class="autorefs autorefs-internal" title="&lt;code class=&quot;doc-symbol doc-symbol-heading doc-symbol-class&quot;&gt;&lt;/code&gt;            &lt;span class=&quot;doc doc-object-name doc-class-name&quot;&gt;copick.models.CopickMesh&lt;/span&gt;" href="../../base_classes/data_entity_models/CopickMesh/#copick.models.CopickMesh">CopickMesh</a></code></p>
 
 
         <p>CopickMesh class that keeps track of whether the mesh is read-only.</p>
@@ -3292,7 +3299,7 @@ and the second location is writable (overlay).</p>
 
     <div class="doc doc-contents first">
             <p class="doc doc-class-bases">
-              Bases: <code><a class="autorefs autorefs-internal" title="            copick.models.CopickSegmentation" href="../../base_classes/data_entity_models/CopickSegmentation/#copick.models.CopickSegmentation">CopickSegmentation</a></code></p>
+              Bases: <code><a class="autorefs autorefs-internal" title="&lt;code class=&quot;doc-symbol doc-symbol-heading doc-symbol-class&quot;&gt;&lt;/code&gt;            &lt;span class=&quot;doc doc-object-name doc-class-name&quot;&gt;copick.models.CopickSegmentation&lt;/span&gt;" href="../../base_classes/data_entity_models/CopickSegmentation/#copick.models.CopickSegmentation">CopickSegmentation</a></code></p>
 
 
         <p>CopickSegmentation class that keeps track of whether the segmentation is read-only.</p>
@@ -3373,7 +3380,7 @@ and the second location is writable (overlay).</p>
 
     <div class="doc doc-contents first">
             <p class="doc doc-class-bases">
-              Bases: <code><a class="autorefs autorefs-internal" title="            copick.models.CopickVoxelSpacing" href="../../base_classes/data_entity_models/CopickVoxelSpacing/#copick.models.CopickVoxelSpacing">CopickVoxelSpacing</a></code></p>
+              Bases: <code><a class="autorefs autorefs-internal" title="&lt;code class=&quot;doc-symbol doc-symbol-heading doc-symbol-class&quot;&gt;&lt;/code&gt;            &lt;span class=&quot;doc doc-object-name doc-class-name&quot;&gt;copick.models.CopickVoxelSpacing&lt;/span&gt;" href="../../base_classes/data_entity_models/CopickVoxelSpacing/#copick.models.CopickVoxelSpacing">CopickVoxelSpacing</a></code></p>
 
 
         <p>CopickVoxelSpacing class that queries two different storage locations for voxel spacings. The first location is
@@ -3417,7 +3424,7 @@ read-only (static) and the second location is writable (overlay).</p>
 <p><span class="doc-section-title">Returns:</span></p>
     <ul>
         <li class="doc-section-item field-body">
-              <code><span title="typing.List">List</span>[<a class="autorefs autorefs-internal" title="            copick.impl.overlay.CopickTomogramOverlay" href="#copick.impl.overlay.CopickTomogramOverlay">CopickTomogramOverlay</a>]</code>
+              <code><span title="typing.List">List</span>[<a class="autorefs autorefs-internal" title="&lt;code class=&quot;doc-symbol doc-symbol-heading doc-symbol-class&quot;&gt;&lt;/code&gt;            &lt;span class=&quot;doc doc-object-name doc-class-name&quot;&gt;copick.impl.overlay.CopickTomogramOverlay&lt;/span&gt;" href="#copick.impl.overlay.CopickTomogramOverlay">CopickTomogramOverlay</a>]</code>
           –
           <div class="doc-md-description">
             <p>List[CopickTomogramOverlay]: List of read-only tomograms.</p>
@@ -3449,7 +3456,7 @@ read-only (static) and the second location is writable (overlay).</p>
 <p><span class="doc-section-title">Returns:</span></p>
     <ul>
         <li class="doc-section-item field-body">
-              <code><span title="typing.List">List</span>[<a class="autorefs autorefs-internal" title="            copick.impl.overlay.CopickTomogramOverlay" href="#copick.impl.overlay.CopickTomogramOverlay">CopickTomogramOverlay</a>]</code>
+              <code><span title="typing.List">List</span>[<a class="autorefs autorefs-internal" title="&lt;code class=&quot;doc-symbol doc-symbol-heading doc-symbol-class&quot;&gt;&lt;/code&gt;            &lt;span class=&quot;doc doc-object-name doc-class-name&quot;&gt;copick.impl.overlay.CopickTomogramOverlay&lt;/span&gt;" href="#copick.impl.overlay.CopickTomogramOverlay">CopickTomogramOverlay</a>]</code>
           –
           <div class="doc-md-description">
             <p>List[CopickTomogramOverlay]: List of writable tomograms.</p>
@@ -3481,7 +3488,7 @@ read-only (static) and the second location is writable (overlay).</p>
 <p><span class="doc-section-title">Returns:</span></p>
     <ul>
         <li class="doc-section-item field-body">
-              <code><span title="typing.List">List</span>[<a class="autorefs autorefs-internal" title="            copick.impl.overlay.CopickTomogramOverlay" href="#copick.impl.overlay.CopickTomogramOverlay">CopickTomogramOverlay</a>]</code>
+              <code><span title="typing.List">List</span>[<a class="autorefs autorefs-internal" title="&lt;code class=&quot;doc-symbol doc-symbol-heading doc-symbol-class&quot;&gt;&lt;/code&gt;            &lt;span class=&quot;doc doc-object-name doc-class-name&quot;&gt;copick.impl.overlay.CopickTomogramOverlay&lt;/span&gt;" href="#copick.impl.overlay.CopickTomogramOverlay">CopickTomogramOverlay</a>]</code>
           –
           <div class="doc-md-description">
             <p>List[CopickTomogramOverlay]: List of tomograms from both sources.</p>
@@ -3518,7 +3525,7 @@ read-only (static) and the second location is writable (overlay).</p>
 
     <div class="doc doc-contents first">
             <p class="doc doc-class-bases">
-              Bases: <code><a class="autorefs autorefs-internal" title="            copick.models.CopickTomogram" href="../../base_classes/data_entity_models/CopickTomogram/#copick.models.CopickTomogram">CopickTomogram</a></code></p>
+              Bases: <code><a class="autorefs autorefs-internal" title="&lt;code class=&quot;doc-symbol doc-symbol-heading doc-symbol-class&quot;&gt;&lt;/code&gt;            &lt;span class=&quot;doc doc-object-name doc-class-name&quot;&gt;copick.models.CopickTomogram&lt;/span&gt;" href="../../base_classes/data_entity_models/CopickTomogram/#copick.models.CopickTomogram">CopickTomogram</a></code></p>
 
 
         <p>CopickTomogram class that keeps track of whether the tomogram is read-only and queries two different storage
@@ -3575,7 +3582,7 @@ locations for tomograms. The first location is read-only (static) and the second
 <p><span class="doc-section-title">Returns:</span></p>
     <ul>
         <li class="doc-section-item field-body">
-              <code><span title="typing.List">List</span>[<a class="autorefs autorefs-internal" title="            copick.impl.overlay.CopickFeaturesOverlay" href="#copick.impl.overlay.CopickFeaturesOverlay">CopickFeaturesOverlay</a>]</code>
+              <code><span title="typing.List">List</span>[<a class="autorefs autorefs-internal" title="&lt;code class=&quot;doc-symbol doc-symbol-heading doc-symbol-class&quot;&gt;&lt;/code&gt;            &lt;span class=&quot;doc doc-object-name doc-class-name&quot;&gt;copick.impl.overlay.CopickFeaturesOverlay&lt;/span&gt;" href="#copick.impl.overlay.CopickFeaturesOverlay">CopickFeaturesOverlay</a>]</code>
           –
           <div class="doc-md-description">
             <p>List[CopickFeaturesOverlay]: List of read-only features.</p>
@@ -3607,7 +3614,7 @@ locations for tomograms. The first location is read-only (static) and the second
 <p><span class="doc-section-title">Returns:</span></p>
     <ul>
         <li class="doc-section-item field-body">
-              <code><span title="typing.List">List</span>[<a class="autorefs autorefs-internal" title="            copick.impl.overlay.CopickFeaturesOverlay" href="#copick.impl.overlay.CopickFeaturesOverlay">CopickFeaturesOverlay</a>]</code>
+              <code><span title="typing.List">List</span>[<a class="autorefs autorefs-internal" title="&lt;code class=&quot;doc-symbol doc-symbol-heading doc-symbol-class&quot;&gt;&lt;/code&gt;            &lt;span class=&quot;doc doc-object-name doc-class-name&quot;&gt;copick.impl.overlay.CopickFeaturesOverlay&lt;/span&gt;" href="#copick.impl.overlay.CopickFeaturesOverlay">CopickFeaturesOverlay</a>]</code>
           –
           <div class="doc-md-description">
             <p>List[CopickFeaturesOverlay]: List of writable features.</p>
@@ -3639,7 +3646,7 @@ locations for tomograms. The first location is read-only (static) and the second
 <p><span class="doc-section-title">Returns:</span></p>
     <ul>
         <li class="doc-section-item field-body">
-              <code><span title="typing.List">List</span>[<a class="autorefs autorefs-internal" title="            copick.impl.overlay.CopickFeaturesOverlay" href="#copick.impl.overlay.CopickFeaturesOverlay">CopickFeaturesOverlay</a>]</code>
+              <code><span title="typing.List">List</span>[<a class="autorefs autorefs-internal" title="&lt;code class=&quot;doc-symbol doc-symbol-heading doc-symbol-class&quot;&gt;&lt;/code&gt;            &lt;span class=&quot;doc doc-object-name doc-class-name&quot;&gt;copick.impl.overlay.CopickFeaturesOverlay&lt;/span&gt;" href="#copick.impl.overlay.CopickFeaturesOverlay">CopickFeaturesOverlay</a>]</code>
           –
           <div class="doc-md-description">
             <p>List[CopickFeaturesOverlay]: List of features from both sources.</p>
@@ -3696,7 +3703,7 @@ locations for tomograms. The first location is read-only (static) and the second
 
     <div class="doc doc-contents first">
             <p class="doc doc-class-bases">
-              Bases: <code><a class="autorefs autorefs-internal" title="            copick.models.CopickFeatures" href="../../base_classes/data_entity_models/CopickFeatures/#copick.models.CopickFeatures">CopickFeatures</a></code></p>
+              Bases: <code><a class="autorefs autorefs-internal" title="&lt;code class=&quot;doc-symbol doc-symbol-heading doc-symbol-class&quot;&gt;&lt;/code&gt;            &lt;span class=&quot;doc doc-object-name doc-class-name&quot;&gt;copick.models.CopickFeatures&lt;/span&gt;" href="../../base_classes/data_entity_models/CopickFeatures/#copick.models.CopickFeatures">CopickFeatures</a></code></p>
 
 
         <p>CopickFeatures class that keeps track of whether the features are read-only.</p>
@@ -3812,7 +3819,7 @@ locations for tomograms. The first location is read-only (static) and the second
     
     
       
-      <script id="__config" type="application/json">{"base": "../../..", "features": ["content.code.copy"], "search": "../../../assets/javascripts/workers/search.d50fe291.min.js", "tags": null, "translations": {"clipboard.copied": "Copied to clipboard", "clipboard.copy": "Copy to clipboard", "search.result.more.one": "1 more on this page", "search.result.more.other": "# more on this page", "search.result.none": "No matching documents", "search.result.one": "1 matching document", "search.result.other": "# matching documents", "search.result.placeholder": "Type to start searching", "search.result.term.missing": "Missing", "select.version": "Select version"}, "version": null}</script>
+      <script id="__config" type="application/json">{"base": "../../..", "features": ["content.code.copy", "search.highlight", "search.share", "search.suggest", "content.tooltips"], "search": "../../../assets/javascripts/workers/search.d50fe291.min.js", "tags": null, "translations": {"clipboard.copied": "Copied to clipboard", "clipboard.copy": "Copy to clipboard", "search.result.more.one": "1 more on this page", "search.result.more.other": "# more on this page", "search.result.none": "No matching documents", "search.result.one": "1 matching document", "search.result.other": "# matching documents", "search.result.placeholder": "Type to start searching", "search.result.term.missing": "Missing", "select.version": "Select version"}, "version": null}</script>
     
     
       <script src="../../../assets/javascripts/bundle.13a4f30d.min.js"></script>

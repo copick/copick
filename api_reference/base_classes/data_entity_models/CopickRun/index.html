@@ -168,11 +168,18 @@
       </label>
       <nav class="md-search__options" aria-label="Search">
         
+          <a href="javascript:void(0)" class="md-search__icon md-icon" title="Share" aria-label="Share" data-clipboard data-clipboard-text="" data-md-component="search-share" tabindex="-1">
+            
+            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M18 16.08c-.76 0-1.44.3-1.96.77L8.91 12.7c.05-.23.09-.46.09-.7s-.04-.47-.09-.7l7.05-4.11c.54.5 1.25.81 2.04.81a3 3 0 0 0 3-3 3 3 0 0 0-3-3 3 3 0 0 0-3 3c0 .24.04.47.09.7L8.04 9.81C7.5 9.31 6.79 9 6 9a3 3 0 0 0-3 3 3 3 0 0 0 3 3c.79 0 1.5-.31 2.04-.81l7.12 4.15c-.05.21-.08.43-.08.66 0 1.61 1.31 2.91 2.92 2.91s2.92-1.3 2.92-2.91A2.92 2.92 0 0 0 18 16.08"/></svg>
+          </a>
+        
         <button type="reset" class="md-search__icon md-icon" title="Clear" aria-label="Clear" tabindex="-1">
           
           <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M19 6.41 17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/></svg>
         </button>
       </nav>
+      
+        <div class="md-search__suggest" data-md-component="search-suggest"></div>
       
     </form>
     <div class="md-search__output">
@@ -2427,7 +2434,7 @@ segmentations.</p>
     <ul>
         <li class="doc-section-item field-body">
           <b><code><span title="copick.models.CopickRun.meta">meta</span></code></b>
-              (<code><a class="autorefs autorefs-internal" title="            copick.models.CopickRunMeta" href="../../metadata_models/CopickRunMeta/#copick.models.CopickRunMeta">CopickRunMeta</a></code>)
+              (<code><a class="autorefs autorefs-internal" title="&lt;code class=&quot;doc-symbol doc-symbol-heading doc-symbol-class&quot;&gt;&lt;/code&gt;            &lt;span class=&quot;doc doc-object-name doc-class-name&quot;&gt;copick.models.CopickRunMeta&lt;/span&gt;" href="../../metadata_models/CopickRunMeta/#copick.models.CopickRunMeta">CopickRunMeta</a></code>)
           –
           <div class="doc-md-description">
             <p>Metadata for this run.</p>
@@ -2435,7 +2442,7 @@ segmentations.</p>
         </li>
         <li class="doc-section-item field-body">
           <b><code><span title="copick.models.CopickRun.root">root</span></code></b>
-              (<code><a class="autorefs autorefs-internal" title="            copick.models.CopickRoot" href="../CopickRoot/#copick.models.CopickRoot">CopickRoot</a></code>)
+              (<code><a class="autorefs autorefs-internal" title="&lt;code class=&quot;doc-symbol doc-symbol-heading doc-symbol-class&quot;&gt;&lt;/code&gt;            &lt;span class=&quot;doc doc-object-name doc-class-name&quot;&gt;copick.models.CopickRoot&lt;/span&gt;" href="../CopickRoot/#copick.models.CopickRoot">CopickRoot</a></code>)
           –
           <div class="doc-md-description">
             <p>Reference to the root project this run belongs to.</p>
@@ -2443,7 +2450,7 @@ segmentations.</p>
         </li>
         <li class="doc-section-item field-body">
           <b><code><span title="copick.models.CopickRun.voxel_spacings">voxel_spacings</span></code></b>
-              (<code><span title="typing.List">List</span>[<a class="autorefs autorefs-internal" title="            copick.models.CopickVoxelSpacing" href="../CopickVoxelSpacing/#copick.models.CopickVoxelSpacing">CopickVoxelSpacing</a>]</code>)
+              (<code><span title="typing.List">List</span>[<a class="autorefs autorefs-internal" title="&lt;code class=&quot;doc-symbol doc-symbol-heading doc-symbol-class&quot;&gt;&lt;/code&gt;            &lt;span class=&quot;doc doc-object-name doc-class-name&quot;&gt;copick.models.CopickVoxelSpacing&lt;/span&gt;" href="../CopickVoxelSpacing/#copick.models.CopickVoxelSpacing">CopickVoxelSpacing</a>]</code>)
           –
           <div class="doc-md-description">
             <p>Voxel spacings for this run. Either populated from config or lazily
@@ -2452,7 +2459,7 @@ loaded when CopickRun.voxel_spacings is accessed <strong>for the first time</str
         </li>
         <li class="doc-section-item field-body">
           <b><code><span title="copick.models.CopickRun.picks">picks</span></code></b>
-              (<code><span title="typing.List">List</span>[<a class="autorefs autorefs-internal" title="            copick.models.CopickPicks" href="../CopickPicks/#copick.models.CopickPicks">CopickPicks</a>]</code>)
+              (<code><span title="typing.List">List</span>[<a class="autorefs autorefs-internal" title="&lt;code class=&quot;doc-symbol doc-symbol-heading doc-symbol-class&quot;&gt;&lt;/code&gt;            &lt;span class=&quot;doc doc-object-name doc-class-name&quot;&gt;copick.models.CopickPicks&lt;/span&gt;" href="../CopickPicks/#copick.models.CopickPicks">CopickPicks</a>]</code>)
           –
           <div class="doc-md-description">
             <p>Picks for this run. Either populated from config or lazily loaded when
@@ -2461,7 +2468,7 @@ CopickRun.picks is accessed for <strong>the first time</strong>.</p>
         </li>
         <li class="doc-section-item field-body">
           <b><code><span title="copick.models.CopickRun.meshes">meshes</span></code></b>
-              (<code><span title="typing.List">List</span>[<a class="autorefs autorefs-internal" title="            copick.models.CopickMesh" href="../CopickMesh/#copick.models.CopickMesh">CopickMesh</a>]</code>)
+              (<code><span title="typing.List">List</span>[<a class="autorefs autorefs-internal" title="&lt;code class=&quot;doc-symbol doc-symbol-heading doc-symbol-class&quot;&gt;&lt;/code&gt;            &lt;span class=&quot;doc doc-object-name doc-class-name&quot;&gt;copick.models.CopickMesh&lt;/span&gt;" href="../CopickMesh/#copick.models.CopickMesh">CopickMesh</a>]</code>)
           –
           <div class="doc-md-description">
             <p>Meshes for this run. Either populated from config or lazily loaded when
@@ -2470,7 +2477,7 @@ CopickRun.meshes is accessed <strong>for the first time</strong>.</p>
         </li>
         <li class="doc-section-item field-body">
           <b><code><span title="copick.models.CopickRun.segmentations">segmentations</span></code></b>
-              (<code><span title="typing.List">List</span>[<a class="autorefs autorefs-internal" title="            copick.models.CopickSegmentation" href="../CopickSegmentation/#copick.models.CopickSegmentation">CopickSegmentation</a>]</code>)
+              (<code><span title="typing.List">List</span>[<a class="autorefs autorefs-internal" title="&lt;code class=&quot;doc-symbol doc-symbol-heading doc-symbol-class&quot;&gt;&lt;/code&gt;            &lt;span class=&quot;doc doc-object-name doc-class-name&quot;&gt;copick.models.CopickSegmentation&lt;/span&gt;" href="../CopickSegmentation/#copick.models.CopickSegmentation">CopickSegmentation</a>]</code>)
           –
           <div class="doc-md-description">
             <p>Segmentations for this run. Either populated from config or lazily
@@ -2517,7 +2524,7 @@ loaded when CopickRun.segmentations is accessed <strong>for the first time</stro
 <p><span class="doc-section-title">Returns:</span></p>
     <ul>
         <li class="doc-section-item field-body">
-              <code><span title="typing.List">List</span>[<a class="autorefs autorefs-internal" title="            copick.models.CopickVoxelSpacing" href="../CopickVoxelSpacing/#copick.models.CopickVoxelSpacing">CopickVoxelSpacing</a>]</code>
+              <code><span title="typing.List">List</span>[<a class="autorefs autorefs-internal" title="&lt;code class=&quot;doc-symbol doc-symbol-heading doc-symbol-class&quot;&gt;&lt;/code&gt;            &lt;span class=&quot;doc doc-object-name doc-class-name&quot;&gt;copick.models.CopickVoxelSpacing&lt;/span&gt;" href="../CopickVoxelSpacing/#copick.models.CopickVoxelSpacing">CopickVoxelSpacing</a>]</code>
           –
           <div class="doc-md-description">
             <p>List[CopickVoxelSpacing]: List of voxel spacings for this run.</p>
@@ -2549,7 +2556,7 @@ loaded when CopickRun.segmentations is accessed <strong>for the first time</stro
 <p><span class="doc-section-title">Returns:</span></p>
     <ul>
         <li class="doc-section-item field-body">
-              <code><span title="typing.List">List</span>[<a class="autorefs autorefs-internal" title="            copick.models.CopickPicks" href="../CopickPicks/#copick.models.CopickPicks">CopickPicks</a>]</code>
+              <code><span title="typing.List">List</span>[<a class="autorefs autorefs-internal" title="&lt;code class=&quot;doc-symbol doc-symbol-heading doc-symbol-class&quot;&gt;&lt;/code&gt;            &lt;span class=&quot;doc doc-object-name doc-class-name&quot;&gt;copick.models.CopickPicks&lt;/span&gt;" href="../CopickPicks/#copick.models.CopickPicks">CopickPicks</a>]</code>
           –
           <div class="doc-md-description">
             <p>List[CopickPicks]: List of picks for this run.</p>
@@ -2581,7 +2588,7 @@ loaded when CopickRun.segmentations is accessed <strong>for the first time</stro
 <p><span class="doc-section-title">Returns:</span></p>
     <ul>
         <li class="doc-section-item field-body">
-              <code><span title="typing.List">List</span>[<a class="autorefs autorefs-internal" title="            copick.models.CopickMesh" href="../CopickMesh/#copick.models.CopickMesh">CopickMesh</a>]</code>
+              <code><span title="typing.List">List</span>[<a class="autorefs autorefs-internal" title="&lt;code class=&quot;doc-symbol doc-symbol-heading doc-symbol-class&quot;&gt;&lt;/code&gt;            &lt;span class=&quot;doc doc-object-name doc-class-name&quot;&gt;copick.models.CopickMesh&lt;/span&gt;" href="../CopickMesh/#copick.models.CopickMesh">CopickMesh</a>]</code>
           –
           <div class="doc-md-description">
             <p>List[CopickMesh]: List of meshes for this run.</p>
@@ -2613,7 +2620,7 @@ loaded when CopickRun.segmentations is accessed <strong>for the first time</stro
 <p><span class="doc-section-title">Returns:</span></p>
     <ul>
         <li class="doc-section-item field-body">
-              <code><span title="typing.List">List</span>[<a class="autorefs autorefs-internal" title="            copick.models.CopickSegmentation" href="../CopickSegmentation/#copick.models.CopickSegmentation">CopickSegmentation</a>]</code>
+              <code><span title="typing.List">List</span>[<a class="autorefs autorefs-internal" title="&lt;code class=&quot;doc-symbol doc-symbol-heading doc-symbol-class&quot;&gt;&lt;/code&gt;            &lt;span class=&quot;doc doc-object-name doc-class-name&quot;&gt;copick.models.CopickSegmentation&lt;/span&gt;" href="../CopickSegmentation/#copick.models.CopickSegmentation">CopickSegmentation</a>]</code>
           –
           <div class="doc-md-description">
             <p>List[CopickSegmentation]: List of segmentations for this run.</p>
@@ -2665,7 +2672,7 @@ loaded when CopickRun.segmentations is accessed <strong>for the first time</stro
 <p><span class="doc-section-title">Returns:</span></p>
     <ul>
         <li class="doc-section-item field-body">
-<b><code>CopickVoxelSpacing</code></b> (              <code><span title="typing.Union">Union</span>[<a class="autorefs autorefs-internal" title="            copick.models.CopickVoxelSpacing" href="../CopickVoxelSpacing/#copick.models.CopickVoxelSpacing">CopickVoxelSpacing</a>, None]</code>
+<b><code>CopickVoxelSpacing</code></b> (              <code><span title="typing.Union">Union</span>[<a class="autorefs autorefs-internal" title="&lt;code class=&quot;doc-symbol doc-symbol-heading doc-symbol-class&quot;&gt;&lt;/code&gt;            &lt;span class=&quot;doc doc-object-name doc-class-name&quot;&gt;copick.models.CopickVoxelSpacing&lt;/span&gt;" href="../CopickVoxelSpacing/#copick.models.CopickVoxelSpacing">CopickVoxelSpacing</a>, None]</code>
 )          –
           <div class="doc-md-description">
             <p>The voxel spacing object with the given voxel size value, or None if not found.</p>
@@ -2697,7 +2704,7 @@ loaded when CopickRun.segmentations is accessed <strong>for the first time</stro
 <p><span class="doc-section-title">Returns:</span></p>
     <ul>
         <li class="doc-section-item field-body">
-              <code><span title="typing.List">List</span>[<a class="autorefs autorefs-internal" title="            copick.models.CopickPicks" href="../CopickPicks/#copick.models.CopickPicks">CopickPicks</a>]</code>
+              <code><span title="typing.List">List</span>[<a class="autorefs autorefs-internal" title="&lt;code class=&quot;doc-symbol doc-symbol-heading doc-symbol-class&quot;&gt;&lt;/code&gt;            &lt;span class=&quot;doc doc-object-name doc-class-name&quot;&gt;copick.models.CopickPicks&lt;/span&gt;" href="../CopickPicks/#copick.models.CopickPicks">CopickPicks</a>]</code>
           –
           <div class="doc-md-description">
             <p>List[CopickPicks]: List of user-generated picks.</p>
@@ -2729,7 +2736,7 @@ loaded when CopickRun.segmentations is accessed <strong>for the first time</stro
 <p><span class="doc-section-title">Returns:</span></p>
     <ul>
         <li class="doc-section-item field-body">
-              <code><span title="typing.List">List</span>[<a class="autorefs autorefs-internal" title="            copick.models.CopickPicks" href="../CopickPicks/#copick.models.CopickPicks">CopickPicks</a>]</code>
+              <code><span title="typing.List">List</span>[<a class="autorefs autorefs-internal" title="&lt;code class=&quot;doc-symbol doc-symbol-heading doc-symbol-class&quot;&gt;&lt;/code&gt;            &lt;span class=&quot;doc doc-object-name doc-class-name&quot;&gt;copick.models.CopickPicks&lt;/span&gt;" href="../CopickPicks/#copick.models.CopickPicks">CopickPicks</a>]</code>
           –
           <div class="doc-md-description">
             <p>List[CopickPicks]: List of tool-generated picks.</p>
@@ -2796,7 +2803,7 @@ loaded when CopickRun.segmentations is accessed <strong>for the first time</stro
 <p><span class="doc-section-title">Returns:</span></p>
     <ul>
         <li class="doc-section-item field-body">
-              <code><span title="typing.List">List</span>[<a class="autorefs autorefs-internal" title="            copick.models.CopickPicks" href="../CopickPicks/#copick.models.CopickPicks">CopickPicks</a>]</code>
+              <code><span title="typing.List">List</span>[<a class="autorefs autorefs-internal" title="&lt;code class=&quot;doc-symbol doc-symbol-heading doc-symbol-class&quot;&gt;&lt;/code&gt;            &lt;span class=&quot;doc doc-object-name doc-class-name&quot;&gt;copick.models.CopickPicks&lt;/span&gt;" href="../CopickPicks/#copick.models.CopickPicks">CopickPicks</a>]</code>
           –
           <div class="doc-md-description">
             <p>List[CopickPicks]: List of picks that match the search criteria.</p>
@@ -2828,7 +2835,7 @@ loaded when CopickRun.segmentations is accessed <strong>for the first time</stro
 <p><span class="doc-section-title">Returns:</span></p>
     <ul>
         <li class="doc-section-item field-body">
-              <code><span title="typing.List">List</span>[<a class="autorefs autorefs-internal" title="            copick.models.CopickMesh" href="../CopickMesh/#copick.models.CopickMesh">CopickMesh</a>]</code>
+              <code><span title="typing.List">List</span>[<a class="autorefs autorefs-internal" title="&lt;code class=&quot;doc-symbol doc-symbol-heading doc-symbol-class&quot;&gt;&lt;/code&gt;            &lt;span class=&quot;doc doc-object-name doc-class-name&quot;&gt;copick.models.CopickMesh&lt;/span&gt;" href="../CopickMesh/#copick.models.CopickMesh">CopickMesh</a>]</code>
           –
           <div class="doc-md-description">
             <p>List[CopickMesh]: List of user-generated meshes.</p>
@@ -2860,7 +2867,7 @@ loaded when CopickRun.segmentations is accessed <strong>for the first time</stro
 <p><span class="doc-section-title">Returns:</span></p>
     <ul>
         <li class="doc-section-item field-body">
-              <code><span title="typing.List">List</span>[<a class="autorefs autorefs-internal" title="            copick.models.CopickMesh" href="../CopickMesh/#copick.models.CopickMesh">CopickMesh</a>]</code>
+              <code><span title="typing.List">List</span>[<a class="autorefs autorefs-internal" title="&lt;code class=&quot;doc-symbol doc-symbol-heading doc-symbol-class&quot;&gt;&lt;/code&gt;            &lt;span class=&quot;doc doc-object-name doc-class-name&quot;&gt;copick.models.CopickMesh&lt;/span&gt;" href="../CopickMesh/#copick.models.CopickMesh">CopickMesh</a>]</code>
           –
           <div class="doc-md-description">
             <p>List[CopickMesh]: List of tool-generated meshes.</p>
@@ -2927,7 +2934,7 @@ loaded when CopickRun.segmentations is accessed <strong>for the first time</stro
 <p><span class="doc-section-title">Returns:</span></p>
     <ul>
         <li class="doc-section-item field-body">
-              <code><span title="typing.List">List</span>[<a class="autorefs autorefs-internal" title="            copick.models.CopickMesh" href="../CopickMesh/#copick.models.CopickMesh">CopickMesh</a>]</code>
+              <code><span title="typing.List">List</span>[<a class="autorefs autorefs-internal" title="&lt;code class=&quot;doc-symbol doc-symbol-heading doc-symbol-class&quot;&gt;&lt;/code&gt;            &lt;span class=&quot;doc doc-object-name doc-class-name&quot;&gt;copick.models.CopickMesh&lt;/span&gt;" href="../CopickMesh/#copick.models.CopickMesh">CopickMesh</a>]</code>
           –
           <div class="doc-md-description">
             <p>List[CopickMesh]: List of meshes that match the search criteria.</p>
@@ -2959,7 +2966,7 @@ loaded when CopickRun.segmentations is accessed <strong>for the first time</stro
 <p><span class="doc-section-title">Returns:</span></p>
     <ul>
         <li class="doc-section-item field-body">
-              <code><span title="typing.List">List</span>[<a class="autorefs autorefs-internal" title="            copick.models.CopickSegmentation" href="../CopickSegmentation/#copick.models.CopickSegmentation">CopickSegmentation</a>]</code>
+              <code><span title="typing.List">List</span>[<a class="autorefs autorefs-internal" title="&lt;code class=&quot;doc-symbol doc-symbol-heading doc-symbol-class&quot;&gt;&lt;/code&gt;            &lt;span class=&quot;doc doc-object-name doc-class-name&quot;&gt;copick.models.CopickSegmentation&lt;/span&gt;" href="../CopickSegmentation/#copick.models.CopickSegmentation">CopickSegmentation</a>]</code>
           –
           <div class="doc-md-description">
             <p>List[CopickSegmentation]: List of user-generated segmentations.</p>
@@ -2991,7 +2998,7 @@ loaded when CopickRun.segmentations is accessed <strong>for the first time</stro
 <p><span class="doc-section-title">Returns:</span></p>
     <ul>
         <li class="doc-section-item field-body">
-              <code><span title="typing.List">List</span>[<a class="autorefs autorefs-internal" title="            copick.models.CopickSegmentation" href="../CopickSegmentation/#copick.models.CopickSegmentation">CopickSegmentation</a>]</code>
+              <code><span title="typing.List">List</span>[<a class="autorefs autorefs-internal" title="&lt;code class=&quot;doc-symbol doc-symbol-heading doc-symbol-class&quot;&gt;&lt;/code&gt;            &lt;span class=&quot;doc doc-object-name doc-class-name&quot;&gt;copick.models.CopickSegmentation&lt;/span&gt;" href="../CopickSegmentation/#copick.models.CopickSegmentation">CopickSegmentation</a>]</code>
           –
           <div class="doc-md-description">
             <p>List[CopickSegmentation]: List of tool-generated segmentations.</p>
@@ -3078,7 +3085,7 @@ loaded when CopickRun.segmentations is accessed <strong>for the first time</stro
 <p><span class="doc-section-title">Returns:</span></p>
     <ul>
         <li class="doc-section-item field-body">
-              <code><span title="typing.List">List</span>[<a class="autorefs autorefs-internal" title="            copick.models.CopickSegmentation" href="../CopickSegmentation/#copick.models.CopickSegmentation">CopickSegmentation</a>]</code>
+              <code><span title="typing.List">List</span>[<a class="autorefs autorefs-internal" title="&lt;code class=&quot;doc-symbol doc-symbol-heading doc-symbol-class&quot;&gt;&lt;/code&gt;            &lt;span class=&quot;doc doc-object-name doc-class-name&quot;&gt;copick.models.CopickSegmentation&lt;/span&gt;" href="../CopickSegmentation/#copick.models.CopickSegmentation">CopickSegmentation</a>]</code>
           –
           <div class="doc-md-description">
             <p>List[CopickSegmentation]: List of segmentations that match the search criteria.</p>
@@ -3140,7 +3147,7 @@ loaded when CopickRun.segmentations is accessed <strong>for the first time</stro
 <p><span class="doc-section-title">Returns:</span></p>
     <ul>
         <li class="doc-section-item field-body">
-<b><code>CopickVoxelSpacing</code></b> (              <code><a class="autorefs autorefs-internal" title="            copick.models.CopickVoxelSpacing" href="../CopickVoxelSpacing/#copick.models.CopickVoxelSpacing">CopickVoxelSpacing</a></code>
+<b><code>CopickVoxelSpacing</code></b> (              <code><a class="autorefs autorefs-internal" title="&lt;code class=&quot;doc-symbol doc-symbol-heading doc-symbol-class&quot;&gt;&lt;/code&gt;            &lt;span class=&quot;doc doc-object-name doc-class-name&quot;&gt;copick.models.CopickVoxelSpacing&lt;/span&gt;" href="../CopickVoxelSpacing/#copick.models.CopickVoxelSpacing">CopickVoxelSpacing</a></code>
 )          –
           <div class="doc-md-description">
             <p>The newly created voxel spacing object.</p>
@@ -3225,7 +3232,7 @@ loaded when CopickRun.segmentations is accessed <strong>for the first time</stro
 <p><span class="doc-section-title">Returns:</span></p>
     <ul>
         <li class="doc-section-item field-body">
-<b><code>CopickPicks</code></b> (              <code><a class="autorefs autorefs-internal" title="            copick.models.CopickPicks" href="../CopickPicks/#copick.models.CopickPicks">CopickPicks</a></code>
+<b><code>CopickPicks</code></b> (              <code><a class="autorefs autorefs-internal" title="&lt;code class=&quot;doc-symbol doc-symbol-heading doc-symbol-class&quot;&gt;&lt;/code&gt;            &lt;span class=&quot;doc doc-object-name doc-class-name&quot;&gt;copick.models.CopickPicks&lt;/span&gt;" href="../CopickPicks/#copick.models.CopickPicks">CopickPicks</a></code>
 )          –
           <div class="doc-md-description">
             <p>The newly created picks object.</p>
@@ -3318,7 +3325,7 @@ is not found in the pickable objects, or if the user ID is not set in the root c
 <p><span class="doc-section-title">Returns:</span></p>
     <ul>
         <li class="doc-section-item field-body">
-<b><code>CopickMesh</code></b> (              <code><a class="autorefs autorefs-internal" title="            copick.models.CopickMesh" href="../CopickMesh/#copick.models.CopickMesh">CopickMesh</a></code>
+<b><code>CopickMesh</code></b> (              <code><a class="autorefs autorefs-internal" title="&lt;code class=&quot;doc-symbol doc-symbol-heading doc-symbol-class&quot;&gt;&lt;/code&gt;            &lt;span class=&quot;doc doc-object-name doc-class-name&quot;&gt;copick.models.CopickMesh&lt;/span&gt;" href="../CopickMesh/#copick.models.CopickMesh">CopickMesh</a></code>
 )          –
           <div class="doc-md-description">
             <p>The newly created mesh object.</p>
@@ -3427,7 +3434,7 @@ is not found in the pickable objects, or if the user ID is not set in the root c
 <p><span class="doc-section-title">Returns:</span></p>
     <ul>
         <li class="doc-section-item field-body">
-<b><code>CopickSegmentation</code></b> (              <code><a class="autorefs autorefs-internal" title="            copick.models.CopickSegmentation" href="../CopickSegmentation/#copick.models.CopickSegmentation">CopickSegmentation</a></code>
+<b><code>CopickSegmentation</code></b> (              <code><a class="autorefs autorefs-internal" title="&lt;code class=&quot;doc-symbol doc-symbol-heading doc-symbol-class&quot;&gt;&lt;/code&gt;            &lt;span class=&quot;doc doc-object-name doc-class-name&quot;&gt;copick.models.CopickSegmentation&lt;/span&gt;" href="../CopickSegmentation/#copick.models.CopickSegmentation">CopickSegmentation</a></code>
 )          –
           <div class="doc-md-description">
             <p>The newly created segmentation object.</p>
@@ -3900,7 +3907,7 @@ voxel spacings, or if the user ID is not set in the root config or supplied.</p>
     
     
       
-      <script id="__config" type="application/json">{"base": "../../../..", "features": ["content.code.copy"], "search": "../../../../assets/javascripts/workers/search.d50fe291.min.js", "tags": null, "translations": {"clipboard.copied": "Copied to clipboard", "clipboard.copy": "Copy to clipboard", "search.result.more.one": "1 more on this page", "search.result.more.other": "# more on this page", "search.result.none": "No matching documents", "search.result.one": "1 matching document", "search.result.other": "# matching documents", "search.result.placeholder": "Type to start searching", "search.result.term.missing": "Missing", "select.version": "Select version"}, "version": null}</script>
+      <script id="__config" type="application/json">{"base": "../../../..", "features": ["content.code.copy", "search.highlight", "search.share", "search.suggest", "content.tooltips"], "search": "../../../../assets/javascripts/workers/search.d50fe291.min.js", "tags": null, "translations": {"clipboard.copied": "Copied to clipboard", "clipboard.copy": "Copy to clipboard", "search.result.more.one": "1 more on this page", "search.result.more.other": "# more on this page", "search.result.none": "No matching documents", "search.result.one": "1 matching document", "search.result.other": "# matching documents", "search.result.placeholder": "Type to start searching", "search.result.term.missing": "Missing", "select.version": "Select version"}, "version": null}</script>
     
     
       <script src="../../../../assets/javascripts/bundle.13a4f30d.min.js"></script>

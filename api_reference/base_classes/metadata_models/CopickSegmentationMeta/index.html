@@ -168,11 +168,18 @@
       </label>
       <nav class="md-search__options" aria-label="Search">
         
+          <a href="javascript:void(0)" class="md-search__icon md-icon" title="Share" aria-label="Share" data-clipboard data-clipboard-text="" data-md-component="search-share" tabindex="-1">
+            
+            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M18 16.08c-.76 0-1.44.3-1.96.77L8.91 12.7c.05-.23.09-.46.09-.7s-.04-.47-.09-.7l7.05-4.11c.54.5 1.25.81 2.04.81a3 3 0 0 0 3-3 3 3 0 0 0-3-3 3 3 0 0 0-3 3c0 .24.04.47.09.7L8.04 9.81C7.5 9.31 6.79 9 6 9a3 3 0 0 0-3 3 3 3 0 0 0 3 3c.79 0 1.5-.31 2.04-.81l7.12 4.15c-.05.21-.08.43-.08.66 0 1.61 1.31 2.91 2.92 2.91s2.92-1.3 2.92-2.91A2.92 2.92 0 0 0 18 16.08"/></svg>
+          </a>
+        
         <button type="reset" class="md-search__icon md-icon" title="Clear" aria-label="Clear" tabindex="-1">
           
           <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M19 6.41 17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/></svg>
         </button>
       </nav>
+      
+        <div class="md-search__suggest" data-md-component="search-suggest"></div>
       
     </form>
     <div class="md-search__output">
@@ -1994,7 +2001,7 @@
 <p><span class="doc-section-title">Attributes:</span></p>
     <ul>
         <li class="doc-section-item field-body">
-          <b><code><a class="autorefs autorefs-internal" title="            user_id (copick.models.CopickSegmentationMeta.user_id)" href="#copick.models.CopickSegmentationMeta.user_id">user_id</a></code></b>
+          <b><code><a class="autorefs autorefs-internal" title="&lt;code class=&quot;doc-symbol doc-symbol-heading doc-symbol-attribute&quot;&gt;&lt;/code&gt;            &lt;span class=&quot;doc doc-object-name doc-attribute-name&quot;&gt;user_id&lt;/span&gt; (&lt;code&gt;copick.models.CopickSegmentationMeta.user_id&lt;/code&gt;)" href="#copick.models.CopickSegmentationMeta.user_id">user_id</a></code></b>
               (<code><span title="str">str</span></code>)
           –
           <div class="doc-md-description">
@@ -2002,7 +2009,7 @@
           </div>
         </li>
         <li class="doc-section-item field-body">
-          <b><code><a class="autorefs autorefs-internal" title="            session_id (copick.models.CopickSegmentationMeta.session_id)" href="#copick.models.CopickSegmentationMeta.session_id">session_id</a></code></b>
+          <b><code><a class="autorefs autorefs-internal" title="&lt;code class=&quot;doc-symbol doc-symbol-heading doc-symbol-attribute&quot;&gt;&lt;/code&gt;            &lt;span class=&quot;doc doc-object-name doc-attribute-name&quot;&gt;session_id&lt;/span&gt; (&lt;code&gt;copick.models.CopickSegmentationMeta.session_id&lt;/code&gt;)" href="#copick.models.CopickSegmentationMeta.session_id">session_id</a></code></b>
               (<code><span title="typing.Union">Union</span>[<span title="str">str</span>, <span title="typing.Literal">Literal</span>[&#39;0&#39;]]</code>)
           –
           <div class="doc-md-description">
@@ -2011,7 +2018,7 @@ tool.</p>
           </div>
         </li>
         <li class="doc-section-item field-body">
-          <b><code><a class="autorefs autorefs-internal" title="            name (copick.models.CopickSegmentationMeta.name)" href="#copick.models.CopickSegmentationMeta.name">name</a></code></b>
+          <b><code><a class="autorefs autorefs-internal" title="&lt;code class=&quot;doc-symbol doc-symbol-heading doc-symbol-attribute&quot;&gt;&lt;/code&gt;            &lt;span class=&quot;doc doc-object-name doc-attribute-name&quot;&gt;name&lt;/span&gt; (&lt;code&gt;copick.models.CopickSegmentationMeta.name&lt;/code&gt;)" href="#copick.models.CopickSegmentationMeta.name">name</a></code></b>
               (<code><span title="str">str</span></code>)
           –
           <div class="doc-md-description">
@@ -2019,7 +2026,7 @@ tool.</p>
           </div>
         </li>
         <li class="doc-section-item field-body">
-          <b><code><a class="autorefs autorefs-internal" title="            is_multilabel (copick.models.CopickSegmentationMeta.is_multilabel)" href="#copick.models.CopickSegmentationMeta.is_multilabel">is_multilabel</a></code></b>
+          <b><code><a class="autorefs autorefs-internal" title="&lt;code class=&quot;doc-symbol doc-symbol-heading doc-symbol-attribute&quot;&gt;&lt;/code&gt;            &lt;span class=&quot;doc doc-object-name doc-attribute-name&quot;&gt;is_multilabel&lt;/span&gt; (&lt;code&gt;copick.models.CopickSegmentationMeta.is_multilabel&lt;/code&gt;)" href="#copick.models.CopickSegmentationMeta.is_multilabel">is_multilabel</a></code></b>
               (<code><span title="bool">bool</span></code>)
           –
           <div class="doc-md-description">
@@ -2028,7 +2035,7 @@ segmentation.</p>
           </div>
         </li>
         <li class="doc-section-item field-body">
-          <b><code><a class="autorefs autorefs-internal" title="            voxel_size (copick.models.CopickSegmentationMeta.voxel_size)" href="#copick.models.CopickSegmentationMeta.voxel_size">voxel_size</a></code></b>
+          <b><code><a class="autorefs autorefs-internal" title="&lt;code class=&quot;doc-symbol doc-symbol-heading doc-symbol-attribute&quot;&gt;&lt;/code&gt;            &lt;span class=&quot;doc doc-object-name doc-attribute-name&quot;&gt;voxel_size&lt;/span&gt; (&lt;code&gt;copick.models.CopickSegmentationMeta.voxel_size&lt;/code&gt;)" href="#copick.models.CopickSegmentationMeta.voxel_size">voxel_size</a></code></b>
               (<code><span title="float">float</span></code>)
           –
           <div class="doc-md-description">
@@ -2205,7 +2212,7 @@ segmentation.</p>
     
     
       
-      <script id="__config" type="application/json">{"base": "../../../..", "features": ["content.code.copy"], "search": "../../../../assets/javascripts/workers/search.d50fe291.min.js", "tags": null, "translations": {"clipboard.copied": "Copied to clipboard", "clipboard.copy": "Copy to clipboard", "search.result.more.one": "1 more on this page", "search.result.more.other": "# more on this page", "search.result.none": "No matching documents", "search.result.one": "1 matching document", "search.result.other": "# matching documents", "search.result.placeholder": "Type to start searching", "search.result.term.missing": "Missing", "select.version": "Select version"}, "version": null}</script>
+      <script id="__config" type="application/json">{"base": "../../../..", "features": ["content.code.copy", "search.highlight", "search.share", "search.suggest", "content.tooltips"], "search": "../../../../assets/javascripts/workers/search.d50fe291.min.js", "tags": null, "translations": {"clipboard.copied": "Copied to clipboard", "clipboard.copy": "Copy to clipboard", "search.result.more.one": "1 more on this page", "search.result.more.other": "# more on this page", "search.result.none": "No matching documents", "search.result.one": "1 matching document", "search.result.other": "# matching documents", "search.result.placeholder": "Type to start searching", "search.result.term.missing": "Missing", "select.version": "Select version"}, "version": null}</script>
     
     
       <script src="../../../../assets/javascripts/bundle.13a4f30d.min.js"></script>

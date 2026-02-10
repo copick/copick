@@ -168,11 +168,18 @@
       </label>
       <nav class="md-search__options" aria-label="Search">
         
+          <a href="javascript:void(0)" class="md-search__icon md-icon" title="Share" aria-label="Share" data-clipboard data-clipboard-text="" data-md-component="search-share" tabindex="-1">
+            
+            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M18 16.08c-.76 0-1.44.3-1.96.77L8.91 12.7c.05-.23.09-.46.09-.7s-.04-.47-.09-.7l7.05-4.11c.54.5 1.25.81 2.04.81a3 3 0 0 0 3-3 3 3 0 0 0-3-3 3 3 0 0 0-3 3c0 .24.04.47.09.7L8.04 9.81C7.5 9.31 6.79 9 6 9a3 3 0 0 0-3 3 3 3 0 0 0 3 3c.79 0 1.5-.31 2.04-.81l7.12 4.15c-.05.21-.08.43-.08.66 0 1.61 1.31 2.91 2.92 2.91s2.92-1.3 2.92-2.91A2.92 2.92 0 0 0 18 16.08"/></svg>
+          </a>
+        
         <button type="reset" class="md-search__icon md-icon" title="Clear" aria-label="Clear" tabindex="-1">
           
           <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M19 6.41 17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/></svg>
         </button>
       </nav>
+      
+        <div class="md-search__suggest" data-md-component="search-suggest"></div>
       
     </form>
     <div class="md-search__output">
@@ -2174,7 +2181,7 @@
 <p><span class="doc-section-title">Attributes:</span></p>
     <ul>
         <li class="doc-section-item field-body">
-          <b><code><a class="autorefs autorefs-internal" title="            name (copick.models.PickableObject.name)" href="#copick.models.PickableObject.name">name</a></code></b>
+          <b><code><a class="autorefs autorefs-internal" title="&lt;code class=&quot;doc-symbol doc-symbol-heading doc-symbol-attribute&quot;&gt;&lt;/code&gt;            &lt;span class=&quot;doc doc-object-name doc-attribute-name&quot;&gt;name&lt;/span&gt; (&lt;code&gt;copick.models.PickableObject.name&lt;/code&gt;)" href="#copick.models.PickableObject.name">name</a></code></b>
               (<code><span title="str">str</span></code>)
           –
           <div class="doc-md-description">
@@ -2182,7 +2189,7 @@
           </div>
         </li>
         <li class="doc-section-item field-body">
-          <b><code><a class="autorefs autorefs-internal" title="            is_particle (copick.models.PickableObject.is_particle)" href="#copick.models.PickableObject.is_particle">is_particle</a></code></b>
+          <b><code><a class="autorefs autorefs-internal" title="&lt;code class=&quot;doc-symbol doc-symbol-heading doc-symbol-attribute&quot;&gt;&lt;/code&gt;            &lt;span class=&quot;doc doc-object-name doc-attribute-name&quot;&gt;is_particle&lt;/span&gt; (&lt;code&gt;copick.models.PickableObject.is_particle&lt;/code&gt;)" href="#copick.models.PickableObject.is_particle">is_particle</a></code></b>
               (<code><span title="bool">bool</span></code>)
           –
           <div class="doc-md-description">
@@ -2190,7 +2197,7 @@
           </div>
         </li>
         <li class="doc-section-item field-body">
-          <b><code><a class="autorefs autorefs-internal" title="            label (copick.models.PickableObject.label)" href="#copick.models.PickableObject.label">label</a></code></b>
+          <b><code><a class="autorefs autorefs-internal" title="&lt;code class=&quot;doc-symbol doc-symbol-heading doc-symbol-attribute&quot;&gt;&lt;/code&gt;            &lt;span class=&quot;doc doc-object-name doc-attribute-name&quot;&gt;label&lt;/span&gt; (&lt;code&gt;copick.models.PickableObject.label&lt;/code&gt;)" href="#copick.models.PickableObject.label">label</a></code></b>
               (<code><span title="typing.Optional">Optional</span>[<span title="int">int</span>]</code>)
           –
           <div class="doc-md-description">
@@ -2198,7 +2205,7 @@
           </div>
         </li>
         <li class="doc-section-item field-body">
-          <b><code><a class="autorefs autorefs-internal" title="            color (copick.models.PickableObject.color)" href="#copick.models.PickableObject.color">color</a></code></b>
+          <b><code><a class="autorefs autorefs-internal" title="&lt;code class=&quot;doc-symbol doc-symbol-heading doc-symbol-attribute&quot;&gt;&lt;/code&gt;            &lt;span class=&quot;doc doc-object-name doc-attribute-name&quot;&gt;color&lt;/span&gt; (&lt;code&gt;copick.models.PickableObject.color&lt;/code&gt;)" href="#copick.models.PickableObject.color">color</a></code></b>
               (<code><span title="typing.Optional">Optional</span>[<span title="typing.Tuple">Tuple</span>[<span title="int">int</span>, <span title="int">int</span>, <span title="int">int</span>, <span title="int">int</span>]]</code>)
           –
           <div class="doc-md-description">
@@ -2206,7 +2213,7 @@
           </div>
         </li>
         <li class="doc-section-item field-body">
-          <b><code><a class="autorefs autorefs-internal" title="            emdb_id (copick.models.PickableObject.emdb_id)" href="#copick.models.PickableObject.emdb_id">emdb_id</a></code></b>
+          <b><code><a class="autorefs autorefs-internal" title="&lt;code class=&quot;doc-symbol doc-symbol-heading doc-symbol-attribute&quot;&gt;&lt;/code&gt;            &lt;span class=&quot;doc doc-object-name doc-attribute-name&quot;&gt;emdb_id&lt;/span&gt; (&lt;code&gt;copick.models.PickableObject.emdb_id&lt;/code&gt;)" href="#copick.models.PickableObject.emdb_id">emdb_id</a></code></b>
               (<code><span title="typing.Optional">Optional</span>[<span title="str">str</span>]</code>)
           –
           <div class="doc-md-description">
@@ -2214,7 +2221,7 @@
           </div>
         </li>
         <li class="doc-section-item field-body">
-          <b><code><a class="autorefs autorefs-internal" title="            pdb_id (copick.models.PickableObject.pdb_id)" href="#copick.models.PickableObject.pdb_id">pdb_id</a></code></b>
+          <b><code><a class="autorefs autorefs-internal" title="&lt;code class=&quot;doc-symbol doc-symbol-heading doc-symbol-attribute&quot;&gt;&lt;/code&gt;            &lt;span class=&quot;doc doc-object-name doc-attribute-name&quot;&gt;pdb_id&lt;/span&gt; (&lt;code&gt;copick.models.PickableObject.pdb_id&lt;/code&gt;)" href="#copick.models.PickableObject.pdb_id">pdb_id</a></code></b>
               (<code><span title="typing.Optional">Optional</span>[<span title="str">str</span>]</code>)
           –
           <div class="doc-md-description">
@@ -2222,7 +2229,7 @@
           </div>
         </li>
         <li class="doc-section-item field-body">
-          <b><code><a class="autorefs autorefs-internal" title="            identifier (copick.models.PickableObject.identifier)" href="#copick.models.PickableObject.identifier">identifier</a></code></b>
+          <b><code><a class="autorefs autorefs-internal" title="&lt;code class=&quot;doc-symbol doc-symbol-heading doc-symbol-attribute&quot;&gt;&lt;/code&gt;            &lt;span class=&quot;doc doc-object-name doc-attribute-name&quot;&gt;identifier&lt;/span&gt; (&lt;code&gt;copick.models.PickableObject.identifier&lt;/code&gt;)" href="#copick.models.PickableObject.identifier">identifier</a></code></b>
               (<code><span title="typing.Optional">Optional</span>[<span title="str">str</span>]</code>)
           –
           <div class="doc-md-description">
@@ -2230,7 +2237,7 @@
           </div>
         </li>
         <li class="doc-section-item field-body">
-          <b><code><a class="autorefs autorefs-internal" title="            map_threshold (copick.models.PickableObject.map_threshold)" href="#copick.models.PickableObject.map_threshold">map_threshold</a></code></b>
+          <b><code><a class="autorefs autorefs-internal" title="&lt;code class=&quot;doc-symbol doc-symbol-heading doc-symbol-attribute&quot;&gt;&lt;/code&gt;            &lt;span class=&quot;doc doc-object-name doc-attribute-name&quot;&gt;map_threshold&lt;/span&gt; (&lt;code&gt;copick.models.PickableObject.map_threshold&lt;/code&gt;)" href="#copick.models.PickableObject.map_threshold">map_threshold</a></code></b>
               (<code><span title="typing.Optional">Optional</span>[<span title="float">float</span>]</code>)
           –
           <div class="doc-md-description">
@@ -2238,7 +2245,7 @@
           </div>
         </li>
         <li class="doc-section-item field-body">
-          <b><code><a class="autorefs autorefs-internal" title="            radius (copick.models.PickableObject.radius)" href="#copick.models.PickableObject.radius">radius</a></code></b>
+          <b><code><a class="autorefs autorefs-internal" title="&lt;code class=&quot;doc-symbol doc-symbol-heading doc-symbol-attribute&quot;&gt;&lt;/code&gt;            &lt;span class=&quot;doc doc-object-name doc-attribute-name&quot;&gt;radius&lt;/span&gt; (&lt;code&gt;copick.models.PickableObject.radius&lt;/code&gt;)" href="#copick.models.PickableObject.radius">radius</a></code></b>
               (<code><span title="typing.Optional">Optional</span>[<span title="float">float</span>]</code>)
           –
           <div class="doc-md-description">
@@ -2246,7 +2253,7 @@
           </div>
         </li>
         <li class="doc-section-item field-body">
-          <b><code><a class="autorefs autorefs-internal" title="            metadata (copick.models.PickableObject.metadata)" href="#copick.models.PickableObject.metadata">metadata</a></code></b>
+          <b><code><a class="autorefs autorefs-internal" title="&lt;code class=&quot;doc-symbol doc-symbol-heading doc-symbol-attribute&quot;&gt;&lt;/code&gt;            &lt;span class=&quot;doc doc-object-name doc-attribute-name&quot;&gt;metadata&lt;/span&gt; (&lt;code&gt;copick.models.PickableObject.metadata&lt;/code&gt;)" href="#copick.models.PickableObject.metadata">metadata</a></code></b>
               (<code><span title="typing.Optional">Optional</span>[<span title="typing.Dict">Dict</span>[<span title="str">str</span>, <span title="typing.Any">Any</span>]]</code>)
           –
           <div class="doc-md-description">
@@ -2609,7 +2616,7 @@
     
     
       
-      <script id="__config" type="application/json">{"base": "../../../..", "features": ["content.code.copy"], "search": "../../../../assets/javascripts/workers/search.d50fe291.min.js", "tags": null, "translations": {"clipboard.copied": "Copied to clipboard", "clipboard.copy": "Copy to clipboard", "search.result.more.one": "1 more on this page", "search.result.more.other": "# more on this page", "search.result.none": "No matching documents", "search.result.one": "1 matching document", "search.result.other": "# matching documents", "search.result.placeholder": "Type to start searching", "search.result.term.missing": "Missing", "select.version": "Select version"}, "version": null}</script>
+      <script id="__config" type="application/json">{"base": "../../../..", "features": ["content.code.copy", "search.highlight", "search.share", "search.suggest", "content.tooltips"], "search": "../../../../assets/javascripts/workers/search.d50fe291.min.js", "tags": null, "translations": {"clipboard.copied": "Copied to clipboard", "clipboard.copy": "Copy to clipboard", "search.result.more.one": "1 more on this page", "search.result.more.other": "# more on this page", "search.result.none": "No matching documents", "search.result.one": "1 matching document", "search.result.other": "# matching documents", "search.result.placeholder": "Type to start searching", "search.result.term.missing": "Missing", "select.version": "Select version"}, "version": null}</script>
     
     
       <script src="../../../../assets/javascripts/bundle.13a4f30d.min.js"></script>
