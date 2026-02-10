@@ -87,6 +87,10 @@ def from_czcdp_datasets(
     from copick.impl.cryoet_data_portal import CopickConfigCDP, CopickRootCDP
     from copick.util.portal import objects_from_datasets
 
+    # Automatically create the overlay directory if it does not exist
+    if overlay_fs_args is None:
+        overlay_fs_args = {"auto_mkdir": True}
+
     objects = objects_from_datasets(dataset_ids)
     config = CopickConfigCDP(
         name="CZ cryoET Data Portal Dataset",
@@ -95,7 +99,7 @@ def from_czcdp_datasets(
         version=__version__,
         pickable_objects=objects,
         overlay_root=overlay_root,
-        overlay_fs_args=overlay_fs_args if overlay_fs_args else {},
+        overlay_fs_args=overlay_fs_args,
         dataset_ids=dataset_ids,
         user_id=user_id,
         session_id=session_id,
