@@ -876,6 +876,7 @@ class CopickRun:
         object_name: Union[str, Iterable[str]] = None,
         user_id: Union[str, Iterable[str]] = None,
         session_id: Union[str, Iterable[str]] = None,
+        **kwargs,
     ) -> List["CopickPicks"]:
         """Get picks by name, user_id or session_id (or combinations).
 
@@ -883,6 +884,7 @@ class CopickRun:
             object_name: Name of the object to search for.
             user_id: User ID to search for.
             session_id: Session ID to search for.
+            **kwargs: Additional parameters for subclass implementations.
 
         Returns:
             List[CopickPicks]: List of picks that match the search criteria.
@@ -994,6 +996,7 @@ class CopickRun:
         is_multilabel: bool = None,
         name: Union[str, Iterable[str]] = None,
         voxel_size: Union[float, Iterable[float]] = None,
+        **kwargs,
     ) -> List["CopickSegmentation"]:
         """Get segmentations by user_id, session_id, name, type or voxel_size (or combinations).
 
@@ -1003,6 +1006,7 @@ class CopickRun:
             is_multilabel: Whether the segmentation is multilabel or not.
             name: Name of the segmentation to search for.
             voxel_size: Voxel size to search for.
+            **kwargs: Additional parameters for subclass implementations.
 
         Returns:
             List[CopickSegmentation]: List of segmentations that match the search criteria.
@@ -1500,11 +1504,12 @@ class CopickVoxelSpacing:
                 return tomo
         return None
 
-    def get_tomograms(self, tomo_type: str) -> List["CopickTomogram"]:
+    def get_tomograms(self, tomo_type: str = None, **kwargs) -> List["CopickTomogram"]:
         """Get tomograms by type.
 
         Args:
             tomo_type: Type of the tomograms to retrieve.
+            **kwargs: Additional parameters for subclass implementations.
 
         Returns:
             List[CopickTomogram]: The tomograms with the given type.

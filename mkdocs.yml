@@ -20,6 +20,14 @@ theme:
   logo: assets/logo.png
   features:
     - content.code.copy
+#    - navigation.tabs
+#    - navigation.sections
+#    - navigation.expand
+#    - navigation.top
+    - search.highlight
+    - search.share
+    - search.suggest
+    - content.tooltips
 
 nav:
   - Home: index.md
@@ -42,6 +50,7 @@ nav:
       - Copick and Album: "examples/tutorials/album.md"
       - Detecting Sample Boundaries: "examples/tutorials/sample_boundaries.md"
       - Copick and membrain-seg: "examples/tutorials/membrain.md"
+      - Copick-MCP: "examples/tutorials/copick_mcp.md"
     - Snippets: "examples/snippets.md"
 
   - Tools: tools.md
@@ -140,6 +149,7 @@ markdown_extensions:
   - pymdownx.snippets:
       check_paths: true
       base_path: [ docs/snippets, docs/templates, "." ]
+  - pymdownx.keys
 
 extra_css:
   - stylesheets/extra.css

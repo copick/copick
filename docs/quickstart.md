@@ -1,7 +1,7 @@
 
 
 ## Requirements
-copick runs on Python 3.9 and above on Linux, MacOS, and Windows.
+copick runs on Python 3.10 and above on Linux, MacOS, and Windows.
 
 It requires the following packages:
 

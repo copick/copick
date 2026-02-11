@@ -119,3 +119,21 @@ An [album](https://album.solutions)-catalog for CellCanvas, including solutions 
 - :fontawesome-solid-question: __Docs__
 
 </div>
+
+---
+
+## **AI Integration**
+
+### copick-mcp
+
+A [Model Context Protocol](https://modelcontextprotocol.io) server that enables Claude AI (Claude Desktop and Claude Code)
+to explore copick projects and discover CLI commands for building processing pipelines.
+
+<div class="grid cards" markdown>
+
+- :fontawesome-solid-code: [__Repository__](https://github.com/copick/copick-mcp)
+- :fontawesome-solid-circle-info: [__Tutorial__](examples/tutorials/copick_mcp.md)
+- :fontawesome-solid-globe: __Website__
+- :fontawesome-solid-question: __Docs__
+
+</div>
