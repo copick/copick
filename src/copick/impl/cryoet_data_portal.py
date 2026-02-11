@@ -115,16 +115,6 @@ class PortalAnnotationMeta(BaseModel):
             return _PortalAnnotationFile(**v.to_dict())
         return v
 
-    @classmethod
-    def from_annotation_file(cls, source: cdp.AnnotationFile):
-        return cls(
-            portal_annotation_file=_PortalAnnotationFile(**source.to_dict()),
-            portal_annotation_shape=_PortalAnnotationShape(**source.annotation_shape.to_dict()),
-            portal_annotation=_PortalAnnotation(**source.annotation_shape.annotation.to_dict()),
-            voxel_spacing=source.tomogram_voxel_spacing.voxel_spacing,
-            portal_author_names=[a.name for a in source.annotation_shape.annotation.authors],
-        )
-
     @property
     def annotation_id(self) -> int:
         return self.portal_annotation.id
@@ -177,13 +167,6 @@ class PortalAnnotationMeta(BaseModel):
 class PortalTomogramMeta(BaseModel):
     portal_metadata: Optional[_PortalTomogram] = _PortalTomogram()
     portal_authors: Optional[List[str]] = []
-
-    @classmethod
-    def from_tomogram(cls, source: cdp.Tomogram):
-        return cls(
-            portal_metadata=_PortalTomogram(**source.to_dict()),
-            portal_authors=[a.name for a in source.authors],
-        )
 
     @classmethod
     def from_portal_cached(cls, source: cdp.Tomogram, author_names: List[str]):
@@ -419,21 +402,6 @@ class CopickMeshCDP(CopickMeshOverlay):
 
 class CopickSegmentationMetaCDP(CopickSegmentationMeta):
     portal_metadata: Optional[PortalAnnotationMeta] = PortalAnnotationMeta()
-
-    @classmethod
-    def from_portal(cls, source: cdp.AnnotationFile, name: Optional[str] = None):
-        object_name = f"{name}" if name else f"{camel(source.annotation_shape.annotation.object_name)}-{source.id}"
-
-        portal_meta = PortalAnnotationMeta.from_annotation_file(source)
-
-        return cls(
-            is_multilabel=False,
-            voxel_size=source.tomogram_voxel_spacing.voxel_spacing,
-            user_id="data-portal",
-            session_id=str(source.id),
-            name=object_name,
-            portal_metadata=portal_meta,
-        )
 
     @property
     def portal_annotation_id(self) -> int:
