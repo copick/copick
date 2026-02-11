@@ -116,7 +116,7 @@ def read_index_map(path: str) -> Dict[int, str]:
         duplicates = [i for i in set(indices) if indices.count(i) > 1]
         raise ValueError(f"Duplicate tomogram indices in mapping: {duplicates}")
 
-    return dict(zip(indices, run_names))
+    return dict(zip(indices, run_names, strict=False), strict=True)
 
 
 def read_index_map_inverse(path: str) -> Dict[str, int]:
