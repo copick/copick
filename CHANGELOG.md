@@ -1,5 +1,25 @@
 # Changelog
 
+## [1.19.0](https://github.com/copick/copick/compare/copick-v1.18.0...copick-v1.19.0) (2026-02-11)
+
+
+### ✨ Features
+
+* Add chimerax-copick tutorial ([#192](https://github.com/copick/copick/issues/192)) ([8967b2e](https://github.com/copick/copick/commit/8967b2edd0d4e269ba3f7d834ae4198c69460346))
+* Add copick MCP docs. ([#182](https://github.com/copick/copick/issues/182)) ([f172f41](https://github.com/copick/copick/commit/f172f41cbd60e8e115c7527ad85e3815c74a1ccd))
+* Global cache for cryoET data portal annotations/tomograms ([#194](https://github.com/copick/copick/issues/194)) ([135add9](https://github.com/copick/copick/commit/135add9a61bc7c9e4bfab474350d93e1b163e89b))
+* Remove Python 3.9 support. ([#185](https://github.com/copick/copick/issues/185)) ([1ca3806](https://github.com/copick/copick/commit/1ca3806f9403aa7f08bbc81757e2ebd2255f50fe))
+
+
+### 🐞 Bug Fixes
+
+* Add mcp tutorial to docs pages.  ([#184](https://github.com/copick/copick/issues/184)) ([08637d3](https://github.com/copick/copick/commit/08637d31e8f9b6596518debcff9fb21dc122f504))
+* bump black from 25.1.0 to 26.1.0 ([#191](https://github.com/copick/copick/issues/191)) ([2fa248e](https://github.com/copick/copick/commit/2fa248edd52665fe9be493ff0c1209c1698eee51))
+* bump click from 8.2.1 to 8.3.1 ([#188](https://github.com/copick/copick/issues/188)) ([2de8268](https://github.com/copick/copick/commit/2de8268743d92f6588e82ed31a242182730f63b7))
+* bump mkdocs-material from 9.6.14 to 9.7.1 ([#187](https://github.com/copick/copick/issues/187)) ([cf41fe6](https://github.com/copick/copick/commit/cf41fe684e97831d54b15586f6294c769c69f242))
+* bump pandas from 2.3.2 to 2.3.3 ([#189](https://github.com/copick/copick/issues/189)) ([36d5066](https://github.com/copick/copick/commit/36d5066aa739236832bb2b798b458c3e1922e556))
+* bump s3fs from 2025.10.0 to 2026.2.0 ([#190](https://github.com/copick/copick/issues/190)) ([018e7e6](https://github.com/copick/copick/commit/018e7e61647c3c6a08ff3a699865753948552edc))
+
 ## [1.18.0](https://github.com/copick/copick/compare/copick-v1.17.2...copick-v1.18.0) (2026-02-06)
 
 
