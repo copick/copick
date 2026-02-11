@@ -50,31 +50,29 @@ def sample_csv_picks():
 @pytest.fixture
 def sample_em_file():
     """Create a sample EM motivelist file for testing."""
-    with tempfile.NamedTemporaryFile(suffix=".em", delete=False) as tmp:
+    with tempfile.TemporaryDirectory() as tmpdir:
+        em_path = Path(tmpdir) / "motivelist.em"
         # Create a simple EM motivelist (20 x N array format)
+        # emfile requires 3D array, so we use shape (1, 20, n_particles)
         # See TOM toolbox documentation for motivelist format
         n_particles = 3
-        data = np.zeros((20, n_particles), dtype=np.float32)
+        data = np.zeros((1, 20, n_particles), dtype=np.float32)
 
         # Set positions (columns 8, 9, 10 in 1-indexed, so 7, 8, 9 in 0-indexed)
-        data[7, :] = [10.0, 20.0, 30.0]  # X positions in pixels
-        data[8, :] = [15.0, 25.0, 35.0]  # Y positions in pixels
-        data[9, :] = [20.0, 30.0, 40.0]  # Z positions in pixels
+        data[0, 7, :] = [10.0, 20.0, 30.0]  # X positions in pixels
+        data[0, 8, :] = [15.0, 25.0, 35.0]  # Y positions in pixels
+        data[0, 9, :] = [20.0, 30.0, 40.0]  # Z positions in pixels
 
         # Set Euler angles (columns 17, 18, 19 in 1-indexed)
-        data[16, :] = [0.0, 0.0, 0.0]  # Phi
-        data[17, :] = [0.0, 0.0, 0.0]  # Psi
-        data[18, :] = [0.0, 0.0, 0.0]  # Theta
+        data[0, 16, :] = [0.0, 0.0, 0.0]  # Phi
+        data[0, 17, :] = [0.0, 0.0, 0.0]  # Psi
+        data[0, 18, :] = [0.0, 0.0, 0.0]  # Theta
 
         # Set class/tomogram number
-        data[4, :] = [1, 1, 1]  # Tomogram number
+        data[0, 4, :] = [1, 1, 1]  # Tomogram number
 
-        emfile.write(tmp.name, data)
-        yield tmp.name
-
-    with contextlib.suppress(PermissionError, OSError):
-        if os.path.exists(tmp.name):
-            os.unlink(tmp.name)
+        emfile.write(str(em_path), data)
+        yield str(em_path)
 
 
 @pytest.fixture
@@ -82,12 +80,19 @@ def sample_dynamo_table():
     """Create a sample Dynamo table file for testing."""
     with tempfile.NamedTemporaryFile(suffix=".tbl", delete=False, mode="w") as tmp:
         # Create minimal Dynamo table with required columns
-        # Format: tag tomo x y z tdrot tilt narot dx dy dz ...
-        # Column indices (1-indexed): 1=tag, 4=x, 5=y, 6=z, 7=tdrot, 8=tilt, 9=narot
+        # dynamotable columns (35 total):
+        # 1:tag, 2:aligned_value, 3:averaged_value, 4:dx, 5:dy, 6:dz, 7:tdrot, 8:tilt, 9:narot,
+        # 10:cc, 11:cc2, 12:cpu, 13:ftype, 14:ymintilt, 15:ymaxtilt, 16:xmintilt, 17:xmaxtilt,
+        # 18:fs1, 19:fs2, 20:tomo, 21:reg, 22:class, 23:annotation, 24:x, 25:y, 26:z,
+        # 27:dshift, 28:daxis, 29:dnarot, 30:dcc, 31:otag, 32:npar, 33:undefined1, 34:ref, 35:sref
+        # Key columns: tomo (20), x (24), y (25), z (26)
+        # fmt: off
         lines = [
-            "1 1 0 10.0 15.0 20.0 0.0 0.0 0.0 0.0 0.0 0.0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0",
-            "2 1 0 20.0 25.0 30.0 0.0 0.0 0.0 0.0 0.0 0.0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0",
+            # tag aligned averaged dx dy dz tdrot tilt narot cc cc2 cpu ftype ymint ymaxt xmint xmaxt fs1 fs2 tomo reg class annot x y z dshift daxis dnarot dcc otag npar undef ref sref
+            "1 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 1 0 0 0 10.0 15.0 20.0 0 0 0 0 0 0 0 0 0",
+            "2 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 1 0 0 0 20.0 25.0 30.0 0 0 0 0 0 0 0 0 0",
         ]
+        # fmt: on
         tmp.write("\n".join(lines))
         tmp.flush()
         yield tmp.name
@@ -132,6 +137,106 @@ def sample_tiff_volume():
         np.random.seed(42)
         volume = np.random.randn(32, 32, 32).astype(np.float32)
         tifffile.imwrite(tmp.name, volume)
+        yield tmp.name
+
+    with contextlib.suppress(PermissionError, OSError):
+        if os.path.exists(tmp.name):
+            os.unlink(tmp.name)
+
+
+@pytest.fixture
+def sample_index_map():
+    """Create a sample index map CSV file for testing (comma-separated, no header)."""
+    with tempfile.NamedTemporaryFile(suffix=".csv", delete=False, mode="w") as tmp:
+        # Format: index,run_name (comma or tab separated, no header)
+        tmp.write("1,TS_001\n")
+        tmp.write("2,TS_002\n")
+        tmp.write("3,TS_003\n")
+        tmp.flush()
+        yield tmp.name
+
+    with contextlib.suppress(PermissionError, OSError):
+        if os.path.exists(tmp.name):
+            os.unlink(tmp.name)
+
+
+@pytest.fixture
+def sample_star_with_tomo_name():
+    """Create a sample STAR file with _rlnTomoName column for testing."""
+    with tempfile.NamedTemporaryFile(suffix=".star", delete=False, mode="w") as tmp:
+        content = """
+data_particles
+
+loop_
+_rlnCoordinateX #1
+_rlnCoordinateY #2
+_rlnCoordinateZ #3
+_rlnAngleRot #4
+_rlnAngleTilt #5
+_rlnAnglePsi #6
+_rlnTomoName #7
+10.0 15.0 20.0 0.0 0.0 0.0 TS_001
+20.0 25.0 30.0 0.0 0.0 0.0 TS_001
+30.0 35.0 40.0 0.0 0.0 0.0 TS_002
+"""
+        tmp.write(content)
+        tmp.flush()
+        yield tmp.name
+
+    with contextlib.suppress(PermissionError, OSError):
+        if os.path.exists(tmp.name):
+            os.unlink(tmp.name)
+
+
+@pytest.fixture
+def sample_em_file_multi_tomo():
+    """Create a sample EM motivelist file with multiple tomogram indices for testing."""
+    with tempfile.TemporaryDirectory() as tmpdir:
+        em_path = Path(tmpdir) / "motivelist.em"
+
+        # Create a simple EM motivelist (20 x N array format)
+        # emfile requires 3D array, so we use shape (1, 20, n_particles)
+        n_particles = 4
+        data = np.zeros((1, 20, n_particles), dtype=np.float32)
+
+        # Set positions (columns 8, 9, 10 in 1-indexed, so 7, 8, 9 in 0-indexed)
+        data[0, 7, :] = [10.0, 20.0, 30.0, 40.0]  # X positions in pixels
+        data[0, 8, :] = [15.0, 25.0, 35.0, 45.0]  # Y positions in pixels
+        data[0, 9, :] = [20.0, 30.0, 40.0, 50.0]  # Z positions in pixels
+
+        # Set Euler angles (columns 17, 18, 19 in 1-indexed)
+        data[0, 16, :] = [0.0, 0.0, 0.0, 0.0]  # Phi
+        data[0, 17, :] = [0.0, 0.0, 0.0, 0.0]  # Psi
+        data[0, 18, :] = [0.0, 0.0, 0.0, 0.0]  # Theta
+
+        # Set tomogram number - particles from different tomograms
+        data[0, 4, :] = [1, 1, 2, 2]  # Tomogram numbers
+
+        emfile.write(str(em_path), data)
+        yield str(em_path)
+
+
+@pytest.fixture
+def sample_dynamo_table_multi_tomo():
+    """Create a sample Dynamo table file with multiple tomogram indices for testing."""
+    with tempfile.NamedTemporaryFile(suffix=".tbl", delete=False, mode="w") as tmp:
+        # Create Dynamo table with particles from different tomograms
+        # dynamotable columns (35 total):
+        # 1:tag, 2:aligned_value, 3:averaged_value, 4:dx, 5:dy, 6:dz, 7:tdrot, 8:tilt, 9:narot,
+        # 10:cc, 11:cc2, 12:cpu, 13:ftype, 14:ymintilt, 15:ymaxtilt, 16:xmintilt, 17:xmaxtilt,
+        # 18:fs1, 19:fs2, 20:tomo, 21:reg, 22:class, 23:annotation, 24:x, 25:y, 26:z,
+        # 27:dshift, 28:daxis, 29:dnarot, 30:dcc, 31:otag, 32:npar, 33:undefined1, 34:ref, 35:sref
+        # Key columns: tomo (20), x (24), y (25), z (26)
+        # fmt: off
+        lines = [
+            # tag aligned averaged dx dy dz tdrot tilt narot cc cc2 cpu ftype ymint ymaxt xmint xmaxt fs1 fs2 tomo reg class annot x y z dshift daxis dnarot dcc otag npar undef ref sref
+            "1 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 1 0 0 0 10.0 15.0 20.0 0 0 0 0 0 0 0 0 0",
+            "2 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 1 0 0 0 20.0 25.0 30.0 0 0 0 0 0 0 0 0 0",
+            "3 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 2 0 0 0 30.0 35.0 40.0 0 0 0 0 0 0 0 0 0",
+        ]
+        # fmt: on
+        tmp.write("\n".join(lines))
+        tmp.flush()
         yield tmp.name
 
     with contextlib.suppress(PermissionError, OSError):
@@ -267,6 +372,233 @@ class TestPicksImport:
         assert result.exit_code == 0, f"Command failed: {result.output}"
 
 
+class TestSpecializedPicksImport:
+    """Test cases for specialized picks import commands (picks-em, picks-dynamo, picks-relion)."""
+
+    def test_add_picks_em_basic(self, test_payload, runner, sample_em_file_multi_tomo, sample_index_map):
+        """Test batch import from EM motivelist with index map."""
+        config_file = test_payload["cfg_file"]
+
+        result = runner.invoke(
+            add,
+            [
+                "picks-em",
+                "--config",
+                str(config_file),
+                "--object-name",
+                "ribosome",
+                "--voxel-size",
+                "10.0",
+                "--index-map",
+                sample_index_map,
+                "--user-id",
+                "em-test",
+                "--session-id",
+                "1",
+                "--create",  # Create runs if they don't exist
+                sample_em_file_multi_tomo,
+            ],
+        )
+
+        assert result.exit_code == 0, f"Command failed: {result.output}"
+
+        # Verify picks were imported to correct runs
+        root = CopickRootFSSpec.from_file(config_file)
+
+        # Should have picks in TS_001 and TS_002
+        run1 = root.get_run("TS_001")
+        assert run1 is not None, "Run TS_001 should be created"
+        picks1 = run1.get_picks(object_name="ribosome", user_id="em-test", session_id="1")
+        assert len(picks1) > 0, "Picks should be imported for TS_001"
+
+        run2 = root.get_run("TS_002")
+        assert run2 is not None, "Run TS_002 should be created"
+        picks2 = run2.get_picks(object_name="ribosome", user_id="em-test", session_id="1")
+        assert len(picks2) > 0, "Picks should be imported for TS_002"
+
+    def test_add_picks_em_missing_index_map(self, test_payload, runner, sample_em_file_multi_tomo):
+        """Test error when index map is missing for picks-em (required)."""
+        config_file = test_payload["cfg_file"]
+
+        result = runner.invoke(
+            add,
+            [
+                "picks-em",
+                "--config",
+                str(config_file),
+                "--object-name",
+                "ribosome",
+                "--voxel-size",
+                "10.0",
+                # Missing --index-map
+                "--user-id",
+                "em-test",
+                "--session-id",
+                "1",
+                sample_em_file_multi_tomo,
+            ],
+        )
+
+        assert result.exit_code != 0, "Command should fail without index map"
+
+    def test_add_picks_em_missing_voxel_size(self, test_payload, runner, sample_em_file_multi_tomo, sample_index_map):
+        """Test error when voxel size is missing for picks-em."""
+        config_file = test_payload["cfg_file"]
+
+        result = runner.invoke(
+            add,
+            [
+                "picks-em",
+                "--config",
+                str(config_file),
+                "--object-name",
+                "ribosome",
+                # Missing --voxel-size
+                "--index-map",
+                sample_index_map,
+                "--user-id",
+                "em-test",
+                "--session-id",
+                "1",
+                sample_em_file_multi_tomo,
+            ],
+        )
+
+        assert result.exit_code != 0, "Command should fail without voxel size"
+
+    def test_add_picks_dynamo_with_index_map(
+        self,
+        test_payload,
+        runner,
+        sample_dynamo_table_multi_tomo,
+        sample_index_map,
+    ):
+        """Test batch import from Dynamo table with index map."""
+        config_file = test_payload["cfg_file"]
+
+        result = runner.invoke(
+            add,
+            [
+                "picks-dynamo",
+                "--config",
+                str(config_file),
+                "--object-name",
+                "ribosome",
+                "--voxel-size",
+                "10.0",
+                "--index-map",
+                sample_index_map,
+                "--user-id",
+                "dynamo-test",
+                "--session-id",
+                "1",
+                "--create",  # Create runs if they don't exist
+                sample_dynamo_table_multi_tomo,
+            ],
+        )
+
+        assert result.exit_code == 0, f"Command failed: {result.output}"
+
+        # Verify picks were imported
+        root = CopickRootFSSpec.from_file(config_file)
+        run1 = root.get_run("TS_001")
+        assert run1 is not None, "Run TS_001 should be created"
+        picks1 = run1.get_picks(object_name="ribosome", user_id="dynamo-test", session_id="1")
+        assert len(picks1) > 0, "Picks should be imported for TS_001"
+
+    def test_add_picks_dynamo_missing_voxel_size(
+        self,
+        test_payload,
+        runner,
+        sample_dynamo_table_multi_tomo,
+        sample_index_map,
+    ):
+        """Test error when voxel size is missing for picks-dynamo."""
+        config_file = test_payload["cfg_file"]
+
+        result = runner.invoke(
+            add,
+            [
+                "picks-dynamo",
+                "--config",
+                str(config_file),
+                "--object-name",
+                "ribosome",
+                # Missing --voxel-size
+                "--index-map",
+                sample_index_map,
+                "--user-id",
+                "dynamo-test",
+                "--session-id",
+                "1",
+                sample_dynamo_table_multi_tomo,
+            ],
+        )
+
+        assert result.exit_code != 0, "Command should fail without voxel size"
+
+    def test_add_picks_relion_basic(self, test_payload, runner, sample_star_with_tomo_name):
+        """Test batch import from RELION particles star file."""
+        config_file = test_payload["cfg_file"]
+
+        result = runner.invoke(
+            add,
+            [
+                "picks-relion",
+                "--config",
+                str(config_file),
+                "--object-name",
+                "ribosome",
+                "--voxel-size",
+                "10.0",
+                "--user-id",
+                "relion-test",
+                "--session-id",
+                "1",
+                "--create",  # Create runs if they don't exist
+                sample_star_with_tomo_name,
+            ],
+        )
+
+        assert result.exit_code == 0, f"Command failed: {result.output}"
+
+        # Verify picks were imported to correct runs based on _rlnTomoName
+        root = CopickRootFSSpec.from_file(config_file)
+
+        run1 = root.get_run("TS_001")
+        assert run1 is not None, "Run TS_001 should be created from _rlnTomoName"
+        picks1 = run1.get_picks(object_name="ribosome", user_id="relion-test", session_id="1")
+        assert len(picks1) > 0, "Picks should be imported for TS_001"
+
+        run2 = root.get_run("TS_002")
+        assert run2 is not None, "Run TS_002 should be created from _rlnTomoName"
+        picks2 = run2.get_picks(object_name="ribosome", user_id="relion-test", session_id="1")
+        assert len(picks2) > 0, "Picks should be imported for TS_002"
+
+    def test_add_picks_relion_missing_voxel_size(self, test_payload, runner, sample_star_with_tomo_name):
+        """Test error when voxel size missing for picks-relion."""
+        config_file = test_payload["cfg_file"]
+
+        result = runner.invoke(
+            add,
+            [
+                "picks-relion",
+                "--config",
+                str(config_file),
+                "--object-name",
+                "ribosome",
+                # Missing --voxel-size
+                "--user-id",
+                "relion-test",
+                "--session-id",
+                "1",
+                sample_star_with_tomo_name,
+            ],
+        )
+
+        assert result.exit_code != 0, "Command should fail without voxel size"
+
+
 class TestPicksExport:
     """Test cases for picks export functionality."""
 
@@ -350,6 +682,225 @@ class TestPicksExport:
             )
 
             assert result.exit_code != 0, "Command should fail without voxel size"
+
+    def test_export_picks_combined_csv(self, test_payload, runner):
+        """Test combined export to single CSV file using existing picks."""
+        config_file = test_payload["cfg_file"]
+
+        # Use existing picks in the sample project (ribosome:test.user/1234)
+        with tempfile.TemporaryDirectory() as tmpdir:
+            output_file = Path(tmpdir) / "combined.csv"
+
+            result = runner.invoke(
+                export,
+                [
+                    "picks",
+                    "--config",
+                    str(config_file),
+                    "--picks-uri",
+                    "ribosome:test.user/*",  # Use existing picks in sample project
+                    "--output-file",
+                    str(output_file),
+                    "--output-format",
+                    "csv",
+                ],
+            )
+
+            assert result.exit_code == 0, f"Command failed: {result.output}"
+            assert output_file.exists(), "Combined CSV file should be created"
+
+    def test_export_picks_combined_star(self, test_payload, runner, sample_csv_picks):
+        """Test combined export to single STAR file with _rlnTomoName column."""
+        config_file = test_payload["cfg_file"]
+
+        # First import picks with valid rotation matrices from our test CSV
+        result1 = runner.invoke(
+            add,
+            [
+                "picks",
+                "--config",
+                str(config_file),
+                "--object-name",
+                "ribosome",
+                "--user-id",
+                "star-export-test",
+                "--session-id",
+                "1",
+                sample_csv_picks,
+            ],
+        )
+        assert result1.exit_code == 0, f"Import failed: {result1.output}"
+
+        # Now export to STAR format
+        with tempfile.TemporaryDirectory() as tmpdir:
+            output_file = Path(tmpdir) / "particles.star"
+
+            result = runner.invoke(
+                export,
+                [
+                    "picks",
+                    "--config",
+                    str(config_file),
+                    "--picks-uri",
+                    "ribosome:star-export-test/*",
+                    "--output-file",
+                    str(output_file),
+                    "--output-format",
+                    "star",
+                    "--voxel-size",
+                    "10.0",
+                ],
+            )
+
+            assert result.exit_code == 0, f"Command failed: {result.output}"
+            assert output_file.exists(), "Combined STAR file should be created"
+
+    def test_export_picks_combined_em_missing_index_map(self, test_payload, runner):
+        """Test error when index map missing for combined EM export."""
+        config_file = test_payload["cfg_file"]
+
+        with tempfile.TemporaryDirectory() as tmpdir:
+            output_file = Path(tmpdir) / "particles.em"
+
+            result = runner.invoke(
+                export,
+                [
+                    "picks",
+                    "--config",
+                    str(config_file),
+                    "--picks-uri",
+                    "*:*/*",
+                    "--output-file",
+                    str(output_file),
+                    "--output-format",
+                    "em",
+                    "--voxel-size",
+                    "10.0",
+                    # Missing --index-map which is required for combined EM export
+                ],
+            )
+
+            assert result.exit_code != 0, "Command should fail without index map for combined EM export"
+
+    def test_export_picks_combined_dynamo_missing_index_map(self, test_payload, runner):
+        """Test error when index map missing for combined Dynamo export."""
+        config_file = test_payload["cfg_file"]
+
+        with tempfile.TemporaryDirectory() as tmpdir:
+            output_file = Path(tmpdir) / "particles.tbl"
+
+            result = runner.invoke(
+                export,
+                [
+                    "picks",
+                    "--config",
+                    str(config_file),
+                    "--picks-uri",
+                    "*:*/*",
+                    "--output-file",
+                    str(output_file),
+                    "--output-format",
+                    "dynamo",
+                    "--voxel-size",
+                    "10.0",
+                    # Missing --index-map which is required for combined Dynamo export
+                ],
+            )
+
+            assert result.exit_code != 0, "Command should fail without index map for combined Dynamo export"
+
+    def test_export_picks_mutual_exclusion(self, test_payload, runner):
+        """Test error when both --output-dir and --output-file provided."""
+        config_file = test_payload["cfg_file"]
+
+        with tempfile.TemporaryDirectory() as tmpdir:
+            output_dir = Path(tmpdir) / "dir"
+            output_file = Path(tmpdir) / "file.csv"
+
+            result = runner.invoke(
+                export,
+                [
+                    "picks",
+                    "--config",
+                    str(config_file),
+                    "--picks-uri",
+                    "*:*/*",
+                    "--output-dir",
+                    str(output_dir),
+                    "--output-file",
+                    str(output_file),
+                    "--output-format",
+                    "csv",
+                ],
+            )
+
+            assert result.exit_code != 0, "Command should fail with both output options"
+
+    def test_export_picks_no_output_specified(self, test_payload, runner):
+        """Test error when neither --output-dir nor --output-file provided."""
+        config_file = test_payload["cfg_file"]
+
+        result = runner.invoke(
+            export,
+            [
+                "picks",
+                "--config",
+                str(config_file),
+                "--picks-uri",
+                "*:*/*",
+                "--output-format",
+                "csv",
+                # Missing both --output-dir and --output-file
+            ],
+        )
+
+        assert result.exit_code != 0, "Command should fail without output specification"
+
+    def test_export_picks_per_run_with_index_map(self, test_payload, runner, sample_csv_picks, sample_index_map):
+        """Test per-run export uses index map for tomogram indices."""
+        config_file = test_payload["cfg_file"]
+
+        # First import some picks
+        result1 = runner.invoke(
+            add,
+            [
+                "picks",
+                "--config",
+                str(config_file),
+                "--object-name",
+                "ribosome",
+                "--user-id",
+                "index-map-test",
+                "--session-id",
+                "1",
+                sample_csv_picks,
+            ],
+        )
+        assert result1.exit_code == 0, f"Import failed: {result1.output}"
+
+        with tempfile.TemporaryDirectory() as tmpdir:
+            output_dir = Path(tmpdir)
+
+            result = runner.invoke(
+                export,
+                [
+                    "picks",
+                    "--config",
+                    str(config_file),
+                    "--picks-uri",
+                    "ribosome:index-map-test/*",
+                    "--output-dir",
+                    str(output_dir),
+                    "--output-format",
+                    "em",
+                    "--voxel-size",
+                    "10.0",
+                    "--index-map",
+                    sample_index_map,
+                ],
+            )
+
+            assert result.exit_code == 0, f"Command failed: {result.output}"
 
 
 class TestTomogramExport:

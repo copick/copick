@@ -37,6 +37,7 @@ def export_picks(
     tomogram_dimensions: Optional[Tuple[int, int, int]] = None,
     include_optics: bool = True,
     run_name: Optional[str] = None,
+    tomogram_index: int = 1,
     log: bool = False,
 ) -> str:
     """Export picks to an external format.
@@ -49,6 +50,7 @@ def export_picks(
         tomogram_dimensions: (X, Y, Z) dimensions in voxels (required for em, star).
         include_optics: Include optics group in STAR file output.
         run_name: Run name for CSV output (uses picks.run.name if not provided).
+        tomogram_index: Tomogram index for EM/Dynamo formats (default: 1).
         log: Log the operation.
 
     Returns:
@@ -60,11 +62,18 @@ def export_picks(
     output_format = output_format.lower()
 
     if output_format == "em":
-        return _export_picks_em(picks, output_path, voxel_spacing, tomogram_dimensions, log=log)
+        return _export_picks_em(
+            picks,
+            output_path,
+            voxel_spacing,
+            tomogram_dimensions,
+            tomogram_index=tomogram_index,
+            log=log,
+        )
     elif output_format == "star":
         return _export_picks_star(picks, output_path, voxel_spacing, tomogram_dimensions, include_optics, log=log)
     elif output_format == "dynamo":
-        return _export_picks_dynamo(picks, output_path, voxel_spacing, log=log)
+        return _export_picks_dynamo(picks, output_path, voxel_spacing, tomogram_index=tomogram_index, log=log)
     elif output_format == "csv":
         run_name = run_name or picks.run.name
         return _export_picks_csv(picks, output_path, run_name, log=log)
@@ -285,6 +294,126 @@ def _get_tomogram_dimensions(picks: "CopickPicks") -> Tuple[int, int, int]:
     tomo = vs.tomograms[0]
     z, y, x = zarr.open(tomo.zarr())["0"].shape
     return (x, y, z)
+
+
+def export_picks_combined(
+    config: str,
+    output_file: str,
+    picks_uri: str,
+    output_format: str,
+    voxel_spacing: Optional[float] = None,
+    run_names: Optional[List[str]] = None,
+    run_to_index: Optional[Dict[str, int]] = None,
+    include_optics: bool = True,
+    tomogram_dimensions: Optional[Tuple[int, int, int]] = None,
+    log: bool = False,
+) -> str:
+    """Export picks from multiple runs to a single combined file.
+
+    This function collects picks from all specified runs and writes them
+    to a single output file using the format handler's write_grouped method.
+
+    Args:
+        config: Path to the copick configuration file.
+        output_file: Path for the output file.
+        picks_uri: URI to filter picks for export.
+        output_format: Output format ("em", "star", "dynamo", "csv").
+        voxel_spacing: Voxel spacing in Angstrom (required for em, star, dynamo).
+        run_names: List of run names to export (None for all runs).
+        run_to_index: Mapping from run name to tomogram index (required for em/dynamo).
+        include_optics: Include optics group in STAR file output.
+        tomogram_dimensions: Optional (X, Y, Z) dimensions for EM format.
+        log: Log the operation.
+
+    Returns:
+        Path to the created output file.
+
+    Raises:
+        ValueError: If required parameters are missing for the output format.
+    """
+    import copick
+    from copick.util.handlers import FormatRegistry
+    from copick.util.uri import resolve_copick_objects
+
+    output_format = output_format.lower()
+
+    # Get the handler and validate capabilities
+    handler = FormatRegistry.get_picks_handler(output_format)
+    if not handler.capabilities.supports_grouped_export:
+        raise ValueError(f"Format '{output_format}' does not support combined/grouped export")
+
+    # Validate index map for formats that need it
+    if output_format in ("em", "dynamo") and run_to_index is None:
+        raise ValueError(f"run_to_index mapping is required for combined {output_format.upper()} export")
+
+    # Validate voxel spacing for formats that need it
+    if output_format in ("em", "star", "dynamo") and voxel_spacing is None:
+        raise ValueError(f"voxel_spacing is required for {output_format.upper()} export")
+
+    # Load copick project
+    root = copick.from_file(config)
+
+    # Get runs to process
+    runs = root.runs if run_names is None else [root.get_run(name) for name in run_names if root.get_run(name)]
+
+    # Collect picks from all runs
+    grouped_data: Dict[str, Tuple[np.ndarray, np.ndarray, Optional[np.ndarray]]] = {}
+    total_particles = 0
+
+    for run in runs:
+        try:
+            picks_list = resolve_copick_objects(picks_uri, root, "picks", run.name)
+            for picks in picks_list:
+                points, transforms = picks.numpy()
+                if len(points) == 0:
+                    continue
+
+                # Get scores if available
+                scores = None
+                if picks.points:
+                    scores = np.array([p.score for p in picks.points])
+
+                # Accumulate data for this run
+                if run.name in grouped_data:
+                    existing_pos, existing_trans, existing_scores = grouped_data[run.name]
+                    grouped_data[run.name] = (
+                        np.vstack([existing_pos, points]),
+                        np.vstack([existing_trans, transforms]),
+                        (
+                            np.concatenate([existing_scores, scores])
+                            if scores is not None and existing_scores is not None
+                            else None
+                        ),
+                    )
+                else:
+                    grouped_data[run.name] = (points, transforms, scores)
+                total_particles += len(points)
+        except Exception as e:
+            if log:
+                logging.warning(f"Error collecting picks from {run.name}: {e}")
+
+    if not grouped_data:
+        raise ValueError("No picks found to export")
+
+    # Create output directory if needed
+    os.makedirs(os.path.dirname(output_file) or ".", exist_ok=True)
+
+    # Write using the handler's write_grouped method
+    handler.write_grouped(
+        path=output_file,
+        grouped_data=grouped_data,
+        voxel_spacing=voxel_spacing or 1.0,
+        run_to_index=run_to_index,
+        include_optics=include_optics,
+        tomogram_dimensions=tomogram_dimensions,
+    )
+
+    if log:
+        logging.info(
+            f"Exported {total_particles} particles from {len(grouped_data)} runs to {output_format.upper()}: {output_file}",
+        )
+
+    return output_file
 
 
 # =============================================================================
@@ -664,6 +793,7 @@ def export_run(
     level: int = 0,
     compression: Optional[str] = None,
     include_optics: bool = True,
+    run_to_index: Optional[Dict[str, int]] = None,
     log: bool = False,
 ) -> Dict[str, int]:
     """Export data from a single run.
@@ -679,6 +809,7 @@ def export_run(
         level: Pyramid level for volume exports.
         compression: Compression method for TIFF exports.
         include_optics: Include optics in STAR exports.
+        run_to_index: Optional mapping from run name to tomogram index for EM/Dynamo.
         log: Log operations.
 
     Returns:
@@ -693,6 +824,12 @@ def export_run(
     if picks_uri:
         try:
             picks_list = resolve_copick_objects(picks_uri, run.root, "picks", run.name)
+
+            # Look up tomogram index for this run
+            tomogram_index = 1  # default
+            if run_to_index and run.name in run_to_index:
+                tomogram_index = run_to_index[run.name]
+
             for picks in picks_list:
                 # Determine output filename
                 filename = f"{picks.pickable_object_name}_{picks.user_id}_{picks.session_id}"
@@ -706,6 +843,7 @@ def export_run(
                     voxel_spacing=voxel_spacing,
                     include_optics=include_optics,
                     run_name=run.name,
+                    tomogram_index=tomogram_index,
                     log=log,
                 )
                 results["picks"] += 1
@@ -776,6 +914,7 @@ def export(
     level: int = 0,
     compression: Optional[str] = None,
     include_optics: bool = True,
+    run_to_index: Optional[Dict[str, int]] = None,
     n_workers: int = 8,
     log: bool = False,
 ) -> None:
@@ -793,6 +932,7 @@ def export(
         level: Pyramid level for volume exports.
         compression: Compression method for TIFF exports.
         include_optics: Include optics in STAR exports.
+        run_to_index: Optional mapping from run name to tomogram index for EM/Dynamo.
         n_workers: Number of parallel workers.
         log: Log operations.
     """
@@ -816,6 +956,7 @@ def export(
             "level": level,
             "compression": compression,
             "include_optics": include_optics,
+            "run_to_index": run_to_index,
             "log": log,
         }
         for _ in runs

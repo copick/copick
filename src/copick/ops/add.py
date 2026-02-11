@@ -222,7 +222,7 @@ def add_tomogram(
     return tomogram
 
 
-def _add_tomogram_mrc(
+def z_add_tomogram_mrc(
     root: CopickRoot,
     run: str,
     tomo_type: str,
@@ -1528,3 +1528,365 @@ def _add_segmentation_em(
         overwrite=overwrite,
         log=log,
     )
+
+
+# =============================================================================
+# Unified Entry Points using Handler Registry
+# =============================================================================
+
+
+def add_tomogram_from_file(
+    root: CopickRoot,
+    run_name: str,
+    tomo_type: str,
+    file_path: str,
+    voxel_spacing: Optional[float] = None,
+    file_type: Optional[str] = None,
+    create_pyramid: bool = True,
+    pyramid_levels: int = 3,
+    chunks: Tuple[int, int, int] = (256, 256, 256),
+    transpose: Optional[str] = None,
+    flip: Optional[str] = None,
+    create: bool = True,
+    exist_ok: bool = False,
+    overwrite: bool = False,
+    log: bool = False,
+) -> CopickTomogram:
+    """Add a tomogram from any supported file format using the handler registry.
+
+    This is a unified entry point that automatically detects the file format
+    and uses the appropriate handler to read the volume.
+
+    Args:
+        root: The copick root object.
+        run_name: The name of the run.
+        tomo_type: Type of the tomogram (e.g., 'wbp', 'denoised').
+        file_path: Path to the tomogram file.
+        voxel_spacing: Voxel spacing in Angstrom. If None, will try to read from file.
+        file_type: File type override (e.g., 'mrc', 'zarr', 'tiff', 'em').
+                   If None, auto-detected from file extension.
+        create_pyramid: Whether to create a multiscale pyramid.
+        pyramid_levels: Number of pyramid levels.
+        chunks: Chunk size for the output Zarr file.
+        transpose: Transpose axes. E.g., '2,1,0' to reverse all axes.
+        flip: Flip axes. E.g., '0' to flip Z, '0,2' to flip Z and X.
+        create: Create run if it doesn't exist.
+        exist_ok: Don't raise error if tomogram exists.
+        overwrite: Overwrite if exists.
+        log: Log the operation.
+
+    Returns:
+        The created CopickTomogram object.
+
+    Raises:
+        ValueError: If the format is not supported or voxel spacing cannot be determined.
+    """
+    from copick.util.handlers import FormatRegistry
+
+    # Get handler
+    handler = FormatRegistry.get_volume_handler(file_type or file_path)
+    if handler is None:
+        raise ValueError(f"Unsupported volume format for: {file_path}")
+
+    # Read volume
+    volume, file_voxel_size = handler.read(file_path)
+
+    # Determine effective voxel spacing
+    effective_voxel_spacing = voxel_spacing if voxel_spacing is not None else file_voxel_size
+    if effective_voxel_spacing is None:
+        raise ValueError(
+            f"Voxel spacing not provided and cannot be determined from {handler.format_name} file. "
+            f"Please specify --voxel-size.",
+        )
+
+    # Apply transforms
+    if transpose is not None:
+        transpose_order = tuple(map(int, transpose.split(",")))
+        volume = np.transpose(volume, transpose_order)
+
+    if flip is not None:
+        flip_axes = tuple(map(int, flip.split(",")))
+        for axis in flip_axes:
+            volume = np.flip(volume, axis=axis)
+
+    # Use the existing add_tomogram function
+    return add_tomogram(
+        root=root,
+        run=run_name,
+        tomo_type=tomo_type,
+        volume=volume,
+        voxel_spacing=effective_voxel_spacing,
+        create_pyramid=create_pyramid,
+        pyramid_levels=pyramid_levels,
+        chunks=chunks,
+        create=create,
+        exist_ok=exist_ok,
+        overwrite=overwrite,
+        log=log,
+    )
+
+
+def add_picks_from_file(
+    root: CopickRoot,
+    run_name: str,
+    file_path: str,
+    object_name: str,
+    user_id: str,
+    session_id: str,
+    voxel_spacing: Optional[float] = None,
+    file_type: Optional[str] = None,
+    create: bool = True,
+    exist_ok: bool = False,
+    overwrite: bool = False,
+    log: bool = False,
+) -> CopickPicks:
+    """Add picks from any supported file format using the handler registry.
+
+    This is a unified entry point that automatically detects the file format
+    and uses the appropriate handler to read the picks.
+
+    Args:
+        root: The copick root object.
+        run_name: The name of the run.
+        file_path: Path to the picks file.
+        object_name: Name of the pickable object.
+        user_id: User ID for the picks.
+        session_id: Session ID for the picks.
+        voxel_spacing: Voxel spacing in Angstrom (required for most formats).
+        file_type: File type override (e.g., 'star', 'em', 'dynamo', 'csv').
+                   If None, auto-detected from file extension.
+        create: Create run if it doesn't exist.
+        exist_ok: Don't raise error if picks exist.
+        overwrite: Overwrite if exists.
+        log: Log the operation.
+
+    Returns:
+        The created CopickPicks object.
+
+    Raises:
+        ValueError: If the format is not supported.
+    """
+    from copick.util.handlers import FormatRegistry
+
+    # Get handler
+    handler = FormatRegistry.get_picks_handler(file_type or file_path)
+    if handler is None:
+        raise ValueError(f"Unsupported picks format for: {file_path}")
+
+    # Validate voxel spacing for formats that need it
+    if handler.capabilities.supports_voxel_size and voxel_spacing is None:
+        raise ValueError(
+            f"Voxel spacing is required for {handler.format_name} format. Please specify --voxel-size.",
+        )
+
+    # Read picks
+    effective_voxel_spacing = voxel_spacing if voxel_spacing else 1.0
+    positions, transforms, scores = handler.read(file_path, effective_voxel_spacing)
+
+    # Get or create run
+    run = get_or_create_run(root, run_name, create=create, log=log)
+
+    # Create picks
+    picks = run.new_picks(
+        object_name=object_name,
+        user_id=user_id,
+        session_id=session_id,
+        exist_ok=exist_ok,
+    )
+
+    # Handle overwrite
+    if overwrite and picks.points is not None and len(picks.points) > 0:
+        picks.points = []
+
+    # Convert to copick format and store
+    picks.from_numpy(positions, transforms)
+
+    # Store picks
+    picks.store()
+
+    if log:
+        logging.info(f"Added {len(positions)} picks to run {run_name}")
+
+    return picks
+
+
+def add_segmentation_from_file(
+    root: CopickRoot,
+    run_name: str,
+    file_path: str,
+    voxel_spacing: Optional[float],
+    name: str,
+    user_id: str,
+    session_id: str,
+    file_type: Optional[str] = None,
+    multilabel: bool = True,
+    transpose: Optional[str] = None,
+    flip: Optional[str] = None,
+    create: bool = True,
+    exist_ok: bool = False,
+    overwrite: bool = False,
+    log: bool = False,
+) -> CopickSegmentation:
+    """Add a segmentation from any supported file format using the handler registry.
+
+    This is a unified entry point that automatically detects the file format
+    and uses the appropriate handler to read the volume.
+
+    Args:
+        root: The copick root object.
+        run_name: The name of the run.
+        file_path: Path to the segmentation file.
+        voxel_spacing: Voxel spacing in Angstrom.
+        name: Name of the segmentation.
+        user_id: User ID for the segmentation.
+        session_id: Session ID for the segmentation.
+        file_type: File type override (e.g., 'mrc', 'tiff', 'em').
+                   If None, auto-detected from file extension.
+        multilabel: Whether this is a multilabel segmentation.
+        transpose: Transpose axes. E.g., '2,1,0' to reverse all axes.
+        flip: Flip axes. E.g., '0' to flip Z, '0,2' to flip Z and X.
+        create: Create run if it doesn't exist.
+        exist_ok: Don't raise error if segmentation exists.
+        overwrite: Overwrite if exists.
+        log: Log the operation.
+
+    Returns:
+        The created CopickSegmentation object.
+
+    Raises:
+        ValueError: If the format is not supported.
+    """
+    from copick.util.handlers import FormatRegistry
+
+    # Get handler
+    handler = FormatRegistry.get_volume_handler(file_type or file_path)
+    if handler is None:
+        raise ValueError(f"Unsupported volume format for: {file_path}")
+
+    # Read volume
+    volume, file_voxel_size = handler.read(file_path)
+
+    # Determine effective voxel spacing
+    effective_voxel_spacing = voxel_spacing if voxel_spacing is not None else file_voxel_size
+    if effective_voxel_spacing is None:
+        raise ValueError(
+            f"Voxel spacing not provided and cannot be determined from {handler.format_name} file. "
+            f"Please specify --voxel-size.",
+        )
+
+    return _add_segmentation_from_array(
+        root=root,
+        run=run_name,
+        volume=volume,
+        voxel_spacing=effective_voxel_spacing,
+        name=name,
+        user_id=user_id,
+        session_id=session_id,
+        multilabel=multilabel,
+        transpose=transpose,
+        flip=flip,
+        create=create,
+        exist_ok=exist_ok,
+        overwrite=overwrite,
+        log=log,
+    )
+
+
+def add_picks_grouped_from_file(
+    root: CopickRoot,
+    file_path: str,
+    object_name: str,
+    user_id: str,
+    session_id: str,
+    voxel_spacing: float,
+    index_to_run: Dict[int, str],
+    file_type: Optional[str] = None,
+    tomo_index_row: int = 4,
+    create: bool = True,
+    exist_ok: bool = False,
+    overwrite: bool = False,
+    log: bool = False,
+) -> Dict[str, CopickPicks]:
+    """Add picks from a file containing multiple tomograms using the handler registry.
+
+    This is a unified entry point for grouped picks imports where a single file
+    contains picks from multiple tomograms, identified by an index column.
+
+    Args:
+        root: The copick root object.
+        file_path: Path to the picks file.
+        object_name: Name of the pickable object.
+        user_id: User ID for the picks.
+        session_id: Session ID for the picks.
+        voxel_spacing: Voxel spacing in Angstrom.
+        index_to_run: Mapping from tomogram index to run name.
+        file_type: File type override (e.g., 'em', 'dynamo').
+                   If None, auto-detected from file extension.
+        tomo_index_row: Row index for tomogram number in EM files (default: 4).
+        create: Create runs if they don't exist.
+        exist_ok: Don't raise error if picks exist.
+        overwrite: Overwrite if exists.
+        log: Log the operation.
+
+    Returns:
+        Dictionary mapping run names to created CopickPicks objects.
+
+    Raises:
+        ValueError: If the format is not supported or doesn't support grouped import.
+    """
+    from copick.util.handlers import FormatRegistry
+
+    # Get handler
+    handler = FormatRegistry.get_picks_handler(file_type or file_path)
+    if handler is None:
+        raise ValueError(f"Unsupported picks format for: {file_path}")
+
+    if not handler.capabilities.supports_grouped_import:
+        raise ValueError(
+            f"Format {handler.format_name} does not support grouped import. "
+            f"Use add_picks_from_file() for single-tomogram imports.",
+        )
+
+    # Read grouped picks
+    grouped_data = handler.read_grouped(
+        file_path,
+        voxel_spacing,
+        index_to_run,
+        tomo_index_row=tomo_index_row,
+    )
+
+    # Create picks for each run
+    results = {}
+    for run_name, (positions, transforms, _scores) in grouped_data.items():
+        # Get or create run
+        run = get_or_create_run(root, run_name, create=create, log=log)
+        if run is None:
+            if log:
+                logging.warning(f"Skipping run {run_name}: run not found and create=False")
+            continue
+
+        # Create picks
+        picks = run.new_picks(
+            object_name=object_name,
+            user_id=user_id,
+            session_id=session_id,
+            exist_ok=exist_ok,
+        )
+
+        # Handle overwrite
+        if overwrite and picks.points is not None and len(picks.points) > 0:
+            picks.points = []
+
+        # Convert to copick format and store
+        picks.from_numpy(positions, transforms)
+        picks.store()
+
+        results[run_name] = picks
+
+        if log:
+            logging.info(f"Added {len(positions)} picks to run {run_name}")
+
+    if log:
+        logging.info(f"Successfully imported picks to {len(results)} runs from {file_path}")
+
+    return results

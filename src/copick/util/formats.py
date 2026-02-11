@@ -119,6 +119,37 @@ def read_index_map(path: str) -> Dict[int, str]:
     return dict(zip(indices, run_names))
 
 
+def read_index_map_inverse(path: str) -> Dict[str, int]:
+    """Read a tomogram index map and return run_name to index mapping.
+
+    This is the inverse of read_index_map() for export operations.
+    Reads the same file format but returns the mapping in reverse:
+    run_name -> tomogram_index.
+
+    Args:
+        path: Path to the mapping file (CSV or TSV).
+
+    Returns:
+        Dictionary mapping run_name (str) to tomogram index (int).
+
+    Raises:
+        ValueError: If file format is invalid or contains duplicate run names.
+    """
+    index_to_run = read_index_map(path)
+
+    # Invert the mapping
+    run_to_index = {run_name: index for index, run_name in index_to_run.items()}
+
+    # Check for duplicate run names (would indicate data issue)
+    if len(run_to_index) != len(index_to_run):
+        # Find duplicates
+        run_names = list(index_to_run.values())
+        duplicates = [name for name in set(run_names) if run_names.count(name) > 1]
+        raise ValueError(f"Duplicate run names in index map: {duplicates}")
+
+    return run_to_index
+
+
 def read_dynamo_tomolist(path: str) -> Dict[int, str]:
     """Read a Dynamo tomolist file and extract run names from MRC paths.
 
@@ -386,6 +417,129 @@ def write_dynamo_table(
     dynamotable.write(df, path)
 
 
+def read_dynamo_table_grouped(
+    path: str,
+    voxel_spacing: float,
+    index_to_run: Dict[int, str],
+) -> Dict[str, Tuple[np.ndarray, np.ndarray, Optional[np.ndarray]]]:
+    """Read a Dynamo table and group particles by tomogram index.
+
+    Reads a Dynamo .tbl file that contains particles from multiple tomograms,
+    identified by the 'tomo' column. Groups particles by run name using
+    the provided index-to-run mapping.
+
+    Args:
+        path: Path to the .tbl file.
+        voxel_spacing: Voxel spacing in Angstrom for coordinate conversion.
+        index_to_run: Mapping from tomogram index (int) to run name (str).
+
+    Returns:
+        Dictionary mapping run_name to (positions_angstrom, transforms_4x4, scores).
+        Only includes runs that are present in index_to_run mapping.
+    """
+    # Read with tomogram indices
+    positions_px, eulers_deg, shifts_px, scores, tomo_indices = read_dynamo_table(
+        path,
+        include_tomo_index=True,
+    )
+
+    # Group by tomogram index
+    grouped = {}
+    unique_indices = np.unique(tomo_indices)
+
+    for tomo_idx in unique_indices:
+        if tomo_idx not in index_to_run:
+            # Skip particles from unknown tomograms
+            continue
+
+        run_name = index_to_run[tomo_idx]
+        mask = tomo_indices == tomo_idx
+
+        # Extract particles for this tomogram
+        positions_px_group = positions_px[mask]
+        eulers_deg_group = eulers_deg[mask]
+        shifts_px_group = shifts_px[mask]
+        scores_group = scores[mask]
+
+        # Convert to copick format (Angstrom coordinates, 4x4 transforms)
+        positions_angstrom, transforms = dynamo_to_copick_transform(
+            positions_px_group,
+            eulers_deg_group,
+            shifts_px_group,
+            voxel_spacing,
+        )
+
+        grouped[run_name] = (positions_angstrom, transforms, scores_group)
+
+    return grouped
+
+
+def write_dynamo_table_grouped(
+    path: str,
+    grouped_data: Dict[str, Tuple[np.ndarray, np.ndarray, Optional[np.ndarray]]],
+    voxel_spacing: float,
+    run_to_index: Dict[str, int],
+) -> None:
+    """Write a combined Dynamo table from multiple runs.
+
+    Args:
+        path: Output path for the .tbl file.
+        grouped_data: Dict mapping run_name to (positions_angstrom, transforms_4x4, scores).
+        voxel_spacing: Voxel spacing in Angstrom for coordinate conversion.
+        run_to_index: Mapping from run name to tomogram index.
+
+    Raises:
+        ValueError: If run_to_index is missing entries for any run.
+    """
+    import dynamotable
+    import pandas as pd
+
+    all_dfs = []
+    tag_offset = 0
+
+    for run_name, (positions, transforms, scores) in grouped_data.items():
+        if run_name not in run_to_index:
+            raise ValueError(f"Run '{run_name}' not found in run_to_index mapping")
+
+        tomogram_index = run_to_index[run_name]
+
+        # Convert from Angstrom to pixels and extract Euler angles
+        positions_px, eulers_deg, shifts_px = copick_to_dynamo_transform(
+            positions,
+            transforms,
+            voxel_spacing,
+        )
+
+        N = positions_px.shape[0]
+        if scores is None:
+            scores = np.ones(N)
+
+        # Create DataFrame with standard Dynamo columns
+        df = pd.DataFrame(
+            {
+                "tag": np.arange(tag_offset + 1, tag_offset + N + 1),
+                "aligned": np.ones(N, dtype=int),
+                "averaged": np.ones(N, dtype=int),
+                "dx": shifts_px[:, 0],
+                "dy": shifts_px[:, 1],
+                "dz": shifts_px[:, 2],
+                "tdrot": eulers_deg[:, 0],
+                "tilt": eulers_deg[:, 1],
+                "narot": eulers_deg[:, 2],
+                "cc": scores,
+                "x": positions_px[:, 0],
+                "y": positions_px[:, 1],
+                "z": positions_px[:, 2],
+                "tomo": np.full(N, tomogram_index, dtype=int),
+            },
+        )
+        all_dfs.append(df)
+        tag_offset += N
+
+    combined_df = pd.concat(all_dfs, ignore_index=True)
+    dynamotable.write(combined_df, path)
+
+
 def dynamo_to_copick_transform(
     positions_px: np.ndarray,
     eulers_deg: np.ndarray,
@@ -629,6 +783,156 @@ def write_em_motivelist(
     emfile.write(path, data)
 
 
+def read_em_motivelist_grouped(
+    path: str,
+    voxel_spacing: float,
+    index_to_run: Dict[int, str],
+    tomo_index_row: int = 4,
+) -> Dict[str, Tuple[np.ndarray, np.ndarray, Optional[np.ndarray]]]:
+    """Read a TOM toolbox EM motivelist and group particles by tomogram index.
+
+    Reads an EM motivelist file that contains particles from multiple tomograms,
+    identified by the tomogram index column. Groups particles by run name using
+    the provided index-to-run mapping.
+
+    Args:
+        path: Path to the EM file.
+        voxel_spacing: Voxel spacing in Angstrom for coordinate conversion.
+        index_to_run: Mapping from tomogram index (int) to run name (str).
+        tomo_index_row: Row index (0-based) containing tomogram indices (default: 4).
+
+    Returns:
+        Dictionary mapping run_name to (positions_angstrom, transforms_4x4, scores).
+        Only includes runs that are present in index_to_run mapping.
+    """
+    # Read with tomogram indices
+    positions_px, eulers_deg, scores, tomo_indices = read_em_motivelist(
+        path,
+        include_tomo_index=True,
+        tomo_index_row=tomo_index_row,
+    )
+
+    # Group by tomogram index
+    grouped = {}
+    unique_indices = np.unique(tomo_indices)
+
+    for tomo_idx in unique_indices:
+        if tomo_idx not in index_to_run:
+            # Skip particles from unknown tomograms
+            continue
+
+        run_name = index_to_run[tomo_idx]
+        mask = tomo_indices == tomo_idx
+
+        # Extract particles for this tomogram
+        positions_px_group = positions_px[mask]
+        eulers_deg_group = eulers_deg[mask]
+        scores_group = scores[mask]
+
+        # Convert to copick format (Angstrom coordinates, 4x4 transforms)
+        positions_angstrom, transforms = em_to_copick_transform(
+            positions_px_group,
+            eulers_deg_group,
+            voxel_spacing,
+        )
+
+        grouped[run_name] = (positions_angstrom, transforms, scores_group)
+
+    return grouped
+
+
+def write_em_motivelist_grouped(
+    path: str,
+    grouped_data: Dict[str, Tuple[np.ndarray, np.ndarray, Optional[np.ndarray]]],
+    voxel_spacing: float,
+    run_to_index: Dict[str, int],
+    tomogram_dimensions: Optional[Tuple[int, int, int]] = None,
+) -> None:
+    """Write a combined TOM toolbox EM motivelist from multiple runs.
+
+    Args:
+        path: Output path for the EM file.
+        grouped_data: Dict mapping run_name to (positions_angstrom, transforms_4x4, scores).
+        voxel_spacing: Voxel spacing in Angstrom for coordinate conversion.
+        run_to_index: Mapping from run name to tomogram index.
+        tomogram_dimensions: Optional (z, y, x) dimensions for coordinate conversion.
+
+    Raises:
+        ValueError: If run_to_index is missing entries for any run.
+    """
+    import emfile
+
+    all_positions = []
+    all_eulers = []
+    all_scores = []
+    all_tomo_indices = []
+
+    for run_name, (positions, transforms, scores) in grouped_data.items():
+        if run_name not in run_to_index:
+            raise ValueError(f"Run '{run_name}' not found in run_to_index mapping")
+
+        tomogram_index = run_to_index[run_name]
+
+        # Convert from copick format to EM format
+        positions_px, eulers_deg = copick_to_em_transform(
+            positions,
+            transforms,
+            voxel_spacing,
+            tomogram_dimensions,
+        )
+
+        N = positions_px.shape[0]
+        if scores is None:
+            scores = np.ones(N)
+
+        all_positions.append(positions_px)
+        all_eulers.append(eulers_deg)
+        all_scores.append(scores)
+        all_tomo_indices.append(np.full(N, tomogram_index))
+
+    # Concatenate all data
+    positions_combined = np.vstack(all_positions)
+    eulers_combined = np.vstack(all_eulers)
+    scores_combined = np.concatenate(all_scores)
+    tomo_indices_combined = np.concatenate(all_tomo_indices)
+
+    N = positions_combined.shape[0]
+
+    # Create standard TOM motivelist structure
+    # Shape: (1, N, 20) for MATLAB/Fortran compatibility
+    data = np.zeros((1, N, 20), dtype=np.float32)
+
+    # Cross-correlation peak position (columns 0-2) - typically zero
+    data[0, :, 0:3] = 0.0
+
+    # Score (column 3)
+    data[0, :, 3] = scores_combined
+
+    # Tomogram index (column 4)
+    data[0, :, 4] = tomo_indices_combined
+
+    # Class (column 5) - default to 1
+    data[0, :, 5] = 1
+
+    # Particle index (column 6)
+    data[0, :, 6] = np.arange(1, N + 1)
+
+    # Positions (columns 7-9)
+    # Convert from 0-indexed to 1-indexed by adding 1
+    data[0, :, 7:10] = positions_combined + 1
+
+    # Shifts (columns 10-12) - typically zero
+    data[0, :, 10:13] = 0.0
+
+    # Euler angles: input is [phi, theta, psi] but stored as [phi, psi, theta]
+    # Column 16 = phi, Column 17 = psi, Column 18 = theta
+    data[0, :, 16] = eulers_combined[:, 0]  # phi
+    data[0, :, 17] = eulers_combined[:, 2]  # psi (3rd rotation, stored in column 17)
+    data[0, :, 18] = eulers_combined[:, 1]  # theta (2nd rotation, stored in column 18)
+
+    emfile.write(path, data)
+
+
 def read_em_volume(path: str) -> np.ndarray:
     """Read a TOM toolbox EM volume file.
 
@@ -768,6 +1072,41 @@ def read_star_particles(path: str) -> "pd.DataFrame":
     return data
 
 
+def read_star_particles_grouped(path: str) -> Dict[str, "pd.DataFrame"]:
+    """Read a RELION STAR file and group particles by tomogram name.
+
+    Reads a RELION particles STAR file and groups the particles by the
+    _rlnTomoName column, which identifies which tomogram each particle
+    belongs to.
+
+    Args:
+        path: Path to the STAR file.
+
+    Returns:
+        Dictionary mapping run_name (from rlnTomoName) to DataFrame of particles.
+
+    Raises:
+        ValueError: If the STAR file does not contain the rlnTomoName column.
+    """
+    df = read_star_particles(path)
+
+    # Validate that rlnTomoName column exists
+    if "rlnTomoName" not in df.columns:
+        raise ValueError(
+            "STAR file does not contain rlnTomoName column. "
+            "Cannot group particles by tomogram. "
+            "Use the single-file 'picks' command instead.",
+        )
+
+    # Group by tomogram name
+    grouped = {}
+    for tomo_name, group_df in df.groupby("rlnTomoName"):
+        # Reset index for each group
+        grouped[str(tomo_name)] = group_df.reset_index(drop=True)
+
+    return grouped
+
+
 def write_star_particles(
     path: str,
     df: "pd.DataFrame",
@@ -790,6 +1129,160 @@ def write_star_particles(
         data = df
 
     starfile.write(data, path, overwrite=True)
+
+
+def write_star_particles_grouped(
+    path: str,
+    grouped_data: Dict[str, Tuple[np.ndarray, np.ndarray, Optional[np.ndarray]]],
+    voxel_spacing: float,
+    optics_group: Optional[Dict] = None,
+) -> None:
+    """Write a combined RELION STAR file from multiple runs.
+
+    Uses run_name directly as _rlnTomoName column value.
+
+    Args:
+        path: Output path for the STAR file.
+        grouped_data: Dict mapping run_name to (positions_angstrom, transforms_4x4, scores).
+        voxel_spacing: Voxel spacing in Angstrom for coordinate conversion.
+        optics_group: Optional optics group metadata.
+    """
+    import pandas as pd
+    import starfile
+    from scipy.spatial.transform import Rotation
+
+    all_dfs = []
+
+    for run_name, (positions, transforms, _scores) in grouped_data.items():
+        N = positions.shape[0]
+
+        # Convert positions from Angstrom to pixels
+        positions_px = positions / voxel_spacing
+
+        # Extract Euler angles from transforms
+        rotation_matrices = transforms[:, :3, :3]
+        # Invert rotation for RELION convention
+        rotations = Rotation.from_matrix(rotation_matrices).inv()
+        euler_angles = rotations.as_euler("ZYZ", degrees=True)
+
+        df = pd.DataFrame(
+            {
+                "rlnTomoName": [run_name] * N,
+                "rlnCoordinateX": positions_px[:, 0],
+                "rlnCoordinateY": positions_px[:, 1],
+                "rlnCoordinateZ": positions_px[:, 2],
+                "rlnAngleRot": euler_angles[:, 0],
+                "rlnAngleTilt": euler_angles[:, 1],
+                "rlnAnglePsi": euler_angles[:, 2],
+            },
+        )
+
+        if optics_group is not None:
+            df["rlnOpticsGroup"] = 1
+
+        all_dfs.append(df)
+
+    combined_df = pd.concat(all_dfs, ignore_index=True)
+
+    if optics_group is not None:
+        optics_df = pd.DataFrame([optics_group])
+        data = {"optics": optics_df, "particles": combined_df}
+    else:
+        data = combined_df
+
+    starfile.write(data, path, overwrite=True)
+
+
+def read_relion_tomograms_star(
+    path: str,
+    half: str = "half1",
+) -> Dict[str, Tuple[str, float]]:
+    """Read a RELION tomograms.star file.
+
+    Parses a RELION tomograms.star file and extracts tomogram paths, run names,
+    and voxel sizes. The voxel size is computed from the original pixel size
+    multiplied by the binning factor.
+
+    Args:
+        path: Path to the tomograms.star file.
+        half: Which reconstruction half to use ("half1" or "half2"). Default: "half1".
+
+    Returns:
+        Dictionary mapping run_name to (mrc_path, voxel_size_angstrom).
+
+    Raises:
+        ValueError: If required columns are missing or the half column is not found.
+
+    Example star file format::
+
+        data_global
+
+        loop_
+        _rlnTomoName #1
+        _rlnMicrographOriginalPixelSize #2
+        _rlnTomoTomogramBinning #3
+        _rlnTomoReconstructedTomogramHalf1 #4
+        _rlnTomoReconstructedTomogramHalf2 #5
+        TS_01  0.675  7.407  path/to/half1.mrc  path/to/half2.mrc
+    """
+    import os
+
+    import starfile
+
+    data = starfile.read(path)
+
+    # starfile returns either a dict (if multiple blocks) or a DataFrame
+    if isinstance(data, dict):  # noqa: SIM108
+        # Look for "global" block first (RELION5 tomograms.star uses this), fall back to first block
+        df = data["global"] if "global" in data else next(iter(data.values()))
+    else:
+        df = data
+
+    # Validate required columns
+    required_cols = [
+        "rlnTomoName",
+        "rlnMicrographOriginalPixelSize",
+        "rlnTomoTomogramBinning",
+    ]
+    for col in required_cols:
+        if col not in df.columns:
+            raise ValueError(f"Required column '{col}' not found in tomograms.star file")
+
+    # Determine path column based on half
+    if half.lower() == "half1":
+        path_col = "rlnTomoReconstructedTomogramHalf1"
+    elif half.lower() == "half2":
+        path_col = "rlnTomoReconstructedTomogramHalf2"
+    else:
+        raise ValueError(f"Invalid half '{half}'. Must be 'half1' or 'half2'.")
+
+    if path_col not in df.columns:
+        raise ValueError(f"Column '{path_col}' not found in tomograms.star file")
+
+    # Get directory of star file for resolving relative paths
+    star_dir = os.path.dirname(os.path.abspath(path))
+
+    result = {}
+    for _, row in df.iterrows():
+        run_name = str(row["rlnTomoName"])
+        pixel_size = float(row["rlnMicrographOriginalPixelSize"])
+        binning = float(row["rlnTomoTomogramBinning"])
+        mrc_path = str(row[path_col])
+
+        # Compute effective voxel size
+        voxel_size = pixel_size * binning
+
+        # Resolve relative paths
+        if not os.path.isabs(mrc_path):
+            mrc_path = os.path.join(star_dir, mrc_path)
+
+        # Check for duplicate run names
+        if run_name in result:
+            raise ValueError(f"Duplicate run name '{run_name}' in tomograms.star file")
+
+        result[run_name] = (mrc_path, voxel_size)
+
+    return result
 
 
 # =============================================================================
@@ -864,6 +1357,48 @@ def write_picks_csv(
     df.to_csv(path, index=False)
 
 
+def write_picks_csv_grouped(
+    path: str,
+    grouped_data: Dict[str, Tuple[np.ndarray, np.ndarray, Optional[np.ndarray]]],
+) -> None:
+    """Write a combined CSV file from multiple runs.
+
+    Simply concatenates all runs with run_name column identifying each.
+
+    Args:
+        path: Output path for the CSV file.
+        grouped_data: Dict mapping run_name to (positions_angstrom, transforms_4x4, scores).
+    """
+    import pandas as pd
+
+    all_dfs = []
+
+    for run_name, (positions, transforms, scores) in grouped_data.items():
+        N = positions.shape[0]
+
+        data = {
+            "run_name": [run_name] * N,
+            "x": positions[:, 0],
+            "y": positions[:, 1],
+            "z": positions[:, 2],
+        }
+
+        # Add all 16 matrix elements
+        for i in range(4):
+            for j in range(4):
+                data[f"transform_{i}{j}"] = transforms[:, i, j]
+
+        if scores is not None:
+            data["score"] = scores
+        else:
+            data["score"] = np.ones(N)
+
+        all_dfs.append(pd.DataFrame(data))
+
+    combined_df = pd.concat(all_dfs, ignore_index=True)
+    combined_df.to_csv(path, index=False)
+
+
 def csv_to_copick_arrays(df: "pd.DataFrame") -> Dict[str, Tuple[np.ndarray, np.ndarray, np.ndarray]]:
     """Convert CSV DataFrame to copick arrays, grouped by run_name.
 
@@ -895,6 +1430,88 @@ def csv_to_copick_arrays(df: "pd.DataFrame") -> Dict[str, Tuple[np.ndarray, np.n
         results[run_name] = (positions, transforms, scores)
 
     return results
+
+
+def read_copick_csv(
+    path: str,
+) -> Tuple[np.ndarray, np.ndarray, Optional[np.ndarray], np.ndarray]:
+    """Read a copick CSV picks file and return arrays.
+
+    Convenience function that reads CSV and returns arrays directly.
+
+    Args:
+        path: Path to the CSV file.
+
+    Returns:
+        Tuple of (positions, transforms, scores, run_names) where:
+        - positions: (N, 3) array of coordinates in Angstrom
+        - transforms: (N, 4, 4) array of transformation matrices
+        - scores: (N,) array of scores (or None if not present)
+        - run_names: (N,) array of run name strings
+    """
+    import pandas as pd
+
+    df = pd.read_csv(path)
+
+    N = len(df)
+    positions = df[["x", "y", "z"]].to_numpy()
+
+    # Reconstruct transforms from matrix elements
+    transforms = np.zeros((N, 4, 4), dtype=float)
+    for i in range(4):
+        for j in range(4):
+            col = f"transform_{i}{j}"
+            if col in df.columns:
+                transforms[:, i, j] = df[col].to_numpy()
+            elif i == j:
+                transforms[:, i, j] = 1.0  # Identity diagonal
+
+    scores = df["score"].to_numpy() if "score" in df.columns else None
+    run_names = df["run_name"].to_numpy() if "run_name" in df.columns else np.array([""] * N)
+
+    return positions, transforms, scores, run_names
+
+
+def write_copick_csv(
+    path: str,
+    positions: np.ndarray,
+    transforms: np.ndarray,
+    run_name: str = "",
+    scores: Optional[np.ndarray] = None,
+    instance_ids: Optional[np.ndarray] = None,
+) -> None:
+    """Write picks to a copick CSV file.
+
+    Wrapper for write_picks_csv with argument order matching handler expectations.
+
+    Args:
+        path: Output path for the CSV file.
+        positions: Array of shape (N, 3) with coordinates in Angstrom.
+        transforms: Array of shape (N, 4, 4) with transformation matrices.
+        run_name: Run name for all points.
+        scores: Optional array of shape (N,) with scores.
+        instance_ids: Optional array of shape (N,) with instance IDs.
+    """
+    write_picks_csv(path, run_name, positions, transforms, scores, instance_ids)
+
+
+def read_copick_csv_grouped(
+    path: str,
+) -> Dict[str, Tuple[np.ndarray, np.ndarray, Optional[np.ndarray]]]:
+    """Read a copick CSV file and return data grouped by run_name.
+
+    Convenience function that reads CSV and returns grouped arrays.
+
+    Args:
+        path: Path to the CSV file.
+
+    Returns:
+        Dict mapping run_name to (positions, transforms, scores) tuples.
+    """
+    import pandas as pd
+
+    df = pd.read_csv(path)
+    return csv_to_copick_arrays(df)
 
 
 # =============================================================================
