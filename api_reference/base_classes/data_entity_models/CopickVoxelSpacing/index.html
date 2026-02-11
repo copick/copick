@@ -2631,7 +2631,7 @@ when CopickVoxelSpacing.tomograms is accessed <strong>for the first time</strong
 
 
 </h3>
-<div class="language-python doc-signature highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="nf">get_tomograms</span><span class="p">(</span><span class="n">tomo_type</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">List</span><span class="p">[</span><span class="n">CopickTomogram</span><span class="p">]</span>
+<div class="language-python doc-signature highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="nf">get_tomograms</span><span class="p">(</span><span class="n">tomo_type</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">List</span><span class="p">[</span><span class="n">CopickTomogram</span><span class="p">]</span>
 </span></code></pre></div>
 
     <div class="doc doc-contents ">
@@ -2643,10 +2643,19 @@ when CopickVoxelSpacing.tomograms is accessed <strong>for the first time</strong
     <ul>
         <li class="doc-section-item field-body">
             <b><code>tomo_type</code></b>
-              (<code><span title="str">str</span></code>)
+              (<code><span title="str">str</span></code>, default:
+                  <code>None</code>
+)
           –
           <div class="doc-md-description">
             <p>Type of the tomograms to retrieve.</p>
+          </div>
+        </li>
+        <li class="doc-section-item field-body">
+            <b><code>**kwargs</code></b>
+          –
+          <div class="doc-md-description">
+            <p>Additional parameters for subclass implementations.</p>
           </div>
         </li>
     </ul>
