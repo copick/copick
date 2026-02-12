@@ -4,7 +4,8 @@ This package provides handlers for reading/writing volume data in various format
 All handlers are automatically registered with the FormatRegistry on import.
 """
 
-from copick.util.handlers import FormatRegistry, em_handler
+from copick.util.handlers.registry import FormatRegistry
+from copick.util.handlers.volume.em import em_handler
 from copick.util.handlers.volume.mrc import mrc_handler
 from copick.util.handlers.volume.tiff import tiff_handler
 from copick.util.handlers.volume.zarr import zarr_handler

@@ -7,7 +7,7 @@ automatic format detection and handler lookup by format name or file extension.
 import os
 from typing import Dict, List, Optional
 
-from copick.util.handlers import PicksFormatHandler, VolumeFormatHandler
+from copick.util.handlers.base import PicksFormatHandler, VolumeFormatHandler
 
 
 class FormatRegistry:

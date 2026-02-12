@@ -17,15 +17,24 @@ Usage:
     formats = FormatRegistry.list_volume_formats()
 """
 
-# Import sub-packages to trigger handler registration
-from copick.util.handlers import (
+# isort: off
+# Import base types and registry (MUST be first - subpackages depend on these)
+from copick.util.handlers.base import (
     FormatCapabilities,
-    FormatRegistry,
     PicksFormatHandler,
     VolumeFormatHandler,
+)
+from copick.util.handlers.registry import (
+    FormatRegistry,
     get_picks_format_from_path,
     get_volume_format_from_path,
 )
+
+# Import sub-packages to trigger handler registration (MUST be after base imports)
+from copick.util.handlers import picks  # noqa: F401
+from copick.util.handlers import volume  # noqa: F401
+
+# isort: on
 
 __all__ = [
     "FormatRegistry",
