@@ -831,10 +831,10 @@ def export_run(
                 tomogram_index = run_to_index[run.name]
 
             for picks in picks_list:
-                # Determine output filename
-                filename = f"{picks.pickable_object_name}_{picks.user_id}_{picks.session_id}"
+                # Determine output filename (flat structure: run_object_user_session.ext)
+                filename = f"{run.name}_{picks.pickable_object_name}_{picks.user_id}_{picks.session_id}"
                 ext = {"em": ".em", "star": ".star", "dynamo": ".tbl", "csv": ".csv"}.get(output_format, ".csv")
-                output_path = os.path.join(run_output_dir, "Picks", filename + ext)
+                output_path = os.path.join(output_dir, filename + ext)
 
                 export_picks(
                     picks,
