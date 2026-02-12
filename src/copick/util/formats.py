@@ -12,7 +12,7 @@ Supported formats:
 - TIFF stacks (via tifffile package)
 """
 
-from typing import TYPE_CHECKING, Dict, Optional, Tuple, Union
+from typing import TYPE_CHECKING, Dict, List, Optional, Tuple, Union
 
 import numpy as np
 
@@ -20,6 +20,8 @@ from copick.util.log import get_logger
 
 if TYPE_CHECKING:
     import pandas as pd
+
+    from copick.impl.filesystem import CopickRootFSSpec
 
 logger = get_logger(__name__)
 
@@ -1107,6 +1109,137 @@ def read_star_particles_grouped(path: str) -> Dict[str, "pd.DataFrame"]:
     return grouped
 
 
+def detect_relion_version(df: "pd.DataFrame") -> str:
+    """Auto-detect RELION version from STAR file columns.
+
+    Determines whether a STAR file uses RELION 4.x pixel coordinates
+    or RELION 5.0 centered Angstrom coordinates by checking column names.
+
+    Args:
+        df: DataFrame with particle data from a STAR file.
+
+    Returns:
+        "relion4" if pixel coordinates found (rlnCoordinateX/Y/Z)
+        "relion5" if centered Angstrom coordinates found (rlnCenteredCoordinateXAngst/YAngst/ZAngst)
+
+    Raises:
+        ValueError: If neither coordinate format is detected.
+    """
+    relion4_cols = {"rlnCoordinateX", "rlnCoordinateY", "rlnCoordinateZ"}
+    relion5_cols = {"rlnCenteredCoordinateXAngst", "rlnCenteredCoordinateYAngst", "rlnCenteredCoordinateZAngst"}
+
+    if relion5_cols.issubset(df.columns):
+        return "relion5"
+    elif relion4_cols.issubset(df.columns):
+        return "relion4"
+    else:
+        raise ValueError(
+            "Cannot detect RELION version. STAR file must contain either:\n"
+            "  - rlnCoordinateX/Y/Z (RELION 4.x pixel coordinates), or\n"
+            "  - rlnCenteredCoordinateXAngst/YAngst/ZAngst (RELION 5.0 centered coordinates)",
+        )
+
+
+def read_relion5_tomogram_centers(
+    tomograms_star_path: str,
+) -> Dict[str, Tuple[float, float, float]]:
+    """Read tomogram centers in Angstrom from RELION 5.0 tomograms.star.
+
+    Extracts tomogram dimensions and computes centers for converting
+    RELION 5.0 centered coordinates to absolute coordinates.
+
+    The center is computed as: (tomoSize / 2) * pixel_size * binning
+
+    Args:
+        tomograms_star_path: Path to RELION 5.0 tomograms.star file.
+
+    Returns:
+        Dict mapping tomo_name -> (center_x_angst, center_y_angst, center_z_angst).
+
+    Raises:
+        ValueError: If required columns are missing from the STAR file.
+    """
+    import starfile
+
+    data = starfile.read(tomograms_star_path)
+
+    # starfile returns either a dict (if multiple blocks) or a DataFrame
+    # Look for "global" block first (RELION5 tomograms.star uses this)
+    df = (data["global"] if "global" in data else next(iter(data.values()))) if isinstance(data, dict) else data
+
+    required = [
+        "rlnTomoName",
+        "rlnTomoSizeX",
+        "rlnTomoSizeY",
+        "rlnTomoSizeZ",
+        "rlnTomoTiltSeriesPixelSize",
+        "rlnTomoTomogramBinning",
+    ]
+    for col in required:
+        if col not in df.columns:
+            raise ValueError(
+                f"Required column '{col}' not found in tomograms.star for RELION 5.0 coordinate conversion",
+            )
+
+    centers = {}
+    for _, row in df.iterrows():
+        tomo_name = str(row["rlnTomoName"])
+        pixel_size = float(row["rlnTomoTiltSeriesPixelSize"]) * float(row["rlnTomoTomogramBinning"])
+        center_x = (float(row["rlnTomoSizeX"]) / 2) * pixel_size
+        center_y = (float(row["rlnTomoSizeY"]) / 2) * pixel_size
+        center_z = (float(row["rlnTomoSizeZ"]) / 2) * pixel_size
+        centers[tomo_name] = (center_x, center_y, center_z)
+
+    return centers
+
+
+def get_tomogram_centers_from_copick(
+    root: "CopickRootFSSpec",
+    run_names: List[str],
+    voxel_spacing: float,
+) -> Dict[str, Tuple[float, float, float]]:
+    """Get tomogram centers from existing copick project tomograms.
+
+    Uses the zarr shape of existing tomograms to compute centers
+    for RELION 5.0 coordinate conversion.
+
+    Args:
+        root: Copick root object.
+        run_names: List of run names to get centers for.
+        voxel_spacing: Voxel spacing in Angstrom.
+
+    Returns:
+        Dict mapping run_name -> (center_x_angst, center_y_angst, center_z_angst).
+        Runs that don't exist or don't have tomograms are silently skipped.
+    """
+    centers = {}
+    for run_name in run_names:
+        run = root.get_run(run_name)
+        if run is None:
+            continue  # Skip missing runs
+
+        vs = run.get_voxel_spacing(voxel_spacing)
+        if vs is None:
+            continue
+
+        # Get any tomogram to read shape
+        tomos = vs.tomograms
+        if not tomos:
+            continue
+
+        tomo = tomos[0]
+        zarr_store = tomo.zarr()
+        shape = zarr_store["0"].shape  # (z, y, x)
+
+        # Compute center in Angstrom
+        center_z = (shape[0] / 2) * voxel_spacing
+        center_y = (shape[1] / 2) * voxel_spacing
+        center_x = (shape[2] / 2) * voxel_spacing
+        centers[run_name] = (center_x, center_y, center_z)
+
+    return centers
+
+
 def write_star_particles(
     path: str,
     df: "pd.DataFrame",
@@ -1196,6 +1329,7 @@ def write_star_particles_grouped(
 def read_relion_tomograms_star(
     path: str,
     half: str = "half1",
+    base_dir: Optional[str] = None,
 ) -> Dict[str, Tuple[str, float]]:
     """Read a RELION tomograms.star file.
 
@@ -1206,12 +1340,16 @@ def read_relion_tomograms_star(
     Args:
         path: Path to the tomograms.star file.
         half: Which reconstruction half to use ("half1" or "half2"). Default: "half1".
+        base_dir: RELION project root directory for resolving relative paths in the
+            STAR file. Required because RELION stores paths relative to the project
+            root, not relative to the STAR file location.
 
     Returns:
         Dictionary mapping run_name to (mrc_path, voxel_size_angstrom).
 
     Raises:
-        ValueError: If required columns are missing or the half column is not found.
+        ValueError: If required columns are missing, the half column is not found,
+            or base_dir is not provided.
 
     Example star file format::
 
@@ -1228,6 +1366,13 @@ def read_relion_tomograms_star(
     import os
 
     import starfile
+
+    if base_dir is None:
+        raise ValueError(
+            "base_dir is required for resolving relative paths in RELION STAR files. "
+            "Provide the RELION project root directory.",
+        )
+    base_dir = os.path.abspath(base_dir)
 
     data = starfile.read(path)
 
@@ -1259,9 +1404,6 @@ def read_relion_tomograms_star(
     if path_col not in df.columns:
         raise ValueError(f"Column '{path_col}' not found in tomograms.star file")
 
-    # Get directory of star file for resolving relative paths
-    star_dir = os.path.dirname(os.path.abspath(path))
-
     result = {}
     for _, row in df.iterrows():
         run_name = str(row["rlnTomoName"])
@@ -1272,9 +1414,9 @@ def read_relion_tomograms_star(
         # Compute effective voxel size
         voxel_size = pixel_size * binning
 
-        # Resolve relative paths
+        # Resolve relative paths against base_dir (RELION project root)
         if not os.path.isabs(mrc_path):
-            mrc_path = os.path.join(star_dir, mrc_path)
+            mrc_path = os.path.join(base_dir, mrc_path)
 
         # Check for duplicate run names
         if run_name in result:

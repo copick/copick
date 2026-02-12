@@ -1806,6 +1806,8 @@ def add_picks_grouped_from_file(
     exist_ok: bool = False,
     overwrite: bool = False,
     log: bool = False,
+    tomogram_centers: Optional[Dict[str, Tuple[float, float, float]]] = None,
+    relion_version: Optional[str] = None,
 ) -> Dict[str, CopickPicks]:
     """Add picks from a file containing multiple tomograms using the handler registry.
 
@@ -1827,6 +1829,10 @@ def add_picks_grouped_from_file(
         exist_ok: Don't raise error if picks exist.
         overwrite: Overwrite if exists.
         log: Log the operation.
+        tomogram_centers: Dict mapping tomo_name to (center_x, center_y, center_z) in Angstrom.
+            Required for RELION 5.0 centered coordinate conversion.
+        relion_version: RELION version for coordinate format ("relion4" or "relion5").
+            If None, auto-detected from column names.
 
     Returns:
         Dictionary mapping run names to created CopickPicks objects.
@@ -1847,12 +1853,14 @@ def add_picks_grouped_from_file(
             f"Use add_picks_from_file() for single-tomogram imports.",
         )
 
-    # Read grouped picks
+    # Read grouped picks (pass RELION-specific parameters if this is a STAR file)
     grouped_data = handler.read_grouped(
         file_path,
         voxel_spacing,
         index_to_run,
         tomo_index_row=tomo_index_row,
+        tomogram_centers=tomogram_centers,
+        relion_version=relion_version,
     )
 
     # Create picks for each run

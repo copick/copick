@@ -400,6 +400,12 @@ def tomogram_from_tomolist(
     help="Path to RELION tomograms.star file.",
 )
 @click.option(
+    "--base-dir",
+    required=True,
+    type=click.Path(exists=True, file_okay=False, dir_okay=True),
+    help="RELION project root directory for resolving relative paths in the STAR file.",
+)
+@click.option(
     "--half",
     required=False,
     type=click.Choice(["half1", "half2"], case_sensitive=False),
@@ -441,6 +447,7 @@ def tomogram_from_star(
     ctx,
     config: str,
     tomograms_star: str,
+    base_dir: str,
     half: str,
     tomo_type: str,
     file_type: str,
@@ -459,17 +466,19 @@ def tomogram_from_star(
     Add tomograms from a RELION tomograms.star file.
 
     Run names are extracted from _rlnTomoName column. Voxel sizes are read from
-    the star file unless overridden with --voxel-size.
+    the star file unless overridden with --voxel-size. The --base-dir option
+    specifies the RELION project root directory for resolving relative paths
+    in the STAR file.
 
     Examples:
 
     \\b
     # Import from RELION tomograms.star file (half1, default)
-    copick add tomograms-relion -c config.json --tomograms-star tomograms.star
+    copick add tomograms-relion -c config.json --tomograms-star tomograms.star --base-dir /path/to/relion_project
 
     \\b
     # Import half2 reconstructions
-    copick add tomograms-relion -c config.json --tomograms-star tomograms.star --half half2
+    copick add tomograms-relion -c config.json --tomograms-star tomograms.star --base-dir /path/to/relion_project --half half2
     """
     import copick
     from copick.ops.run import map_runs, report_results
@@ -479,7 +488,7 @@ def tomogram_from_star(
     root = copick.from_file(config)
 
     # Parse the star file
-    tomo_data = read_relion_tomograms_star(tomograms_star, half=half)
+    tomo_data = read_relion_tomograms_star(tomograms_star, half=half, base_dir=base_dir)
 
     # Build paths list and run_to_file mapping
     paths = []
@@ -1514,6 +1523,23 @@ def picks_dynamo(
     type=float,
     help="Voxel size in Angstrom (required for coordinate conversion).",
 )
+@click.option(
+    "--tomograms-star",
+    required=False,
+    type=click.Path(exists=True, file_okay=True, dir_okay=False),
+    default=None,
+    help="Path to RELION tomograms.star file for RELION 5.0 coordinate conversion. "
+    "If not provided and RELION 5.0 format is detected, tomogram dimensions will be "
+    "read from existing tomograms in the copick project.",
+)
+@click.option(
+    "--relion-version",
+    required=False,
+    type=click.Choice(["auto", "relion4", "relion5"], case_sensitive=False),
+    default="auto",
+    show_default=True,
+    help="RELION version for coordinate format. 'auto' detects from column names.",
+)
 @add_max_workers_option
 @add_create_overwrite_options
 @add_debug_option
@@ -1531,6 +1557,8 @@ def picks_relion(
     user_id: str,
     session_id: str,
     voxel_size: float,
+    tomograms_star: str,
+    relion_version: str,
     max_workers: int,
     path: str,
     create: bool,
@@ -1546,27 +1574,43 @@ def picks_relion(
     the _rlnTomoName column identifying which tomogram each particle belongs to.
     Run names are automatically extracted from the _rlnTomoName column.
 
-    The STAR file must contain:
-    - rlnCoordinateX, rlnCoordinateY, rlnCoordinateZ (particle positions in pixels)
-    - rlnTomoName (tomogram identifier, used as run name)
+    Supports both RELION 4.x and RELION 5.0 coordinate formats:
 
-    Optionally, it can also contain:
-    - rlnAngleRot, rlnAngleTilt, rlnAnglePsi (Euler angles for orientation)
+    RELION 4.x format (pixel coordinates):
+    - rlnCoordinateX, rlnCoordinateY, rlnCoordinateZ
+
+    RELION 5.0 format (centered Angstrom coordinates):
+    - rlnCenteredCoordinateXAngst, rlnCenteredCoordinateYAngst, rlnCenteredCoordinateZAngst
+
+    For RELION 5.0, tomogram dimensions are needed to convert centered coordinates
+    to absolute coordinates. These can be provided via --tomograms-star, or will be
+    read from existing tomograms in the copick project.
 
     Examples:
 
     \\b
-    # Import particles from a combined STAR file
+    # Import RELION 4.x particles
     copick add picks-relion particles.star -c config.json --object-name ribosome \\
         --voxel-size 10.0
 
     \\b
-    # Import from multiple STAR files
-    copick add picks-relion "*.star" -c config.json --object-name ribosome \\
-        --voxel-size 10.0
+    # Import RELION 5.0 particles with tomograms.star
+    copick add picks-relion particles.star -c config.json --object-name ribosome \\
+        --voxel-size 5.0 --tomograms-star tomograms.star
+
+    \\b
+    # Import RELION 5.0 particles using existing copick tomogram dimensions
+    copick add picks-relion particles.star -c config.json --object-name ribosome \\
+        --voxel-size 5.0
     """
     import copick
     from copick.ops.add import add_picks_grouped_from_file
+    from copick.util.formats import (
+        detect_relion_version,
+        get_tomogram_centers_from_copick,
+        read_relion5_tomogram_centers,
+        read_star_particles,
+    )
 
     logger = get_logger(__name__, debug=debug)
 
@@ -1583,11 +1627,34 @@ def picks_relion(
         paths = [path]
 
     # Process each file with grouped import
-    # Note: For RELION STAR files, we pass an empty index_to_run because
-    # the run names come directly from the _rlnTomoName column
     total_runs = set()
     for p in paths:
         try:
+            # Read STAR file to detect version
+            df = read_star_particles(p)
+            detected_version = relion_version if relion_version != "auto" else detect_relion_version(df)
+            logger.info(f"Detected RELION version: {detected_version}")
+
+            # Get tomogram centers for RELION 5.0
+            tomogram_centers = None
+            if detected_version == "relion5":
+                if tomograms_star:
+                    # Option A: Use tomograms.star file
+                    logger.info(f"Loading tomogram centers from {tomograms_star}")
+                    tomogram_centers = read_relion5_tomogram_centers(tomograms_star)
+                else:
+                    # Option B: Use existing copick project tomograms
+                    run_names = df["rlnTomoName"].unique().tolist() if "rlnTomoName" in df.columns else []
+                    logger.info(f"Loading tomogram centers from copick project for {len(run_names)} runs")
+                    tomogram_centers = get_tomogram_centers_from_copick(root, run_names, voxel_size)
+
+                    if not tomogram_centers:
+                        ctx.fail(
+                            "RELION 5.0 coordinates require tomogram dimensions. Either:\n"
+                            "  1. Provide --tomograms-star with tomogram metadata, or\n"
+                            "  2. Import tomograms first so dimensions can be read from copick project",
+                        )
+
             results = add_picks_grouped_from_file(
                 root=root,
                 file_path=p,
@@ -1601,9 +1668,14 @@ def picks_relion(
                 exist_ok=overwrite,
                 overwrite=overwrite,
                 log=debug,
+                tomogram_centers=tomogram_centers,
+                relion_version=detected_version,
             )
             total_runs.update(results.keys())
             logger.info(f"Imported picks from {p} to {len(results)} runs")
+        except (SystemExit, click.UsageError):
+            # Re-raise click exceptions from ctx.fail()
+            raise
         except Exception as e:
             logger.error(f"Failed to import picks from {p}: {e}")
 

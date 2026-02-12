@@ -33,25 +33,70 @@ class STARPicksHandler:
         self,
         df: "pd.DataFrame",
         voxel_spacing: float,
+        tomogram_centers: Optional[Dict[str, Tuple[float, float, float]]] = None,
+        tomo_name: Optional[str] = None,
+        relion_version: Optional[str] = None,
     ) -> Tuple[np.ndarray, np.ndarray, Optional[np.ndarray]]:
         """Convert a RELION DataFrame to positions and transforms.
+
+        Supports both RELION 4.x pixel coordinates and RELION 5.0 centered
+        Angstrom coordinates. The version is auto-detected from column names
+        unless explicitly specified.
 
         Args:
             df: DataFrame with RELION columns
             voxel_spacing: Voxel spacing in Angstrom for coordinate conversion
+            tomogram_centers: Dict mapping tomo_name to (center_x, center_y, center_z) in Angstrom.
+                Required for RELION 5.0 centered coordinate conversion.
+            tomo_name: Tomogram name for single-tomo reads (used with tomogram_centers)
+            relion_version: Override auto-detection ("relion4" or "relion5")
 
         Returns:
             Tuple of (positions_angstrom, transforms_4x4, None)
         """
         from scipy.spatial.transform import Rotation
 
-        # Extract pixel coordinates and convert to Angstrom
-        if {"rlnCoordinateX", "rlnCoordinateY", "rlnCoordinateZ"}.issubset(df.columns):
-            positions_px = df[["rlnCoordinateX", "rlnCoordinateY", "rlnCoordinateZ"]].to_numpy()
-        else:
-            raise ValueError("STAR file must contain rlnCoordinateX, rlnCoordinateY, rlnCoordinateZ columns")
+        from copick.util.formats import detect_relion_version
 
-        positions_angstrom = positions_px * voxel_spacing
+        # Auto-detect or use provided version
+        version = relion_version or detect_relion_version(df)
+
+        if version == "relion5":
+            # RELION 5.0: Centered Angstrom coordinates
+            positions_angstrom = df[
+                ["rlnCenteredCoordinateXAngst", "rlnCenteredCoordinateYAngst", "rlnCenteredCoordinateZAngst"]
+            ].to_numpy()
+
+            # Convert centered -> absolute using tomogram centers
+            if tomogram_centers is None:
+                raise ValueError(
+                    "RELION 5.0 coordinates require tomogram dimensions. Provide --tomograms-star "
+                    "or ensure tomograms are already imported into the copick project.",
+                )
+
+            # Get tomo_name from df if not provided (for grouped reads)
+            if "rlnTomoName" in df.columns:
+                for i, (_, row) in enumerate(df.iterrows()):
+                    tomo = str(row["rlnTomoName"])
+                    if tomo not in tomogram_centers:
+                        raise ValueError(f"Tomogram '{tomo}' not found in tomogram centers")
+                    center = tomogram_centers[tomo]
+                    positions_angstrom[i] += np.array(center)
+            elif tomo_name:
+                if tomo_name not in tomogram_centers:
+                    raise ValueError(f"Tomogram '{tomo_name}' not found in tomogram centers")
+                center = np.array(tomogram_centers[tomo_name])
+                positions_angstrom += center
+            else:
+                raise ValueError("Cannot determine tomogram name for RELION 5.0 coordinate conversion")
+
+        else:
+            # RELION 4.x: Pixel coordinates
+            if {"rlnCoordinateX", "rlnCoordinateY", "rlnCoordinateZ"}.issubset(df.columns):
+                positions_px = df[["rlnCoordinateX", "rlnCoordinateY", "rlnCoordinateZ"]].to_numpy()
+            else:
+                raise ValueError("STAR file must contain rlnCoordinateX, rlnCoordinateY, rlnCoordinateZ columns")
+            positions_angstrom = positions_px * voxel_spacing
 
         # Extract Euler angles and convert to 4x4 transformation matrices
         N = len(positions_angstrom)
@@ -70,6 +115,9 @@ class STARPicksHandler:
         self,
         path: str,
         voxel_spacing: float,
+        tomogram_centers: Optional[Dict[str, Tuple[float, float, float]]] = None,
+        tomo_name: Optional[str] = None,
+        relion_version: Optional[str] = None,
         **kwargs,
     ) -> Tuple[np.ndarray, np.ndarray, Optional[np.ndarray]]:
         """Read picks from a STAR file.
@@ -77,6 +125,10 @@ class STARPicksHandler:
         Args:
             path: Path to the STAR file
             voxel_spacing: Voxel spacing in Angstrom for coordinate conversion
+            tomogram_centers: Dict mapping tomo_name to (center_x, center_y, center_z) in Angstrom.
+                Required for RELION 5.0 centered coordinate conversion.
+            tomo_name: Tomogram name for coordinate conversion (if not in STAR file)
+            relion_version: Override auto-detection ("relion4" or "relion5")
 
         Returns:
             Tuple of (positions_angstrom, transforms_4x4, None)
@@ -84,7 +136,13 @@ class STARPicksHandler:
         from copick.util.formats import read_star_particles
 
         df = read_star_particles(path)
-        return self._df_to_picks(df, voxel_spacing)
+        return self._df_to_picks(
+            df,
+            voxel_spacing,
+            tomogram_centers=tomogram_centers,
+            tomo_name=tomo_name,
+            relion_version=relion_version,
+        )
 
     def write(
         self,
@@ -123,6 +181,8 @@ class STARPicksHandler:
         path: str,
         voxel_spacing: float,
         index_to_run: Dict[int, str],
+        tomogram_centers: Optional[Dict[str, Tuple[float, float, float]]] = None,
+        relion_version: Optional[str] = None,
         **kwargs,
     ) -> Dict[str, Tuple[np.ndarray, np.ndarray, Optional[np.ndarray]]]:
         """Read picks grouped by tomogram name from a STAR file.
@@ -137,6 +197,9 @@ class STARPicksHandler:
             path: Path to the STAR file
             voxel_spacing: Voxel spacing in Angstrom for coordinate conversion
             index_to_run: Ignored for STAR files (uses _rlnTomoName directly)
+            tomogram_centers: Dict mapping tomo_name to (center_x, center_y, center_z) in Angstrom.
+                Required for RELION 5.0 centered coordinate conversion.
+            relion_version: Override auto-detection ("relion4" or "relion5")
 
         Returns:
             Dict mapping run_name to (positions, transforms, scores)
@@ -147,7 +210,13 @@ class STARPicksHandler:
         results = {}
 
         for run_name, df in grouped_dfs.items():
-            positions, transforms, scores = self._df_to_picks(df, voxel_spacing)
+            positions, transforms, scores = self._df_to_picks(
+                df,
+                voxel_spacing,
+                tomogram_centers=tomogram_centers,
+                tomo_name=run_name,
+                relion_version=relion_version,
+            )
             results[run_name] = (positions, transforms, scores)
 
         return results

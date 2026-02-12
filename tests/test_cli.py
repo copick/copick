@@ -749,6 +749,8 @@ TS_relion_test 1.0 10.0 {sample_mrc_file} {sample_mrc_file}
                     str(config_file),
                     "--tomograms-star",
                     star_path,
+                    "--base-dir",
+                    os.path.dirname(sample_mrc_file),  # Required for path resolution
                     "--tomo-type",
                     "wbp",
                     "--half",

@@ -189,6 +189,69 @@ _rlnTomoName #7
 
 
 @pytest.fixture
+def sample_relion5_star_files():
+    """Create RELION 5.0 STAR files with centered Angstrom coordinates for testing.
+
+    Creates:
+    1. A particles STAR file with _rlnCenteredCoordinateXAngst/YAngst/ZAngst columns
+    2. A tomograms STAR file with tomogram dimensions for coordinate conversion
+    """
+    with tempfile.TemporaryDirectory() as tmpdir:
+        # Tomogram dimensions (in pixels, at 1.0 Angstrom pixel size)
+        # For simplicity: 100x100x100 tomogram with 1.0 Angstrom pixel size
+        # Center: 50, 50, 50 pixels = 50, 50, 50 Angstrom
+        tomo_size_x, tomo_size_y, tomo_size_z = 100, 100, 100
+        pixel_size = 1.0
+        binning = 1.0
+
+        # Create particles STAR file with RELION 5.0 centered coordinates
+        particles_path = Path(tmpdir) / "particles_relion5.star"
+        particles_content = """
+data_particles
+
+loop_
+_rlnCenteredCoordinateXAngst #1
+_rlnCenteredCoordinateYAngst #2
+_rlnCenteredCoordinateZAngst #3
+_rlnAngleRot #4
+_rlnAngleTilt #5
+_rlnAnglePsi #6
+_rlnTomoName #7
+-40.0 -35.0 -30.0 0.0 0.0 0.0 TS_relion5_001
+-30.0 -25.0 -20.0 0.0 0.0 0.0 TS_relion5_001
+-20.0 -15.0 -10.0 0.0 0.0 0.0 TS_relion5_002
+"""
+        particles_path.write_text(particles_content)
+
+        # Create tomograms STAR file with dimensions for coordinate conversion
+        tomograms_path = Path(tmpdir) / "tomograms_relion5.star"
+        tomograms_content = f"""
+data_global
+
+loop_
+_rlnTomoName #1
+_rlnTomoSizeX #2
+_rlnTomoSizeY #3
+_rlnTomoSizeZ #4
+_rlnTomoTiltSeriesPixelSize #5
+_rlnTomoTomogramBinning #6
+TS_relion5_001 {tomo_size_x} {tomo_size_y} {tomo_size_z} {pixel_size} {binning}
+TS_relion5_002 {tomo_size_x} {tomo_size_y} {tomo_size_z} {pixel_size} {binning}
+"""
+        tomograms_path.write_text(tomograms_content)
+
+        yield {
+            "particles_star": str(particles_path),
+            "tomograms_star": str(tomograms_path),
+            "tomo_center": (
+                tomo_size_x * pixel_size * binning / 2,
+                tomo_size_y * pixel_size * binning / 2,
+                tomo_size_z * pixel_size * binning / 2,
+            ),
+        }
+
+
+@pytest.fixture
 def sample_em_file_multi_tomo():
     """Create a sample EM motivelist file with multiple tomogram indices for testing."""
     with tempfile.TemporaryDirectory() as tmpdir:
@@ -597,6 +660,123 @@ class TestSpecializedPicksImport:
         )
 
         assert result.exit_code != 0, "Command should fail without voxel size"
+
+    def test_add_picks_relion5_with_tomograms_star(self, test_payload, runner, sample_relion5_star_files):
+        """Test RELION 5.0 centered coordinate import with tomograms.star file."""
+        config_file = test_payload["cfg_file"]
+
+        result = runner.invoke(
+            add,
+            [
+                "picks-relion",
+                "--config",
+                str(config_file),
+                "--object-name",
+                "ribosome",
+                "--voxel-size",
+                "1.0",  # Use 1.0 to match the fixture
+                "--user-id",
+                "relion5-test",
+                "--session-id",
+                "1",
+                "--create",
+                "--tomograms-star",
+                sample_relion5_star_files["tomograms_star"],
+                sample_relion5_star_files["particles_star"],
+            ],
+        )
+
+        assert result.exit_code == 0, f"Command failed: {result.output}"
+
+        # Verify picks were imported
+        root = CopickRootFSSpec.from_file(config_file)
+
+        run1 = root.get_run("TS_relion5_001")
+        assert run1 is not None, "Run TS_relion5_001 should be created"
+        picks1 = run1.get_picks(object_name="ribosome", user_id="relion5-test", session_id="1")
+        assert len(picks1) > 0, "Picks should be imported for TS_relion5_001"
+
+        # Verify coordinates were converted from centered to absolute
+        # Centered: (-40, -35, -30), Center: (50, 50, 50)
+        # Absolute should be: (10, 15, 20) Angstrom
+        pick = picks1[0]
+        points = pick.points
+        assert len(points) == 2, "Should have 2 picks for TS_relion5_001"
+
+        # First pick: centered (-40, -35, -30) + center (50, 50, 50) = (10, 15, 20)
+        first_pick = points[0]
+        assert abs(first_pick.location.x - 10.0) < 0.1, f"Expected x=10, got {first_pick.location.x}"
+        assert abs(first_pick.location.y - 15.0) < 0.1, f"Expected y=15, got {first_pick.location.y}"
+        assert abs(first_pick.location.z - 20.0) < 0.1, f"Expected z=20, got {first_pick.location.z}"
+
+        run2 = root.get_run("TS_relion5_002")
+        assert run2 is not None, "Run TS_relion5_002 should be created"
+        picks2 = run2.get_picks(object_name="ribosome", user_id="relion5-test", session_id="1")
+        assert len(picks2) > 0, "Picks should be imported for TS_relion5_002"
+
+    def test_add_picks_relion_version_option(self, test_payload, runner, sample_star_with_tomo_name):
+        """Test --relion-version option for explicit version selection."""
+        config_file = test_payload["cfg_file"]
+
+        # Test with explicit relion4 version
+        result = runner.invoke(
+            add,
+            [
+                "picks-relion",
+                "--config",
+                str(config_file),
+                "--object-name",
+                "ribosome",
+                "--voxel-size",
+                "10.0",
+                "--user-id",
+                "relion4-explicit",
+                "--session-id",
+                "1",
+                "--create",
+                "--relion-version",
+                "relion4",
+                sample_star_with_tomo_name,
+            ],
+        )
+
+        assert result.exit_code == 0, f"Command failed: {result.output}"
+
+        # Verify picks were imported
+        root = CopickRootFSSpec.from_file(config_file)
+        run1 = root.get_run("TS_001")
+        assert run1 is not None, "Run TS_001 should exist"
+        picks1 = run1.get_picks(object_name="ribosome", user_id="relion4-explicit", session_id="1")
+        assert len(picks1) > 0, "Picks should be imported with explicit relion4 version"
+
+    def test_add_picks_relion5_missing_tomograms_star_error(self, test_payload, runner, sample_relion5_star_files):
+        """Test error when RELION 5.0 coordinates used without tomograms.star or existing tomograms."""
+        config_file = test_payload["cfg_file"]
+
+        # Don't create runs or tomograms first - should fail
+        result = runner.invoke(
+            add,
+            [
+                "picks-relion",
+                "--config",
+                str(config_file),
+                "--object-name",
+                "ribosome",
+                "--voxel-size",
+                "1.0",
+                "--user-id",
+                "relion5-test",
+                "--session-id",
+                "1",
+                "--create",
+                # Missing --tomograms-star and runs don't exist
+                sample_relion5_star_files["particles_star"],
+            ],
+        )
+
+        # Should fail because RELION 5.0 coordinates require tomogram dimensions
+        assert result.exit_code != 0, "Command should fail without tomograms.star for RELION 5.0"
+        assert "RELION 5.0" in result.output or "tomogram" in result.output.lower()
 
 
 class TestPicksExport:
