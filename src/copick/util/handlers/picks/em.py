@@ -43,10 +43,19 @@ class EMPicksHandler:
         Returns:
             Tuple of (positions_angstrom, transforms_4x4, scores)
         """
-        from copick.util.formats import read_em_motivelist
+        from copick.util.formats import em_to_copick_transform, read_em_motivelist
 
-        positions, transforms, scores = read_em_motivelist(path, voxel_spacing)
-        return positions, transforms, scores
+        # Read raw EM data (positions in pixels, Euler angles)
+        positions_px, eulers_deg, scores = read_em_motivelist(path)
+
+        # Convert to copick format (positions in Angstrom, 4x4 transforms)
+        positions_angstrom, transforms = em_to_copick_transform(
+            positions_px,
+            eulers_deg,
+            voxel_spacing,
+        )
+
+        return positions_angstrom, transforms, scores
 
     def write(
         self,
