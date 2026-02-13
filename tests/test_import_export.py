@@ -571,6 +571,7 @@ class TestSpecializedPicksImport:
                 "--session-id",
                 "1",
                 "--create",  # Create runs if they don't exist
+                "--debug",  # Raise exceptions to see actual errors
                 sample_dynamo_table_multi_tomo,
             ],
         )
