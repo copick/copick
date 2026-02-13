@@ -1,5 +1,19 @@
 # Changelog
 
+## [1.20.0](https://github.com/copick/copick/compare/copick-v1.19.0...copick-v1.20.0) (2026-02-13)
+
+
+### ✨ Features
+
+* Add import/export commands and API ([#170](https://github.com/copick/copick/issues/170)) ([eaa2ec6](https://github.com/copick/copick/commit/eaa2ec6878a7b7f8d8513b6b432ee3403a9eccbf))
+
+
+### 🐞 Bug Fixes
+
+* bump cryptography from 45.0.4 to 46.0.5 ([#195](https://github.com/copick/copick/issues/195)) ([5311cc3](https://github.com/copick/copick/commit/5311cc344b0cc10149bfef6e4c6faeb0f889d54a))
+* bump pillow from 11.3.0 to 12.1.1 ([#196](https://github.com/copick/copick/issues/196)) ([0ca3441](https://github.com/copick/copick/commit/0ca34410999c3fe46569a1366ba7633afe37f881))
+* Fix tests badge in readme.  ([#198](https://github.com/copick/copick/issues/198)) ([4f12036](https://github.com/copick/copick/commit/4f12036244720b3c9ef63134d3883c52001e585c))
+
 ## [1.19.0](https://github.com/copick/copick/compare/copick-v1.18.0...copick-v1.19.0) (2026-02-11)
 
 
