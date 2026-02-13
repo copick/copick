@@ -9,10 +9,10 @@
       
       
       
-        <link rel="prev" href="..">
+        <link rel="prev" href="../datamodel/">
       
       
-        <link rel="next" href="../datamodel/">
+        <link rel="next" href="../examples/overview/">
       
       
         
@@ -23,7 +23,7 @@
     
     
       
-        <title>Quick Start - copick</title>
+        <title>Geometry Conventions - copick</title>
       
     
     
@@ -78,7 +78,7 @@
     <div data-md-component="skip">
       
         
-        <a href="#requirements" class="md-skip">
+        <a href="#geometry-conventions" class="md-skip">
           Skip to content
         </a>
       
@@ -113,7 +113,7 @@
         <div class="md-header__topic" data-md-component="header-topic">
           <span class="md-ellipsis">
             
-              Quick Start
+              Geometry Conventions
             
           </span>
         </div>
@@ -289,35 +289,10 @@
       
   
   
-    
   
   
-  
-    <li class="md-nav__item md-nav__item--active">
-      
-      <input class="md-nav__toggle md-toggle" type="checkbox" id="__toc">
-      
-      
-      
-        <label class="md-nav__link md-nav__link--active" for="__toc">
-          
-  
-  
-  <span class="md-ellipsis">
-    
-  
-    Quick Start
-  
-
-    
-  </span>
-  
-  
-
-          <span class="md-nav__icon md-icon"></span>
-        </label>
-      
-      <a href="./" class="md-nav__link md-nav__link--active">
+    <li class="md-nav__item">
+      <a href="../quickstart/" class="md-nav__link">
         
   
   
@@ -333,57 +308,6 @@
   
 
       </a>
-      
-        
-
-<nav class="md-nav md-nav--secondary" aria-label="Table of contents">
-  
-  
-  
-  
-    <label class="md-nav__title" for="__toc">
-      <span class="md-nav__icon md-icon"></span>
-      Table of contents
-    </label>
-    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
-      
-        <li class="md-nav__item">
-  <a href="#requirements" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        Requirements
-      
-    </span>
-  </a>
-  
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#installation" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        Installation
-      
-    </span>
-  </a>
-  
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#example-dataset" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        Example dataset
-      
-    </span>
-  </a>
-  
-</li>
-      
-    </ul>
-  
-</nav>
-      
     </li>
   
 
@@ -419,10 +343,37 @@
       
   
   
+    
   
   
-    <li class="md-nav__item">
-      <a href="../geometry/" class="md-nav__link">
+  
+    <li class="md-nav__item md-nav__item--active">
+      
+      <input class="md-nav__toggle md-toggle" type="checkbox" id="__toc">
+      
+      
+        
+      
+      
+        <label class="md-nav__link md-nav__link--active" for="__toc">
+          
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Geometry Conventions
+  
+
+    
+  </span>
+  
+  
+
+          <span class="md-nav__icon md-icon"></span>
+        </label>
+      
+      <a href="./" class="md-nav__link md-nav__link--active">
         
   
   
@@ -438,6 +389,404 @@
   
 
       </a>
+      
+        
+
+<nav class="md-nav md-nav--secondary" aria-label="Table of contents">
+  
+  
+  
+    
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      Table of contents
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#overview" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Overview
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#1-coordinate-system" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        1. Coordinate System
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="1. Coordinate System">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#11-physical-coordinates" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        1.1 Physical Coordinates
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#12-voxel-coordinates" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        1.2 Voxel Coordinates
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#2-pick-geometry" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        2. Pick Geometry
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="2. Pick Geometry">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#21-position" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        2.1 Position
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#22-orientation-transformation-matrix" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        2.2 Orientation (Transformation Matrix)
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="2.2 Orientation (Transformation Matrix)">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#interpretation" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Interpretation
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#constraints" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Constraints
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#default-value" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Default Value
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#23-relationship-between-position-and-transform" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        2.3 Relationship Between Position and Transform
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#3-volume-geometry-tomograms-and-segmentations" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        3. Volume Geometry (Tomograms and Segmentations)
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="3. Volume Geometry (Tomograms and Segmentations)">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#31-array-axis-ordering" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        3.1 Array Axis Ordering
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#32-voxel-to-physical-coordinate-mapping" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        3.2 Voxel-to-Physical Coordinate Mapping
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#33-ome-zarr-scale-transform" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        3.3 OME-Zarr Scale Transform
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#34-multiscale-pyramids" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        3.4 Multiscale Pyramids
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#4-mesh-geometry" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        4. Mesh Geometry
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="4. Mesh Geometry">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#41-vertex-coordinates" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        4.1 Vertex Coordinates
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#42-storage-format" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        4.2 Storage Format
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#43-mesh-volume-correspondence" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        4.3 Mesh-Volume Correspondence
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#5-euler-angle-conventions-for-importexport" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        5. Euler Angle Conventions for Import/Export
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="5. Euler Angle Conventions for Import/Export">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#51-convention-summary" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        5.1 Convention Summary
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#52-conversion-formulas" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        5.2 Conversion Formulas
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="5.2 Conversion Formulas">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#relion-to-copick" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        RELION to Copick
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#dynamo-to-copick" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Dynamo to Copick
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#tomartiatomi-to-copick" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        TOM/Artiatomi to Copick
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#53-position-convention-summary" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        5.3 Position Convention Summary
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#6-summary-and-quick-reference" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        6. Summary and Quick Reference
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="6. Summary and Quick Reference">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#key-points" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Key Points
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#common-conversions" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Common Conversions
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+    </ul>
+  
+</nav>
+      
     </li>
   
 
@@ -2209,6 +2558,8 @@
   
   
   
+    
+  
   
     <label class="md-nav__title" for="__toc">
       <span class="md-nav__icon md-icon"></span>
@@ -2217,10 +2568,10 @@
     <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
       
         <li class="md-nav__item">
-  <a href="#requirements" class="md-nav__link">
+  <a href="#overview" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Requirements
+        Overview
       
     </span>
   </a>
@@ -2228,24 +2579,369 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#installation" class="md-nav__link">
+  <a href="#1-coordinate-system" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Installation
+        1. Coordinate System
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="1. Coordinate System">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#11-physical-coordinates" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        1.1 Physical Coordinates
       
     </span>
   </a>
   
 </li>
-      
-        <li class="md-nav__item">
-  <a href="#example-dataset" class="md-nav__link">
+        
+          <li class="md-nav__item">
+  <a href="#12-voxel-coordinates" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Example dataset
+        1.2 Voxel Coordinates
       
     </span>
   </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#2-pick-geometry" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        2. Pick Geometry
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="2. Pick Geometry">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#21-position" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        2.1 Position
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#22-orientation-transformation-matrix" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        2.2 Orientation (Transformation Matrix)
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="2.2 Orientation (Transformation Matrix)">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#interpretation" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Interpretation
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#constraints" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Constraints
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#default-value" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Default Value
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#23-relationship-between-position-and-transform" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        2.3 Relationship Between Position and Transform
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#3-volume-geometry-tomograms-and-segmentations" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        3. Volume Geometry (Tomograms and Segmentations)
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="3. Volume Geometry (Tomograms and Segmentations)">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#31-array-axis-ordering" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        3.1 Array Axis Ordering
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#32-voxel-to-physical-coordinate-mapping" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        3.2 Voxel-to-Physical Coordinate Mapping
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#33-ome-zarr-scale-transform" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        3.3 OME-Zarr Scale Transform
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#34-multiscale-pyramids" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        3.4 Multiscale Pyramids
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#4-mesh-geometry" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        4. Mesh Geometry
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="4. Mesh Geometry">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#41-vertex-coordinates" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        4.1 Vertex Coordinates
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#42-storage-format" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        4.2 Storage Format
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#43-mesh-volume-correspondence" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        4.3 Mesh-Volume Correspondence
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#5-euler-angle-conventions-for-importexport" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        5. Euler Angle Conventions for Import/Export
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="5. Euler Angle Conventions for Import/Export">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#51-convention-summary" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        5.1 Convention Summary
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#52-conversion-formulas" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        5.2 Conversion Formulas
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="5.2 Conversion Formulas">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#relion-to-copick" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        RELION to Copick
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#dynamo-to-copick" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Dynamo to Copick
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#tomartiatomi-to-copick" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        TOM/Artiatomi to Copick
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#53-position-convention-summary" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        5.3 Position Convention Summary
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#6-summary-and-quick-reference" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        6. Summary and Quick Reference
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="6. Summary and Quick Reference">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#key-points" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Key Points
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#common-conversions" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Common Conversions
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
   
 </li>
       
@@ -2269,102 +2965,341 @@
   
 
 
-  <h1>Quick Start</h1>
-
-<h2 id="requirements">Requirements</h2>
-<p>copick runs on Python 3.10 and above on Linux, MacOS, and Windows.</p>
-<p>It requires the following packages:</p>
+<h1 id="geometry-conventions">Geometry Conventions</h1>
+<p>This document describes the mathematical conventions used in copick for representing spatial data, including point
+positions, orientations, volumetric data, and meshes. Understanding these conventions is essential for correctly
+interpreting data, implementing new tools, and ensuring interoperability with other cryo-ET software packages.</p>
+<h2 id="overview">Overview</h2>
+<p>Cryo-electron tomography (cryo-ET) data involves multiple coordinate systems and representations: physical coordinates
+in Angstroms, voxel indices in 3D arrays, and transformation matrices describing particle orientations. Different
+software packages in the cryo-ET ecosystem use varying conventions for these representations, which can lead to
+confusion and errors when exchanging data.</p>
+<p>Copick adopts a set of conventions designed to be internally consistent and to facilitate conversion to and from other
+common formats (RELION, Dynamo, TOM/Artiatomi). This document provides a rigorous mathematical description of these
+conventions.</p>
+<hr />
+<h2 id="1-coordinate-system">1. Coordinate System</h2>
+<h3 id="11-physical-coordinates">1.1 Physical Coordinates</h3>
+<p>All spatial positions in copick are expressed in <strong>physical coordinates</strong> with the following properties:</p>
+<table>
+<thead>
+<tr>
+<th>Property</th>
+<th>Value</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Units</strong></td>
+<td>Angstrom (Å)</td>
+</tr>
+<tr>
+<td><strong>Origin</strong></td>
+<td>Corner of the tomogram volume (0, 0, 0)</td>
+</tr>
+<tr>
+<td><strong>Indexing</strong></td>
+<td>0-indexed</td>
+</tr>
+<tr>
+<td><strong>Handedness</strong></td>
+<td>Right-handed</td>
+</tr>
+</tbody>
+</table>
+<p>A point in physical space is represented as a 3-vector:</p>
+<div class="arithmatex">\[\mathbf{p} = (x, y, z) \in \mathbb{R}^3\]</div>
+<p>where <span class="arithmatex">\(x\)</span>, <span class="arithmatex">\(y\)</span>, and <span class="arithmatex">\(z\)</span> are distances in Angstrom measured from the corner of the tomogram volume along each respective
+axis.</p>
+<h3 id="12-voxel-coordinates">1.2 Voxel Coordinates</h3>
+<p>Voxel coordinates are integer indices into a 3D array. The relationship between voxel and physical coordinates is
+mediated by the <strong>voxel spacing</strong> <span class="arithmatex">\(s\)</span> (in Å/voxel):</p>
+<div class="arithmatex">\[\mathbf{p}_\text{physical} = \mathbf{p}_\text{voxel} \cdot s\]</div>
+<div class="arithmatex">\[\mathbf{p}_\text{voxel} = \left\lfloor \frac{\mathbf{p}_\text{physical}}{s} \right\rfloor\]</div>
+<p>where the floor operation is used when converting continuous physical coordinates to discrete voxel indices.</p>
+<hr />
+<h2 id="2-pick-geometry">2. Pick Geometry</h2>
+<p>Picks represent point annotations in a tomogram, typically marking the locations and orientations of particles or other
+structures of interest.</p>
+<h3 id="21-position">2.1 Position</h3>
+<p>Pick positions are stored as <code>CopickLocation(x, y, z)</code> objects containing physical coordinates in Angstrom. The position
+represents the center of the picked object in tomogram space.</p>
+<div class="language-python highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="k">class</span><span class="w"> </span><span class="nc">CopickLocation</span><span class="p">:</span>
+</span><span id="__span-0-2"><a id="__codelineno-0-2" name="__codelineno-0-2" href="#__codelineno-0-2"></a>    <span class="n">x</span><span class="p">:</span> <span class="nb">float</span>  <span class="c1"># Angstrom</span>
+</span><span id="__span-0-3"><a id="__codelineno-0-3" name="__codelineno-0-3" href="#__codelineno-0-3"></a>    <span class="n">y</span><span class="p">:</span> <span class="nb">float</span>  <span class="c1"># Angstrom</span>
+</span><span id="__span-0-4"><a id="__codelineno-0-4" name="__codelineno-0-4" href="#__codelineno-0-4"></a>    <span class="n">z</span><span class="p">:</span> <span class="nb">float</span>  <span class="c1"># Angstrom</span>
+</span></code></pre></div>
+<h3 id="22-orientation-transformation-matrix">2.2 Orientation (Transformation Matrix)</h3>
+<p>Each pick has an associated 4×4 homogeneous affine transformation matrix <span class="arithmatex">\(\mathbf{T}\)</span> that describes the orientation
+of the particle. This matrix transforms coordinates <strong>from object space to tomogram space</strong>:</p>
+<div class="arithmatex">\[\mathbf{T} = \begin{pmatrix}
+r_{00} &amp; r_{01} &amp; r_{02} &amp; t_x \\
+r_{10} &amp; r_{11} &amp; r_{12} &amp; t_y \\
+r_{20} &amp; r_{21} &amp; r_{22} &amp; t_z \\
+0 &amp; 0 &amp; 0 &amp; 1
+\end{pmatrix}\]</div>
+<p>where:</p>
 <ul>
-<li>fsspec</li>
-<li>pydantic</li>
-<li>numpy</li>
-<li>trimesh</li>
-<li>zarr</li>
+<li><span class="arithmatex">\(\mathbf{R} = (r_{ij})_{i,j \in \{0,1,2\}}\)</span> is a 3×3 rotation matrix in SO(3)</li>
+<li><span class="arithmatex">\(\mathbf{t} = (t_x, t_y, t_z)^T\)</span> is the translation component in Angstrom</li>
 </ul>
-<h2 id="installation">Installation</h2>
-<p>copick can be installed using pip. Using the <code>all</code> extra installs necessary requirements for all tested filesystem
-implementations from the fsspec family (<code>local</code>, <code>s3fs</code>, <code>smb</code>, <code>sshfs</code>). A separate <code>smb</code> extra is available.</p>
-<div class="language-shell highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a>pip<span class="w"> </span>install<span class="w"> </span><span class="s2">&quot;copick[all]&quot;</span>
-</span></code></pre></div>
-<div class="admonition note">
-<p class="admonition-title">Note</p>
-<p><code>copick&gt;=1.2.0</code> will fail to install with <code>pip~=25.1.0</code>. We recommend using <code>pip&gt;=25.2</code> or  <a href="https://docs.astral.sh/uv/pip/"><code>uv pip</code></a> when installing copick.</p>
-</div>
-<h2 id="example-dataset">Example dataset</h2>
-<p>An example dataset can be obtained from <a href="https://doi.org/10.5281/zenodo.16996074">Zenodo</a>.</p>
-<p>To test with the example dataset:</p>
+<h4 id="interpretation">Interpretation</h4>
+<p>The transformation matrix answers the question: <em>"If I have a point defined in the particle's local coordinate frame,
+where does it appear in the tomogram?"</em></p>
+<p>For a point <span class="arithmatex">\(\mathbf{p}_\text{obj}\)</span> in object space, the corresponding point in tomogram space is:</p>
+<div class="arithmatex">\[\mathbf{p}_\text{tomo} = \mathbf{T} \cdot \mathbf{p}_\text{obj}\]</div>
+<p>In homogeneous coordinates:</p>
+<div class="arithmatex">\[\begin{pmatrix} p'_x \\ p'_y \\ p'_z \\ 1 \end{pmatrix} = \mathbf{T} \cdot \begin{pmatrix} p_x \\ p_y \\ p_z \\ 1 \end{pmatrix}\]</div>
+<h4 id="constraints">Constraints</h4>
+<p>The transformation matrix must satisfy:</p>
 <ol>
-<li>Download and unpack the example dataset</li>
+<li>The bottom row must be <span class="arithmatex">\((0, 0, 0, 1)\)</span></li>
+<li>The element <span class="arithmatex">\(\mathbf{T}_{3,3} = 1\)</span></li>
+<li>The rotation submatrix <span class="arithmatex">\(\mathbf{R}\)</span> should be orthonormal (i.e., <span class="arithmatex">\(\mathbf{R}^T \mathbf{R} = \mathbf{I}\)</span> and
+   <span class="arithmatex">\(\det(\mathbf{R}) = 1\)</span>)</li>
+</ol>
+<h4 id="default-value">Default Value</h4>
+<p>For picks without orientation information, the identity matrix is used:</p>
+<div class="arithmatex">\[\mathbf{T}_\text{default} = \mathbf{I}_4 = \begin{pmatrix}
+1 &amp; 0 &amp; 0 &amp; 0 \\
+0 &amp; 1 &amp; 0 &amp; 0 \\
+0 &amp; 0 &amp; 1 &amp; 0 \\
+0 &amp; 0 &amp; 0 &amp; 1
+\end{pmatrix}\]</div>
+<h3 id="23-relationship-between-position-and-transform">2.3 Relationship Between Position and Transform</h3>
+<p>The pick's <code>location</code> field stores the position of the particle center in tomogram coordinates. The <code>transformation</code>
+matrix describes the particle's orientation and may contain an additional translation component (e.g., for refined
+shifts during subtomogram averaging).</p>
+<p>The <strong>full position</strong> of the particle center, including any refinement shifts, is:</p>
+<div class="arithmatex">\[\mathbf{p}_\text{full} = \mathbf{p}_\text{location} + \mathbf{t}_\text{transform}\]</div>
+<p>where <span class="arithmatex">\(\mathbf{t}_\text{transform} = (t_x, t_y, t_z)^T\)</span> is extracted from the transformation matrix.</p>
+<hr />
+<h2 id="3-volume-geometry-tomograms-and-segmentations">3. Volume Geometry (Tomograms and Segmentations)</h2>
+<p>Volumetric data in copick includes tomograms (3D reconstructions) and segmentations (labeled volumes).</p>
+<h3 id="31-array-axis-ordering">3.1 Array Axis Ordering</h3>
+<p>Volumes are stored in <strong>ZYX axis order</strong>, following the C-contiguous (row-major) convention standard in Python/NumPy:</p>
+<div class="language-python highlight"><pre><span></span><code><span id="__span-1-1"><a id="__codelineno-1-1" name="__codelineno-1-1" href="#__codelineno-1-1"></a><span class="n">array</span><span class="p">[</span><span class="n">z</span><span class="p">,</span> <span class="n">y</span><span class="p">,</span> <span class="n">x</span><span class="p">]</span>  <span class="c1"># Python/NumPy indexing</span>
+</span></code></pre></div>
+<p>For a volume with dimensions <span class="arithmatex">\((N_z, N_y, N_x)\)</span>:</p>
+<ul>
+<li>The first axis (index 0) corresponds to the <strong>Z</strong> dimension</li>
+<li>The second axis (index 1) corresponds to the <strong>Y</strong> dimension</li>
+<li>The third axis (index 2) corresponds to the <strong>X</strong> dimension</li>
+</ul>
+<p>This ordering is reflected in the OME-Zarr metadata, which specifies axes as <code>["z", "y", "x"]</code> with units in Angstrom.</p>
+<h3 id="32-voxel-to-physical-coordinate-mapping">3.2 Voxel-to-Physical Coordinate Mapping</h3>
+<p>For a voxel at array index <span class="arithmatex">\((i_z, i_y, i_x)\)</span>, the physical coordinates are:</p>
+<div class="arithmatex">\[\mathbf{p}_\text{physical} = (x, y, z) = (i_x \cdot s, \quad i_y \cdot s, \quad i_z \cdot s)\]</div>
+<p>where <span class="arithmatex">\(s\)</span> is the isotropic voxel spacing in Å/voxel.</p>
+<div class="admonition warning">
+<p class="admonition-title">Axis Order Mismatch</p>
+<p>Note the difference between array indexing order <code>[z, y, x]</code> and physical coordinate order <code>(x, y, z)</code>. This is a
+common source of bugs when converting between representations.</p>
+</div>
+<h3 id="33-ome-zarr-scale-transform">3.3 OME-Zarr Scale Transform</h3>
+<p>The OME-Zarr format stores coordinate transforms as part of the metadata. For copick volumes, the scale transform is:</p>
+<div class="arithmatex">\[\mathbf{S} = \text{diag}(s_z, s_y, s_x) = \text{diag}(s, s, s)\]</div>
+<p>This transform maps voxel indices to physical coordinates:</p>
+<div class="arithmatex">\[\mathbf{p}_\text{physical} = \mathbf{S} \cdot \mathbf{p}_\text{voxel}\]</div>
+<p>where the vectors follow the ZYX ordering convention.</p>
+<h3 id="34-multiscale-pyramids">3.4 Multiscale Pyramids</h3>
+<p>Tomograms and segmentations are stored as multiscale pyramids with successive 2× downsampling. The available resolution
+levels are typically:</p>
+<table>
+<thead>
+<tr>
+<th>Level</th>
+<th>Scale Factor</th>
+<th>Voxel Spacing</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>"0"</code></td>
+<td>1×</td>
+<td><span class="arithmatex">\(s\)</span></td>
+</tr>
+<tr>
+<td><code>"1"</code></td>
+<td>2×</td>
+<td><span class="arithmatex">\(2s\)</span></td>
+</tr>
+<tr>
+<td><code>"2"</code></td>
+<td>4×</td>
+<td><span class="arithmatex">\(4s\)</span></td>
+</tr>
+</tbody>
+</table>
+<p>For a voxel at index <span class="arithmatex">\(\mathbf{i}\)</span> in level <span class="arithmatex">\(n\)</span>, the corresponding index in level <span class="arithmatex">\(0\)</span> is approximately:</p>
+<div class="arithmatex">\[\mathbf{i}_0 \approx 2^n \cdot \mathbf{i}_n\]</div>
+<hr />
+<h2 id="4-mesh-geometry">4. Mesh Geometry</h2>
+<p>Meshes in copick represent surface annotations, typically for structures like membranes, organelles, or sample
+boundaries.</p>
+<h3 id="41-vertex-coordinates">4.1 Vertex Coordinates</h3>
+<p>Mesh vertices are stored in <strong>physical coordinates</strong> (Angstrom), consistent with pick positions:</p>
+<div class="arithmatex">\[\mathbf{V} = \{\mathbf{v}_i\}_{i=1}^{N}, \quad \mathbf{v}_i = (x_i, y_i, z_i) \in \mathbb{R}^3\]</div>
+<p>The coordinate system matches that of picks and tomograms: corner-origin, 0-indexed, in Angstrom.</p>
+<h3 id="42-storage-format">4.2 Storage Format</h3>
+<p>Meshes are stored in <strong>GLB format</strong> (binary glTF), which is a widely-supported 3D format that efficiently stores
+vertices, faces, and optional attributes like normals and colors.</p>
+<h3 id="43-mesh-volume-correspondence">4.3 Mesh-Volume Correspondence</h3>
+<p>To find the voxel containing a mesh vertex:</p>
+<div class="arithmatex">\[\mathbf{i}_\text{voxel} = \left\lfloor \frac{\mathbf{v}_\text{physical}}{s} \right\rfloor\]</div>
+<p>To sample the volume value at a vertex position (with interpolation), use the continuous voxel coordinates:</p>
+<div class="arithmatex">\[\mathbf{i}_\text{continuous} = \frac{\mathbf{v}_\text{physical}}{s}\]</div>
+<hr />
+<h2 id="5-euler-angle-conventions-for-importexport">5. Euler Angle Conventions for Import/Export</h2>
+<p>When exchanging data with other cryo-ET software, coordinate and rotation conventions must be carefully converted.
+Copick stores rotations as 3×3 matrices, but other formats often use Euler angles.</p>
+<h3 id="51-convention-summary">5.1 Convention Summary</h3>
+<table>
+<thead>
+<tr>
+<th>Format</th>
+<th>Euler Convention</th>
+<th>Rotation Type</th>
+<th>Notes</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>RELION</strong></td>
+<td>ZYZ</td>
+<td>Extrinsic, inverted</td>
+<td>Uses <code>rlnAngleRot</code>, <code>rlnAngleTilt</code>, <code>rlnAnglePsi</code></td>
+</tr>
+<tr>
+<td><strong>Dynamo</strong></td>
+<td>ZXZ</td>
+<td>Intrinsic, inverted</td>
+<td>Uses <code>tdrot</code>, <code>tilt</code>, <code>narot</code></td>
+</tr>
+<tr>
+<td><strong>TOM/Artiatomi</strong></td>
+<td>ZXZ</td>
+<td>Intrinsic</td>
+<td>Uses <span class="arithmatex">\(\phi\)</span>, <span class="arithmatex">\(\theta\)</span>, <span class="arithmatex">\(\psi\)</span> (stored as <span class="arithmatex">\(\phi\)</span>, <span class="arithmatex">\(\psi\)</span>, <span class="arithmatex">\(\theta\)</span> in file)</td>
+</tr>
+<tr>
+<td><strong>Copick (native)</strong></td>
+<td>Matrix</td>
+<td>N/A</td>
+<td>Full 4×4 transformation matrix</td>
+</tr>
+</tbody>
+</table>
+<h3 id="52-conversion-formulas">5.2 Conversion Formulas</h3>
+<h4 id="relion-to-copick">RELION to Copick</h4>
+<p>Given RELION Euler angles <span class="arithmatex">\((\phi, \theta, \psi)\)</span> in ZYZ convention:</p>
+<div class="arithmatex">\[\mathbf{R} = \left( R_z(\phi) \cdot R_y(\theta) \cdot R_z(\psi) \right)^{-1}\]</div>
+<p>where <span class="arithmatex">\(R_z\)</span> and <span class="arithmatex">\(R_y\)</span> are elementary rotation matrices about the Z and Y axes, respectively.</p>
+<h4 id="dynamo-to-copick">Dynamo to Copick</h4>
+<p>Given Dynamo Euler angles <span class="arithmatex">\((t_\text{drot}, t_\text{ilt}, n_\text{arot})\)</span> in ZXZ convention:</p>
+<div class="arithmatex">\[\mathbf{R} = \left( R_z(t_\text{drot}) \cdot R_x(t_\text{ilt}) \cdot R_z(n_\text{arot}) \right)^{-1}\]</div>
+<p>Note: Lowercase convention letters (e.g., <code>zxz</code>) indicate intrinsic rotations in scipy.</p>
+<h4 id="tomartiatomi-to-copick">TOM/Artiatomi to Copick</h4>
+<p>Given TOM Euler angles <span class="arithmatex">\((\phi, \theta, \psi)\)</span> in ZXZ convention:</p>
+<div class="arithmatex">\[\mathbf{R} = R_z(\phi) \cdot R_x(\theta) \cdot R_z(\psi)\]</div>
+<p>No inversion is applied for the TOM format.</p>
+<h3 id="53-position-convention-summary">5.3 Position Convention Summary</h3>
+<table>
+<thead>
+<tr>
+<th>Format</th>
+<th>Position Units</th>
+<th>Origin</th>
+<th>Indexing</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Copick (native)</strong></td>
+<td>Angstrom</td>
+<td>Corner</td>
+<td>0-indexed</td>
+</tr>
+<tr>
+<td><strong>Dynamo</strong></td>
+<td>Pixels</td>
+<td>Corner</td>
+<td>0-indexed</td>
+</tr>
+<tr>
+<td><strong>TOM/Artiatomi</strong></td>
+<td>Pixels</td>
+<td>Corner</td>
+<td>1-indexed (converted on read)</td>
+</tr>
+<tr>
+<td><strong>RELION</strong></td>
+<td>Pixels or Angstrom</td>
+<td>Centered or Corner</td>
+<td>0-indexed</td>
+</tr>
+<tr>
+<td><strong>CSV</strong></td>
+<td>Angstrom</td>
+<td>Corner</td>
+<td>0-indexed</td>
+</tr>
+</tbody>
+</table>
+<hr />
+<h2 id="6-summary-and-quick-reference">6. Summary and Quick Reference</h2>
+<h3 id="key-points">Key Points</h3>
+<ol>
 <li>
-<p>Add the location of the <code>sample_project</code>-directory in the unpacked dataset to <code>filesystem_overlay_only.json</code>
-    <div class="language-json highlight"><pre><span></span><code><span id="__span-1-1"><a id="__codelineno-1-1" name="__codelineno-1-1" href="#__codelineno-1-1"></a><span class="p">{</span>
-</span><span id="__span-1-2"><a id="__codelineno-1-2" name="__codelineno-1-2" href="#__codelineno-1-2"></a><span class="w">    </span><span class="nt">&quot;name&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;test&quot;</span><span class="p">,</span>
-</span><span id="__span-1-3"><a id="__codelineno-1-3" name="__codelineno-1-3" href="#__codelineno-1-3"></a><span class="w">    </span><span class="nt">&quot;description&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;A test project.&quot;</span><span class="p">,</span>
-</span><span id="__span-1-4"><a id="__codelineno-1-4" name="__codelineno-1-4" href="#__codelineno-1-4"></a><span class="w">    </span><span class="nt">&quot;version&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;1.0.0&quot;</span><span class="p">,</span>
-</span><span id="__span-1-5"><a id="__codelineno-1-5" name="__codelineno-1-5" href="#__codelineno-1-5"></a>
-</span><span id="__span-1-6"><a id="__codelineno-1-6" name="__codelineno-1-6" href="#__codelineno-1-6"></a><span class="w">    </span><span class="nt">&quot;pickable_objects&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">[</span>
-</span><span id="__span-1-7"><a id="__codelineno-1-7" name="__codelineno-1-7" href="#__codelineno-1-7"></a><span class="w">        </span><span class="p">{</span>
-</span><span id="__span-1-8"><a id="__codelineno-1-8" name="__codelineno-1-8" href="#__codelineno-1-8"></a><span class="w">            </span><span class="nt">&quot;name&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;proteasome&quot;</span><span class="p">,</span>
-</span><span id="__span-1-9"><a id="__codelineno-1-9" name="__codelineno-1-9" href="#__codelineno-1-9"></a><span class="w">            </span><span class="nt">&quot;is_particle&quot;</span><span class="p">:</span><span class="w"> </span><span class="kc">true</span><span class="p">,</span>
-</span><span id="__span-1-10"><a id="__codelineno-1-10" name="__codelineno-1-10" href="#__codelineno-1-10"></a><span class="w">            </span><span class="nt">&quot;pdb_id&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;3J9I&quot;</span><span class="p">,</span>
-</span><span id="__span-1-11"><a id="__codelineno-1-11" name="__codelineno-1-11" href="#__codelineno-1-11"></a><span class="w">            </span><span class="nt">&quot;label&quot;</span><span class="p">:</span><span class="w"> </span><span class="mi">1</span><span class="p">,</span>
-</span><span id="__span-1-12"><a id="__codelineno-1-12" name="__codelineno-1-12" href="#__codelineno-1-12"></a><span class="w">            </span><span class="nt">&quot;color&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">[</span><span class="mi">255</span><span class="p">,</span><span class="w"> </span><span class="mi">0</span><span class="p">,</span><span class="w"> </span><span class="mi">0</span><span class="p">,</span><span class="w"> </span><span class="mi">255</span><span class="p">],</span>
-</span><span id="__span-1-13"><a id="__codelineno-1-13" name="__codelineno-1-13" href="#__codelineno-1-13"></a><span class="w">            </span><span class="nt">&quot;radius&quot;</span><span class="p">:</span><span class="w"> </span><span class="mi">60</span><span class="p">,</span>
-</span><span id="__span-1-14"><a id="__codelineno-1-14" name="__codelineno-1-14" href="#__codelineno-1-14"></a><span class="w">            </span><span class="nt">&quot;map_threshold&quot;</span><span class="p">:</span><span class="w"> </span><span class="mf">0.0418</span>
-</span><span id="__span-1-15"><a id="__codelineno-1-15" name="__codelineno-1-15" href="#__codelineno-1-15"></a><span class="w">        </span><span class="p">},</span>
-</span><span id="__span-1-16"><a id="__codelineno-1-16" name="__codelineno-1-16" href="#__codelineno-1-16"></a><span class="w">        </span><span class="p">{</span>
-</span><span id="__span-1-17"><a id="__codelineno-1-17" name="__codelineno-1-17" href="#__codelineno-1-17"></a><span class="w">            </span><span class="nt">&quot;name&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;ribosome&quot;</span><span class="p">,</span>
-</span><span id="__span-1-18"><a id="__codelineno-1-18" name="__codelineno-1-18" href="#__codelineno-1-18"></a><span class="w">            </span><span class="nt">&quot;is_particle&quot;</span><span class="p">:</span><span class="w"> </span><span class="kc">true</span><span class="p">,</span>
-</span><span id="__span-1-19"><a id="__codelineno-1-19" name="__codelineno-1-19" href="#__codelineno-1-19"></a><span class="w">            </span><span class="nt">&quot;pdb_id&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;7P6Z&quot;</span><span class="p">,</span>
-</span><span id="__span-1-20"><a id="__codelineno-1-20" name="__codelineno-1-20" href="#__codelineno-1-20"></a><span class="w">            </span><span class="nt">&quot;label&quot;</span><span class="p">:</span><span class="w"> </span><span class="mi">2</span><span class="p">,</span>
-</span><span id="__span-1-21"><a id="__codelineno-1-21" name="__codelineno-1-21" href="#__codelineno-1-21"></a><span class="w">            </span><span class="nt">&quot;color&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">[</span><span class="mi">0</span><span class="p">,</span><span class="w"> </span><span class="mi">255</span><span class="p">,</span><span class="w"> </span><span class="mi">0</span><span class="p">,</span><span class="w"> </span><span class="mi">255</span><span class="p">],</span>
-</span><span id="__span-1-22"><a id="__codelineno-1-22" name="__codelineno-1-22" href="#__codelineno-1-22"></a><span class="w">            </span><span class="nt">&quot;radius&quot;</span><span class="p">:</span><span class="w"> </span><span class="mi">150</span><span class="p">,</span>
-</span><span id="__span-1-23"><a id="__codelineno-1-23" name="__codelineno-1-23" href="#__codelineno-1-23"></a><span class="w">            </span><span class="nt">&quot;map_threshold&quot;</span><span class="p">:</span><span class="w"> </span><span class="mf">0.037</span>
-</span><span id="__span-1-24"><a id="__codelineno-1-24" name="__codelineno-1-24" href="#__codelineno-1-24"></a>
-</span><span id="__span-1-25"><a id="__codelineno-1-25" name="__codelineno-1-25" href="#__codelineno-1-25"></a><span class="w">        </span><span class="p">},</span>
-</span><span id="__span-1-26"><a id="__codelineno-1-26" name="__codelineno-1-26" href="#__codelineno-1-26"></a><span class="w">        </span><span class="p">{</span>
-</span><span id="__span-1-27"><a id="__codelineno-1-27" name="__codelineno-1-27" href="#__codelineno-1-27"></a><span class="w">            </span><span class="nt">&quot;name&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;membrane&quot;</span><span class="p">,</span>
-</span><span id="__span-1-28"><a id="__codelineno-1-28" name="__codelineno-1-28" href="#__codelineno-1-28"></a><span class="w">            </span><span class="nt">&quot;is_particle&quot;</span><span class="p">:</span><span class="w"> </span><span class="kc">false</span><span class="p">,</span>
-</span><span id="__span-1-29"><a id="__codelineno-1-29" name="__codelineno-1-29" href="#__codelineno-1-29"></a><span class="w">            </span><span class="nt">&quot;label&quot;</span><span class="p">:</span><span class="w"> </span><span class="mi">3</span><span class="p">,</span>
-</span><span id="__span-1-30"><a id="__codelineno-1-30" name="__codelineno-1-30" href="#__codelineno-1-30"></a><span class="w">            </span><span class="nt">&quot;color&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">[</span><span class="mi">0</span><span class="p">,</span><span class="w"> </span><span class="mi">0</span><span class="p">,</span><span class="w"> </span><span class="mi">0</span><span class="p">,</span><span class="w"> </span><span class="mi">255</span><span class="p">]</span>
-</span><span id="__span-1-31"><a id="__codelineno-1-31" name="__codelineno-1-31" href="#__codelineno-1-31"></a><span class="w">        </span><span class="p">}</span>
-</span><span id="__span-1-32"><a id="__codelineno-1-32" name="__codelineno-1-32" href="#__codelineno-1-32"></a><span class="w">    </span><span class="p">],</span>
-</span><span id="__span-1-33"><a id="__codelineno-1-33" name="__codelineno-1-33" href="#__codelineno-1-33"></a>
-</span><span id="__span-1-34"><a id="__codelineno-1-34" name="__codelineno-1-34" href="#__codelineno-1-34"></a><span class="w">    </span><span class="c1">// Change this path to the location of sample_project</span>
-</span><span id="__span-1-35"><a id="__codelineno-1-35" name="__codelineno-1-35" href="#__codelineno-1-35"></a><span class="w">    </span><span class="nt">&quot;overlay_root&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;local:///PATH/TO/EXTRACTED/PROJECT/&quot;</span><span class="p">,</span>
-</span><span id="__span-1-36"><a id="__codelineno-1-36" name="__codelineno-1-36" href="#__codelineno-1-36"></a>
-</span><span id="__span-1-37"><a id="__codelineno-1-37" name="__codelineno-1-37" href="#__codelineno-1-37"></a><span class="w">    </span><span class="nt">&quot;overlay_fs_args&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
-</span><span id="__span-1-38"><a id="__codelineno-1-38" name="__codelineno-1-38" href="#__codelineno-1-38"></a><span class="w">        </span><span class="nt">&quot;auto_mkdir&quot;</span><span class="p">:</span><span class="w"> </span><span class="kc">true</span>
-</span><span id="__span-1-39"><a id="__codelineno-1-39" name="__codelineno-1-39" href="#__codelineno-1-39"></a><span class="w">    </span><span class="p">}</span>
-</span><span id="__span-1-40"><a id="__codelineno-1-40" name="__codelineno-1-40" href="#__codelineno-1-40"></a><span class="p">}</span>
-</span></code></pre></div></p>
+<p><strong>All spatial data uses Angstrom units</strong> - Positions, mesh vertices, and transformation translations are all in
+   Angstrom.</p>
 </li>
 <li>
-<p>Start copick with the configuration file</p>
-<div class="language-python highlight"><pre><span></span><code><span id="__span-2-1"><a id="__codelineno-2-1" name="__codelineno-2-1" href="#__codelineno-2-1"></a><span class="kn">from</span><span class="w"> </span><span class="nn">copick.impl.filesystem</span><span class="w"> </span><span class="kn">import</span> <span class="n">CopickRootFSSpec</span>
-</span><span id="__span-2-2"><a id="__codelineno-2-2" name="__codelineno-2-2" href="#__codelineno-2-2"></a><span class="n">root</span> <span class="o">=</span> <span class="n">CopickRootFSSpec</span><span class="o">.</span><span class="n">from_file</span><span class="p">(</span><span class="s1">&#39;path/to/filesystem_overlay_only.json&#39;</span><span class="p">)</span>
-</span></code></pre></div>
+<p><strong>Corner-origin, 0-indexed</strong> - The coordinate origin is at the corner of the tomogram, and indices start at 0.</p>
 </li>
 <li>
-<p>Access the data using the copick API</p>
-<div class="language-python highlight"><pre><span></span><code><span id="__span-3-1"><a id="__codelineno-3-1" name="__codelineno-3-1" href="#__codelineno-3-1"></a><span class="kn">import</span><span class="w"> </span><span class="nn">zarr</span>
-</span><span id="__span-3-2"><a id="__codelineno-3-2" name="__codelineno-3-2" href="#__codelineno-3-2"></a>
-</span><span id="__span-3-3"><a id="__codelineno-3-3" name="__codelineno-3-3" href="#__codelineno-3-3"></a><span class="kn">from</span><span class="w"> </span><span class="nn">copick.impl.filesystem</span><span class="w"> </span><span class="kn">import</span> <span class="n">CopickRootFSSpec</span>
-</span><span id="__span-3-4"><a id="__codelineno-3-4" name="__codelineno-3-4" href="#__codelineno-3-4"></a><span class="n">root</span> <span class="o">=</span> <span class="n">CopickRootFSSpec</span><span class="o">.</span><span class="n">from_file</span><span class="p">(</span><span class="s1">&#39;path/to/filesystem_overlay_only.json&#39;</span><span class="p">)</span>
-</span><span id="__span-3-5"><a id="__codelineno-3-5" name="__codelineno-3-5" href="#__codelineno-3-5"></a>
-</span><span id="__span-3-6"><a id="__codelineno-3-6" name="__codelineno-3-6" href="#__codelineno-3-6"></a><span class="c1"># Get a run by name</span>
-</span><span id="__span-3-7"><a id="__codelineno-3-7" name="__codelineno-3-7" href="#__codelineno-3-7"></a><span class="n">run</span> <span class="o">=</span> <span class="n">root</span><span class="o">.</span><span class="n">get_run</span><span class="p">(</span><span class="s2">&quot;TS_001&quot;</span><span class="p">)</span>
-</span><span id="__span-3-8"><a id="__codelineno-3-8" name="__codelineno-3-8" href="#__codelineno-3-8"></a>
-</span><span id="__span-3-9"><a id="__codelineno-3-9" name="__codelineno-3-9" href="#__codelineno-3-9"></a> <span class="c1"># Get a tomogram by name</span>
-</span><span id="__span-3-10"><a id="__codelineno-3-10" name="__codelineno-3-10" href="#__codelineno-3-10"></a><span class="n">tomogram</span> <span class="o">=</span> <span class="n">run</span><span class="o">.</span><span class="n">get_voxel_spacing</span><span class="p">(</span><span class="mi">10</span><span class="p">)</span><span class="o">.</span><span class="n">get_tomogram</span><span class="p">(</span><span class="s2">&quot;wbp&quot;</span><span class="p">)</span>
-</span><span id="__span-3-11"><a id="__codelineno-3-11" name="__codelineno-3-11" href="#__codelineno-3-11"></a>
-</span><span id="__span-3-12"><a id="__codelineno-3-12" name="__codelineno-3-12" href="#__codelineno-3-12"></a><span class="c1"># Access the data</span>
-</span><span id="__span-3-13"><a id="__codelineno-3-13" name="__codelineno-3-13" href="#__codelineno-3-13"></a><span class="n">group</span> <span class="o">=</span> <span class="n">zarr</span><span class="o">.</span><span class="n">open</span><span class="p">(</span><span class="n">tomogram</span><span class="o">.</span><span class="n">zarr</span><span class="p">())</span>
-</span><span id="__span-3-14"><a id="__codelineno-3-14" name="__codelineno-3-14" href="#__codelineno-3-14"></a><span class="n">arrays</span> <span class="o">=</span> <span class="nb">list</span><span class="p">(</span><span class="n">group</span><span class="o">.</span><span class="n">arrays</span><span class="p">())</span>
-</span><span id="__span-3-15"><a id="__codelineno-3-15" name="__codelineno-3-15" href="#__codelineno-3-15"></a><span class="n">_</span><span class="p">,</span> <span class="n">array</span> <span class="o">=</span> <span class="n">arrays</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
-</span></code></pre></div>
+<p><strong>Volumes use ZYX ordering</strong> - Array indexing is <code>[z, y, x]</code>, but physical coordinates are <code>(x, y, z)</code>.</p>
+</li>
+<li>
+<p><strong>Transformations go from object to tomogram space</strong> - The transformation matrix <span class="arithmatex">\(\mathbf{T}\)</span> maps points in the
+   particle's local frame to the tomogram coordinate system.</p>
+</li>
+<li>
+<p><strong>Voxel spacing is isotropic</strong> - Copick assumes equal spacing in all three dimensions.</p>
 </li>
 </ol>
+<h3 id="common-conversions">Common Conversions</h3>
+<table>
+<thead>
+<tr>
+<th>From</th>
+<th>To</th>
+<th>Formula</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Physical (Å)</td>
+<td>Voxel</td>
+<td><span class="arithmatex">\(\mathbf{p}_\text{voxel} = \lfloor \mathbf{p}_\text{Å} / s \rfloor\)</span></td>
+</tr>
+<tr>
+<td>Voxel</td>
+<td>Physical (Å)</td>
+<td><span class="arithmatex">\(\mathbf{p}_\text{Å} = \mathbf{p}_\text{voxel} \cdot s\)</span></td>
+</tr>
+<tr>
+<td>Object space</td>
+<td>Tomogram space</td>
+<td><span class="arithmatex">\(\mathbf{p}_\text{tomo} = \mathbf{T} \cdot \mathbf{p}_\text{obj}\)</span></td>
+</tr>
+<tr>
+<td>Array index <code>[z,y,x]</code></td>
+<td>Physical <code>(x,y,z)</code></td>
+<td><span class="arithmatex">\((x, y, z) = (i_x \cdot s, i_y \cdot s, i_z \cdot s)\)</span></td>
+</tr>
+</tbody>
+</table>
 
 
 
