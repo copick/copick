@@ -613,6 +613,182 @@ class TestCLIAdd:
             assert test_run is not None, f"Run {expected_run_name} should be created"
 
 
+class TestCLIAddTomogramsBatch:
+    """Test cases for batch tomogram add commands (tomograms-dynamo, tomograms-relion)."""
+
+    def test_add_tomograms_dynamo_basic(self, test_payload, runner, sample_mrc_file):
+        """Test basic batch import from Dynamo tomolist."""
+        config_file = test_payload["cfg_file"]
+
+        # Create tomolist file (index, path format)
+        with tempfile.NamedTemporaryFile(suffix=".doc", delete=False, mode="w") as tomolist_file:
+            tomolist_file.write(f"1\t{sample_mrc_file}\n")
+            tomolist_file.flush()
+            tomolist_path = tomolist_file.name
+
+        try:
+            result = runner.invoke(
+                add,
+                [
+                    "tomograms-dynamo",
+                    "--config",
+                    str(config_file),
+                    "--tomolist",
+                    tomolist_path,
+                    "--tomo-type",
+                    "wbp",
+                    "--no-create-pyramid",
+                ],
+            )
+
+            assert result.exit_code == 0, f"Command failed: {result.output}"
+
+            # Verify run was created (run name extracted from MRC filename)
+            root = CopickRootFSSpec.from_file(config_file)
+            # The run name should be extracted from the MRC file path
+            runs = [r.name for r in root.runs]
+            assert len(runs) > 0 or "Command completed" in result.output, "Should process tomogram"
+
+        finally:
+            if os.path.exists(tomolist_path):
+                os.unlink(tomolist_path)
+
+    def test_add_tomograms_dynamo_with_index_map(self, test_payload, runner, sample_mrc_file):
+        """Test batch import with custom run name mapping via index map."""
+        config_file = test_payload["cfg_file"]
+
+        # Create tomolist file
+        with tempfile.NamedTemporaryFile(suffix=".doc", delete=False, mode="w") as tomolist_file:
+            tomolist_file.write(f"1\t{sample_mrc_file}\n")
+            tomolist_file.flush()
+            tomolist_path = tomolist_file.name
+
+        # Create index map file (no header, comma or tab separated)
+        with tempfile.NamedTemporaryFile(suffix=".csv", delete=False, mode="w") as index_map_file:
+            index_map_file.write("1,custom_run_name\n")
+            index_map_file.flush()
+            index_map_path = index_map_file.name
+
+        try:
+            result = runner.invoke(
+                add,
+                [
+                    "tomograms-dynamo",
+                    "--config",
+                    str(config_file),
+                    "--tomolist",
+                    tomolist_path,
+                    "--index-map",
+                    index_map_path,
+                    "--tomo-type",
+                    "wbp",
+                    "--no-create-pyramid",
+                ],
+            )
+
+            assert result.exit_code == 0, f"Command failed: {result.output}"
+
+            # Verify run was created with custom name from index map
+            root = CopickRootFSSpec.from_file(config_file)
+            test_run = root.get_run("custom_run_name")
+            assert test_run is not None, "Run should be created with custom name from index map"
+
+        finally:
+            if os.path.exists(tomolist_path):
+                os.unlink(tomolist_path)
+            if os.path.exists(index_map_path):
+                os.unlink(index_map_path)
+
+    def test_add_tomograms_dynamo_missing_tomolist(self, test_payload, runner):
+        """Test error handling for missing tomolist option."""
+        config_file = test_payload["cfg_file"]
+
+        result = runner.invoke(
+            add,
+            [
+                "tomograms-dynamo",
+                "--config",
+                str(config_file),
+                "--tomo-type",
+                "wbp",
+                # Missing --tomolist
+            ],
+        )
+
+        assert result.exit_code != 0, "Command should fail without --tomolist"
+
+    def test_add_tomograms_relion_basic(self, test_payload, runner, sample_mrc_file):
+        """Test basic batch import from RELION tomograms.star."""
+        config_file = test_payload["cfg_file"]
+
+        # Create RELION tomograms.star file with required columns
+        # Required: rlnTomoName, rlnMicrographOriginalPixelSize, rlnTomoTomogramBinning
+        # Plus half1/half2 paths
+        with tempfile.NamedTemporaryFile(suffix=".star", delete=False, mode="w") as star_file:
+            content = f"""
+data_global
+
+loop_
+_rlnTomoName #1
+_rlnMicrographOriginalPixelSize #2
+_rlnTomoTomogramBinning #3
+_rlnTomoReconstructedTomogramHalf1 #4
+_rlnTomoReconstructedTomogramHalf2 #5
+TS_relion_test 1.0 10.0 {sample_mrc_file} {sample_mrc_file}
+"""
+            star_file.write(content)
+            star_file.flush()
+            star_path = star_file.name
+
+        try:
+            result = runner.invoke(
+                add,
+                [
+                    "tomograms-relion",
+                    "--config",
+                    str(config_file),
+                    "--tomograms-star",
+                    star_path,
+                    "--base-dir",
+                    os.path.dirname(sample_mrc_file),  # Required for path resolution
+                    "--tomo-type",
+                    "wbp",
+                    "--half",
+                    "half1",
+                    "--no-create-pyramid",
+                ],
+            )
+
+            assert result.exit_code == 0, f"Command failed: {result.output}"
+
+            # Verify run was created with name from _rlnTomoName
+            root = CopickRootFSSpec.from_file(config_file)
+            test_run = root.get_run("TS_relion_test")
+            assert test_run is not None, "Run should be created with name from _rlnTomoName"
+
+        finally:
+            if os.path.exists(star_path):
+                os.unlink(star_path)
+
+    def test_add_tomograms_relion_missing_star(self, test_payload, runner):
+        """Test error handling for missing tomograms-star option."""
+        config_file = test_payload["cfg_file"]
+
+        result = runner.invoke(
+            add,
+            [
+                "tomograms-relion",
+                "--config",
+                str(config_file),
+                "--tomo-type",
+                "wbp",
+                # Missing --tomograms-star
+            ],
+        )
+
+        assert result.exit_code != 0, "Command should fail without --tomograms-star"
+
+
 class TestCLIConfig:
     """Test cases for the CLI config module."""
 

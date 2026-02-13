@@ -33,6 +33,7 @@ nav:
   - Home: index.md
   - Quick Start: quickstart.md
   - Data Model: datamodel.md
+  - Geometry Conventions: geometry.md
   - Examples:
     - Overview: "examples/overview.md"
     - Setup:
@@ -126,6 +127,8 @@ plugins:
 
 
 markdown_extensions:
+  - pymdownx.arithmatex:
+      generic: true
   - pymdownx.highlight:
       anchor_linenums: true
       line_spans: __span
@@ -150,3 +153,7 @@ markdown_extensions:
 
 extra_css:
   - stylesheets/extra.css
+
+extra_javascript:
+  - javascripts/mathjax.js
+  - https://unpkg.com/mathjax@3/es5/tex-mml-chtml.js
