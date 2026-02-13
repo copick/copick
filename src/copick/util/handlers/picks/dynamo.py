@@ -41,10 +41,20 @@ class DynamoPicksHandler:
         Returns:
             Tuple of (positions_angstrom, transforms_4x4, scores)
         """
-        from copick.util.formats import read_dynamo_table
+        from copick.util.formats import dynamo_to_copick_transform, read_dynamo_table
 
-        positions, transforms, scores = read_dynamo_table(path, voxel_spacing)
-        return positions, transforms, scores
+        # Read raw Dynamo data (positions in pixels, Euler angles)
+        positions_px, eulers_deg, shifts_px, scores = read_dynamo_table(path)
+
+        # Convert to copick format (positions in Angstrom, 4x4 transforms)
+        positions_angstrom, transforms = dynamo_to_copick_transform(
+            positions_px,
+            eulers_deg,
+            shifts_px,
+            voxel_spacing,
+        )
+
+        return positions_angstrom, transforms, scores
 
     def write(
         self,
