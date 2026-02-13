@@ -78,23 +78,31 @@ def sample_em_file():
 @pytest.fixture
 def sample_dynamo_table():
     """Create a sample Dynamo table file for testing."""
-    with tempfile.NamedTemporaryFile(suffix=".tbl", delete=False, mode="w") as tmp:
-        # Create minimal Dynamo table with required columns
-        # dynamotable columns (35 total):
-        # 1:tag, 2:aligned_value, 3:averaged_value, 4:dx, 5:dy, 6:dz, 7:tdrot, 8:tilt, 9:narot,
-        # 10:cc, 11:cc2, 12:cpu, 13:ftype, 14:ymintilt, 15:ymaxtilt, 16:xmintilt, 17:xmaxtilt,
-        # 18:fs1, 19:fs2, 20:tomo, 21:reg, 22:class, 23:annotation, 24:x, 25:y, 26:z,
-        # 27:dshift, 28:daxis, 29:dnarot, 30:dcc, 31:otag, 32:npar, 33:undefined1, 34:ref, 35:sref
-        # Key columns: tomo (20), x (24), y (25), z (26)
-        # fmt: off
-        lines = [
-            # tag aligned averaged dx dy dz tdrot tilt narot cc cc2 cpu ftype ymint ymaxt xmint xmaxt fs1 fs2 tomo reg class annot x y z dshift daxis dnarot dcc otag npar undef ref sref
-            "1 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 1 0 0 0 10.0 15.0 20.0 0 0 0 0 0 0 0 0 0",
-            "2 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 1 0 0 0 20.0 25.0 30.0 0 0 0 0 0 0 0 0 0",
-        ]
-        # fmt: on
-        tmp.write("\n".join(lines))
-        tmp.flush()
+    import dynamotable
+    import pandas as pd
+
+    with tempfile.NamedTemporaryFile(suffix=".tbl", delete=False) as tmp:
+        # Create DataFrame with proper Dynamo column structure using dynamotable
+        # This ensures the format is always compatible with dynamotable.read()
+        df = pd.DataFrame(
+            {
+                "tag": [1, 2],
+                "aligned": [0, 0],
+                "averaged": [0, 0],
+                "dx": [0.0, 0.0],
+                "dy": [0.0, 0.0],
+                "dz": [0.0, 0.0],
+                "tdrot": [0.0, 0.0],
+                "tilt": [0.0, 0.0],
+                "narot": [0.0, 0.0],
+                "cc": [0.0, 0.0],
+                "x": [10.0, 20.0],
+                "y": [15.0, 25.0],
+                "z": [20.0, 30.0],
+                "tomo": [1, 1],  # All particles in same tomogram
+            },
+        )
+        dynamotable.write(df, tmp.name)
         yield tmp.name
 
     with contextlib.suppress(PermissionError, OSError):
@@ -282,24 +290,31 @@ def sample_em_file_multi_tomo():
 @pytest.fixture
 def sample_dynamo_table_multi_tomo():
     """Create a sample Dynamo table file with multiple tomogram indices for testing."""
-    with tempfile.NamedTemporaryFile(suffix=".tbl", delete=False, mode="w") as tmp:
-        # Create Dynamo table with particles from different tomograms
-        # dynamotable columns (35 total):
-        # 1:tag, 2:aligned_value, 3:averaged_value, 4:dx, 5:dy, 6:dz, 7:tdrot, 8:tilt, 9:narot,
-        # 10:cc, 11:cc2, 12:cpu, 13:ftype, 14:ymintilt, 15:ymaxtilt, 16:xmintilt, 17:xmaxtilt,
-        # 18:fs1, 19:fs2, 20:tomo, 21:reg, 22:class, 23:annotation, 24:x, 25:y, 26:z,
-        # 27:dshift, 28:daxis, 29:dnarot, 30:dcc, 31:otag, 32:npar, 33:undefined1, 34:ref, 35:sref
-        # Key columns: tomo (20), x (24), y (25), z (26)
-        # fmt: off
-        lines = [
-            # tag aligned averaged dx dy dz tdrot tilt narot cc cc2 cpu ftype ymint ymaxt xmint xmaxt fs1 fs2 tomo reg class annot x y z dshift daxis dnarot dcc otag npar undef ref sref
-            "1 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 1 0 0 0 10.0 15.0 20.0 0 0 0 0 0 0 0 0 0",
-            "2 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 1 0 0 0 20.0 25.0 30.0 0 0 0 0 0 0 0 0 0",
-            "3 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 2 0 0 0 30.0 35.0 40.0 0 0 0 0 0 0 0 0 0",
-        ]
-        # fmt: on
-        tmp.write("\n".join(lines))
-        tmp.flush()
+    import dynamotable
+    import pandas as pd
+
+    with tempfile.NamedTemporaryFile(suffix=".tbl", delete=False) as tmp:
+        # Create DataFrame with proper Dynamo column structure using dynamotable
+        # This ensures the format is always compatible with dynamotable.read()
+        df = pd.DataFrame(
+            {
+                "tag": [1, 2, 3],
+                "aligned": [0, 0, 0],
+                "averaged": [0, 0, 0],
+                "dx": [0.0, 0.0, 0.0],
+                "dy": [0.0, 0.0, 0.0],
+                "dz": [0.0, 0.0, 0.0],
+                "tdrot": [0.0, 0.0, 0.0],
+                "tilt": [0.0, 0.0, 0.0],
+                "narot": [0.0, 0.0, 0.0],
+                "cc": [0.0, 0.0, 0.0],
+                "x": [10.0, 20.0, 30.0],
+                "y": [15.0, 25.0, 35.0],
+                "z": [20.0, 30.0, 40.0],
+                "tomo": [1, 1, 2],  # Two particles in tomo 1, one in tomo 2
+            },
+        )
+        dynamotable.write(df, tmp.name)
         yield tmp.name
 
     with contextlib.suppress(PermissionError, OSError):
