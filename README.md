@@ -5,7 +5,7 @@
 [![License: MIT](https://img.shields.io/badge/License-MIT-green.svg)](https://opensource.org/licenses/MIT)
 [![PyPI version](https://badge.fury.io/py/copick.svg)](https://badge.fury.io/py/copick)
 [![Python](https://img.shields.io/badge/python-3.10%20|%203.11%20|%203.12%20|%203.13-green)](https://pypi.org/project/copick/)
-[![Tests](https://github.com/copick/copick/workflows/tests/badge.svg)](https://github.com/copick/copick/actions/workflows/test.yml)
+[![Tests](https://github.com/copick/copick/actions/workflows/test.yml/badge.svg?branch=main)](https://github.com/copick/copick/actions/workflows/test.yml)
 [![codecov](https://codecov.io/gh/copick/copick/branch/main/graph/badge.svg)](https://codecov.io/gh/copick/copick)
 [![Docs](https://github.com/copick/copick/workflows/docs/badge.svg)](https://copick.github.io/copick/)
 [![DOI](https://zenodo.org/badge/777827788.svg)](https://doi.org/10.5281/zenodo.17799611)
