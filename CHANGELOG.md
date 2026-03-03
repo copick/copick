@@ -1,5 +1,16 @@
 # Changelog
 
+## [1.20.1](https://github.com/copick/copick/compare/copick-v1.20.0...copick-v1.20.1) (2026-03-03)
+
+
+### 🐞 Bug Fixes
+
+* bump chanzuckerberg/github-actions from 6.13.0 to 6.13.2 ([#205](https://github.com/copick/copick/issues/205)) ([9b10a6d](https://github.com/copick/copick/commit/9b10a6dc702377ebdfe2045a20f6211b42618deb))
+* bump mkdocs-material from 9.7.1 to 9.7.3 ([#207](https://github.com/copick/copick/issues/207)) ([7bbbfd0](https://github.com/copick/copick/commit/7bbbfd065551bfc0e636aed94d9c3ce0fcee01f0))
+* bump rich from 14.3.2 to 14.3.3 ([#203](https://github.com/copick/copick/issues/203)) ([66d65c0](https://github.com/copick/copick/commit/66d65c0e3f1fbde21cd01672007c973ff201d3c1))
+* bump ruff from 0.15.0 to 0.15.4 ([#209](https://github.com/copick/copick/issues/209)) ([97cd16c](https://github.com/copick/copick/commit/97cd16cadd419bf7298611e344017b60711b9868))
+* bump textual from 7.5.0 to 8.0.1 ([#208](https://github.com/copick/copick/issues/208)) ([f37bc34](https://github.com/copick/copick/commit/f37bc34f59a7021eb1c1a5595199e8641316e5cd))
+
 ## [1.20.0](https://github.com/copick/copick/compare/copick-v1.19.0...copick-v1.20.0) (2026-02-13)
 
 
