@@ -1,5 +1,23 @@
 # Changelog
 
+## [1.20.1](https://github.com/copick/copick/compare/copick-v1.20.0...copick-v1.20.1) (2026-03-12)
+
+
+### 🐞 Bug Fixes
+
+* bump black from 26.1.0 to 26.3.0 ([#214](https://github.com/copick/copick/issues/214)) ([7304993](https://github.com/copick/copick/commit/7304993b466f2c5e53d2c11a1b16f669baebdae4))
+* bump chanzuckerberg/github-actions from 6.13.0 to 6.13.2 ([#205](https://github.com/copick/copick/issues/205)) ([9b10a6d](https://github.com/copick/copick/commit/9b10a6dc702377ebdfe2045a20f6211b42618deb))
+* bump chanzuckerberg/github-actions from 6.13.2 to 6.14.0 ([#211](https://github.com/copick/copick/issues/211)) ([acc9e36](https://github.com/copick/copick/commit/acc9e365063748d8673a6f221337896374221b5b))
+* bump mkdocs-material from 9.7.1 to 9.7.3 ([#207](https://github.com/copick/copick/issues/207)) ([7bbbfd0](https://github.com/copick/copick/commit/7bbbfd065551bfc0e636aed94d9c3ce0fcee01f0))
+* bump mkdocs-material from 9.7.3 to 9.7.4 ([#216](https://github.com/copick/copick/issues/216)) ([03dd3e6](https://github.com/copick/copick/commit/03dd3e68fc7e3de8f8eeb1a931c4a5640801db93))
+* bump rich from 14.3.2 to 14.3.3 ([#203](https://github.com/copick/copick/issues/203)) ([66d65c0](https://github.com/copick/copick/commit/66d65c0e3f1fbde21cd01672007c973ff201d3c1))
+* bump ruff from 0.15.0 to 0.15.4 ([#209](https://github.com/copick/copick/issues/209)) ([97cd16c](https://github.com/copick/copick/commit/97cd16cadd419bf7298611e344017b60711b9868))
+* bump ruff from 0.15.4 to 0.15.5 ([#213](https://github.com/copick/copick/issues/213)) ([3bb2da2](https://github.com/copick/copick/commit/3bb2da2a692d912dc433d9da12ce0ed20e585310))
+* bump textual from 7.5.0 to 8.0.1 ([#208](https://github.com/copick/copick/issues/208)) ([f37bc34](https://github.com/copick/copick/commit/f37bc34f59a7021eb1c1a5595199e8641316e5cd))
+* bump textual from 8.0.1 to 8.0.2 ([#215](https://github.com/copick/copick/issues/215)) ([263864f](https://github.com/copick/copick/commit/263864f61392fa5ae21ed930d810c1c223f3f391))
+* bump tornado from 6.5.4 to 6.5.5 ([#217](https://github.com/copick/copick/issues/217)) ([7c5f70a](https://github.com/copick/copick/commit/7c5f70a8ef5caf5519a8372994405f0a43b83902))
+* bump trimesh from 4.11.2 to 4.11.3 ([#212](https://github.com/copick/copick/issues/212)) ([70af15d](https://github.com/copick/copick/commit/70af15d577bd3944a73f1c4dc0c85b2531a5b259))
+
 ## [1.20.0](https://github.com/copick/copick/compare/copick-v1.19.0...copick-v1.20.0) (2026-02-13)
 
 
