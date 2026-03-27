@@ -2,7 +2,6 @@ import concurrent.futures
 import json
 from typing import TYPE_CHECKING, Any, Dict, List, Optional, Tuple, Type, Union
 
-import fsspec
 import zarr
 from fsspec import AbstractFileSystem
 
@@ -907,9 +906,16 @@ class CopickRootFSSpec(CopickRoot):
         Args:
             config: Copick configuration for fsspec-based storage.
         """
+        import weakref
+
+        from copick.util.reconnecting_fs import ReconnectingFileSystem
+
         super().__init__(config)
 
-        self.fs_overlay: AbstractFileSystem = fsspec.core.url_to_fs(config.overlay_root, **config.overlay_fs_args)[0]
+        self.fs_overlay: AbstractFileSystem = ReconnectingFileSystem(
+            config.overlay_root,
+            config.overlay_fs_args,
+        )
         self.fs_static: Optional[AbstractFileSystem] = None
 
         self.root_overlay: str = self.fs_overlay._strip_protocol(config.overlay_root).rstrip("/")
@@ -919,12 +925,23 @@ class CopickRootFSSpec(CopickRoot):
             self.fs_static = self.fs_overlay
             self.root_static = self.fs_static._strip_protocol(config.overlay_root).rstrip("/")
         else:
-            self.fs_static = fsspec.core.url_to_fs(config.static_root, **config.static_fs_args)[0]
+            self.fs_static = ReconnectingFileSystem(config.static_root, config.static_fs_args)
             self.root_static = self.fs_static._strip_protocol(config.static_root).rstrip("/")
+
+        # Set root reference for cache invalidation on reconnect
+        self.fs_overlay._root_ref = weakref.ref(self)
+        if self.fs_static is not self.fs_overlay:
+            self.fs_static._root_ref = weakref.ref(self)
 
     @property
     def static_is_overlay(self) -> bool:
         return self.fs_static == self.fs_overlay and self.root_static == self.root_overlay
+
+    def reconnect(self) -> None:
+        """Force reconnection of all filesystems and invalidate caches."""
+        self.fs_overlay._reconnect()
+        if self.fs_static is not self.fs_overlay:
+            self.fs_static._reconnect()
 
     @classmethod
     def from_file(cls, path: str) -> "CopickRootFSSpec":

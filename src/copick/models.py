@@ -497,6 +497,22 @@ class CopickRoot:
         self._runs = self.query()
         self._objects = None  # Reset objects to force reloading
 
+    def reconnect(self) -> None:
+        """Reconnect to the storage backend and invalidate all caches.
+
+        Override in subclasses that use remote filesystems (e.g. SSH, S3).
+        No-op for local filesystem backends.
+        """
+        pass
+
+    def _invalidate_all_caches(self) -> None:
+        """Invalidate all cached child objects, forcing re-query on next access."""
+        if self._runs is not None:
+            for run in self._runs:
+                run._invalidate_caches()
+        self._runs = None
+        self._objects = None
+
     def save_config(self, config_path: str) -> None:
         """Save the configuration to a JSON file.
 
@@ -1327,6 +1343,16 @@ class CopickRun:
         self.refresh_meshes()
         self.refresh_segmentations()
 
+    def _invalidate_caches(self) -> None:
+        """Invalidate all cached child data for this run."""
+        if self._voxel_spacings is not None:
+            for vs in self._voxel_spacings:
+                vs._invalidate_caches()
+        self._voxel_spacings = None
+        self._picks = None
+        self._meshes = None
+        self._segmentations = None
+
     def ensure(self, create: bool = False) -> bool:
         """Check if the run record exists, optionally create it if it does not.
 
@@ -1524,6 +1550,10 @@ class CopickVoxelSpacing:
     def refresh(self) -> None:
         """Refresh `CopickVoxelSpacing.tomograms` from storage."""
         self.refresh_tomograms()
+
+    def _invalidate_caches(self) -> None:
+        """Invalidate all cached child data for this voxel spacing."""
+        self._tomograms = None
 
     def new_tomogram(self, tomo_type: str, exist_ok: bool = False, **kwargs) -> "CopickTomogram":
         """Create a new tomogram object, also creates the Zarr-store in the storage backend.
@@ -1733,6 +1763,10 @@ class CopickTomogram:
     def refresh(self) -> None:
         """Refresh `CopickTomogram.features` from storage."""
         self.refresh_features()
+
+    def _invalidate_caches(self) -> None:
+        """Invalidate all cached features for this tomogram."""
+        self._features = None
 
     def delete(self) -> None:
         """Delete the tomogram record."""

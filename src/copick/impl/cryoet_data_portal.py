@@ -5,7 +5,6 @@ from dataclasses import dataclass, field
 from typing import TYPE_CHECKING, Any, Dict, List, Optional, Tuple, Type, Union
 
 import cryoet_data_portal as cdp
-import fsspec
 import numpy as np
 import s3fs
 import zarr
@@ -1233,14 +1232,28 @@ class CopickRootCDP(CopickRoot):
     config: CopickConfigCDP
 
     def __init__(self, config: CopickConfigCDP):
+        import weakref
+
+        from copick.util.reconnecting_fs import ReconnectingFileSystem
+
         super().__init__(config)
 
-        self.fs_overlay: AbstractFileSystem = fsspec.core.url_to_fs(config.overlay_root, **config.overlay_fs_args)[0]
+        self.fs_overlay: AbstractFileSystem = ReconnectingFileSystem(
+            config.overlay_root,
+            config.overlay_fs_args,
+        )
         self.root_overlay: str = self.fs_overlay._strip_protocol(config.overlay_root)  # noqa
         self._portal_cache: Optional[PortalCache] = None
 
+        # Set root reference for cache invalidation on reconnect
+        self.fs_overlay._root_ref = weakref.ref(self)
+
         # Eagerly build annotation cache for all datasets
         self._ensure_annotation_cache()
+
+    def reconnect(self) -> None:
+        """Force reconnection of the overlay filesystem and invalidate caches."""
+        self.fs_overlay._reconnect()
 
     @property
     def go_map(self) -> Dict[str, str]:
