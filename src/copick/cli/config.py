@@ -55,14 +55,14 @@ def parse_object(ctx, param, value):
 )
 @click.option(
     "--overlay",
-    type=str,
+    type=click.Path(file_okay=False, dir_okay=True),
     required=True,
     help="Path to the local overlay directory where intermediate files will be stored or read.",
 )
 @click.option(
     "--output",
     default="config.json",
-    type=str,
+    type=click.Path(dir_okay=False),
     required=True,
     help="Path to save the generated configuration file.",
 )
@@ -106,7 +106,12 @@ def dataportal(
     no_args_is_help=True,
 )
 @click.pass_context
-@click.option("--overlay-root", type=str, required=True, help="Overlay root path.")
+@click.option(
+    "--overlay-root",
+    type=click.Path(file_okay=False, dir_okay=True),
+    required=True,
+    help="Overlay root path.",
+)
 @click.option(
     "--objects",
     type=str,
@@ -117,7 +122,7 @@ def dataportal(
 )
 @click.option(
     "--config",
-    type=str,
+    type=click.Path(dir_okay=False),
     required=False,
     default="config.json",
     help="Path to the output JSON configuration file.",

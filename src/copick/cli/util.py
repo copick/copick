@@ -15,7 +15,7 @@ def add_config_option(func: click.Command) -> click.Command:
         click.option(
             "-c",
             "--config",
-            type=str,
+            type=click.Path(exists=True),
             help="Path to the configuration file.",
             required=False,
             metavar="PATH",
@@ -281,7 +281,7 @@ def add_export_common_options(func: click.Command) -> click.Command:
         click.option(
             "--output-dir",
             required=True,
-            type=str,
+            type=click.Path(file_okay=False, dir_okay=True),
             help="Output directory for exported files.",
             metavar="PATH",
         ),

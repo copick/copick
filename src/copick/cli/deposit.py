@@ -8,7 +8,7 @@ from copick.util.log import get_logger
 @add_config_option
 @click.option(
     "--target-dir",
-    type=str,
+    type=click.Path(file_okay=False, dir_okay=True),
     help="Target directory for the deposited view (required).",
     required=True,
     metavar="PATH",

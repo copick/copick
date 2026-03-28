@@ -126,6 +126,7 @@ OBJECTS = [
 @click.option(
     "--outdir",
     "-o",
+    type=click.Path(file_okay=False, dir_okay=True),
     default="docs/templates/configs/",
     help="Output directory for the templates.",
 )
