@@ -118,6 +118,14 @@ def add_run_options(func: click.Command) -> click.Command:
             help="Regular expression to extract the run name from the filename. If not provided, will use the file "
             "name without extension. The regex should capture the run name in the first group.",
         ),
+        click.option(
+            "--run-name-prefix",
+            required=False,
+            type=str,
+            default="",
+            show_default=True,
+            help="Prefix to prepend to run names after regex extraction.",
+        ),
     ]
 
     for opt in opts:

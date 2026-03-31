@@ -73,6 +73,7 @@ def tomogram(
     config: str,
     run: str,
     run_regex: str,
+    run_name_prefix: str,
     tomo_type: str,
     file_type: str,
     voxel_size: float,
@@ -150,7 +151,7 @@ def tomogram(
     chunk_size: Tuple[int, int, int] = tuple(map(int, chunk_size.split(",")[:3]))
 
     # Prepare runs and group files
-    run_to_file = prepare_runs_from_paths(root, paths, run, run_regex, create, logger)
+    run_to_file = prepare_runs_from_paths(root, paths, run, run_regex, run_name_prefix, create, logger)
 
     def import_tomogram(run_obj, file_path, **kwargs):
         """Process one tomogram file for a single run"""
@@ -618,6 +619,7 @@ def segmentation(
     config: str,
     run: str,
     run_regex: str,
+    run_name_prefix: str,
     voxel_size: float,
     name: str,
     user_id: str,
@@ -663,7 +665,7 @@ def segmentation(
         paths = [path]
 
     # Prepare runs and group files
-    run_to_file = prepare_runs_from_paths(root, paths, run, run_regex, create, logger)
+    run_to_file = prepare_runs_from_paths(root, paths, run, run_regex, run_name_prefix, create, logger)
 
     def import_segmentation_callback(run_obj, file_path, **kwargs):
         """Process segmentation files for a single run"""
@@ -1049,6 +1051,7 @@ def picks(
     config: str,
     run: str,
     run_regex: str,
+    run_name_prefix: str,
     object_name: str,
     user_id: str,
     session_id: str,
@@ -1161,7 +1164,7 @@ def picks(
         return
 
     # Prepare runs and group files
-    run_to_file = prepare_runs_from_paths(root, paths, run, run_regex, create, logger)
+    run_to_file = prepare_runs_from_paths(root, paths, run, run_regex, run_name_prefix, create, logger)
 
     def import_picks(run_obj, file_path, **kwargs):
         """Process one picks file for a single run"""
