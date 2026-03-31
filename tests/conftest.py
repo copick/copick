@@ -300,14 +300,16 @@ if BACKEND in ("all", "ssh") and importlib_util.find_spec("sshfs") and RUN_ALL:
 
     @pytest.fixture(scope="session")
     def ssh_container():
+        # Create test_data directory BEFORE starting Docker. On Linux CI, the SSH
+        # container's volume mount (./bin/ssh:/config) causes Docker to create
+        # tests/bin/ssh/ as root. If we create test_data/ after Docker starts, we
+        # get PermissionError because the parent is root-owned.
+        SSH_DATA_DIR.mkdir(parents=True, exist_ok=True)
+        os.chmod(SSH_DATA_DIR, 0o777)
+
         os.system(f"docker compose -f {DOCKER_COMPOSE_FILE} --profile sshfs up -d")
         # On startup we need to wait for the service to fully initialize (user creation, SSH setup).
         time.sleep(3)
-
-        # Ensure host-side data directory exists and is world-writable so the SSH
-        # user (UID 1000) can create new directories inside it (e.g. sync test targets).
-        SSH_DATA_DIR.mkdir(parents=True, exist_ok=True)
-        os.chmod(SSH_DATA_DIR, 0o777)
 
         yield "ssh:///config/test_data/"
 
