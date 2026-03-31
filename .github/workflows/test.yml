@@ -6,9 +6,19 @@ on:
       - main
     tags:
       - "v*" # Push events to matching v*, i.e. v1.0, v20.15.10
+    paths-ignore:
+      - "docs/**"
+      - "*.md"
+      - "LICENSE"
+      - ".gitignore"
   pull_request:
     branches:
       - main
+    paths-ignore:
+      - "docs/**"
+      - "*.md"
+      - "LICENSE"
+      - ".gitignore"
   workflow_dispatch:
 
 concurrency:
@@ -16,16 +26,13 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
-  test-extended:
-    name: ${{ matrix.platform }} py${{ matrix.python-version }}
-    runs-on: ${{ matrix.platform }}
+  test-ubuntu-local:
+    name: ubuntu local py${{ matrix.python-version }}
+    runs-on: ubuntu-latest
     env:
-      RUN_ALL: 1
+      BACKEND: local
     strategy:
       matrix:
-        platform: [
-          ubuntu-latest,
-        ]
         python-version: [
           "3.10",
           "3.11",
@@ -46,12 +53,82 @@ jobs:
         run: uv sync --locked --extra test --extra dev
 
       - name: Run tests
-        run: uv run pytest -vvv -p no:warnings --color=yes --cov --cov-branch --cov-report=xml --cov-report=term-missing tests
-        env:
-          PLATFORM: ${{ matrix.platform }}
+        run: uv run pytest -vvv -p no:warnings --color=yes --cov --cov-branch --cov-report=xml --cov-report=term-missing -n auto tests
 
       - name: Coverage
         uses: codecov/codecov-action@v6
+        with:
+          flags: local
+
+  test-ubuntu-s3:
+    name: ubuntu s3 py${{ matrix.python-version }}
+    runs-on: ubuntu-latest
+    env:
+      BACKEND: s3
+      RUN_ALL: 1
+    strategy:
+      matrix:
+        python-version: [
+          "3.10",
+          "3.11",
+          "3.12",
+          "3.13",
+        ]
+
+    steps:
+      - uses: actions/checkout@v6
+
+      - name: Install uv
+        uses: astral-sh/setup-uv@v7
+        with:
+          version: "0.7.13"
+          python-version: ${{ matrix.python-version }}
+
+      - name: Install copick
+        run: uv sync --locked --extra test --extra dev
+
+      - name: Run tests
+        run: uv run pytest -vvv -p no:warnings --color=yes --cov --cov-branch --cov-report=xml --cov-report=term-missing -n auto tests
+
+      - name: Coverage
+        uses: codecov/codecov-action@v6
+        with:
+          flags: s3
+
+  test-ubuntu-ssh:
+    name: ubuntu ssh py${{ matrix.python-version }}
+    runs-on: ubuntu-latest
+    env:
+      BACKEND: ssh
+      RUN_ALL: 1
+    strategy:
+      matrix:
+        python-version: [
+          "3.10",
+          "3.11",
+          "3.12",
+          "3.13",
+        ]
+
+    steps:
+      - uses: actions/checkout@v6
+
+      - name: Install uv
+        uses: astral-sh/setup-uv@v7
+        with:
+          version: "0.7.13"
+          python-version: ${{ matrix.python-version }}
+
+      - name: Install copick
+        run: uv sync --locked --extra test --extra dev
+
+      - name: Run tests
+        run: uv run pytest -vvv -p no:warnings --color=yes --cov --cov-branch --cov-report=xml --cov-report=term-missing -n auto tests
+
+      - name: Coverage
+        uses: codecov/codecov-action@v6
+        with:
+          flags: ssh
 
   test-macos:
     name: ${{ matrix.platform }} py${{ matrix.python-version }}
@@ -83,7 +160,7 @@ jobs:
         run: uv sync --locked --extra test --extra dev
 
       - name: Run tests
-        run: uv run pytest -vvv -p no:warnings --color=yes --cov --cov-branch --cov-report=xml --cov-report=term-missing tests
+        run: uv run pytest -vvv -p no:warnings --color=yes --cov --cov-branch --cov-report=xml --cov-report=term-missing -n auto tests
         env:
           PLATFORM: ${{ matrix.platform }}
 
@@ -120,7 +197,7 @@ jobs:
         run: uv sync --locked --extra test --extra dev
 
       - name: Run tests
-        run: uv run pytest -vvv -p no:warnings --color=yes --cov --cov-branch --cov-report=xml --cov-report=term-missing tests
+        run: uv run pytest -vvv -p no:warnings --color=yes --cov --cov-branch --cov-report=xml --cov-report=term-missing -n auto tests
         env:
           PLATFORM: ${{ matrix.platform }}
 

@@ -19,8 +19,8 @@ services:
     container_name: openssh-server
     hostname: openssh-server
     environment:
-      - PUID=1000
-      - PGID=1000
+      - PUID=${HOST_UID:-1000}
+      - PGID=${HOST_GID:-1000}
       - TZ=Etc/UTC
       - PASSWORD_ACCESS=true
       - USER_PASSWORD=password
