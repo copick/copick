@@ -1228,8 +1228,11 @@ def get_tomogram_centers_from_copick(
             continue
 
         tomo = tomos[0]
+        import zarr
+
         zarr_store = tomo.zarr()
-        shape = zarr_store["0"].shape  # (z, y, x)
+        group = zarr.open(zarr_store, mode="r")
+        shape = group["0"].shape  # (z, y, x)
 
         # Compute center in Angstrom
         center_z = (shape[0] / 2) * voxel_spacing
