@@ -26,6 +26,8 @@ TOTO = pooch.create(
 
 # Determine if all tests should be run
 RUN_ALL = bool(int(os.environ.get("RUN_ALL", 1)))
+# Select which backend(s) to test: "all", "local", "s3", "ssh", "smb"
+BACKEND = os.environ.get("BACKEND", "all")
 
 CLEANUP = True
 
@@ -143,10 +145,11 @@ def local(base_project_directory, base_overlay_directory, base_config):
         shutil.rmtree(temp_dir)
 
 
-COMMON_CASES.extend(["local_overlay_only", "local"])
+if BACKEND in ("all", "local") or not RUN_ALL:
+    COMMON_CASES.extend(["local_overlay_only", "local"])
 
 
-if importlib_util.find_spec("s3fs") and RUN_ALL:
+if BACKEND in ("all", "s3") and importlib_util.find_spec("s3fs") and RUN_ALL:
 
     def _seed_s3(local_dir: Path, s3_prefix: str, endpoint_url: str):
         """Seed mock S3 with test data using boto3 (no subprocess overhead)."""
@@ -289,7 +292,7 @@ if importlib_util.find_spec("s3fs") and RUN_ALL:
     COMMON_CASES.extend(["s3_overlay_only", "s3"])
 
 
-if importlib_util.find_spec("sshfs") and RUN_ALL:
+if BACKEND in ("all", "ssh") and importlib_util.find_spec("sshfs") and RUN_ALL:
     # Host-side directory for SSH test data, placed under the existing /config volume mount.
     # This maps to /config/test_data/ inside the SSH container — no extra docker-compose
     # volume needed.
@@ -432,7 +435,7 @@ if importlib_util.find_spec("sshfs") and RUN_ALL:
     COMMON_CASES.extend(["ssh_overlay_only", "ssh"])
 
 
-if importlib_util.find_spec("smbclient") and RUN_ALL:
+if BACKEND in ("all", "smb") and importlib_util.find_spec("smbclient") and RUN_ALL:
 
     @pytest.fixture(scope="session")
     def smb_container():
