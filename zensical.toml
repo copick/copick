@@ -94,6 +94,8 @@ features = [
 
 [[project.theme.palette]]
 scheme = "slate"
+primary = "indigo"
+accent = "indigo"
 toggle.icon = "lucide/sun"
 toggle.name = "Switch to light mode"
 
