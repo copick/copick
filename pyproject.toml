@@ -81,9 +81,7 @@ dev = [
     "textual-dev>=1.7.0",
 ]
 docs = [
-    "mkdocs>=1.6.1",
-    "mkdocs-autorefs>=1.4.2",
-    "mkdocs-material>=9.6.14",
+    "zensical",
     "mkdocstrings[python]>=0.29.1",
 ]
 
@@ -100,9 +98,7 @@ target_version = ['py311']
 [tool.ruff]
 line-length = 120
 target-version = "py311"
-exclude = [
-    "mkdocs.yml",
-]
+exclude = []
 
 [tool.ruff.lint]
 select = [

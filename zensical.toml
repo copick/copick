@@ -1,0 +1,168 @@
+[project]
+site_name = "copick"
+repo_url = "https://github.com/uermel/copick"
+repo_name = "uermel/copick"
+copyright = "2024, Utz Heinrich Ermel, Kyle I. S. Harrington"
+
+extra_css = ["stylesheets/extra.css"]
+extra_javascript = [
+    "javascripts/mathjax.js",
+    "https://unpkg.com/mathjax@3/es5/tex-mml-chtml.js",
+]
+
+nav = [
+    {"Home" = "index.md"},
+    {"Quick Start" = "quickstart.md"},
+    {"Data Model" = "datamodel.md"},
+    {"Geometry Conventions" = "geometry.md"},
+    {"Examples" = [
+        {"Overview" = "examples/overview.md"},
+        {"Setup" = [
+            {"Local Project" = "examples/setup/local.md"},
+            {"Shared Project" = "examples/setup/shared.md"},
+            {"AWS S3 Project" = "examples/setup/aws_s3.md"},
+            {"SSH Project" = "examples/setup/ssh.md"},
+            {"CZ cryoET Data Portal" = "examples/setup/data_portal.md"},
+        ]},
+        {"Tutorials" = [
+            {"CZ cryoET Data Portal" = "examples/tutorials/data_portal.md"},
+            {"Syncing CZII Kaggle Challenge Dataset" = "examples/tutorials/kaggle_czii_sync.md"},
+            {"Copick and HPC" = "examples/tutorials/hpc.md"},
+            {"ChimeraX-Copick" = "examples/tutorials/chimerax.md"},
+            {"Copick and Album" = "examples/tutorials/album.md"},
+            {"Detecting Sample Boundaries" = "examples/tutorials/sample_boundaries.md"},
+            {"Copick and membrain-seg" = "examples/tutorials/membrain.md"},
+            {"Copick-MCP" = "examples/tutorials/copick_mcp.md"},
+        ]},
+        {"Snippets" = "examples/snippets.md"},
+    ]},
+    {"Tools" = "tools.md"},
+    {"CLI Reference" = "cli.md"},
+    {"API Reference" = [
+        {"API Overview" = "api_reference/api.md"},
+        {"Base Classes" = [
+            {"Data Entity Models" = [
+                {"CopickRoot" = "api_reference/base_classes/data_entity_models/CopickRoot.md"},
+                {"CopickObject" = "api_reference/base_classes/data_entity_models/CopickObject.md"},
+                {"CopickRun" = "api_reference/base_classes/data_entity_models/CopickRun.md"},
+                {"CopickVoxelSpacing" = "api_reference/base_classes/data_entity_models/CopickVoxelSpacing.md"},
+                {"CopickTomogram" = "api_reference/base_classes/data_entity_models/CopickTomogram.md"},
+                {"CopickFeatures" = "api_reference/base_classes/data_entity_models/CopickFeatures.md"},
+                {"CopickPicks" = "api_reference/base_classes/data_entity_models/CopickPicks.md"},
+                {"CopickMesh" = "api_reference/base_classes/data_entity_models/CopickMesh.md"},
+                {"CopickSegmentation" = "api_reference/base_classes/data_entity_models/CopickSegmentation.md"},
+            ]},
+            {"Metadata Models" = [
+                {"CopickConfig" = "api_reference/base_classes/metadata_models/CopickConfig.md"},
+                {"PickableObject" = "api_reference/base_classes/metadata_models/PickableObject.md"},
+                {"CopickPicksFile" = "api_reference/base_classes/metadata_models/CopickPicksFile.md"},
+                {"CopickRunMeta" = "api_reference/base_classes/metadata_models/CopickRunMeta.md"},
+                {"CopickVoxelSpacingMeta" = "api_reference/base_classes/metadata_models/CopickVoxelSpacingMeta.md"},
+                {"CopickTomogramMeta" = "api_reference/base_classes/metadata_models/CopickTomogramMeta.md"},
+                {"CopickFeaturesMeta" = "api_reference/base_classes/metadata_models/CopickFeaturesMeta.md"},
+                {"CopickMeshMeta" = "api_reference/base_classes/metadata_models/CopickMeshMeta.md"},
+                {"CopickSegmentationMeta" = "api_reference/base_classes/metadata_models/CopickSegmentationMeta.md"},
+            ]},
+        ]},
+        {"Implementations" = [
+            {"Overlay" = "api_reference/implementations/Overlay.md"},
+            {"File System" = "api_reference/implementations/Filesystem.md"},
+            {"Data Portal" = "api_reference/implementations/Dataportal.md"},
+        ]},
+        {"Functional API" = [
+            {"Add" = "api_reference/functional/add.md"},
+            {"Get" = "api_reference/functional/get.md"},
+            {"Open" = "api_reference/functional/open.md"},
+            {"Run" = "api_reference/functional/run.md"},
+            {"Browser" = "api_reference/functional/browser.md"},
+        ]},
+    ]},
+    {"Contributing" = "contributing.md"},
+]
+
+# --- Theme ---
+
+[project.theme]
+logo = "assets/logo.png"
+features = [
+    "content.code.copy",
+    "search.highlight",
+    "search.share",
+    "search.suggest",
+    "content.tooltips",
+]
+
+[[project.theme.palette]]
+scheme = "slate"
+primary = "indigo"
+accent = "indigo"
+toggle.icon = "lucide/sun"
+toggle.name = "Switch to light mode"
+
+[[project.theme.palette]]
+scheme = "default"
+toggle.icon = "lucide/moon"
+toggle.name = "Switch to dark mode"
+
+# --- Plugins ---
+
+[project.plugins.search]
+
+[project.plugins.autorefs]
+
+[project.plugins.mkdocstrings]
+default_handler = "python"
+
+[project.plugins.mkdocstrings.handlers.python.options]
+show_source = false
+preload_modules = ["pydantic"]
+show_symbol_type_toc = true
+show_symbol_type_heading = true
+show_root_full_path = true
+show_root_heading = true
+group_by_category = true
+show_labels = false
+inherited_members = false
+members_order = "source"
+docstring_section_style = "list"
+merge_init_into_class = false
+docstring_style = "google"
+show_signature_annotations = true
+signature_crossrefs = false
+separate_signature = true
+line_length = 60
+
+# --- Markdown Extensions ---
+
+[project.markdown_extensions.pymdownx.arithmatex]
+generic = true
+
+[project.markdown_extensions.pymdownx.highlight]
+anchor_linenums = true
+line_spans = "__span"
+pygments_lang_class = true
+
+[project.markdown_extensions.pymdownx.inlinehilite]
+
+[project.markdown_extensions.pymdownx.snippets]
+check_paths = true
+base_path = ["docs/snippets", "docs/templates", "."]
+
+[project.markdown_extensions.pymdownx.superfences]
+
+[project.markdown_extensions.attr_list]
+
+[project.markdown_extensions.md_in_html]
+
+[project.markdown_extensions.pymdownx.emoji]
+emoji_index = "zensical.extensions.emoji.twemoji"
+emoji_generator = "zensical.extensions.emoji.to_svg"
+
+[project.markdown_extensions.pymdownx.tabbed]
+alternate_style = true
+
+[project.markdown_extensions.admonition]
+
+[project.markdown_extensions.pymdownx.details]
+
+[project.markdown_extensions.pymdownx.keys]

@@ -27,7 +27,7 @@ jobs:
       # Build the book
       - name: Build the book
         run: |
-          mkdocs build
+          zensical build
 
       # Push the site to github-pages
       - name: GitHub Pages action
