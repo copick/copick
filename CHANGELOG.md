@@ -1,5 +1,17 @@
 # Changelog
 
+## [1.23.0](https://github.com/copick/copick/compare/copick-v1.22.1...copick-v1.23.0) (2026-03-31)
+
+
+### ✨ Features
+
+* Allow specifying a run prefix during copick import. ([#243](https://github.com/copick/copick/issues/243)) ([de4ad56](https://github.com/copick/copick/commit/de4ad56e0e6887dccb337936bcf6f2f6d7288820))
+
+
+### 🐞 Bug Fixes
+
+* Fix tomogram dimension determination during RELION STAR import ([#242](https://github.com/copick/copick/issues/242)) ([c8bf276](https://github.com/copick/copick/commit/c8bf2760f5ae86167eb0b4ac159a67760aa36a45))
+
 ## [1.22.1](https://github.com/copick/copick/compare/copick-v1.22.0...copick-v1.22.1) (2026-03-31)
 
 
