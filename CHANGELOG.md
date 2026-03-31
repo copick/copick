@@ -1,5 +1,31 @@
 # Changelog
 
+## [1.22.0](https://github.com/copick/copick/compare/copick-v1.21.0...copick-v1.22.0) (2026-03-31)
+
+
+### ✨ Features
+
+* Normalize CLI-types to allow better introspection ([#233](https://github.com/copick/copick/issues/233)) ([9f24d37](https://github.com/copick/copick/commit/9f24d3797aee3c6395edbb320e81f768cc8e674d))
+
+
+### 🐞 Bug Fixes
+
+* bump chanzuckerberg/github-actions from 6.15.0 to 6.15.1 ([#228](https://github.com/copick/copick/issues/228)) ([2b618ef](https://github.com/copick/copick/commit/2b618ef3fec522e4033e963c15f14a400436d9f9))
+* bump codecov/codecov-action from 5 to 6 ([#229](https://github.com/copick/copick/issues/229)) ([425ea27](https://github.com/copick/copick/commit/425ea2751c1581a532e5365d728ed44da2d312e7))
+* bump cryptography from 46.0.5 to 46.0.6 ([#226](https://github.com/copick/copick/issues/226)) ([d8c4814](https://github.com/copick/copick/commit/d8c4814f8041ba0a8cf022096cdfb3767fbcbf28))
+* bump fsspec from 2026.2.0 to 2026.3.0 ([#232](https://github.com/copick/copick/issues/232)) ([1276dee](https://github.com/copick/copick/commit/1276dee631b557a9e7bef9fc9457f959259c319e))
+* bump mkdocs-material from 9.7.5 to 9.7.6 ([#230](https://github.com/copick/copick/issues/230)) ([072126c](https://github.com/copick/copick/commit/072126c1060795b8ea30f026002ca1b4a6711cbb))
+* bump pygments from 2.19.2 to 2.20.0 ([#227](https://github.com/copick/copick/issues/227)) ([03424fb](https://github.com/copick/copick/commit/03424fbac1bfc5f0310fb326f0c90782c0fa0f92))
+
+
+### 📝 Documentation
+
+* Add missing files for zensical build.  ([#236](https://github.com/copick/copick/issues/236)) ([94f91a1](https://github.com/copick/copick/commit/94f91a16a7f9b4d0e92d79850035274eef12ddab))
+* Downgrade pygments to restore docs.  ([#238](https://github.com/copick/copick/issues/238)) ([0a2e5a7](https://github.com/copick/copick/commit/0a2e5a72f6817c921965d865bc6fca6dffc3bf40))
+* Migrate docs to zensical. ([#235](https://github.com/copick/copick/issues/235)) ([bdc22e5](https://github.com/copick/copick/commit/bdc22e5ec77659a48b1f41140fc9b29e7f6c6de5))
+* Switch back to classic theme ([#239](https://github.com/copick/copick/issues/239)) ([aa0fae5](https://github.com/copick/copick/commit/aa0fae51e29cc32a8215f54a9d24b5d4f138629b))
+* Update docs workflow.  ([#237](https://github.com/copick/copick/issues/237)) ([2867a7d](https://github.com/copick/copick/commit/2867a7d67b715b00ce99334fcdbd2ee970cf31b1))
+
 ## [1.21.0](https://github.com/copick/copick/compare/copick-v1.20.0...copick-v1.21.0) (2026-03-27)
 
 
