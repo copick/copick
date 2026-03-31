@@ -57,6 +57,7 @@ def prepare_runs_from_paths(
     paths: List[str],
     input_run: str,
     run_regex: str = r"(.*)",
+    run_name_prefix: str = "",
     create: bool = True,
     logger=None,
 ) -> Dict[str, str]:
@@ -69,6 +70,7 @@ def prepare_runs_from_paths(
         paths: List of file paths
         input_run: Run name (empty string means derive from filename)
         run_regex: Regex to match run names in filenames. First group is used as run name.
+        run_name_prefix: Prefix to prepend to run names after regex extraction.
         create: Whether to create runs if they don't exist
         logger: Logger instance
 
@@ -96,7 +98,7 @@ def prepare_runs_from_paths(
         # Match run name with regex
         match = re.search(run_regex, current_run)
         if match:
-            current_run = match.group(1)
+            current_run = f"{run_name_prefix}{match.group(1)}"
         else:
             if logger:
                 logger.warning(f"Run name {current_run} does not match regex {run_regex}. Skipping {path}.")
