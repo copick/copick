@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.22.1](https://github.com/copick/copick/compare/copick-v1.22.0...copick-v1.22.1) (2026-03-31)
+
+
+### 🐞 Bug Fixes
+
+* Fix click URI-type ([#240](https://github.com/copick/copick/issues/240)) ([c0b27ff](https://github.com/copick/copick/commit/c0b27ff0cc4ab8f5a15ba3f903378c9f1b6c5b8e))
+
 ## [1.22.0](https://github.com/copick/copick/compare/copick-v1.21.0...copick-v1.22.0) (2026-03-31)
 
 
