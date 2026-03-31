@@ -307,6 +307,13 @@ if BACKEND in ("all", "ssh") and importlib_util.find_spec("sshfs") and RUN_ALL:
         SSH_DATA_DIR.mkdir(parents=True, exist_ok=True)
         os.chmod(SSH_DATA_DIR, 0o777)
 
+        # Match the SSH container's PUID/PGID to the host user so files created by
+        # either side (host copytree or SSH server) are mutually accessible. Without
+        # this, on Linux CI the SSH server creates files as UID 1000 while the runner
+        # is UID 1001, causing PermissionErrors during both tests and cleanup.
+        os.environ["HOST_UID"] = str(os.getuid())
+        os.environ["HOST_GID"] = str(os.getgid())
+
         os.system(f"docker compose -f {DOCKER_COMPOSE_FILE} --profile sshfs up -d")
         # On startup we need to wait for the service to fully initialize (user creation, SSH setup).
         time.sleep(3)
