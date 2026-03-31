@@ -5,6 +5,7 @@ import tempfile
 from pathlib import Path
 from typing import Any, Dict
 
+import fsspec
 import numpy as np
 import pytest
 import trimesh
@@ -47,8 +48,12 @@ def source_target_configs(test_payload):
                 target_overlay_path.mkdir()
                 target_config["overlay_root"] = f"local://{target_overlay_path}"
             else:
-                # For other protocols, just modify the path
+                # For remote protocols (s3, ssh, smb), create the target overlay directory
                 target_config["overlay_root"] = overlay_root.rstrip("/") + "_target"
+                proto = target_config["overlay_root"].split("://")[0]
+                target_path = target_config["overlay_root"].replace(f"{proto}://", "")
+                fs = fsspec.filesystem(proto, **target_config.get("overlay_fs_args", {}))
+                fs.makedirs(target_path, exist_ok=True)
 
         # Write target config
         with open(target_config_path, "w") as f:

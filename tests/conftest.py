@@ -301,16 +301,17 @@ if importlib_util.find_spec("sshfs") and RUN_ALL:
         # On startup we need to wait for the service to fully initialize (user creation, SSH setup).
         time.sleep(3)
 
-        # Ensure host-side data directory exists
+        # Ensure host-side data directory exists and is world-writable so the SSH
+        # user (UID 1000) can create new directories inside it (e.g. sync test targets).
         SSH_DATA_DIR.mkdir(parents=True, exist_ok=True)
+        os.chmod(SSH_DATA_DIR, 0o777)
 
         yield "ssh:///config/test_data/"
 
-        # Don't stop the container here: with pytest-xdist, other workers may still be
-        # using it. The container is ephemeral on CI and can be stopped manually locally
-        # via `docker compose --profile sshfs down`.
-        if CLEANUP and SSH_DATA_DIR.exists():
-            shutil.rmtree(SSH_DATA_DIR, ignore_errors=True)
+        # Don't clean up SSH_DATA_DIR or stop the container here: with pytest-xdist,
+        # other workers may still be using them. Individual test fixtures clean up their
+        # own UUID directories. The container is ephemeral on CI and can be stopped
+        # manually locally via `docker compose --profile sshfs down`.
 
     @pytest.fixture
     def ssh_overlay_only(ssh_container, base_project_directory, base_config_overlay_only):
