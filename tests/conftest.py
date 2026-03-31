@@ -30,6 +30,16 @@ RUN_ALL = bool(int(os.environ.get("RUN_ALL", 1)))
 CLEANUP = True
 
 
+def _copytree_world_writable(src: Path, dst: Path):
+    """Copy directory tree with world-readable/writable permissions for Docker volume mounts."""
+    shutil.copytree(src, dst)
+    for root, dirs, files in os.walk(dst):
+        for d in dirs:
+            os.chmod(os.path.join(root, d), 0o777)
+        for f in files:
+            os.chmod(os.path.join(root, f), 0o666)
+
+
 @pytest.fixture(scope="session")
 def local_path() -> Path:
     TOTO.fetch("sample_project.zip", processor=pooch.Unzip(extract_dir="sample_project"))
@@ -140,23 +150,59 @@ COMMON_CASES.extend(["local_overlay_only", "local"])
 
 if importlib_util.find_spec("s3fs") and RUN_ALL:
 
+    def _seed_s3(local_dir: Path, s3_prefix: str, endpoint_url: str):
+        """Seed mock S3 with test data using boto3 (no subprocess overhead)."""
+        import boto3
+
+        parts = s3_prefix.replace("s3://", "").rstrip("/").split("/", 1)
+        bucket = parts[0]
+        key_prefix = (parts[1] + "/") if len(parts) > 1 else ""
+
+        s3 = boto3.client(
+            "s3",
+            endpoint_url=endpoint_url,
+            aws_access_key_id="test",
+            aws_secret_access_key="test",
+            region_name="us-west-2",
+        )
+
+        try:
+            s3.head_bucket(Bucket=bucket)
+        except Exception:
+            s3.create_bucket(
+                Bucket=bucket,
+                CreateBucketConfiguration={"LocationConstraint": "us-west-2"},
+            )
+
+        for root, _dirs, files in os.walk(local_dir):
+            for fname in files:
+                local_file = Path(root) / fname
+                rel = str(local_file.relative_to(local_dir))
+                s3.upload_file(str(local_file), bucket, key_prefix + rel)
+
     @pytest.fixture(scope="session")
-    def s3_container():
-        os.system(f"docker compose -f {DOCKER_COMPOSE_FILE} --profile s3fs up -d")
-        # Wait for moto server to be ready
-        time.sleep(2)
-        yield "s3://test-bucket/"
-        os.system(f"docker compose -f {DOCKER_COMPOSE_FILE} --profile s3fs stop")
+    def s3_container(worker_id):
+        from moto.server import ThreadedMotoServer
+
+        # Unique port per xdist worker (or default for non-xdist)
+        port = 4001 if worker_id == "master" else 4001 + int(worker_id.replace("gw", "")) + 1
+
+        server = ThreadedMotoServer(port=port, verbose=False)
+        server.start()
+        yield "s3://test-bucket/", f"http://127.0.0.1:{port}"
+        server.stop()
 
     @pytest.fixture
     def s3_overlay_only(s3_container, base_project_directory, base_config_overlay_only):
+        s3_prefix, endpoint_url = s3_container
+
         # Temp dir for config
         temp_dir = Path(tempfile.mkdtemp())
         config = temp_dir / "s3_overlay_only.json"
 
         # To ensure that each test has a unique project directory, generate UUID names
-        project_directory = f"{s3_container}sample_project_overlay_only_{uuid.uuid1()}/"
-        os.system(f'bash "{TESTS_DIR / "seed_moto.sh"}" "{base_project_directory}" "{project_directory}"')
+        project_directory = f"{s3_prefix}sample_project_overlay_only_{uuid.uuid1()}/"
+        _seed_s3(base_project_directory, project_directory, endpoint_url)
 
         # Open baseline config
         with open(base_config_overlay_only, "r") as f:
@@ -167,7 +213,7 @@ if importlib_util.find_spec("s3fs") and RUN_ALL:
         cfg["overlay_fs_args"] = {
             "key": "test",
             "secret": "test",
-            "endpoint_url": "http://127.0.0.1:4001",
+            "endpoint_url": endpoint_url,
             "client_kwargs": {"region_name": "us-west-2"},
         }
 
@@ -190,16 +236,18 @@ if importlib_util.find_spec("s3fs") and RUN_ALL:
 
     @pytest.fixture
     def s3(s3_container, base_project_directory, base_overlay_directory, base_config_overlay_only):
+        s3_prefix, endpoint_url = s3_container
+
         # Temp dir for config
         temp_dir = Path(tempfile.mkdtemp())
         config = temp_dir / "s3.json"
 
         # To ensure that each test has a unique project directory, generate UUID names
-        project_directory = f"{s3_container}sample_project_{uuid.uuid1()}/"
-        os.system(f'bash "{TESTS_DIR / "seed_moto.sh"}" "{base_project_directory}" "{project_directory}"')
+        project_directory = f"{s3_prefix}sample_project_{uuid.uuid1()}/"
+        _seed_s3(base_project_directory, project_directory, endpoint_url)
 
-        overlay_directory = f"{s3_container}sample_overlay_{uuid.uuid1()}/"
-        os.system(f'bash "{TESTS_DIR / "seed_moto.sh"}" "{base_overlay_directory}" "{overlay_directory}"')
+        overlay_directory = f"{s3_prefix}sample_overlay_{uuid.uuid1()}/"
+        _seed_s3(base_overlay_directory, overlay_directory, endpoint_url)
 
         # Open baseline config
         with open(base_config_overlay_only, "r") as f:
@@ -210,16 +258,16 @@ if importlib_util.find_spec("s3fs") and RUN_ALL:
         cfg["overlay_fs_args"] = {
             "key": "test",
             "secret": "test",
-            "endpoint_url": "http://127.0.0.1:4001",
+            "endpoint_url": endpoint_url,
             "client_kwargs": {"region_name": "us-west-2"},
         }
 
-        # Set the overlay root to the sample project
+        # Set the static root to the sample project
         cfg["static_root"] = str(project_directory)
         cfg["static_fs_args"] = {
             "key": "test",
             "secret": "test",
-            "endpoint_url": "http://127.0.0.1:4001",
+            "endpoint_url": endpoint_url,
             "client_kwargs": {"region_name": "us-west-2"},
         }
 
@@ -244,15 +292,26 @@ if importlib_util.find_spec("s3fs") and RUN_ALL:
 
 
 if importlib_util.find_spec("sshfs") and RUN_ALL:
+    # Host-side directory for SSH test data (volume-mounted into container at /data)
+    SSH_DATA_DIR = TESTS_DIR / "bin" / "ssh_data"
 
     @pytest.fixture(scope="session")
     def ssh_container():
         os.system(f"docker compose -f {DOCKER_COMPOSE_FILE} --profile sshfs up -d")
         # On startup we need to wait for the service to fully initialize (user creation, SSH setup).
         time.sleep(3)
-        yield "ssh:///tmp/"
+
+        # Ensure host-side data directory exists
+        SSH_DATA_DIR.mkdir(parents=True, exist_ok=True)
+
+        yield "ssh:///data/"
+
         os.system(f"docker compose -f {DOCKER_COMPOSE_FILE} --profile sshfs stop")
         os.system(f"docker compose -f {DOCKER_COMPOSE_FILE} --profile sshfs rm -f")
+
+        # Clean up data directory
+        if CLEANUP and SSH_DATA_DIR.exists():
+            shutil.rmtree(SSH_DATA_DIR)
 
     @pytest.fixture
     def ssh_overlay_only(ssh_container, base_project_directory, base_config_overlay_only):
@@ -261,9 +320,13 @@ if importlib_util.find_spec("sshfs") and RUN_ALL:
         config = temp_dir / "ssh_overlay_only.json"
 
         # To ensure that each test has a unique project directory, generate UUID names
-        project_directory = f"{ssh_container}sample_project_{uuid.uuid1()}"
+        uid = uuid.uuid1()
+        project_directory = f"{ssh_container}sample_project_{uid}"
         project_directory_stripped = project_directory.replace("ssh://", "")
-        os.system(f'bash "{TESTS_DIR / "seed_ssh.sh"}" "{base_project_directory}/*" "{project_directory_stripped}"')
+
+        # Seed via volume mount (instant local copy instead of scp)
+        local_seed_path = SSH_DATA_DIR / f"sample_project_{uid}"
+        _copytree_world_writable(base_project_directory, local_seed_path)
 
         # Open baseline config
         with open(base_config_overlay_only, "r") as f:
@@ -295,6 +358,8 @@ if importlib_util.find_spec("sshfs") and RUN_ALL:
 
         if CLEANUP:
             shutil.rmtree(temp_dir)
+            if local_seed_path.exists():
+                shutil.rmtree(local_seed_path)
 
     @pytest.fixture
     def ssh(ssh_container, base_project_directory, base_overlay_directory, base_config_overlay_only):
@@ -303,13 +368,21 @@ if importlib_util.find_spec("sshfs") and RUN_ALL:
         config = temp_dir / "ssh.json"
 
         # To ensure that each test has a unique project directory, generate UUID names
-        project_directory = f"{ssh_container}sample_project_{uuid.uuid1()}"
+        uid_proj = uuid.uuid1()
+        project_directory = f"{ssh_container}sample_project_{uid_proj}"
         project_directory_stripped = project_directory.replace("ssh://", "")
-        os.system(f'bash "{TESTS_DIR / "seed_ssh.sh"}" "{base_project_directory}/*" "{project_directory_stripped}"')
 
-        overlay_directory = f"{ssh_container}sample_overlay_{uuid.uuid1()}"
+        # Seed project via volume mount
+        local_seed_proj = SSH_DATA_DIR / f"sample_project_{uid_proj}"
+        _copytree_world_writable(base_project_directory, local_seed_proj)
+
+        uid_overlay = uuid.uuid1()
+        overlay_directory = f"{ssh_container}sample_overlay_{uid_overlay}"
         overlay_directory_stripped = overlay_directory.replace("ssh://", "")
-        os.system(f'bash "{TESTS_DIR / "seed_ssh.sh"}" "{base_overlay_directory}/*" "{overlay_directory_stripped}"')
+
+        # Seed overlay via volume mount
+        local_seed_overlay = SSH_DATA_DIR / f"sample_overlay_{uid_overlay}"
+        _copytree_world_writable(base_overlay_directory, local_seed_overlay)
 
         # Open baseline config
         with open(base_config_overlay_only, "r") as f:
@@ -325,7 +398,7 @@ if importlib_util.find_spec("sshfs") and RUN_ALL:
             "known_hosts": None,
         }
 
-        # Set the overlay root to the sample project
+        # Set the static root to the sample project
         cfg["static_root"] = str(project_directory)
         cfg["static_fs_args"] = {
             "host": "localhost",
@@ -351,6 +424,10 @@ if importlib_util.find_spec("sshfs") and RUN_ALL:
 
         if CLEANUP:
             shutil.rmtree(temp_dir)
+            if local_seed_proj.exists():
+                shutil.rmtree(local_seed_proj)
+            if local_seed_overlay.exists():
+                shutil.rmtree(local_seed_overlay)
 
     COMMON_CASES.extend(["ssh_overlay_only", "ssh"])
 

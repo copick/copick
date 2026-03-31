@@ -46,7 +46,7 @@ jobs:
         run: uv sync --locked --extra test --extra dev
 
       - name: Run tests
-        run: uv run pytest -vvv -p no:warnings --color=yes --cov --cov-branch --cov-report=xml --cov-report=term-missing tests
+        run: uv run pytest -vvv -p no:warnings --color=yes --cov --cov-branch --cov-report=xml --cov-report=term-missing -n auto tests
         env:
           PLATFORM: ${{ matrix.platform }}
 
@@ -83,7 +83,7 @@ jobs:
         run: uv sync --locked --extra test --extra dev
 
       - name: Run tests
-        run: uv run pytest -vvv -p no:warnings --color=yes --cov --cov-branch --cov-report=xml --cov-report=term-missing tests
+        run: uv run pytest -vvv -p no:warnings --color=yes --cov --cov-branch --cov-report=xml --cov-report=term-missing -n auto tests
         env:
           PLATFORM: ${{ matrix.platform }}
 
@@ -120,7 +120,7 @@ jobs:
         run: uv sync --locked --extra test --extra dev
 
       - name: Run tests
-        run: uv run pytest -vvv -p no:warnings --color=yes --cov --cov-branch --cov-report=xml --cov-report=term-missing tests
+        run: uv run pytest -vvv -p no:warnings --color=yes --cov --cov-branch --cov-report=xml --cov-report=term-missing -n auto tests
         env:
           PLATFORM: ${{ matrix.platform }}
 

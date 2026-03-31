@@ -161,5 +161,6 @@ cython_debug/
 .DS_Store/
 .test/
 .notebook/
+tests/bin/ssh_data/
 .CLAUDE.md
 CLAUDE.md
