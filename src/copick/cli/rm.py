@@ -2,6 +2,7 @@
 
 import click
 
+from copick.cli.types import CopickURI
 from copick.cli.util import add_config_option, add_debug_option
 from copick.util.log import get_logger
 
@@ -45,7 +46,7 @@ from copick.util.log import get_logger
     "object_type",
     type=click.Choice(["picks", "mesh", "segmentation", "tomogram", "feature"], case_sensitive=False),
 )
-@click.argument("uri", type=str)
+@click.argument("uri", type=CopickURI("any", "input"))
 @click.pass_context
 def rm(
     ctx,

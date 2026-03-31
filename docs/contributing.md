@@ -36,7 +36,7 @@ We welcome contributions to copick! Whether you're reporting bugs, suggesting fe
 
 ### Development Commands
 
-All development commands are documented in [`CLAUDE.md`](../CLAUDE.md) for AI assistants, but here are the key ones:
+Here are the key ones:
 
 #### Testing
 ```bash

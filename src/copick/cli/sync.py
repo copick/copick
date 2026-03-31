@@ -36,7 +36,7 @@ def sync(ctx):
 )
 @click.option(
     "--target-config",
-    type=str,
+    type=click.Path(exists=True),
     help="Path to the target configuration file.",
     required=True,
     metavar="PATH",
@@ -215,7 +215,7 @@ def picks(
 )
 @click.option(
     "--target-config",
-    type=str,
+    type=click.Path(exists=True),
     help="Path to the target configuration file.",
     required=True,
     metavar="PATH",
@@ -393,7 +393,7 @@ def meshes(
 )
 @click.option(
     "--target-config",
-    type=str,
+    type=click.Path(exists=True),
     help="Path to the target configuration file.",
     required=True,
     metavar="PATH",
@@ -579,7 +579,7 @@ def segmentations(
 )
 @click.option(
     "--target-config",
-    type=str,
+    type=click.Path(exists=True),
     help="Path to the target configuration file.",
     required=True,
     metavar="PATH",

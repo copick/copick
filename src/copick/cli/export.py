@@ -32,14 +32,14 @@ def export(ctx):
 )
 @click.option(
     "--output-dir",
-    type=str,
+    type=click.Path(file_okay=False, dir_okay=True),
     default=None,
     help="Output directory for per-run export (one file per run). Mutually exclusive with --output-file.",
     metavar="PATH",
 )
 @click.option(
     "--output-file",
-    type=str,
+    type=click.Path(dir_okay=False),
     default=None,
     help="Output file for combined export (all runs in one file). Mutually exclusive with --output-dir.",
     metavar="PATH",
