@@ -83,6 +83,7 @@ nav = [
 # --- Theme ---
 
 [project.theme]
+variant = "classic"
 logo = "assets/logo.png"
 features = [
     "content.code.copy",
