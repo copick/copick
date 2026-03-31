@@ -42,11 +42,9 @@ def _copytree_world_writable(src: Path, dst: Path):
 
 @pytest.fixture(scope="session")
 def local_path() -> Path:
-    TOTO.fetch("sample_project.zip", processor=pooch.Unzip(extract_dir="sample_project"))
-    yield OZ / "sample_project"
-
-    if CLEANUP:
-        shutil.rmtree(OZ / "sample_project")
+    # Test data is pre-extracted in pytest_configure to avoid xdist race conditions.
+    # The pooch cache persists between runs — no cleanup needed for shared data.
+    return OZ / "sample_project"
 
 
 @pytest.fixture(scope="session")
@@ -292,8 +290,10 @@ if importlib_util.find_spec("s3fs") and RUN_ALL:
 
 
 if importlib_util.find_spec("sshfs") and RUN_ALL:
-    # Host-side directory for SSH test data (volume-mounted into container at /data)
-    SSH_DATA_DIR = TESTS_DIR / "bin" / "ssh_data"
+    # Host-side directory for SSH test data, placed under the existing /config volume mount.
+    # This maps to /config/test_data/ inside the SSH container — no extra docker-compose
+    # volume needed.
+    SSH_DATA_DIR = TESTS_DIR / "bin" / "ssh" / "test_data"
 
     @pytest.fixture(scope="session")
     def ssh_container():
@@ -304,14 +304,13 @@ if importlib_util.find_spec("sshfs") and RUN_ALL:
         # Ensure host-side data directory exists
         SSH_DATA_DIR.mkdir(parents=True, exist_ok=True)
 
-        yield "ssh:///data/"
+        yield "ssh:///config/test_data/"
 
-        os.system(f"docker compose -f {DOCKER_COMPOSE_FILE} --profile sshfs stop")
-        os.system(f"docker compose -f {DOCKER_COMPOSE_FILE} --profile sshfs rm -f")
-
-        # Clean up data directory
+        # Don't stop the container here: with pytest-xdist, other workers may still be
+        # using it. The container is ephemeral on CI and can be stopped manually locally
+        # via `docker compose --profile sshfs down`.
         if CLEANUP and SSH_DATA_DIR.exists():
-            shutil.rmtree(SSH_DATA_DIR)
+            shutil.rmtree(SSH_DATA_DIR, ignore_errors=True)
 
     @pytest.fixture
     def ssh_overlay_only(ssh_container, base_project_directory, base_config_overlay_only):
@@ -542,5 +541,14 @@ if importlib_util.find_spec("smbclient") and RUN_ALL:
     # COMMON_CASES.extend(["smb_overlay_only", "smb"])
 
 
-def pytest_configure():
+def pytest_configure(config):
+    # Pre-extract test data in the controller process before xdist workers spawn.
+    # This avoids race conditions where multiple workers try to unzip simultaneously.
+    extract_path = OZ / "sample_project"
+    if not (extract_path / "sample_project").exists():
+        # Remove partial extractions if any
+        if extract_path.exists():
+            shutil.rmtree(extract_path)
+        TOTO.fetch("sample_project.zip", processor=pooch.Unzip(extract_dir="sample_project"))
+
     pytest.common_cases = COMMON_CASES

@@ -27,7 +27,6 @@ services:
       - USER_NAME=test.user
     volumes:
       - ./bin/ssh:/config
-      - ./bin/ssh_data:/data:rw
     ports:
       - 2222:2222
     restart: unless-stopped
