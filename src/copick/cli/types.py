@@ -44,7 +44,7 @@ class CopickURI(click.ParamType):
             return None
         return str(value)
 
-    def get_metavar(self, param):
+    def get_metavar(self, param, **kwargs):
         return "URI"
 
     def __repr__(self):
