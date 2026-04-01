@@ -848,7 +848,6 @@ def write_em_motivelist_grouped(
     grouped_data: Dict[str, Tuple[np.ndarray, np.ndarray, Optional[np.ndarray]]],
     voxel_spacing: float,
     run_to_index: Dict[str, int],
-    tomogram_dimensions: Optional[Tuple[int, int, int]] = None,
 ) -> None:
     """Write a combined TOM toolbox EM motivelist from multiple runs.
 
@@ -857,7 +856,6 @@ def write_em_motivelist_grouped(
         grouped_data: Dict mapping run_name to (positions_angstrom, transforms_4x4, scores).
         voxel_spacing: Voxel spacing in Angstrom for coordinate conversion.
         run_to_index: Mapping from run name to tomogram index.
-        tomogram_dimensions: Optional (z, y, x) dimensions for coordinate conversion.
 
     Raises:
         ValueError: If run_to_index is missing entries for any run.
@@ -880,7 +878,6 @@ def write_em_motivelist_grouped(
             positions,
             transforms,
             voxel_spacing,
-            tomogram_dimensions,
         )
 
         N = positions_px.shape[0]
@@ -1295,11 +1292,17 @@ def write_star_particles_grouped(
         # Convert positions from Angstrom to pixels
         positions_px = positions / voxel_spacing
 
-        # Extract Euler angles from transforms
+        # Extract Euler angles from transforms (per-matrix to handle invalid rotations)
         rotation_matrices = transforms[:, :3, :3]
-        # Invert rotation for RELION convention
-        rotations = Rotation.from_matrix(rotation_matrices).inv()
-        euler_angles = rotations.as_euler("ZYZ", degrees=True)
+        euler_angles = np.zeros((N, 3), dtype=float)
+        for i, Rmat in enumerate(rotation_matrices):
+            if np.allclose(Rmat, np.eye(3)):
+                euler_angles[i] = [0.0, 0.0, 0.0]
+            else:
+                try:
+                    euler_angles[i] = Rotation.from_matrix(Rmat).inv().as_euler("ZYZ", degrees=True)
+                except ValueError:
+                    euler_angles[i] = [0.0, 0.0, 0.0]
 
         df = pd.DataFrame(
             {

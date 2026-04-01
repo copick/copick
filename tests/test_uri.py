@@ -1,6 +1,9 @@
 import copick
 import pytest
 from copick.util.uri import (
+    _matches_numeric_pattern,
+    _matches_pattern,
+    expand_output_uri,
     get_copick_objects_by_type,
     parse_copick_uri,
     resolve_copick_objects,
@@ -611,3 +614,286 @@ class TestPatternMatching:
         for seg in resolved:
             assert seg.name == "painting"
             assert seg.voxel_size == 10.0
+
+
+class TestExpandOutputURI:
+    """Test cases for expand_output_uri function."""
+
+    def test_complete_picks_uri_passthrough(self):
+        """Complete picks URI is returned unchanged."""
+        result = expand_output_uri(
+            output_uri="ribosome:myuser/mysession",
+            input_uri="ribosome:someuser/somesession",
+            input_type="picks",
+            output_type="picks",
+            command_name="cmd",
+            individual_outputs=False,
+        )
+        assert result == "ribosome:myuser/mysession"
+
+    def test_complete_segmentation_uri_passthrough(self):
+        """Complete segmentation URI is returned unchanged."""
+        result = expand_output_uri(
+            output_uri="membrane:myuser/mysession@10.0",
+            input_uri="membrane:someuser/somesession@10.0",
+            input_type="segmentation",
+            output_type="segmentation",
+            command_name="cmd",
+            individual_outputs=False,
+        )
+        assert result == "membrane:myuser/mysession@10.0"
+
+    def test_name_only_picks_defaults(self):
+        """Name-only output inherits user_id from command_name and session_id defaults."""
+        result = expand_output_uri(
+            output_uri="ribosome",
+            input_uri="ribosome:someuser/somesession",
+            input_type="picks",
+            output_type="picks",
+            command_name="mesh2seg",
+            individual_outputs=False,
+        )
+        assert result == "ribosome:mesh2seg/converted-001"
+
+    def test_user_id_default_to_command_name(self):
+        """User ID defaults to command_name when not specified in output."""
+        result = expand_output_uri(
+            output_uri="membrane",
+            input_uri="membrane:someuser/somesession",
+            input_type="picks",
+            output_type="picks",
+            command_name="mycommand",
+            individual_outputs=False,
+        )
+        assert ":mycommand/" in result
+
+    def test_user_id_default_to_converter(self):
+        """User ID defaults to 'converter' when command_name is None."""
+        result = expand_output_uri(
+            output_uri="membrane",
+            input_uri="membrane:someuser/somesession",
+            input_type="picks",
+            output_type="picks",
+            command_name=None,
+            individual_outputs=False,
+        )
+        assert ":converter/" in result
+
+    def test_session_id_individual_outputs(self):
+        """Session ID defaults to '{instance_id}' when individual_outputs=True."""
+        result = expand_output_uri(
+            output_uri="ribosome",
+            input_uri="ribosome:someuser/somesession",
+            input_type="picks",
+            output_type="picks",
+            command_name="cmd",
+            individual_outputs=True,
+        )
+        assert "{instance_id}" in result
+
+    def test_session_id_pattern_input(self):
+        """Session ID defaults to '{input_session_id}' when input has wildcards."""
+        result = expand_output_uri(
+            output_uri="ribosome",
+            input_uri="ribosome:*/session*",
+            input_type="picks",
+            output_type="picks",
+            command_name="cmd",
+            individual_outputs=False,
+        )
+        assert "{input_session_id}" in result
+
+    def test_session_id_exact_input(self):
+        """Session ID defaults to 'converted-001' for exact input without wildcards."""
+        result = expand_output_uri(
+            output_uri="ribosome",
+            input_uri="ribosome:exactuser/exactsession",
+            input_type="picks",
+            output_type="picks",
+            command_name="cmd",
+            individual_outputs=False,
+        )
+        assert "converted-001" in result
+
+    def test_name_and_user_shorthand(self):
+        """Output URI 'name:user' sets both, session from defaults."""
+        result = expand_output_uri(
+            output_uri="membrane:custom",
+            input_uri="membrane:someuser/somesession",
+            input_type="picks",
+            output_type="picks",
+            command_name="cmd",
+            individual_outputs=False,
+        )
+        assert result.startswith("membrane:custom/")
+
+    def test_name_and_session_shorthand(self):
+        """Output URI 'name/session' uses command_name for user_id."""
+        result = expand_output_uri(
+            output_uri="membrane/my-session",
+            input_uri="membrane:someuser/somesession",
+            input_type="picks",
+            output_type="picks",
+            command_name="mycommand",
+            individual_outputs=False,
+        )
+        assert result == "membrane:mycommand/my-session"
+
+    def test_session_only_shorthand(self):
+        """Output URI '/session' inherits object_name from input."""
+        result = expand_output_uri(
+            output_uri="/my-session",
+            input_uri="ribosome:someuser/somesession",
+            input_type="picks",
+            output_type="picks",
+            command_name="mycommand",
+            individual_outputs=False,
+        )
+        assert result == "ribosome:mycommand/my-session"
+
+    def test_placeholder_session_id(self):
+        """Output URI '{input_session_id}' is recognized as a placeholder."""
+        result = expand_output_uri(
+            output_uri="{input_session_id}",
+            input_uri="ribosome:someuser/somesession",
+            input_type="picks",
+            output_type="picks",
+            command_name="cmd",
+            individual_outputs=False,
+        )
+        assert "{input_session_id}" in result
+
+    def test_segmentation_voxel_spacing_inheritance(self):
+        """Segmentation inherits voxel_spacing from input when not in output."""
+        result = expand_output_uri(
+            output_uri="membrane",
+            input_uri="membrane:someuser/somesession@10.0",
+            input_type="segmentation",
+            output_type="segmentation",
+            command_name="cmd",
+            individual_outputs=False,
+        )
+        assert "@10.0" in result
+
+    def test_segmentation_multilabel_inheritance(self):
+        """Segmentation inherits multilabel from input when not in output."""
+        result = expand_output_uri(
+            output_uri="membrane",
+            input_uri="membrane:someuser/somesession@10.0?multilabel=true",
+            input_type="segmentation",
+            output_type="segmentation",
+            command_name="cmd",
+            individual_outputs=False,
+        )
+        assert "multilabel=true" in result
+
+    def test_segmentation_query_params_in_output(self):
+        """Output URI with ?multilabel=true preserves the flag."""
+        result = expand_output_uri(
+            output_uri="membrane:user/session@15.0?multilabel=true",
+            input_uri="membrane:someuser/somesession@10.0",
+            input_type="segmentation",
+            output_type="segmentation",
+            command_name="cmd",
+            individual_outputs=False,
+        )
+        assert result == "membrane:user/session@15.0?multilabel=true"
+
+    def test_segmentation_output_voxel_spacing_overrides(self):
+        """Output URI with explicit @voxel_spacing overrides input."""
+        result = expand_output_uri(
+            output_uri="membrane@15.0",
+            input_uri="membrane:someuser/somesession@10.0",
+            input_type="segmentation",
+            output_type="segmentation",
+            command_name="cmd",
+            individual_outputs=False,
+        )
+        assert "@15.0" in result
+
+    def test_unsupported_output_type_raises(self):
+        """Unsupported output_type raises ValueError."""
+        with pytest.raises(ValueError, match="Unsupported output_type"):
+            expand_output_uri(
+                output_uri="wbp",
+                input_uri="wbp@10.0",
+                input_type="tomogram",
+                output_type="tomogram",
+                command_name="cmd",
+                individual_outputs=False,
+            )
+
+    def test_regex_input_sets_pattern(self):
+        """Regex input URI causes session_id to use '{input_session_id}' template."""
+        result = expand_output_uri(
+            output_uri="ribosome",
+            input_uri="re:ribo.*:user/\\d+",
+            input_type="picks",
+            output_type="picks",
+            command_name="cmd",
+            individual_outputs=False,
+        )
+        assert "{input_session_id}" in result
+
+    def test_mesh_output_type(self):
+        """Mesh output type works the same as picks."""
+        result = expand_output_uri(
+            output_uri="ribosome",
+            input_uri="ribosome:someuser/somesession",
+            input_type="mesh",
+            output_type="mesh",
+            command_name="converter",
+            individual_outputs=False,
+        )
+        assert result == "ribosome:converter/converted-001"
+
+    def test_full_user_session_shorthand(self):
+        """Output URI 'name:user/session' is fully specified for picks."""
+        result = expand_output_uri(
+            output_uri="membrane:myuser/mysession",
+            input_uri="ribosome:someuser/somesession",
+            input_type="picks",
+            output_type="picks",
+            command_name="cmd",
+            individual_outputs=False,
+        )
+        assert result == "membrane:myuser/mysession"
+
+
+class TestPrivateHelpers:
+    """Test private URI helper functions."""
+
+    def test_matches_pattern_invalid_regex_raises(self):
+        """Invalid regex pattern raises ValueError."""
+        with pytest.raises(ValueError, match="Invalid regex pattern"):
+            _matches_pattern("value", "[invalid", "regex")
+
+    def test_matches_pattern_unknown_type_raises(self):
+        """Unknown pattern type raises ValueError."""
+        with pytest.raises(ValueError, match="Unknown pattern type"):
+            _matches_pattern("value", "pattern", "unknown")
+
+    def test_matches_numeric_pattern_non_numeric_glob_fallback(self):
+        """Non-numeric glob values fall back to string matching."""
+        assert _matches_numeric_pattern("abc", "abc", "glob") is True
+        assert _matches_numeric_pattern("abc", "def", "glob") is False
+
+    def test_matches_numeric_pattern_regex(self):
+        """Regex mode converts numeric value to string for matching."""
+        assert _matches_numeric_pattern(10.0, r"10\.0", "regex") is True
+        assert _matches_numeric_pattern(10.0, r"20\.0", "regex") is False
+
+    def test_matches_pattern_glob_basic(self):
+        """Basic glob pattern matching works."""
+        assert _matches_pattern("ribosome", "ribo*", "glob") is True
+        assert _matches_pattern("membrane", "ribo*", "glob") is False
+
+    def test_matches_pattern_wildcard_matches_all(self):
+        """Wildcard '*' matches everything."""
+        assert _matches_pattern("anything", "*", "glob") is True
+        assert _matches_pattern("anything", "*", "regex") is True
+
+    def test_matches_numeric_pattern_wildcard(self):
+        """Wildcard matches any numeric value."""
+        assert _matches_numeric_pattern(10.0, "*", "glob") is True
+        assert _matches_numeric_pattern("10.0", "*", "regex") is True

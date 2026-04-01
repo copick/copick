@@ -34,7 +34,6 @@ def export_picks(
     output_path: str,
     output_format: str,
     voxel_spacing: Optional[float] = None,
-    tomogram_dimensions: Optional[Tuple[int, int, int]] = None,
     include_optics: bool = True,
     run_name: Optional[str] = None,
     tomogram_index: int = 1,
@@ -47,7 +46,6 @@ def export_picks(
         output_path: Path for the output file.
         output_format: Output format ("em", "star", "dynamo", "csv").
         voxel_spacing: Voxel spacing in Angstrom (required for em, star, dynamo).
-        tomogram_dimensions: (X, Y, Z) dimensions in voxels (required for em, star).
         include_optics: Include optics group in STAR file output.
         run_name: Run name for CSV output (uses picks.run.name if not provided).
         tomogram_index: Tomogram index for EM/Dynamo formats (default: 1).
@@ -66,12 +64,11 @@ def export_picks(
             picks,
             output_path,
             voxel_spacing,
-            tomogram_dimensions,
             tomogram_index=tomogram_index,
             log=log,
         )
     elif output_format == "star":
-        return _export_picks_star(picks, output_path, voxel_spacing, tomogram_dimensions, include_optics, log=log)
+        return _export_picks_star(picks, output_path, voxel_spacing, include_optics, log=log)
     elif output_format == "dynamo":
         return _export_picks_dynamo(picks, output_path, voxel_spacing, tomogram_index=tomogram_index, log=log)
     elif output_format == "csv":
@@ -85,7 +82,6 @@ def _export_picks_em(
     picks: "CopickPicks",
     output_path: str,
     voxel_spacing: float,
-    tomogram_dimensions: Optional[Tuple[int, int, int]] = None,
     tomogram_index: int = 1,
     log: bool = False,
 ) -> str:
@@ -95,7 +91,6 @@ def _export_picks_em(
         picks: The CopickPicks object to export.
         output_path: Path for the output EM file.
         voxel_spacing: Voxel spacing in Angstrom.
-        tomogram_dimensions: (X, Y, Z) dimensions in voxels.
         tomogram_index: Tomogram index for the motivelist.
         log: Log the operation.
 
@@ -107,10 +102,6 @@ def _export_picks_em(
     if voxel_spacing is None:
         raise ValueError("voxel_spacing is required for EM export.")
 
-    # Get tomogram dimensions if not provided
-    if tomogram_dimensions is None:
-        tomogram_dimensions = _get_tomogram_dimensions(picks)
-
     # Get points and transforms
     points, transforms = picks.numpy()
 
@@ -119,7 +110,6 @@ def _export_picks_em(
         points,
         transforms,
         voxel_spacing,
-        tomogram_dimensions,
     )
 
     # Write EM file
@@ -141,7 +131,6 @@ def _export_picks_star(
     picks: "CopickPicks",
     output_path: str,
     voxel_spacing: float,
-    tomogram_dimensions: Optional[Tuple[int, int, int]] = None,
     include_optics: bool = True,
     log: bool = False,
 ) -> str:
@@ -151,7 +140,6 @@ def _export_picks_star(
         picks: The CopickPicks object to export.
         output_path: Path for the output STAR file.
         voxel_spacing: Voxel spacing in Angstrom.
-        tomogram_dimensions: (X, Y, Z) dimensions in voxels.
         include_optics: Include optics group in output.
         log: Log the operation.
 
@@ -283,19 +271,6 @@ def _export_picks_csv(
     return output_path
 
 
-def _get_tomogram_dimensions(picks: "CopickPicks") -> Tuple[int, int, int]:
-    """Get tomogram dimensions from the run associated with picks."""
-    vs_with_tomo = [vs for vs in picks.run.voxel_spacings if vs.tomograms]
-    if not vs_with_tomo:
-        raise ValueError("Cannot determine tomogram dimensions: no tomograms found in run.")
-
-    # Use smallest voxel spacing
-    vs = min(vs_with_tomo, key=lambda x: x.voxel_size)
-    tomo = vs.tomograms[0]
-    z, y, x = zarr.open(tomo.zarr())["0"].shape
-    return (x, y, z)
-
-
 def export_picks_combined(
     config: str,
     output_file: str,
@@ -305,7 +280,6 @@ def export_picks_combined(
     run_names: Optional[List[str]] = None,
     run_to_index: Optional[Dict[str, int]] = None,
     include_optics: bool = True,
-    tomogram_dimensions: Optional[Tuple[int, int, int]] = None,
     log: bool = False,
 ) -> str:
     """Export picks from multiple runs to a single combined file.
@@ -322,7 +296,6 @@ def export_picks_combined(
         run_names: List of run names to export (None for all runs).
         run_to_index: Mapping from run name to tomogram index (required for em/dynamo).
         include_optics: Include optics group in STAR file output.
-        tomogram_dimensions: Optional (X, Y, Z) dimensions for EM format.
         log: Log the operation.
 
     Returns:
@@ -405,7 +378,6 @@ def export_picks_combined(
         voxel_spacing=voxel_spacing or 1.0,
         run_to_index=run_to_index,
         include_optics=include_optics,
-        tomogram_dimensions=tomogram_dimensions,
     )
 
     if log:
@@ -559,10 +531,10 @@ def _export_tomogram_zarr(
         if isinstance(source, str):
             shutil.copytree(source, output_path)
         else:
-            # For fsspec stores, copy using zarr
+            # For fsspec stores, copy into a fresh DirectoryStore
             source_group = zarr.open(source, mode="r")
-            dest_group = zarr.open(output_path, mode="w")
-            zarr.copy_store(source_group.store, dest_group.store)
+            dest_store = zarr.DirectoryStore(output_path)
+            zarr.copy_store(source_group.store, dest_store)
     else:
         # Copy only level 0
         source_group = zarr.open(source, mode="r")
@@ -759,10 +731,10 @@ def _export_segmentation_zarr(
         if isinstance(source, str):
             shutil.copytree(source, output_path)
         else:
-            # For fsspec stores, copy using zarr
+            # For fsspec stores, copy into a fresh DirectoryStore
             source_group = zarr.open(source, mode="r")
-            dest_group = zarr.open(output_path, mode="w")
-            zarr.copy_store(source_group.store, dest_group.store)
+            dest_store = zarr.DirectoryStore(output_path)
+            zarr.copy_store(source_group.store, dest_store)
     else:
         # Copy only level 0
         source_group = zarr.open(source, mode="r")
