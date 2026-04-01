@@ -117,7 +117,6 @@ class EMPicksHandler:
         grouped_data: Dict[str, Tuple[np.ndarray, np.ndarray, Optional[np.ndarray]]],
         voxel_spacing: float,
         run_to_index: Optional[Dict[str, int]] = None,
-        tomogram_dimensions: Optional[Tuple[int, int, int]] = None,
         **kwargs,
     ) -> str:
         """Write picks from multiple runs to a single EM motivelist file.
@@ -127,7 +126,6 @@ class EMPicksHandler:
             grouped_data: Dict mapping run_name to (positions, transforms, scores)
             voxel_spacing: Voxel spacing in Angstrom
             run_to_index: Mapping from run name to tomogram index (required)
-            tomogram_dimensions: Optional (z, y, x) dimensions for coordinate conversion
 
         Returns:
             Path to the written file
@@ -145,7 +143,6 @@ class EMPicksHandler:
             grouped_data,
             voxel_spacing,
             run_to_index,
-            tomogram_dimensions=tomogram_dimensions,
         )
         return path
 
