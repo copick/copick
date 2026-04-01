@@ -1,5 +1,17 @@
 # Changelog
 
+## [1.23.1](https://github.com/copick/copick/compare/copick-v1.23.0...copick-v1.23.1) (2026-04-01)
+
+
+### 🧪 Tests
+
+* Increase test coverage of import/export tools and URI system. ([#247](https://github.com/copick/copick/issues/247)) ([a845bed](https://github.com/copick/copick/commit/a845bed7dae3c4655df15f72a7c74bce0c5776f9))
+
+
+### ⚙ Continuous Integration
+
+* Increase speed of test workflows. ([#245](https://github.com/copick/copick/issues/245)) ([3154b72](https://github.com/copick/copick/commit/3154b72827a186c70cd603aa5e24becd2d8775d1))
+
 ## [1.23.0](https://github.com/copick/copick/compare/copick-v1.22.1...copick-v1.23.0) (2026-03-31)
 
 
