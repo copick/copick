@@ -1279,11 +1279,13 @@ class CopickRootCDP(CopickRoot):
             ],
         )
 
-        # 2. Fetch ALL annotation shapes
+        # 2. Fetch ALL annotation shapes (direct filters to avoid huge _in() lists)
         all_shapes = cdp.AnnotationShape.find(
             client,
             [
-                cdp.AnnotationShape.annotation_files.id._in([af.id for af in all_anno_files]),  # noqa
+                cdp.AnnotationShape.annotation.run.dataset_id._in(self.dataset_ids),  # noqa
+                cdp.AnnotationShape.shape_type._in(["Point", "OrientedPoint", "SegmentationMask"]),  # noqa
+                cdp.AnnotationShape.annotation.object_id._in(list(go_map.keys())),  # noqa
             ],
         )
 
@@ -1291,7 +1293,8 @@ class CopickRootCDP(CopickRoot):
         all_annotations = cdp.Annotation.find(
             client,
             [
-                cdp.Annotation.id._in([s.annotation_id for s in all_shapes]),  # noqa
+                cdp.Annotation.run.dataset_id._in(self.dataset_ids),  # noqa
+                cdp.Annotation.object_id._in(list(go_map.keys())),  # noqa
             ],
         )
 
@@ -1299,7 +1302,8 @@ class CopickRootCDP(CopickRoot):
         all_authors = cdp.AnnotationAuthor.find(
             client,
             [
-                cdp.AnnotationAuthor.annotation_id._in([a.id for a in all_annotations]),  # noqa
+                cdp.AnnotationAuthor.annotation.run.dataset_id._in(self.dataset_ids),  # noqa
+                cdp.AnnotationAuthor.annotation.object_id._in(list(go_map.keys())),  # noqa
             ],
         )
 
@@ -1323,7 +1327,7 @@ class CopickRootCDP(CopickRoot):
         all_tomogram_authors = cdp.TomogramAuthor.find(
             client,
             [
-                cdp.TomogramAuthor.tomogram_id._in([t.id for t in all_tomograms]),  # noqa
+                cdp.TomogramAuthor.tomogram.tomogram_voxel_spacing.run.dataset_id._in(self.dataset_ids),  # noqa
             ],
         )
 
