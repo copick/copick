@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.23.3](https://github.com/copick/copick/compare/copick-v1.23.2...copick-v1.23.3) (2026-04-02)
+
+
+### 🐞 Bug Fixes
+
+* Fix query pattern for very huuuge datasets. ([#251](https://github.com/copick/copick/issues/251)) ([5c44acb](https://github.com/copick/copick/commit/5c44acb81fff100fa2a14da81d4804e5b8600a21))
+
 ## [1.23.2](https://github.com/copick/copick/compare/copick-v1.23.1...copick-v1.23.2) (2026-04-02)
 
 
