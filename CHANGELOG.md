@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.23.2](https://github.com/copick/copick/compare/copick-v1.23.1...copick-v1.23.2) (2026-04-02)
+
+
+### 🐞 Bug Fixes
+
+* bump aiohttp from 3.13.3 to 3.13.4 ([#248](https://github.com/copick/copick/issues/248)) ([b658bdd](https://github.com/copick/copick/commit/b658bddbe3afbcec8b3034756172e8682cefccc6))
+
 ## [1.23.1](https://github.com/copick/copick/compare/copick-v1.23.0...copick-v1.23.1) (2026-04-01)
 
 
