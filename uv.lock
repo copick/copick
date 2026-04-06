@@ -1225,10 +1225,14 @@ wheels = [
 
 [[package]]
 name = "dynamotable"
-version = "0.2.4"
+version = "0.3.0"
 source = { registry = "https://pypi.org/simple" }
+dependencies = [
+    { name = "pandas" },
+]
+sdist = { url = "https://files.pythonhosted.org/packages/7f/08/32caf193f06ee56f6fe5a9b51b7741cbe1dba21f46fa6d52aed44738a9af/dynamotable-0.3.0.tar.gz", hash = "sha256:e88b9419404f3ca32537b02a2a2b25e57127d36b11180937bfac702a7bac9f58", size = 358977, upload-time = "2026-04-02T00:02:39.172Z" }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/12/a1/d9fa74cbd675c1a7fb72844073b266f665fef1aaf02e7308104cd24a7eea/dynamotable-0.2.4-py3-none-any.whl", hash = "sha256:616d04092f3b58108d97d30a5dab8c5f1dcb0cdfc4b536ef0c213413b0b836e5", size = 8075, upload-time = "2021-02-06T14:58:36.313Z" },
+    { url = "https://files.pythonhosted.org/packages/d1/22/661c0e01f4fc96f48f28699c509aaf0a1c15ab31c3aee838fa8fdc530d2e/dynamotable-0.3.0-py3-none-any.whl", hash = "sha256:378c2536e09594d06ca7a0d6b48cb78e3af480d5e5a96bcfdd8b83360c808ba0", size = 6060, upload-time = "2026-04-02T00:02:37.691Z" },
 ]
 
 [[package]]
