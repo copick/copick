@@ -1,5 +1,17 @@
 # Changelog
 
+## [1.23.4](https://github.com/copick/copick/compare/copick-v1.23.3...copick-v1.23.4) (2026-04-10)
+
+
+### 🐞 Bug Fixes
+
+* bump chanzuckerberg/github-actions from 6.15.1 to 6.16.0 ([#253](https://github.com/copick/copick/issues/253)) ([9766189](https://github.com/copick/copick/commit/9766189ea728d5197678d10e00d862649e1ae037))
+* bump cryptography from 46.0.6 to 46.0.7 ([#259](https://github.com/copick/copick/issues/259)) ([840826f](https://github.com/copick/copick/commit/840826fb6d438f30b2ec2f5dba62a671b3168573))
+* bump dynamotable from 0.2.4 to 0.3.0 ([#256](https://github.com/copick/copick/issues/256)) ([6159efe](https://github.com/copick/copick/commit/6159efeceed6722734883f1964f127ba866d2402))
+* bump smbprotocol from 1.16.0 to 1.16.1 ([#254](https://github.com/copick/copick/issues/254)) ([c76513b](https://github.com/copick/copick/commit/c76513b9edfee7ef44178ed22882f798de813f20))
+* bump textual from 8.1.1 to 8.2.3 ([#258](https://github.com/copick/copick/issues/258)) ([35646fb](https://github.com/copick/copick/commit/35646fb5232ab77971e23566cb4c0d707b5bfb46))
+* bump trimesh from 4.11.3 to 4.11.5 ([#257](https://github.com/copick/copick/issues/257)) ([60ad629](https://github.com/copick/copick/commit/60ad629957f7181ffbb0824ae587848c7ab3d4c0))
+
 ## [1.23.3](https://github.com/copick/copick/compare/copick-v1.23.2...copick-v1.23.3) (2026-04-02)
 
 
