@@ -19,8 +19,8 @@ There are several reasons for why it can be useful to determine more accurate sa
 - masking out the vacuum region during the training of a neural network
 - capping of membrane segmentations to define topological boundaries
 
-Below, we will show how to use **copick**, an adapted version of [deepfinder](https://github.com/jtschwar/cryoet-deepfinder/tree/master)
-and [album](https://album.solutions/) to predict sample boundaries for datasets [10301](https://cryoetdataportal.czscience.com/datasets/10301)
+Below, we will show how to use the **copick CLI**, **copick-torch** and
+**octopi** to predict sample boundaries for datasets [10301](https://cryoetdataportal.czscience.com/datasets/10301)
 and [10302](https://cryoetdataportal.czscience.com/datasets/10302) from the
 [CZ cryoET Data Portal](https://cryoetdataportal.czscience.com).
 
@@ -33,7 +33,7 @@ from dataset <a href="https://cryoetdataportal.czscience.com/datasets/10302">103
 ### Step 0: Environment and Pre-requisites
 
 For the purpose of this tutorial we will assume that we are working on a machine with access to an NVIDIA GPU and a
-working `CUDA 12.3`/`CUDNN 8.9` installation. Before we can start, we need to install the necessary software. We will
+working CUDA installation. Before we can start, we need to install the necessary software. We will
 use the following tools:
 
 #### 1. ChimeraX and ChimeraX-copick (for visualization and annotation)
@@ -45,43 +45,18 @@ install the ChimeraX-copick extension by running the following command in Chimer
 toolshed install copick
 ```
 
-#### 2. Album and copick-catalog (for processing steps)
+Alternatively, you can use [napari-copick](https://github.com/copick/napari-copick) for annotation in napari.
 
-Comprehensive installation instructions for Album can be found on the [Album docs website](https://docs.album.solutions/en/latest/installation-instructions.html).
+#### 2. Copick CLI, copick-utils, and copick-torch (for processing steps)
 
-TL;DR:
 ```bash
-conda create -n album album -c conda-forge
-conda activate album
+pip install "copick[all]" copick-utils copick-torch
 ```
 
-Now, add copick's Album catalog ([copick-catalog](https://github.com/copick/copick-catalog)) to your album
-installation and install the requried solutions by running the following commands:
+#### 3. Octopi (for training and inference)
 
 ```bash
-album add-catalog git@github.com:copick/copick-catalog.git
-album update && album upgrade
-album install copick:create_empty_picks:0.4.0
-album install copick:fit_sample:0.8.0
-album install copick:create_rec_limits:0.6.0
-album install copick:intersect_mesh:0.6.0
-album install copick:mesh_to_seg:0.8.0
-album install copick:sample_mesh:0.6.0
-album install copick:fit_sample_seg:0.10.0
-```
-
-
-
-#### 3. J-finder (for segmentation)
-
-Download and install a copick-compatible version of deepfinder:
-
-```bash
-conda create -n deepfinder python=3.10
-conda activate deepfinder
-git clone https://github.com/jtschwar/cryoet-deepfinder.git
-cd cryoet-deepfinder
-pip install .
+pip install octopi
 ```
 
 ### Step 1: Setup your copick projects
@@ -91,276 +66,77 @@ from the same experiments and have the same characteristics, but the tomograms i
 We will use dataset 10301 as a training set and evaluate on dataset 10302.
 
 We will store new annotations in a local directory, called the "overlay", while the tomogram image data is obtained
-from the CZ cryoet data portal. In the following, we will create a configuration file `config_train.json` that describes
-the project. The configuration file is a JSON file that contains all information necessary to access the data and
-describing the objects that can be accessed and created using the copick API.
+from the CZ cryoET Data Portal.
 
-The first part of the configuration file provides general information about the project, such as the project name,
-description, and copick-API version.
-
-??? example "click to expand"
-    ```json
-    {
-      "config_type": "cryoet_data_portal",
-      "name": "Sample Boundary Prediction - Training Set",
-      "description": "This project uses dataset 10301 from the CZ cryoET Data Portal as a training set for sample boundary prediction.",
-      "version": "0.5.4"
-    }
-    ```
-
-Next, we define the objects that can be accessed and created using the copick API. In this case we will create X objects:
-
-- top-layer -- the top layer of the sample
-- bottom-layer -- the bottom layer of the sample
-- valid-area -- the valid area of the reconstructed tomogram
-- sample -- the sample itself
-- valid-sample -- the sample excluding the invalid reconstruction area
-
-??? example "click to expand"
-    ```json
-    {
-      "pickable_objects": [
-            {
-                "name": "top-layer",
-                "is_particle": true,
-                "label": 100,
-                "color": [  255, 0, 0, 255],
-                "radius": 150,
-                "map_threshold": 0.037
-            },
-            {
-                "name": "bottom-layer",
-                "is_particle": true,
-                "label": 101,
-                "color": [
-                    0,
-                    255,
-                    0,
-                    255
-                ],
-                "radius": 150,
-                "map_threshold": 0.037
-            },
-            {
-                "name": "sample",
-                "is_particle": false,
-                "label": 102,
-                "color": [  0, 0, 255, 128],
-                "radius": 150,
-                "map_threshold": 0.037
-            },
-            {
-                "name": "valid-area",
-                "is_particle": false,
-                "label": 103,
-                "color": [
-                    255,
-                    255,
-                    0,
-                    128
-                ],
-                "radius": 150,
-                "map_threshold": 0.037
-            },
-            {
-                "name": "valid-sample",
-                "is_particle": false,
-                "label": 2,
-                "color": [
-                    0,
-                    255,
-                    255,
-                    128
-                ],
-                "radius": 150,
-                "map_threshold": 0.037
-            }
-        ]
-    }
-    ```
-
-Finally, we define where **copick** should look for the data and store any annotations (in this case the home directory
-of Bob).
-
-??? example "click to expand"
-    ```json
-    {
-      "overlay_root": "local:///home/bob/copick_project_train/",
-      "overlay_fs_args": {
-        "auto_mkdir": true
-      },
-      "dataset_ids" : [10301]
-    }
-    ```
-
-We will repeat this process for a second project, `config_evaluate.json`, that includes both dataset 10301 and dataset
-10302 for evaluation. Find both full examples below:
-
-
-??? example "`config_train.json`"
-    ```json
-    {
-      "config_type": "cryoet_data_portal",
-      "name": "Sample Boundary Prediction - Training Set",
-      "description": "This project uses dataset 10301 from the CZ cryoET Data Portal as a training set for sample boundary prediction.",
-      "version": "0.5.4",
-      "pickable_objects": [
-            {
-                "name": "top-layer",
-                "is_particle": true,
-                "label": 100,
-                "color": [  255, 0, 0, 255],
-                "radius": 150,
-                "map_threshold": 0.037
-            },
-            {
-                "name": "bottom-layer",
-                "is_particle": true,
-                "label": 101,
-                "color": [
-                    0,
-                    255,
-                    0,
-                    255
-                ],
-                "radius": 150,
-                "map_threshold": 0.037
-            },
-            {
-                "name": "sample",
-                "is_particle": false,
-                "label": 102,
-                "color": [  0, 0, 255, 128],
-                "radius": 150,
-                "map_threshold": 0.037
-            },
-            {
-                "name": "valid-area",
-                "is_particle": false,
-                "label": 103,
-                "color": [
-                    255,
-                    255,
-                    0,
-                    128
-                ],
-                "radius": 150,
-                "map_threshold": 0.037
-            },
-            {
-                "name": "valid-sample",
-                "is_particle": false,
-                "label": 2,
-                "color": [
-                    0,
-                    255,
-                    255,
-                    128
-                ],
-                "radius": 150,
-                "map_threshold": 0.037
-            }
-        ],
-      "overlay_root": "local:///home/bob/copick_project_train/",
-      "overlay_fs_args": {
-        "auto_mkdir": true
-      },
-      "dataset_ids" : [10301]
-    }
-    ```
-
-
-??? example "`config_evaluate.json`"
-    ```json
-    {
-      "config_type": "cryoet_data_portal",
-      "name": "Sample Boundary Prediction - Evaluation Set",
-      "description": "This project uses datasets 10301 and 10302 from the CZ cryoET Data Portal for sample boundary prediction.",
-      "version": "0.5.4",
-      "pickable_objects": [
-            {
-                "name": "top-layer",
-                "is_particle": true,
-                "label": 100,
-                "color": [  255, 0, 0, 255],
-                "radius": 150,
-                "map_threshold": 0.037
-            },
-            {
-                "name": "bottom-layer",
-                "is_particle": true,
-                "label": 101,
-                "color": [
-                    0,
-                    255,
-                    0,
-                    255
-                ],
-                "radius": 150,
-                "map_threshold": 0.037
-            },
-            {
-                "name": "sample",
-                "is_particle": false,
-                "label": 102,
-                "color": [  0, 0, 255, 128],
-                "radius": 150,
-                "map_threshold": 0.037
-            },
-            {
-                "name": "valid-area",
-                "is_particle": false,
-                "label": 103,
-                "color": [
-                    255,
-                    255,
-                    0,
-                    128
-                ],
-                "radius": 150,
-                "map_threshold": 0.037
-            },
-            {
-                "name": "valid-sample",
-                "is_particle": false,
-                "label": 2,
-                "color": [
-                    0,
-                    255,
-                    255,
-                    128
-                ],
-                "radius": 150,
-                "map_threshold": 0.037
-            }
-        ],
-      "overlay_root": "local:///home/bob/copick_project_evaluate/",
-      "overlay_fs_args": {
-        "auto_mkdir": true
-      },
-      "dataset_ids" : [10301, 10302]
-    }
-    ```
-
-### Step 2: Annotate the training set
-
-We will now use ChimeraX to annotate the top- and bottom- boundaries of the training set. In a first step we will create
-empty `CopickPicks` objects for the top- and bottom-layer in the training set. To do this we use the
-`create_empty_picks`-solution:
+First, create the configuration file for the training set:
 
 ```bash
-album run copick:create_empty_picks:0.4.0 \
---copick_config_path config_train.json \
---out_object top-layer \
---out_user bob \
---out_session 1
-
-album run copick:create_empty_picks:0.4.0 \
---copick_config_path config_train.json \
---out_object bottom-layer \
---out_user bob \
---out_session 1
+copick config dataportal \
+  -ds 10301 \
+  --overlay /home/bob/copick_project_train/ \
+  --output config_train.json
 ```
+
+Next, add the pickable objects that we will use throughout the tutorial:
+
+- **top-layer** -- the top layer of the sample (particle, for point annotations)
+- **bottom-layer** -- the bottom layer of the sample (particle, for point annotations)
+- **sample** -- the sample itself (segmentation object)
+- **valid-area** -- the valid area of the reconstructed tomogram (segmentation object)
+- **valid-sample** -- the sample excluding the invalid reconstruction area (segmentation object)
+
+```bash
+copick add object -c config_train.json \
+  --name top-layer --object-type particle --label 100 \
+  --color "255,0,0,255" --radius 150
+
+copick add object -c config_train.json \
+  --name bottom-layer --object-type particle --label 101 \
+  --color "0,255,0,255" --radius 150
+
+copick add object -c config_train.json \
+  --name sample --object-type segmentation --label 102 \
+  --color "0,0,255,128" --radius 150
+
+copick add object -c config_train.json \
+  --name valid-area --object-type segmentation --label 103 \
+  --color "255,255,0,128" --radius 150
+
+copick add object -c config_train.json \
+  --name valid-sample --object-type segmentation --label 2 \
+  --color "0,255,255,128" --radius 150
+```
+
+Now repeat this process for the evaluation set, which includes both datasets 10301 and 10302:
+
+```bash
+copick config dataportal \
+  -ds 10301 -ds 10302 \
+  --overlay /home/bob/copick_project_evaluate/ \
+  --output config_evaluate.json
+
+copick add object -c config_evaluate.json \
+  --name top-layer --object-type particle --label 100 \
+  --color "255,0,0,255" --radius 150
+
+copick add object -c config_evaluate.json \
+  --name bottom-layer --object-type particle --label 101 \
+  --color "0,255,0,255" --radius 150
+
+copick add object -c config_evaluate.json \
+  --name sample --object-type segmentation --label 102 \
+  --color "0,0,255,128" --radius 150
+
+copick add object -c config_evaluate.json \
+  --name valid-area --object-type segmentation --label 103 \
+  --color "255,255,0,128" --radius 150
+
+copick add object -c config_evaluate.json \
+  --name valid-sample --object-type segmentation --label 2 \
+  --color "0,255,255,128" --radius 150
+```
+
+### Step 2: Annotate the training set
 
 Open ChimeraX and start the copick extension by running the following command in the ChimeraX command line:
 
@@ -441,20 +217,15 @@ At the end of this step, you should have annotated the top- and bottom-layer of 
 Next, we will create the training data for the sample boundary prediction. First, we will create bounding boxes that
 describe the valid reconstruction area in each tomogram. In most TEMs, the tilt axis is not exactly parallel to
 either of the detector axes, causing tomograms to have small regions of invalid reconstruction at the corners. Using
-the `create_rec_limits`-solution, we can compute 3D meshes that describe the valid reconstruction area in each
-tomogram.
+`copick process validbox`, we can compute 3D meshes that describe the valid reconstruction area in each tomogram.
 
 In this case, we will assume an in-plane rotation of -6 degrees.
 
 ```bash
-album run copick:create_rec_limits:0.6.0 \
---copick_config_path config_train.json \
---voxel_spacing 7.84 \
---tomo_type wbp \
---angle -6 \
---output_object valid-area \
---output_user bob \
---output_session 0
+copick process validbox -c config_train.json \
+  -t "wbp@7.84" \
+  --angle -6 \
+  -o "valid-area:bob/0"
 ```
 
 You can now visualize the created bounding boxes in ChimeraX by restarting the copick interface and selecting the
@@ -470,42 +241,32 @@ and with (right) valid reconstruction area mesh overlayed.</figcaption>
 #### Sample
 
 Now, we will use the points created in [Step 2](#step-2-annotate-the-training-set) to create a second 3D mesh that
-describes the sample boundaries. We do this, by fitting a plane defined by a cubic spline grid to the points using the
-[torch-cubic-spline-grid](https://github.com/teamtomo/torch-cubic-spline-grids) package in the `fit_sample`-solution.
+describes the sample boundaries. We do this by fitting cubic B-spline surfaces to the top and bottom boundary points
+using `copick convert picks2slab`. This command fits independent spline surfaces to each set of picks, then connects
+them with side walls to form a closed slab mesh.
 
 ```bash
-album run copick:fit_sample:0.8.0 \
---copick_config_path config_train.json \
---top_object top-layer \
---bottom_object bottom-layer \
---input_user bob --input_session 1 \
---voxel_spacing 7.84 \
---tomo_type wbp \
---output_object sample \
---output_user bob \
---output_session 0
+copick convert picks2slab -c config_train.json \
+  -i1 "top-layer:bob/1" -i2 "bottom-layer:bob/1" \
+  -t "wbp@7.84" \
+  -o "sample:picks2slab/0"
 ```
 
 #### Intersection
 
 Next, we will intersect the valid reconstruction area with the sample to create a new object that describes the valid
-sample area. We do this using the `intersect_mesh`-solution:
+sample area. We do this using `copick logical meshop`:
 
 ```bash
-album run copick:intersect_mesh:0.6.0 \
---copick_config_path config_train.json \
---object_a valid-area \
---user_a bob \
---session_a 0 \
---object_b sample \
---user_b bob \
---session_b 0 \
---output_object valid-sample \
---output_user bob \
---output_session 0 \
+copick logical meshop -c config_train.json \
+  --operation intersection \
+  -i "valid-area:bob/0" \
+  -i "sample:picks2slab/0" \
+  -o "valid-sample:meshop/0"
 ```
+
 You can now visualize the final 3D mesh for training in ChimeraX by restarting the copick interface and selecting the
-`valid-area` object in the Mesh-tab on the left side.
+`valid-sample` object in the Mesh-tab on the left side.
 
 <figure markdown="span">
   ![mesh](../../assets/mesh_fit.png){width="400"}
@@ -513,111 +274,70 @@ You can now visualize the final 3D mesh for training in ChimeraX by restarting t
 </figure>
 
 
-#### Training data
+#### Training segmentation
 
-Finally, we will create the training data for the sample boundary prediction. We will use the `mesh_to_seg`-solution to
-create a dense segmentation of the same size as the tomogram from the 3D meshes.
-
-```bash
-album run copick:mesh_to_seg:0.8.0 \
---copick_config_path config_train.json \
---input_object valid-sample \
---input_user bob \
---input_session 0 \
---voxel_spacing 7.84 \
---tomo_type wbp
-```
-
-We also need to determine where sub-volumes for training should be cropped. This allows us to ensure the correct ratio
-of positive and negative samples in the training data. We will use the `sample_mesh`-solution to create a set of
-points sampled using poisson disk and rejection sampling. The solution allows to specify the number of points inside,
-on the surface and outside the mesh.
+Finally, we will create a dense segmentation of the same size as the tomogram from the 3D mesh using
+`copick convert mesh2seg`:
 
 ```bash
-album run copick:sample_mesh:0.6.0 \
---copick_config_path config_train.json \
---input_object valid-sample \
---input_user bob \
---input_session 0 \
---voxel_spacing 7.84 \
---tomo_type wbp \
---num_surf 300 \        # Number of points on the surface of the mesh
---num_internal 300 \    # Number of points inside of the mesh
---num_random 100 \      # Number of points outside of the mesh
---min_dist 200 \        # Minimum distance between points in angstrom
---output_user bob
+copick convert mesh2seg -c config_train.json \
+  -i "valid-sample:meshop/0" \
+  --tomo-type wbp \
+  -o "valid-sample:mesh2seg/0@7.84"
 ```
 
-The resulting segmentations will have the same name, user and session ID as the input object. You can now visualize the
+The resulting segmentations will have the same name as the input object. You can now visualize the
 segmentations in ChimeraX by restarting the copick interface and selecting the `valid-sample` object in the
-`Segmentation`-tab on the top left part of the interface. You can also visualize the sampled points from the
-`Points`-tab on the left side.
+`Segmentation`-tab on the top left part of the interface.
 
 
 ### Step 4: Train the model
 
-#### Create the multilabel segmentation
-In the next step, we will create a second dense segmentation volume that contains the sample segmentation from the
-[previous step](#step-3-create-the-training-data). This is redundant in this case, but necessary for the training of the
-J-finder model if there were multiple segmentation targets. While the segmentation created previously is a binary mask,
-the segmentation volume created here contains integer labels for each voxel, corresponding to the "label" field in the
-`pickable_objects`-list in the configuration file.
+#### Create training targets
 
-In order to do this, we will run step 1 of the J-finder pipeline:
+We will use [octopi](https://github.com/copick/octopi) to train a 3D U-Net model for sample boundary prediction. First,
+we need to create training target segmentations that octopi can use. We pass the segmentation from the previous step
+as a segmentation target:
 
 ```bash
-step1 create \
---config config_train.json \
---target valid-sample bob 0 0 \          # Format: input-picks-name user session radius
---seg-target valid-sample bob 0 \        # Format: input-segmentation-name from-mesh user session
---voxel-size 7.84 \
---tomogram-algorithm wbp \
---out-name sampletargets
+octopi create-targets -c config_train.json \
+  --seg-target "valid-sample,mesh2seg,0" \
+  -alg wbp -vs 7.84 \
+  -name sampletargets -uid train-octopi -sid 0
 ```
 
-This should create a new segmentation volume with name `sampletargets`, user `train-deepfinder` and session `0`.
+This will create a new segmentation volume with name `sampletargets`, user `train-octopi` and session `0`.
 
 #### Train the model
 
-Next, we will train the J-finder model using the training data created in the previous steps. We will use the
-`train`-command of the J-finder pipeline:
+Next, we will train the octopi model using the training targets. Octopi uses a SmartCache data loading strategy that
+efficiently samples training patches from the segmentation volumes:
 
 ```bash
-mkdir outputs
-
-step2 train \
---path-train config_train.json \
---train-voxel-size 7.84 \
---train-tomo-type wbp \
---output-path outputs/ \
---n-class 3 --dim-in 64 \
---valid-tomo-ids 14069,14070,14071 \
---train-tomo-ids 14072,14073,14074,14075,14076,14077,14078,14079,14080,14081,14082,14083,14084,14085,14086 \
---sample-size 10 \
---label-name sampletargets \
---target valid-sample bob 0
+octopi train -c config_train.json \
+  -tinfo "sampletargets,train-octopi,0" \
+  -alg wbp -vs 7.84 \
+  -o outputs/ \
+  -vruns 14069,14070,14071 \
+  -truns 14072,14073,14074,14075,14076,14077,14078,14079,14080,14081,14082,14083,14084,14085,14086 \
+  -nepochs 100
 ```
 
 In this case, runs `14069`, `14070`, and `14071` will be used for validation, while the remaining runs will be used for
-training. The model will be trained for 10 epochs with a sample size of 10. The model will be saved in the
-`outputs`-directory.
+training. The model will be saved in the `outputs/`-directory.
 
-### Step 5: Evaluate the model
+### Step 5: Segment the evaluation set
 
-Now, we will evaluate the model on the evaluation set. For demonstration purposes we will only evaluate on three
-tomograms. We will use the `segment`-command of the J-finder pipeline:
+Now, we will run inference on the evaluation set. For demonstration purposes we will only evaluate on four
+tomograms:
 
 ```bash
-step3 segment \
---predict-config config_evaluate.json \
---path-weights outputs/net_weights_FINAL.h5 \
---n-class 3 --patch-size 196 \
---voxel-size 7.84 \
---tomogram-algorithm wbp \
---segmentation-name segmentation \
---user-id output \
---session-id 0 \
---tomo-ids 14114,14132,14137,14163
+octopi segment -c config_evaluate.json \
+  -mc outputs/model_config.yaml \
+  -mw outputs/best_model_weights.pth \
+  -alg wbp -vs 7.84 \
+  -seginfo "segmentation,output,0" \
+  -runs 14114,14132,14137,14163
 ```
 
 This will create a new segmentation volume with name `segmentation`, user `output` and session `0` for the tomograms
@@ -632,27 +352,20 @@ and selecting the `segmentation` object in the `Segmentation`-tab on the top lef
 ### Step 6: Post-processing
 
 Finally, we will post-process the segmentations to create the final sample boundaries. The segmentations can contain
-small isolated regions that are not part of the sample. We will use the `fit_sample_seg`-solution to fit a box with
-parallel sides to the segmentation.
+small isolated regions that are not part of the sample. We use `copick convert seg2slab` to fit a box with
+parallel sides to the segmentation. This extracts the largest connected component and fits two parallel planes via
+differentiable IoU optimization:
 
 ```bash
-album run copick:fit_sample_seg:0.10.0 \
---copick_config_path config_evaluate.json \
---top_object top-layer \
---bottom_object bottom-layer \
---input_user output \
---input_session 0 \
---seg_name segmentation \
---voxel_spacing 7.84 \
---tomo_type wbp \
---run_names 14114,14132,14137,14163 \
---output_object valid-sample \
---output_user output \
---output_session 0
+copick convert seg2slab -c config_evaluate.json \
+  -r 14114 -r 14132 -r 14137 -r 14163 \
+  -i "segmentation:output/0@7.84" \
+  --label 2 \
+  -o "valid-sample:seg2slab/0"
 ```
 
 You can now visualize the final 3D mesh for evaluation in ChimeraX by restarting the copick interface and selecting the
-`valid-sample` object in the `Mesh`-tab on the left side. Below you can see the final result for the three tomograms
+`valid-sample` object in the `Mesh`-tab on the left side. Below you can see the final result for the four tomograms
 `14114`, `14132`, `14137`, and `14163`.
 
 

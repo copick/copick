@@ -1,5 +1,7 @@
 import json
+import random
 import re
+import time
 import warnings
 from dataclasses import dataclass, field
 from typing import TYPE_CHECKING, Any, Dict, List, Optional, Tuple, Type, Union
@@ -42,6 +44,62 @@ if TYPE_CHECKING:
     from trimesh.parent import Geometry
 
 logger = get_logger(__name__)
+
+# Exception class names from the gql transport layer that indicate transient server/network issues.
+# Checked by class name through the MRO to avoid a hard dependency on the gql package
+# (it is a transitive dependency of cryoet-data-portal).
+_TRANSIENT_PORTAL_ERROR_NAMES = frozenset(
+    {
+        "TransportQueryError",
+        "TransportError",
+        "TransportServerError",
+        "TransportClosed",
+    },
+)
+
+
+def _is_transient_portal_error(exc: BaseException) -> bool:
+    """Check if an exception indicates a transient data portal / GraphQL error."""
+    return any(cls.__name__ in _TRANSIENT_PORTAL_ERROR_NAMES for cls in type(exc).__mro__)
+
+
+def _retry_portal_call(fn, *args, max_retries=3, base_delay=1.0, max_delay=30.0, **kwargs):
+    """Execute a data portal API call with retry on transient errors.
+
+    Retries on network errors and GraphQL transport errors with exponential
+    backoff + jitter. Non-transient exceptions (ValueError, TypeError, etc.)
+    are raised immediately.
+    """
+    for attempt in range(max_retries + 1):
+        try:
+            return fn(*args, **kwargs)
+        except (ConnectionError, TimeoutError, OSError) as e:
+            if attempt == max_retries:
+                raise
+            delay = min(base_delay * (2**attempt) + random.uniform(0, 1), max_delay)
+            logger.warning(
+                "Portal API call %s failed (attempt %d/%d), retrying in %.1fs: %s",
+                fn,
+                attempt + 1,
+                max_retries + 1,
+                delay,
+                e,
+            )
+            time.sleep(delay)
+        except Exception as e:
+            if _is_transient_portal_error(e) and attempt < max_retries:
+                delay = min(base_delay * (2**attempt) + random.uniform(0, 1), max_delay)
+                logger.warning(
+                    "Portal API call %s failed (attempt %d/%d), retrying in %.1fs: %s",
+                    fn,
+                    attempt + 1,
+                    max_retries + 1,
+                    delay,
+                    e,
+                )
+                time.sleep(delay)
+            else:
+                raise
 
 
 def camel(s: str) -> str:
@@ -722,7 +780,8 @@ class CopickVoxelSpacingCDP(CopickVoxelSpacingOverlay):
             bool: True if the voxel spacing record exists, False otherwise.
         """
         client = cdp.Client()
-        vs = cdp.TomogramVoxelSpacing.find(
+        vs = _retry_portal_call(
+            cdp.TomogramVoxelSpacing.find,
             client,
             [  # noqa
                 cdp.TomogramVoxelSpacing.run.id == self.run.portal_run_id,
@@ -838,7 +897,8 @@ class CopickRunCDP(CopickRunOverlay):
             return []
 
         client = cdp.Client()
-        portal_vs = cdp.TomogramVoxelSpacing.find(
+        portal_vs = _retry_portal_call(
+            cdp.TomogramVoxelSpacing.find,
             client,
             [cdp.TomogramVoxelSpacing.run_id == self.portal_run_id],  # noqa
         )
@@ -1161,7 +1221,7 @@ class CopickRunCDP(CopickRunOverlay):
         client = cdp.Client()
         try:
             id_from_name = int(self.name)
-            run = cdp.Run.get_by_id(client, id_from_name)
+            run = _retry_portal_call(cdp.Run.get_by_id, client, id_from_name)
         except ValueError:
             run = None
 
@@ -1268,7 +1328,8 @@ class CopickRootCDP(CopickRoot):
         go_map = self.go_map
 
         # 1. Fetch ALL annotation files for all datasets (picks + segmentations)
-        all_anno_files = cdp.AnnotationFile.find(
+        all_anno_files = _retry_portal_call(
+            cdp.AnnotationFile.find,
             client,
             [
                 cdp.AnnotationFile.annotation_shape.annotation.run.dataset_id._in(self.dataset_ids),  # noqa
@@ -1280,7 +1341,8 @@ class CopickRootCDP(CopickRoot):
         )
 
         # 2. Fetch ALL annotation shapes (direct filters to avoid huge _in() lists)
-        all_shapes = cdp.AnnotationShape.find(
+        all_shapes = _retry_portal_call(
+            cdp.AnnotationShape.find,
             client,
             [
                 cdp.AnnotationShape.annotation.run.dataset_id._in(self.dataset_ids),  # noqa
@@ -1290,7 +1352,8 @@ class CopickRootCDP(CopickRoot):
         )
 
         # 3. Fetch ALL annotations
-        all_annotations = cdp.Annotation.find(
+        all_annotations = _retry_portal_call(
+            cdp.Annotation.find,
             client,
             [
                 cdp.Annotation.run.dataset_id._in(self.dataset_ids),  # noqa
@@ -1299,7 +1362,8 @@ class CopickRootCDP(CopickRoot):
         )
 
         # 4. Fetch ALL annotation authors
-        all_authors = cdp.AnnotationAuthor.find(
+        all_authors = _retry_portal_call(
+            cdp.AnnotationAuthor.find,
             client,
             [
                 cdp.AnnotationAuthor.annotation.run.dataset_id._in(self.dataset_ids),  # noqa
@@ -1308,7 +1372,8 @@ class CopickRootCDP(CopickRoot):
         )
 
         # 5. Fetch ALL voxel spacings
-        all_voxel_spacings = cdp.TomogramVoxelSpacing.find(
+        all_voxel_spacings = _retry_portal_call(
+            cdp.TomogramVoxelSpacing.find,
             client,
             [
                 cdp.TomogramVoxelSpacing.run.dataset_id._in(self.dataset_ids),  # noqa
@@ -1316,7 +1381,8 @@ class CopickRootCDP(CopickRoot):
         )
 
         # 6. Fetch ALL tomograms for all datasets
-        all_tomograms = cdp.Tomogram.find(
+        all_tomograms = _retry_portal_call(
+            cdp.Tomogram.find,
             client,
             [
                 cdp.Tomogram.tomogram_voxel_spacing.run.dataset_id._in(self.dataset_ids),  # noqa
@@ -1324,7 +1390,8 @@ class CopickRootCDP(CopickRoot):
         )
 
         # 7. Fetch ALL tomogram authors
-        all_tomogram_authors = cdp.TomogramAuthor.find(
+        all_tomogram_authors = _retry_portal_call(
+            cdp.TomogramAuthor.find,
             client,
             [
                 cdp.TomogramAuthor.tomogram.tomogram_voxel_spacing.run.dataset_id._in(self.dataset_ids),  # noqa
@@ -1385,7 +1452,7 @@ class CopickRootCDP(CopickRoot):
             stacklevel=2,
         )
         client = cdp.Client()
-        datasets = cdp.Dataset.find(client, [cdp.Dataset.id._in(self.dataset_ids)])
+        datasets = _retry_portal_call(cdp.Dataset.find, client, [cdp.Dataset.id._in(self.dataset_ids)])
         return datasets
 
     @property
@@ -1407,7 +1474,7 @@ class CopickRootCDP(CopickRoot):
 
     def query(self) -> List[CopickRunCDP]:
         client = cdp.Client()
-        portal_runs = cdp.Run.find(client, [cdp.Run.dataset_id._in(self.dataset_ids)])  # noqa
+        portal_runs = _retry_portal_call(cdp.Run.find, client, [cdp.Run.dataset_id._in(self.dataset_ids)])  # noqa
 
         runs = []
         for pr in portal_runs:
