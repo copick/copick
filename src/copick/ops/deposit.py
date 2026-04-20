@@ -359,7 +359,14 @@ def deposit(
             )
 
     # Get the runs to process
-    runs = root.runs if run_names is None else [root.get_run(name) for name in run_names]
+    if run_names is None:
+        runs = root.runs
+    else:
+        by_name = {r.name: r for r in root.runs}
+        missing = [n for n in run_names if n not in by_name]
+        if missing:
+            raise ValueError(f"Run names not found in project: {missing}")
+        runs = [by_name[n] for n in run_names]
 
     # For CDP projects, automatically construct run name prefixes from dataset_id and portal_run_name
     # unless a prefix is explicitly provided

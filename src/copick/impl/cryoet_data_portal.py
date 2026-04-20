@@ -826,7 +826,7 @@ class CopickRunCDP(CopickRunOverlay):
 
     @property
     def portal_run_name(self) -> str:
-        return self.meta.name
+        return self.meta.portal_run_name
 
     @property
     def portal_dataset_id(self) -> int:
