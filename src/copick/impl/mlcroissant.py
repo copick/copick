@@ -27,6 +27,7 @@ import hashlib
 import io
 import json
 import os
+import threading
 import weakref
 from dataclasses import dataclass, field
 from typing import TYPE_CHECKING, Any, Dict, List, Optional, Set, Tuple, Type, Union
@@ -386,6 +387,7 @@ class CroissantIndex:
     _auto_commit: bool = True
     _writable: bool = False
     _metadata_path: str = "metadata.json"
+    _write_lock: threading.RLock = field(default_factory=threading.RLock)
 
     # ------------------------------------------------------------------
     # Construction
@@ -565,40 +567,43 @@ class CroissantIndex:
     # ------------------------------------------------------------------
 
     def mark_dirty(self, recordset_id: str) -> None:
-        self._dirty.add(recordset_id)
+        with self._write_lock:
+            self._dirty.add(recordset_id)
 
     def add_row(self, recordset_id: str, row: Dict[str, Any]) -> None:
         schema = CSV_SCHEMA[recordset_id]
         key_fields = schema["key_fields"]
 
-        if recordset_id == "copick/runs":
-            self.runs_by_name[row["name"]] = row
-        else:
-            target = self._get_list_for(recordset_id)
-            # Replace if key already exists
-            for i, existing in enumerate(target):
-                if all(existing.get(k) == row.get(k) for k in key_fields):
-                    target[i] = row
-                    break
+        with self._write_lock:
+            if recordset_id == "copick/runs":
+                self.runs_by_name[row["name"]] = row
             else:
-                target.append(row)
+                target = self._get_list_for(recordset_id)
+                # Replace if key already exists
+                for i, existing in enumerate(target):
+                    if all(existing.get(k) == row.get(k) for k in key_fields):
+                        target[i] = row
+                        break
+                else:
+                    target.append(row)
 
-        self.mark_dirty(recordset_id)
-        if self._auto_commit:
-            self.commit()
+            self._dirty.add(recordset_id)
+            if self._auto_commit:
+                self._commit_locked()
 
     def remove_row(self, recordset_id: str, key: Dict[str, Any]) -> None:
         schema = CSV_SCHEMA[recordset_id]
         key_fields = schema["key_fields"]
-        if recordset_id == "copick/runs":
-            self.runs_by_name.pop(key.get("name"), None)
-        else:
-            target = self._get_list_for(recordset_id)
-            target[:] = [row for row in target if not all(row.get(k) == key.get(k) for k in key_fields)]
+        with self._write_lock:
+            if recordset_id == "copick/runs":
+                self.runs_by_name.pop(key.get("name"), None)
+            else:
+                target = self._get_list_for(recordset_id)
+                target[:] = [row for row in target if not all(row.get(k) == key.get(k) for k in key_fields)]
 
-        self.mark_dirty(recordset_id)
-        if self._auto_commit:
-            self.commit()
+            self._dirty.add(recordset_id)
+            if self._auto_commit:
+                self._commit_locked()
 
     def commit(self) -> None:
         """Write dirty CSVs and update metadata.json.
@@ -607,6 +612,34 @@ class CroissantIndex:
         filesystems, relies on fsspec's ``pipe``/``open("wb")`` atomicity
         (best effort).
         """
+        with self._write_lock:
+            self._commit_locked()
+
+    def reload(self) -> None:
+        """Re-read metadata.json and CSVs from disk.
+
+        Use this to pick up changes made by another process / root instance.
+        Any unflushed dirty state is discarded — callers relying on
+        ``batch()``-deferred commits should ``commit()`` before ``reload()``.
+        """
+        with self._write_lock:
+            with self.croissant_fs.open(self._metadata_path, "rb") as f:
+                raw = f.read()
+            self.doc = json.loads(raw.decode("utf-8"))
+            self.config_block = self.doc.get("copick:config", {})
+            self.runs_by_name.clear()
+            self.voxel_spacings.clear()
+            self.tomograms.clear()
+            self.features.clear()
+            self.picks.clear()
+            self.meshes.clear()
+            self.segmentations.clear()
+            self.objects.clear()
+            self._dirty.clear()
+            self._load_records()
+
+    def _commit_locked(self) -> None:
+        """Internal commit; caller must hold ``self._write_lock``."""
         if not self._dirty:
             return
         if not self._writable:
@@ -1485,18 +1518,6 @@ class CopickRunMLC(CopickRunOverlay):
         return results
 
     def _query_overlay_voxel_spacings(self) -> List[CopickVoxelSpacingMLC]:
-        if self.root.mode == "A":
-            # Mode A: the Croissant index is the authoritative list.
-            results = []
-            seen = set()
-            for row in self._index.voxel_spacings:
-                if row.get("run") == self.name:
-                    vs = float(row["voxel_size"])
-                    if vs in seen:
-                        continue
-                    seen.add(vs)
-                    results.append(CopickVoxelSpacingMLC(meta=CopickVoxelSpacingMeta(voxel_size=vs), run=self))
-            return results
         fs = self.fs_overlay
         if fs is None:
             return []
@@ -1722,8 +1743,13 @@ class CopickRunMLC(CopickRunOverlay):
 
     def ensure(self, create: bool = False) -> bool:
         exists = self.name in self._index.runs_by_name
-        if not exists and self.root.mode == "B":
-            exists = self.fs_overlay.exists(self.overlay_path)
+        # Fall back to filesystem check: the run may have been added externally
+        # (e.g. by another process) after our in-memory index was populated.
+        if not exists:
+            try:
+                exists = self.fs_overlay.exists(self.overlay_path)
+            except Exception:
+                exists = False
 
         if not exists and create:
             fs = self.fs_overlay
@@ -1940,6 +1966,18 @@ class CopickRootMLC(CopickRoot):
     def sync(self) -> None:
         """Flush any dirty CSVs and rewrite metadata.json."""
         self.index.commit()
+
+    def refresh(self) -> None:
+        """Reload the Croissant index from disk and reset child caches.
+
+        Each :class:`CopickRootMLC` maintains its own in-memory Croissant
+        index for performance. When another process (or another root
+        instance in the same process) has modified the project — e.g. after
+        an in-process ``copick sync`` CLI invocation — call ``refresh()``
+        on the original root to pick up those changes.
+        """
+        self.index.reload()
+        super().refresh()
 
     class _BatchCtx:
         def __init__(self, root: "CopickRootMLC"):

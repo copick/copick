@@ -41,17 +41,46 @@ def source_target_configs(test_payload):
         # Create target config with different overlay root
         target_config = source_config.copy()
         if target_config.get("config_type") == "mlcroissant":
-            # For mlcroissant: need a separate project tree so syncs land in a
-            # different Croissant. Copy the source project tree next to the
-            # source, rewrite croissant_url to the copy.
-            import shutil as _shutil
-
+            # For mlcroissant: target must be an INDEPENDENT project (not a copy
+            # of source), because sync defaults to exist_ok=False and the sample
+            # project's existing picks would collide. Build a fresh target tree
+            # with an empty ExperimentRuns + Croissant schema that mirrors the
+            # source's pickable objects.
             source_croissant_url = source_config["croissant_url"]
-            source_project_root = Path(source_croissant_url).parent.parent
+            with open(source_croissant_url) as f:
+                src_doc = json.load(f)
+            pickable_objects = src_doc["copick:config"].get("pickable_objects", [])
+
             target_project_root = Path(tmpdir) / "target_project"
-            _shutil.copytree(source_project_root, target_project_root)
+            target_project_root.mkdir()
+            # Minimal empty project structure
+            (target_project_root / "ExperimentRuns").mkdir()
+            (target_project_root / "Objects").mkdir()
+
+            # Build a fresh filesystem scaffold and export its (empty) Croissant
+            scaffold_cfg = {
+                "config_type": "filesystem",
+                "name": "sync-target",
+                "version": "1.0.0",
+                "pickable_objects": pickable_objects,
+                "user_id": src_doc["copick:config"].get("user_id"),
+                "session_id": src_doc["copick:config"].get("session_id"),
+                "overlay_root": f"local://{target_project_root}",
+                "overlay_fs_args": {"auto_mkdir": True},
+            }
+            scaffold_path = Path(tmpdir) / "target_scaffold.json"
+            with open(scaffold_path, "w") as f:
+                json.dump(scaffold_cfg, f)
+            from copick.ops.croissant import export_croissant as _export
+
+            scaffold_root = copick.from_file(str(scaffold_path))
+            _export(
+                scaffold_root,
+                project_root=str(target_project_root),
+                base_url=f"file://{target_project_root}",
+                dataset_name="sync-target",
+            )
             target_config["croissant_url"] = str(target_project_root / "Croissant" / "metadata.json")
-            # Mode B source — also move the overlay
             if "overlay_root" in target_config:
                 target_overlay_path = Path(tmpdir) / "target_overlay"
                 target_overlay_path.mkdir()
@@ -209,6 +238,10 @@ class TestSyncPicksCLI:
         )
 
         assert result.exit_code == 0, f"Command failed: {result.output}"
+
+        # The sync CLI mutated a separate target_root instance (and the on-disk
+        # manifest); refresh our cached one so it observes those external writes.
+        target_root.refresh()
 
         # Verify with mapped names
         target_run = target_root.get_run("target_run")
@@ -567,6 +600,10 @@ class TestSyncMeshesCLI:
         )
 
         assert result.exit_code == 0, f"Command failed: {result.output}"
+
+        # The sync CLI mutated a separate target_root instance (and the on-disk
+        # manifest); refresh our cached one so it observes those external writes.
+        target_root.refresh()
 
         # Verify with mapped names
         target_run = target_root.get_run("target_run")

@@ -62,6 +62,15 @@ overlay only; the Croissant stays untouched. To publish the edits, re-run
 `copick config export-croissant --project-root <new-location>` to rebuild a
 fresh Croissant from the merged filesystem + overlay view.
 
+### Picking up external writes: `root.refresh()`
+
+Each `CopickRootMLC` caches the parsed Croissant manifest in memory for
+performance — reads don't re-parse `metadata.json` and the CSV sidecars on
+every call. When another process (or another root instance in the same
+process, e.g. `copick sync` running inside a test runner) has mutated the
+project, call `root.refresh()` on the existing root to re-read the manifest
++ CSVs and pick up the external changes.
+
 ## Creating a Croissant from an existing copick project
 
 Use the `export-croissant` CLI command. For a filesystem-backed source,
