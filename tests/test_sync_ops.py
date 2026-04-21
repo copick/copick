@@ -5,18 +5,18 @@ import tempfile
 from pathlib import Path
 from typing import Any, Dict
 
+import copick
 import fsspec
 import numpy as np
 import pytest
 import trimesh
-from copick.impl.filesystem import CopickRootFSSpec
 from copick.ops.sync import sync_meshes, sync_picks, sync_segmentations, sync_tomograms
 
 
 @pytest.fixture(params=pytest.common_cases)
 def test_payload(request) -> Dict[str, Any]:
     payload = request.getfixturevalue(request.param)
-    payload["root"] = CopickRootFSSpec.from_file(payload["cfg_file"])
+    payload["root"] = copick.from_file(payload["cfg_file"])
     return payload
 
 
@@ -56,7 +56,7 @@ def source_target_configs(test_payload):
             "source_config": test_payload["cfg_file"],
             "target_config": str(target_config_path),
             "source_root": test_payload["root"],
-            "target_root": CopickRootFSSpec.from_file(target_config_path),
+            "target_root": copick.from_file(target_config_path),
         }
 
 

@@ -1,8 +1,8 @@
 import warnings
 from typing import Any, Dict
 
+import copick
 import pytest
-from copick.impl.filesystem import CopickRootFSSpec
 from copick.models import CopickConfig, PickableObject
 from copick.util.escape import sanitize_name
 from pydantic import ValidationError
@@ -11,7 +11,7 @@ from pydantic import ValidationError
 @pytest.fixture(params=pytest.common_cases)
 def test_payload(request) -> Dict[str, Any]:
     payload = request.getfixturevalue(request.param)
-    payload["root"] = CopickRootFSSpec.from_file(payload["cfg_file"])
+    payload["root"] = copick.from_file(payload["cfg_file"])
     return payload
 
 

@@ -61,10 +61,10 @@ def test_payload(request) -> Dict[str, Any]:
     Deposit operations require local filesystems because they create symlinks,
     which are not supported by remote filesystems (S3, SSH, SMB, etc.).
     """
-    from copick.impl.filesystem import CopickRootFSSpec
+    import copick
 
     payload = request.getfixturevalue(request.param)
-    payload["root"] = CopickRootFSSpec.from_file(payload["cfg_file"])
+    payload["root"] = copick.from_file(payload["cfg_file"])
     return payload
 
 

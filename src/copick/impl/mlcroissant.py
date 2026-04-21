@@ -289,16 +289,18 @@ def _join_url(base: str, relative: str) -> str:
 def _fs_for_url(url: str, **kwargs) -> Tuple[AbstractFileSystem, str]:
     """Return an fsspec filesystem and stripped path for ``url``.
 
-    Handles ``file://`` prefix, plain local paths, and protocol URLs.
+    Handles ``file://`` prefix, plain local paths, and protocol URLs. Extra
+    kwargs (e.g. ``auto_mkdir=True``) are forwarded to the filesystem
+    constructor.
     """
     if url.startswith("file://"):
         path = url[len("file://") :]
-        return fsspec.filesystem("file"), path
+        return fsspec.filesystem("file", **kwargs), path
     if _has_protocol(url):
         fs, path = fsspec.url_to_fs(url, **kwargs)
         return fs, path
     # Plain local path
-    return fsspec.filesystem("file"), url
+    return fsspec.filesystem("file", **kwargs), url
 
 
 def _strip_includes_glob(includes: str) -> str:
@@ -1192,6 +1194,9 @@ class CopickTomogramMLC(CopickTomogramOverlay):
         return self.voxel_spacing.static_is_overlay
 
     def _query_static_features(self) -> List[CopickFeaturesMLC]:
+        # Mode A: static_is_overlay — everything is in the overlay query.
+        if self.voxel_spacing.run.root.mode == "A":
+            return []
         results = []
         for row in self._index.features:
             if (
@@ -1210,7 +1215,18 @@ class CopickTomogramMLC(CopickTomogramOverlay):
 
     def _query_overlay_features(self) -> List[CopickFeaturesMLC]:
         if self.voxel_spacing.run.root.mode == "A":
-            return []
+            # Mode A: the Croissant index is the authoritative list of writable features.
+            return [
+                CopickFeaturesMLC(
+                    tomogram=self,
+                    meta=CopickFeaturesMeta(tomo_type=self.tomo_type, feature_type=row["feature_type"]),
+                    read_only=False,
+                )
+                for row in self._index.features
+                if row.get("run") == self.voxel_spacing.run.name
+                and row.get("voxel_size") == float(self.voxel_spacing.voxel_size)
+                and row.get("tomo_type") == self.tomo_type
+            ]
         fs = self.fs_overlay
         if fs is None:
             return []
@@ -1322,6 +1338,9 @@ class CopickVoxelSpacingMLC(CopickVoxelSpacingOverlay):
         return self.run.root.mode == "A"
 
     def _query_static_tomograms(self) -> List[CopickTomogramMLC]:
+        # Mode A: static_is_overlay — everything is in the overlay query.
+        if self.run.root.mode == "A":
+            return []
         results = []
         for row in self._index.tomograms:
             if row.get("run") == self.run.name and row.get("voxel_size") == float(self.voxel_size):
@@ -1336,7 +1355,16 @@ class CopickVoxelSpacingMLC(CopickVoxelSpacingOverlay):
 
     def _query_overlay_tomograms(self) -> List[CopickTomogramMLC]:
         if self.run.root.mode == "A":
-            return []
+            # Mode A: the Croissant index is the authoritative list of writable tomograms.
+            return [
+                CopickTomogramMLC(
+                    voxel_spacing=self,
+                    meta=CopickTomogramMeta(tomo_type=row["tomo_type"]),
+                    read_only=False,
+                )
+                for row in self._index.tomograms
+                if row.get("run") == self.run.name and row.get("voxel_size") == float(self.voxel_size)
+            ]
         fs = self.fs_overlay
         if fs is None:
             return []
@@ -1437,6 +1465,9 @@ class CopickRunMLC(CopickRunOverlay):
     # ----- static queries: filter index rows by run name -----
 
     def _query_static_voxel_spacings(self) -> List[CopickVoxelSpacingMLC]:
+        # Mode A: static_is_overlay — everything is in the overlay query.
+        if self.root.mode == "A":
+            return []
         results = []
         seen = set()
         for row in self._index.voxel_spacings:
@@ -1455,7 +1486,17 @@ class CopickRunMLC(CopickRunOverlay):
 
     def _query_overlay_voxel_spacings(self) -> List[CopickVoxelSpacingMLC]:
         if self.root.mode == "A":
-            return []
+            # Mode A: the Croissant index is the authoritative list.
+            results = []
+            seen = set()
+            for row in self._index.voxel_spacings:
+                if row.get("run") == self.name:
+                    vs = float(row["voxel_size"])
+                    if vs in seen:
+                        continue
+                    seen.add(vs)
+                    results.append(CopickVoxelSpacingMLC(meta=CopickVoxelSpacingMeta(voxel_size=vs), run=self))
+            return results
         fs = self.fs_overlay
         if fs is None:
             return []
@@ -1475,6 +1516,9 @@ class CopickRunMLC(CopickRunOverlay):
         return [CopickVoxelSpacingMLC(meta=CopickVoxelSpacingMeta(voxel_size=s), run=self) for s in spacings]
 
     def _query_static_picks(self) -> List[CopickPicksMLC]:
+        # Mode A: static_is_overlay — everything is in the overlay query.
+        if self.root.mode == "A":
+            return []
         results = []
         for row in self._index.picks:
             if row.get("run") == self.name:
@@ -1493,7 +1537,20 @@ class CopickRunMLC(CopickRunOverlay):
 
     def _query_overlay_picks(self) -> List[CopickPicksMLC]:
         if self.root.mode == "A":
-            return []
+            # Mode A: the Croissant index is the authoritative list of writable picks.
+            return [
+                CopickPicksMLC(
+                    run=self,
+                    file=CopickPicksFile(
+                        pickable_object_name=row["object_name"],
+                        user_id=row["user_id"],
+                        session_id=row["session_id"],
+                    ),
+                    read_only=False,
+                )
+                for row in self._index.picks
+                if row.get("run") == self.name
+            ]
         fs = self.fs_overlay
         if fs is None:
             return []
@@ -1520,6 +1577,9 @@ class CopickRunMLC(CopickRunOverlay):
         return result
 
     def _query_static_meshes(self) -> List[CopickMeshMLC]:
+        # Mode A: static_is_overlay — everything is in the overlay query.
+        if self.root.mode == "A":
+            return []
         results = []
         for row in self._index.meshes:
             if row.get("run") == self.name:
@@ -1538,7 +1598,20 @@ class CopickRunMLC(CopickRunOverlay):
 
     def _query_overlay_meshes(self) -> List[CopickMeshMLC]:
         if self.root.mode == "A":
-            return []
+            # Mode A: the Croissant index is the authoritative list of writable meshes.
+            return [
+                CopickMeshMLC(
+                    run=self,
+                    meta=CopickMeshMeta(
+                        pickable_object_name=row["object_name"],
+                        user_id=row["user_id"],
+                        session_id=row["session_id"],
+                    ),
+                    read_only=False,
+                )
+                for row in self._index.meshes
+                if row.get("run") == self.name
+            ]
         fs = self.fs_overlay
         if fs is None:
             return []
@@ -1565,6 +1638,9 @@ class CopickRunMLC(CopickRunOverlay):
         return result
 
     def _query_static_segmentations(self) -> List[CopickSegmentationMLC]:
+        # Mode A: static_is_overlay — everything is in the overlay query.
+        if self.root.mode == "A":
+            return []
         results = []
         for row in self._index.segmentations:
             if row.get("run") == self.name:
@@ -1585,7 +1661,22 @@ class CopickRunMLC(CopickRunOverlay):
 
     def _query_overlay_segmentations(self) -> List[CopickSegmentationMLC]:
         if self.root.mode == "A":
-            return []
+            # Mode A: the Croissant index is the authoritative list of writable segmentations.
+            return [
+                CopickSegmentationMLC(
+                    run=self,
+                    meta=CopickSegmentationMeta(
+                        is_multilabel=bool(row["is_multilabel"]),
+                        voxel_size=float(row["voxel_size"]),
+                        user_id=row["user_id"],
+                        session_id=row["session_id"],
+                        name=row["name"],
+                    ),
+                    read_only=False,
+                )
+                for row in self._index.segmentations
+                if row.get("run") == self.name
+            ]
         fs = self.fs_overlay
         if fs is None:
             return []
@@ -1778,9 +1869,15 @@ class CopickRootMLC(CopickRoot):
             self.overlay_base_url = self.fs_overlay._strip_protocol(config.overlay_root).rstrip("/")
             self.fs_overlay._root_ref = weakref.ref(self)
         else:
-            # Mode A: overlay is the Croissant's base URL location
+            # Mode A: overlay is the Croissant's base URL location.
+            # auto_mkdir=True mirrors the filesystem backend's default; without
+            # it LocalFileSystem refuses to create parent chunk dirs for zarr
+            # stores.
             base = self.index.base_url or ""
-            self.fs_overlay, _ = _fs_for_url(base) if base else (fsspec.filesystem("file"), "")
+            if base:
+                self.fs_overlay, _ = _fs_for_url(base, auto_mkdir=True)
+            else:
+                self.fs_overlay = fsspec.filesystem("file", auto_mkdir=True)
             self.overlay_base_url = None  # signals Mode A
 
     @classmethod

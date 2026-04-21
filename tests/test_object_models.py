@@ -1,15 +1,15 @@
 from typing import Any, Dict
 
+import copick
 import numpy as np
 import pytest
-from copick.impl.filesystem import CopickRootFSSpec
 from copick.ops.add import add_object, add_object_volume
 
 
 @pytest.fixture(params=pytest.common_cases)
 def test_payload(request) -> Dict[str, Any]:
     payload = request.getfixturevalue(request.param)
-    payload["root"] = CopickRootFSSpec.from_file(payload["cfg_file"])
+    payload["root"] = copick.from_file(payload["cfg_file"])
     return payload
 
 
@@ -241,7 +241,7 @@ class TestCopickRootSaveConfig:
         assert config_path.exists()
 
         # Verify we can load the saved config
-        new_root = CopickRootFSSpec.from_file(str(config_path))
+        new_root = copick.from_file(str(config_path))
         saved_obj = new_root.get_object("test-save")
         assert saved_obj is not None
         assert saved_obj.name == "test-save"
@@ -268,7 +268,7 @@ class TestCopickRootSaveConfig:
         root.save_config(str(config_path))
 
         # Load and verify
-        new_root = CopickRootFSSpec.from_file(str(config_path))
+        new_root = copick.from_file(str(config_path))
         loaded_obj = new_root.get_object("full-object")
 
         assert loaded_obj.name == original_obj.name
@@ -302,7 +302,7 @@ class TestCopickRootSaveConfig:
         root.save_config(str(config_path))
 
         # Load and verify metadata is preserved
-        new_root = CopickRootFSSpec.from_file(str(config_path))
+        new_root = copick.from_file(str(config_path))
         loaded_obj = new_root.get_object("metadata-object")
 
         assert loaded_obj.name == original_obj.name
@@ -367,7 +367,7 @@ class TestAddObjectFunction:
         assert config_path.exists()
 
         # Verify object is in saved config
-        new_root = CopickRootFSSpec.from_file(str(config_path))
+        new_root = copick.from_file(str(config_path))
         saved_obj = new_root.get_object("save-test-object")
         assert saved_obj is not None
 
@@ -468,7 +468,7 @@ class TestAddObjectFunction:
         assert obj.metadata == metadata_dict
 
         # Verify metadata persists after reloading config
-        root_reloaded = CopickRootFSSpec.from_file(str(config_path))
+        root_reloaded = copick.from_file(str(config_path))
         obj_reloaded = root_reloaded.get_object("test-metadata-save")
         assert obj_reloaded is not None, "Object should exist after reload"
         assert obj_reloaded.metadata == metadata_dict, "Metadata should persist after reload"

@@ -6,6 +6,7 @@ import tempfile
 from pathlib import Path
 from typing import Any, Dict
 
+import copick
 import emfile
 import numpy as np
 import pytest
@@ -13,13 +14,12 @@ import tifffile
 from click.testing import CliRunner
 from copick.cli.add import add
 from copick.cli.export import export
-from copick.impl.filesystem import CopickRootFSSpec
 
 
 @pytest.fixture(params=pytest.common_cases)
 def test_payload(request) -> Dict[str, Any]:
     payload = request.getfixturevalue(request.param)
-    payload["root"] = CopickRootFSSpec.from_file(payload["cfg_file"])
+    payload["root"] = copick.from_file(payload["cfg_file"])
     return payload
 
 
@@ -350,7 +350,7 @@ class TestPicksImport:
         assert result.exit_code == 0, f"Command failed: {result.output}"
 
         # Verify picks were imported
-        root = CopickRootFSSpec.from_file(config_file)
+        root = copick.from_file(config_file)
         run = root.get_run("TS_001")
         assert run is not None, "Run should be created from CSV"
 
@@ -389,7 +389,7 @@ class TestPicksImport:
         assert result.exit_code == 0, f"Command failed: {result.output}"
 
         # Verify picks were imported
-        root = CopickRootFSSpec.from_file(config_file)
+        root = copick.from_file(config_file)
         run = root.get_run("test_star_run")
         assert run is not None, "Run should be created"
 
@@ -481,7 +481,7 @@ class TestSpecializedPicksImport:
         assert result.exit_code == 0, f"Command failed: {result.output}"
 
         # Verify picks were imported to correct runs
-        root = CopickRootFSSpec.from_file(config_file)
+        root = copick.from_file(config_file)
 
         # Should have picks in TS_001 and TS_002
         run1 = root.get_run("TS_001")
@@ -579,7 +579,7 @@ class TestSpecializedPicksImport:
         assert result.exit_code == 0, f"Command failed: {result.output}"
 
         # Verify picks were imported
-        root = CopickRootFSSpec.from_file(config_file)
+        root = copick.from_file(config_file)
         run1 = root.get_run("TS_001")
         assert run1 is not None, "Run TS_001 should be created"
         picks1 = run1.get_picks(object_name="ribosome", user_id="dynamo-test", session_id="1")
@@ -642,7 +642,7 @@ class TestSpecializedPicksImport:
         assert result.exit_code == 0, f"Command failed: {result.output}"
 
         # Verify picks were imported to correct runs based on _rlnTomoName
-        root = CopickRootFSSpec.from_file(config_file)
+        root = copick.from_file(config_file)
 
         run1 = root.get_run("TS_001")
         assert run1 is not None, "Run TS_001 should be created from _rlnTomoName"
@@ -705,7 +705,7 @@ class TestSpecializedPicksImport:
         assert result.exit_code == 0, f"Command failed: {result.output}"
 
         # Verify picks were imported
-        root = CopickRootFSSpec.from_file(config_file)
+        root = copick.from_file(config_file)
 
         run1 = root.get_run("TS_relion5_001")
         assert run1 is not None, "Run TS_relion5_001 should be created"
@@ -759,7 +759,7 @@ class TestSpecializedPicksImport:
         assert result.exit_code == 0, f"Command failed: {result.output}"
 
         # Verify picks were imported
-        root = CopickRootFSSpec.from_file(config_file)
+        root = copick.from_file(config_file)
         run1 = root.get_run("TS_001")
         assert run1 is not None, "Run TS_001 should exist"
         picks1 = run1.get_picks(object_name="ribosome", user_id="relion4-explicit", session_id="1")

@@ -5,11 +5,11 @@ import os
 import tempfile
 from typing import Any, Dict
 
+import copick
 import mrcfile
 import numpy as np
 import pytest
 import zarr
-from copick.impl.filesystem import CopickRootFSSpec
 from copick.ops.add import (
     add_features,
     add_object,
@@ -27,7 +27,7 @@ from copick.ops.add import (
 @pytest.fixture(params=pytest.common_cases)
 def test_payload(request) -> Dict[str, Any]:
     payload = request.getfixturevalue(request.param)
-    payload["root"] = CopickRootFSSpec.from_file(payload["cfg_file"])
+    payload["root"] = copick.from_file(payload["cfg_file"])
     return payload
 
 

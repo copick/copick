@@ -150,7 +150,7 @@ if BACKEND in ("all", "local") or not RUN_ALL:
 
 
 @pytest.fixture
-def mlcroissant_overlay_only(base_project_directory):
+def mlcroissant_overlay_only(base_project_directory, base_config_overlay_only):
     """mlcroissant Mode A: Croissant + data live in one tree; no separate overlay."""
     from copick.ops.croissant import export_croissant
 
@@ -158,30 +158,21 @@ def mlcroissant_overlay_only(base_project_directory):
     project_directory = temp_dir / "sample_project_mlc"
     shutil.copytree(base_project_directory, project_directory)
 
-    # Build a temporary filesystem root to walk and export from.
+    # Build a temporary filesystem scaffold config to walk and export from.
+    # Pull pickable_objects etc. from the shared test-data overlay-only config.
+    with open(base_config_overlay_only, "r") as f:
+        base_cfg = json.load(f)
+
     fs_cfg = temp_dir / "_fs_scaffold.json"
     cfg = {
+        **base_cfg,
         "config_type": "filesystem",
-        "name": "mlc-test",
-        "version": "1.0.0",
-        "pickable_objects": [],  # pickable_objects are in the referenced filesystem config
         "overlay_root": "local://" + str(project_directory),
         "overlay_fs_args": {"auto_mkdir": True},
     }
-    # Pull pickable_objects from the sample project's config if present
-    existing_cfg = project_directory / "filesystem.json"
-    if existing_cfg.exists():
-        with open(existing_cfg, "r") as f:
-            base_cfg = json.load(f)
-        cfg["pickable_objects"] = base_cfg.get("pickable_objects", [])
-        cfg["name"] = base_cfg.get("name", cfg["name"])
-        cfg["description"] = base_cfg.get("description", "")
-        cfg["user_id"] = base_cfg.get("user_id")
-        cfg["session_id"] = base_cfg.get("session_id")
     with open(fs_cfg, "w") as f:
         json.dump(cfg, f)
 
-    # Load + export
     import copick
 
     src_root = copick.from_file(str(fs_cfg))
@@ -189,10 +180,9 @@ def mlcroissant_overlay_only(base_project_directory):
         src_root,
         project_root=str(project_directory),
         base_url="file://" + str(project_directory),
-        dataset_name=cfg["name"],
+        dataset_name=cfg.get("name", "mlc-test"),
     )
 
-    # Write a copick config pointing at the Croissant
     mlc_cfg_path = temp_dir / "mlcroissant.json"
     mlc_cfg = {
         "config_type": "mlcroissant",
@@ -217,7 +207,7 @@ def mlcroissant_overlay_only(base_project_directory):
 
 
 @pytest.fixture
-def mlcroissant(base_project_directory, base_overlay_directory):
+def mlcroissant(base_project_directory, base_overlay_directory, base_config_overlay_only):
     """mlcroissant Mode B: Croissant static + separate writable fsspec overlay."""
     from copick.ops.croissant import export_croissant
 
@@ -227,24 +217,16 @@ def mlcroissant(base_project_directory, base_overlay_directory):
     shutil.copytree(base_project_directory, project_directory)
     shutil.copytree(base_overlay_directory, overlay_directory)
 
+    with open(base_config_overlay_only, "r") as f:
+        base_cfg = json.load(f)
+
     fs_cfg = temp_dir / "_fs_scaffold.json"
     cfg = {
+        **base_cfg,
         "config_type": "filesystem",
-        "name": "mlc-test",
-        "version": "1.0.0",
-        "pickable_objects": [],
         "overlay_root": "local://" + str(project_directory),
         "overlay_fs_args": {"auto_mkdir": True},
     }
-    existing_cfg = project_directory / "filesystem.json"
-    if existing_cfg.exists():
-        with open(existing_cfg, "r") as f:
-            base_cfg = json.load(f)
-        cfg["pickable_objects"] = base_cfg.get("pickable_objects", [])
-        cfg["name"] = base_cfg.get("name", cfg["name"])
-        cfg["description"] = base_cfg.get("description", "")
-        cfg["user_id"] = base_cfg.get("user_id")
-        cfg["session_id"] = base_cfg.get("session_id")
     with open(fs_cfg, "w") as f:
         json.dump(cfg, f)
 
@@ -255,7 +237,7 @@ def mlcroissant(base_project_directory, base_overlay_directory):
         src_root,
         project_root=str(project_directory),
         base_url="file://" + str(project_directory),
-        dataset_name=cfg["name"],
+        dataset_name=cfg.get("name", "mlc-test"),
     )
 
     mlc_cfg_path = temp_dir / "mlcroissant.json"
