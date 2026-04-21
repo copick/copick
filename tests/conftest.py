@@ -18,9 +18,9 @@ DOCKER_COMPOSE_FILE = TESTS_DIR / "docker-compose.yml"
 OZ = pooch.os_cache("test_data")  # Path("/Users/utz.ermel/Documents/copick/testproject")  # pooch.os_cache("test_data")
 TOTO = pooch.create(
     path=OZ,
-    base_url="doi:10.5281/zenodo.16996074",
+    base_url="doi:10.5281/zenodo.19685912",
     registry={
-        "sample_project.zip": "md5:4d25e40fbbc3510756a0547d2e02b9b4",
+        "sample_project.zip": "md5:0e46b415bf4e1b71e8f580acfc0713f5",
     },
 )
 
@@ -147,6 +147,144 @@ def local(base_project_directory, base_overlay_directory, base_config):
 
 if BACKEND in ("all", "local") or not RUN_ALL:
     COMMON_CASES.extend(["local_overlay_only", "local"])
+
+
+@pytest.fixture
+def mlcroissant_overlay_only(base_project_directory):
+    """mlcroissant Mode A: Croissant + data live in one tree; no separate overlay."""
+    from copick.ops.croissant import export_croissant
+
+    temp_dir = Path(tempfile.mkdtemp())
+    project_directory = temp_dir / "sample_project_mlc"
+    shutil.copytree(base_project_directory, project_directory)
+
+    # Build a temporary filesystem root to walk and export from.
+    fs_cfg = temp_dir / "_fs_scaffold.json"
+    cfg = {
+        "config_type": "filesystem",
+        "name": "mlc-test",
+        "version": "1.0.0",
+        "pickable_objects": [],  # pickable_objects are in the referenced filesystem config
+        "overlay_root": "local://" + str(project_directory),
+        "overlay_fs_args": {"auto_mkdir": True},
+    }
+    # Pull pickable_objects from the sample project's config if present
+    existing_cfg = project_directory / "filesystem.json"
+    if existing_cfg.exists():
+        with open(existing_cfg, "r") as f:
+            base_cfg = json.load(f)
+        cfg["pickable_objects"] = base_cfg.get("pickable_objects", [])
+        cfg["name"] = base_cfg.get("name", cfg["name"])
+        cfg["description"] = base_cfg.get("description", "")
+        cfg["user_id"] = base_cfg.get("user_id")
+        cfg["session_id"] = base_cfg.get("session_id")
+    with open(fs_cfg, "w") as f:
+        json.dump(cfg, f)
+
+    # Load + export
+    import copick
+
+    src_root = copick.from_file(str(fs_cfg))
+    export_croissant(
+        src_root,
+        project_root=str(project_directory),
+        base_url="file://" + str(project_directory),
+        dataset_name=cfg["name"],
+    )
+
+    # Write a copick config pointing at the Croissant
+    mlc_cfg_path = temp_dir / "mlcroissant.json"
+    mlc_cfg = {
+        "config_type": "mlcroissant",
+        "pickable_objects": [],
+        "croissant_url": str(project_directory / "Croissant" / "metadata.json"),
+    }
+    with open(mlc_cfg_path, "w") as f:
+        json.dump(mlc_cfg, f)
+
+    payload = {
+        "cfg_file": mlc_cfg_path,
+        "testfs_static": fsspec.filesystem("local"),
+        "testpath_static": PurePath(project_directory),
+        "testfs_overlay": fsspec.filesystem("local"),
+        "testpath_overlay": PurePath(project_directory),
+    }
+
+    yield payload
+
+    if CLEANUP:
+        shutil.rmtree(temp_dir)
+
+
+@pytest.fixture
+def mlcroissant(base_project_directory, base_overlay_directory):
+    """mlcroissant Mode B: Croissant static + separate writable fsspec overlay."""
+    from copick.ops.croissant import export_croissant
+
+    temp_dir = Path(tempfile.mkdtemp())
+    project_directory = temp_dir / "sample_project_mlc"
+    overlay_directory = temp_dir / "sample_overlay_mlc"
+    shutil.copytree(base_project_directory, project_directory)
+    shutil.copytree(base_overlay_directory, overlay_directory)
+
+    fs_cfg = temp_dir / "_fs_scaffold.json"
+    cfg = {
+        "config_type": "filesystem",
+        "name": "mlc-test",
+        "version": "1.0.0",
+        "pickable_objects": [],
+        "overlay_root": "local://" + str(project_directory),
+        "overlay_fs_args": {"auto_mkdir": True},
+    }
+    existing_cfg = project_directory / "filesystem.json"
+    if existing_cfg.exists():
+        with open(existing_cfg, "r") as f:
+            base_cfg = json.load(f)
+        cfg["pickable_objects"] = base_cfg.get("pickable_objects", [])
+        cfg["name"] = base_cfg.get("name", cfg["name"])
+        cfg["description"] = base_cfg.get("description", "")
+        cfg["user_id"] = base_cfg.get("user_id")
+        cfg["session_id"] = base_cfg.get("session_id")
+    with open(fs_cfg, "w") as f:
+        json.dump(cfg, f)
+
+    import copick
+
+    src_root = copick.from_file(str(fs_cfg))
+    export_croissant(
+        src_root,
+        project_root=str(project_directory),
+        base_url="file://" + str(project_directory),
+        dataset_name=cfg["name"],
+    )
+
+    mlc_cfg_path = temp_dir / "mlcroissant.json"
+    mlc_cfg = {
+        "config_type": "mlcroissant",
+        "pickable_objects": [],
+        "croissant_url": str(project_directory / "Croissant" / "metadata.json"),
+        "overlay_root": "local://" + str(overlay_directory),
+        "overlay_fs_args": {"auto_mkdir": True},
+    }
+    with open(mlc_cfg_path, "w") as f:
+        json.dump(mlc_cfg, f)
+
+    payload = {
+        "cfg_file": mlc_cfg_path,
+        "testfs_static": fsspec.filesystem("local"),
+        "testpath_static": PurePath(project_directory),
+        "testfs_overlay": fsspec.filesystem("local"),
+        "testpath_overlay": PurePath(overlay_directory),
+    }
+
+    yield payload
+
+    if CLEANUP:
+        shutil.rmtree(temp_dir)
+
+
+if BACKEND in ("all", "mlcroissant") or not RUN_ALL:
+    COMMON_CASES.extend(["mlcroissant_overlay_only", "mlcroissant"])
 
 
 if BACKEND in ("all", "s3") and importlib_util.find_spec("s3fs") and RUN_ALL:

@@ -1,7 +1,7 @@
 import json
 import os
 import warnings
-from typing import TYPE_CHECKING, Any, Dict, List, Union
+from typing import TYPE_CHECKING, Any, Dict, List, Optional, Union
 
 from copick import __version__
 from copick.util.log import get_logger
@@ -11,17 +11,18 @@ logger = get_logger(__name__)
 if TYPE_CHECKING:
     from copick.impl.cryoet_data_portal import CopickRootCDP
     from copick.impl.filesystem import CopickRootFSSpec
+    from copick.impl.mlcroissant import CopickRootMLC
     from copick.models import PickableObject
 
 
-def from_string(data: str) -> Union["CopickRootFSSpec", "CopickRootCDP"]:
+def from_string(data: str) -> Union["CopickRootFSSpec", "CopickRootCDP", "CopickRootMLC"]:
     """Create a Copick project from a JSON string.
 
     Args:
         data (str): JSON string containing the project configuration.
 
     Returns:
-        CopickRootFSSpec or CopickRootCDP: The initialized Copick project.
+        CopickRootFSSpec, CopickRootCDP, or CopickRootMLC: The initialized Copick project.
     """
 
     from copick.impl.cryoet_data_portal import CopickConfigCDP, CopickRootCDP
@@ -41,20 +42,24 @@ def from_string(data: str) -> Union["CopickRootFSSpec", "CopickRootCDP"]:
         return CopickRootFSSpec(CopickConfigFSSpec(**data))
     elif data["config_type"] == "cryoet_data_portal":
         return CopickRootCDP(CopickConfigCDP(**data))
+    elif data["config_type"] == "mlcroissant":
+        from copick.impl.mlcroissant import CopickConfigMLCroissant, CopickRootMLC
+
+        return CopickRootMLC(CopickConfigMLCroissant(**data))
     else:
         raise ValueError(
-            f"Unknown config_type: {data['config_type']}. Supported types are 'filesystem' and "
-            f"'cryoet_data_portal'.",
+            f"Unknown config_type: {data['config_type']}. Supported types are 'filesystem', "
+            f"'cryoet_data_portal', and 'mlcroissant'.",
         )
 
 
-def from_file(path: str) -> Union["CopickRootFSSpec", "CopickRootCDP"]:
+def from_file(path: str) -> Union["CopickRootFSSpec", "CopickRootCDP", "CopickRootMLC"]:
     """Create a Copick project from a JSON file.
     Args:
         path (str): Path to the JSON file containing the project configuration.
 
     Returns:
-        CopickRootFSSpec or CopickRootCDP: The initialized Copick project.
+        CopickRootFSSpec, CopickRootCDP, or CopickRootMLC: The initialized Copick project.
     """
 
     with open(path, "r") as f:
@@ -106,6 +111,51 @@ def from_czcdp_datasets(
             f.write(json.dumps(config.model_dump(exclude_unset=True), indent=4))
 
     return CopickRootCDP(config)
+
+
+def from_croissant(
+    croissant_url: str,
+    overlay_root: Optional[str] = None,
+    croissant_base_url: Optional[str] = None,
+    overlay_fs_args: Optional[Dict[str, Any]] = None,
+    croissant_fs_args: Optional[Dict[str, Any]] = None,
+    output_path: Optional[str] = None,
+) -> "CopickRootMLC":
+    """Create a Copick project from an mlcroissant manifest.
+
+    Args:
+        croissant_url: URL or path to the Croissant ``metadata.json``.
+        overlay_root: Optional writable overlay (Mode B). When omitted, the
+            backend writes to the Croissant's ``copick:baseUrl`` (Mode A).
+        croissant_base_url: Optional override for ``copick:baseUrl`` (for
+            moved / mirrored datasets).
+        overlay_fs_args: Extra fsspec kwargs for the overlay filesystem.
+        croissant_fs_args: Extra fsspec kwargs for fetching the Croissant.
+        output_path: If set, write the generated copick config JSON to this
+            path so that subsequent loads can use :func:`from_file`.
+
+    Returns:
+        CopickRootMLC: The initialized copick project.
+    """
+    from copick.impl.mlcroissant import CopickConfigMLCroissant, CopickRootMLC
+
+    config = CopickConfigMLCroissant(
+        config_type="mlcroissant",
+        pickable_objects=[],  # filled in from copick:config on load
+        croissant_url=croissant_url,
+        croissant_base_url=croissant_base_url,
+        overlay_root=overlay_root,
+        overlay_fs_args=overlay_fs_args or {},
+        croissant_fs_args=croissant_fs_args or {},
+    )
+
+    root = CopickRootMLC(config)
+
+    if output_path:
+        with open(output_path, "w") as f:
+            f.write(json.dumps(root.config.model_dump(exclude_unset=False), indent=4))
+
+    return root
 
 
 def new_config(

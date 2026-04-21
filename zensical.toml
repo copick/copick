@@ -23,6 +23,7 @@ nav = [
             {"AWS S3 Project" = "examples/setup/aws_s3.md"},
             {"SSH Project" = "examples/setup/ssh.md"},
             {"CZ cryoET Data Portal" = "examples/setup/data_portal.md"},
+            {"mlcroissant" = "examples/setup/croissant.md"},
         ]},
         {"Tutorials" = [
             {"CZ cryoET Data Portal" = "examples/tutorials/data_portal.md"},
@@ -33,6 +34,7 @@ nav = [
             {"Detecting Sample Boundaries" = "examples/tutorials/sample_boundaries.md"},
             {"Copick and membrain-seg" = "examples/tutorials/membrain.md"},
             {"Copick-MCP" = "examples/tutorials/copick_mcp.md"},
+            {"mlcroissant" = "examples/tutorials/croissant.md"},
         ]},
         {"Snippets" = "examples/snippets.md"},
     ]},
@@ -68,6 +70,7 @@ nav = [
             {"Overlay" = "api_reference/implementations/Overlay.md"},
             {"File System" = "api_reference/implementations/Filesystem.md"},
             {"Data Portal" = "api_reference/implementations/Dataportal.md"},
+            {"mlcroissant" = "api_reference/implementations/Croissant.md"},
         ]},
         {"Functional API" = [
             {"Add" = "api_reference/functional/add.md"},

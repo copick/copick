@@ -189,3 +189,156 @@ def filesystem(
     )
 
     logger.info(f"Generated configuration file at {config}.")
+
+
+@config.command(
+    context_settings={"show_default": True},
+    short_help="Set up a configuration file from an mlcroissant manifest.",
+    no_args_is_help=True,
+)
+@click.option(
+    "--croissant-url",
+    type=str,
+    required=True,
+    help="URL or path to the Croissant metadata.json.",
+)
+@click.option(
+    "--overlay",
+    type=click.Path(file_okay=False, dir_okay=True),
+    required=False,
+    help="Optional writable overlay (Mode B). If omitted, the Croissant's copick:baseUrl is used as the write location (Mode A).",
+)
+@click.option(
+    "--base-url",
+    type=str,
+    required=False,
+    help="Optional override for the Croissant's copick:baseUrl (for moved datasets).",
+)
+@click.option(
+    "--output",
+    default="config.json",
+    type=click.Path(dir_okay=False),
+    required=True,
+    help="Path to save the generated copick configuration file.",
+)
+@add_debug_option
+@click.pass_context
+def mlcroissant(
+    ctx,
+    croissant_url: str,
+    overlay: str,
+    base_url: str,
+    output: str,
+    debug: bool = False,
+):
+    """
+    Generate a copick configuration file from an mlcroissant manifest.
+    """
+    import copick
+
+    logger = get_logger(__name__, debug=debug)
+    logger.info("Generating configuration file from Croissant manifest...")
+
+    try:
+        copick.from_croissant(
+            croissant_url=croissant_url,
+            overlay_root=overlay,
+            croissant_base_url=base_url,
+            overlay_fs_args={"auto_mkdir": True} if overlay else None,
+            output_path=output,
+        )
+    except Exception as e:
+        logger.critical(f"Failed to generate configuration file: {e}")
+        ctx.fail(f"Error generating configuration file: {e}")
+        return
+
+    logger.info(f"Generated configuration file at {output}.")
+
+
+@config.command(
+    name="export-croissant",
+    context_settings={"show_default": True},
+    short_help="Export a copick project to an mlcroissant manifest.",
+    no_args_is_help=True,
+)
+@click.option(
+    "--config",
+    "config_path",
+    type=click.Path(dir_okay=False, exists=True),
+    required=True,
+    help="Path to the input copick configuration file.",
+)
+@click.option(
+    "--project-root",
+    type=click.Path(file_okay=False, dir_okay=True),
+    required=True,
+    help="Copick project root directory; Croissant/ is written under this.",
+)
+@click.option(
+    "--base-url",
+    type=str,
+    required=False,
+    help="Absolute URL that resolves to --project-root at consumer read time. Required for filesystem sources; ignored for CDP (common portal-URL prefix is used).",
+)
+@click.option("--dataset-name", type=str, required=False, help="Dataset title for the Croissant.")
+@click.option("--description", type=str, required=False, help="Dataset description.")
+@click.option("--license", "license_", type=str, required=False, default="CC-BY-4.0", help="Dataset license.")
+@click.option("--cite-as", type=str, required=False, default="", help="Citation string.")
+@click.option("--date-published", type=str, required=False, help="ISO date string (defaults to today).")
+@click.option(
+    "--no-file-sha256",
+    is_flag=True,
+    default=False,
+    help="Skip computing sha256 for picks/meshes (faster but marks output non-strict).",
+)
+@add_debug_option
+@click.pass_context
+def export_croissant_cmd(
+    ctx,
+    config_path: str,
+    project_root: str,
+    base_url: str,
+    dataset_name: str,
+    description: str,
+    license_: str,
+    cite_as: str,
+    date_published: str,
+    no_file_sha256: bool,
+    debug: bool = False,
+):
+    """
+    Export a copick project to a Croissant manifest + CSV sidecars under
+    <project-root>/Croissant/.
+    """
+    import copick
+    from copick.ops.croissant import export_croissant
+
+    logger = get_logger(__name__, debug=debug)
+    logger.info("Loading copick project...")
+
+    try:
+        root = copick.from_file(config_path)
+    except Exception as e:
+        logger.critical(f"Failed to load copick project: {e}")
+        ctx.fail(f"Error loading copick project: {e}")
+        return
+
+    logger.info(f"Exporting Croissant to {project_root}/Croissant/...")
+    try:
+        metadata_path = export_croissant(
+            root,
+            project_root=project_root,
+            base_url=base_url,
+            dataset_name=dataset_name,
+            description=description,
+            license=license_,
+            cite_as=cite_as,
+            date_published=date_published,
+            compute_file_sha256=not no_file_sha256,
+        )
+    except Exception as e:
+        logger.critical(f"Failed to export Croissant: {e}")
+        ctx.fail(f"Error exporting Croissant: {e}")
+        return
+
+    logger.info(f"Wrote Croissant at {metadata_path}.")
