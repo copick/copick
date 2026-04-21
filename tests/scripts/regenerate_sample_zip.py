@@ -24,8 +24,8 @@ import tempfile
 import zipfile
 from pathlib import Path
 
-CURRENT_DOI = "doi:10.5281/zenodo.19685912"
-CURRENT_MD5 = "md5:0e46b415bf4e1b71e8f580acfc0713f5"
+CURRENT_DOI = "doi:10.5281/zenodo.19686100"
+CURRENT_MD5 = "md5:8b8941350af1f621effd4903e75255c0"
 ARCHIVE_NAME = "sample_project.zip"
 
 
@@ -89,13 +89,23 @@ def ensure_croissant_for(data_dir: Path, config_path: Path) -> None:
 
 def repack_zip(source_dir: Path, zip_path: Path) -> None:
     """Pack ``source_dir`` contents into ``zip_path``, with the archive rooted at
-    ``source_dir`` itself (top-level entries map to the archive's top-level)."""
+    ``source_dir`` itself (top-level entries map to the archive's top-level).
+
+    Empty directories are preserved as explicit directory entries (trailing
+    slash), matching the layout of the original Zenodo archive. This matters
+    because the copick test suite expects certain empty directories (e.g.
+    ``sample_overlay/``) to exist after extraction.
+    """
     if zip_path.exists():
         zip_path.unlink()
     with zipfile.ZipFile(zip_path, "w", zipfile.ZIP_DEFLATED) as zf:
-        for child in source_dir.rglob("*"):
-            if child.is_file():
-                arcname = child.relative_to(source_dir)
+        for child in sorted(source_dir.rglob("*")):
+            arcname = str(child.relative_to(source_dir))
+            if child.is_dir():
+                # Include every directory as an explicit entry; this keeps empty
+                # directories (otherwise dropped by ZipFile.write on files only).
+                zf.writestr(arcname.rstrip("/") + "/", b"")
+            elif child.is_file():
                 zf.write(child, arcname)
 
 
@@ -163,7 +173,7 @@ def main():
         print(f"md5:  {new_md5}")
         print()
         print("Next steps:")
-        print(f"  1. Upload {zip_out.name} to Zenodo as a new version of record 19685912.")
+        print(f"  1. Upload {zip_out.name} to Zenodo as a new version of record 19686100.")
         print("  2. Note the new DOI (e.g. 10.5281/zenodo.<NEW>).")
         print("  3. Update copick/tests/conftest.py:18-25:")
         print('         base_url="doi:10.5281/zenodo.<NEW>",')

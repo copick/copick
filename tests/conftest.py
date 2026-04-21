@@ -18,9 +18,9 @@ DOCKER_COMPOSE_FILE = TESTS_DIR / "docker-compose.yml"
 OZ = pooch.os_cache("test_data")  # Path("/Users/utz.ermel/Documents/copick/testproject")  # pooch.os_cache("test_data")
 TOTO = pooch.create(
     path=OZ,
-    base_url="doi:10.5281/zenodo.19685912",
+    base_url="doi:10.5281/zenodo.19686100",
     registry={
-        "sample_project.zip": "md5:0e46b415bf4e1b71e8f580acfc0713f5",
+        "sample_project.zip": "md5:8b8941350af1f621effd4903e75255c0",
     },
 )
 
