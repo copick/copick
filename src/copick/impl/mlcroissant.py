@@ -1518,6 +1518,18 @@ class CopickRunMLC(CopickRunOverlay):
         return results
 
     def _query_overlay_voxel_spacings(self) -> List[CopickVoxelSpacingMLC]:
+        if self.root.mode == "A":
+            # Mode A: the Croissant index is the authoritative list.
+            results = []
+            seen = set()
+            for row in self._index.voxel_spacings:
+                if row.get("run") == self.name:
+                    vs = float(row["voxel_size"])
+                    if vs in seen:
+                        continue
+                    seen.add(vs)
+                    results.append(CopickVoxelSpacingMLC(meta=CopickVoxelSpacingMeta(voxel_size=vs), run=self))
+            return results
         fs = self.fs_overlay
         if fs is None:
             return []
