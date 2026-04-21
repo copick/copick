@@ -192,10 +192,12 @@ def mlcroissant_overlay_only(base_project_directory, base_config_overlay_only):
     with open(mlc_cfg_path, "w") as f:
         json.dump(mlc_cfg, f)
 
+    # Mode A has static_is_overlay=True — mirror the local_overlay_only fixture
+    # by leaving testfs_static / testpath_static unset.
     payload = {
         "cfg_file": mlc_cfg_path,
-        "testfs_static": fsspec.filesystem("local"),
-        "testpath_static": PurePath(project_directory),
+        "testfs_static": None,
+        "testpath_static": None,
         "testfs_overlay": fsspec.filesystem("local"),
         "testpath_overlay": PurePath(project_directory),
     }

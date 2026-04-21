@@ -33,7 +33,22 @@ def source_target_configs(test_payload):
 
         # Create target config with different overlay root
         target_config = source_config.copy()
-        if "overlay_root" in target_config:
+        if target_config.get("config_type") == "mlcroissant":
+            # For mlcroissant: need a separate project tree so syncs land in a
+            # different Croissant. Copy the source project tree next to the
+            # source, rewrite croissant_url to the copy.
+            import shutil as _shutil
+
+            source_croissant_url = source_config["croissant_url"]
+            source_project_root = Path(source_croissant_url).parent.parent
+            target_project_root = Path(tmpdir) / "target_project"
+            _shutil.copytree(source_project_root, target_project_root)
+            target_config["croissant_url"] = str(target_project_root / "Croissant" / "metadata.json")
+            if "overlay_root" in target_config:
+                target_overlay_path = Path(tmpdir) / "target_overlay"
+                target_overlay_path.mkdir()
+                target_config["overlay_root"] = f"local://{target_overlay_path}"
+        elif "overlay_root" in target_config:
             # Modify the overlay root to point to a different directory
             overlay_root = target_config["overlay_root"]
             if overlay_root.startswith("local://"):

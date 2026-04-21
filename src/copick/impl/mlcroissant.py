@@ -1900,8 +1900,25 @@ class CopickRootMLC(CopickRoot):
 
     # ----- Queries -----
     def query(self) -> List[CopickRunMLC]:
+        names = set(self.index.runs_by_name.keys())
+
+        # Mode B: also discover runs that exist only in the overlay (created
+        # locally after the Croissant was produced) via a glob under
+        # ExperimentRuns/.
+        if self.mode == "B" and self.overlay_base_url:
+            run_dir = f"{self.overlay_base_url}/ExperimentRuns/"
+            try:
+                entries = self.fs_overlay.glob(run_dir + "*") + self.fs_overlay.glob(run_dir + "*/")
+            except FileNotFoundError:
+                entries = []
+            for entry in entries:
+                stripped = entry.rstrip("/")
+                name = stripped.rsplit("/", 1)[-1]
+                if name and not name.startswith("."):
+                    names.add(name)
+
         runs = []
-        for name in sorted(self.index.runs_by_name.keys()):
+        for name in sorted(names):
             runs.append(CopickRunMLC(root=self, meta=CopickRunMeta(name=name)))
         return runs
 
