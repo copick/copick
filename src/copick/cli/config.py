@@ -291,6 +291,22 @@ def mlcroissant(
     default=False,
     help="Skip computing sha256 for picks/meshes (faster but marks output non-strict).",
 )
+@click.option(
+    "--emit-config",
+    "emit_config",
+    type=click.Path(dir_okay=False),
+    required=False,
+    default=None,
+    help="Also write an mlcroissant copick config JSON at this path, pointing at the exported Croissant. Off by default.",
+)
+@click.option(
+    "--config-overlay",
+    "config_overlay",
+    type=click.Path(file_okay=False, dir_okay=True),
+    required=False,
+    default=None,
+    help="Overlay directory to embed in the emitted copick config (Mode B). Only used when --emit-config is set. If omitted, the emitted config is Mode A (self-contained).",
+)
 @add_debug_option
 @click.pass_context
 def export_croissant_cmd(
@@ -304,12 +320,21 @@ def export_croissant_cmd(
     cite_as: str,
     date_published: str,
     no_file_sha256: bool,
+    emit_config: str,
+    config_overlay: str,
     debug: bool = False,
 ):
     """
     Export a copick project to a Croissant manifest + CSV sidecars under
     <project-root>/Croissant/.
+
+    With --emit-config PATH, also writes a ready-to-use mlcroissant copick
+    configuration JSON at PATH. Pair with --config-overlay DIR to embed a
+    writable overlay (Mode B) so viz tools can annotate without touching the
+    source data.
     """
+    import json as _json
+
     import copick
     from copick.ops.croissant import export_croissant
 
@@ -342,3 +367,19 @@ def export_croissant_cmd(
         return
 
     logger.info(f"Wrote Croissant at {metadata_path}.")
+
+    if emit_config:
+        mlc_cfg = {
+            "config_type": "mlcroissant",
+            "pickable_objects": [],
+            "croissant_url": str(metadata_path),
+        }
+        if config_overlay:
+            import os as _os
+
+            _os.makedirs(config_overlay, exist_ok=True)
+            mlc_cfg["overlay_root"] = f"local://{config_overlay}"
+            mlc_cfg["overlay_fs_args"] = {"auto_mkdir": True}
+        with open(emit_config, "w") as f:
+            _json.dump(mlc_cfg, f, indent=4)
+        logger.info(f"Wrote mlcroissant copick config at {emit_config}.")

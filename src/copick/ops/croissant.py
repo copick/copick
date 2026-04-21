@@ -35,6 +35,10 @@ logger = get_logger(__name__)
 
 CONFORMS_TO = "http://mlcommons.org/croissant/1.1"
 
+# Canonical S3 base URL for the CZ cryoET Data Portal public bucket. Portal URLs
+# are of the form ``s3://cryoet-data-portal-public/<dataset_id>/...``.
+CDP_PORTAL_BASE_URL = "s3://cryoet-data-portal-public/"
+
 
 def _strip_proto(url: str) -> str:
     """Strip ``file://`` prefix if present."""
@@ -154,7 +158,7 @@ def export_croissant(
     # Detect source type + URL prefix
     source_type = getattr(root.config, "config_type", "filesystem")
     if source_type == "cryoet_data_portal":
-        copick_base_url = _derive_cdp_base_url(root)
+        copick_base_url = CDP_PORTAL_BASE_URL
     else:
         if base_url is None:
             raise ValueError(
@@ -399,28 +403,6 @@ def _object_url(obj, base_url: str, is_cdp: bool) -> str:
 # -----------------------------------------------------------------------------
 # CDP source helpers
 # -----------------------------------------------------------------------------
-
-
-def _derive_cdp_base_url(root: CopickRoot) -> str:
-    """Find the longest common URL prefix among all referenced portal URLs."""
-    urls = []
-    for run in root.runs:
-        for vs in run.voxel_spacings:
-            for tomo in vs.tomograms:
-                u = _get_artifact_url(tomo)
-                if u:
-                    urls.append(u)
-        for pick in run.picks:
-            u = getattr(pick, "path", None)
-            if u:
-                urls.append(u)
-        for seg in run.segmentations:
-            u = _get_artifact_url(seg)
-            if u:
-                urls.append(u)
-    if not urls:
-        return "s3://cryoet-data-portal-public/"
-    return os.path.commonprefix(urls)
 
 
 # -----------------------------------------------------------------------------
