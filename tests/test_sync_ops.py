@@ -5,18 +5,18 @@ import tempfile
 from pathlib import Path
 from typing import Any, Dict
 
+import copick
 import fsspec
 import numpy as np
 import pytest
 import trimesh
-from copick.impl.filesystem import CopickRootFSSpec
 from copick.ops.sync import sync_meshes, sync_picks, sync_segmentations, sync_tomograms
 
 
 @pytest.fixture(params=pytest.common_cases)
 def test_payload(request) -> Dict[str, Any]:
     payload = request.getfixturevalue(request.param)
-    payload["root"] = CopickRootFSSpec.from_file(payload["cfg_file"])
+    payload["root"] = copick.from_file(payload["cfg_file"])
     return payload
 
 
@@ -33,7 +33,47 @@ def source_target_configs(test_payload):
 
         # Create target config with different overlay root
         target_config = source_config.copy()
-        if "overlay_root" in target_config:
+        if target_config.get("config_type") == "mlcroissant":
+            # For mlcroissant: target must be an INDEPENDENT fresh project.
+            # (See test_sync_cli.source_target_configs for the full rationale.)
+            source_croissant_url = source_config["croissant_url"]
+            with open(source_croissant_url) as f:
+                src_doc = json.load(f)
+            pickable_objects = src_doc["copick:config"].get("pickable_objects", [])
+
+            target_project_root = Path(tmpdir) / "target_project"
+            target_project_root.mkdir()
+            (target_project_root / "ExperimentRuns").mkdir()
+            (target_project_root / "Objects").mkdir()
+
+            scaffold_cfg = {
+                "config_type": "filesystem",
+                "name": "sync-target",
+                "version": "1.0.0",
+                "pickable_objects": pickable_objects,
+                "user_id": src_doc["copick:config"].get("user_id"),
+                "session_id": src_doc["copick:config"].get("session_id"),
+                "overlay_root": f"local://{target_project_root}",
+                "overlay_fs_args": {"auto_mkdir": True},
+            }
+            scaffold_path = Path(tmpdir) / "target_scaffold.json"
+            with open(scaffold_path, "w") as f:
+                json.dump(scaffold_cfg, f)
+            from copick.ops.croissant import export_croissant as _export
+
+            scaffold_root = copick.from_file(str(scaffold_path))
+            _export(
+                scaffold_root,
+                project_root=str(target_project_root),
+                base_url=f"file://{target_project_root}",
+                dataset_name="sync-target",
+            )
+            target_config["croissant_url"] = str(target_project_root / "Croissant" / "metadata.json")
+            if "overlay_root" in target_config:
+                target_overlay_path = Path(tmpdir) / "target_overlay"
+                target_overlay_path.mkdir()
+                target_config["overlay_root"] = f"local://{target_overlay_path}"
+        elif "overlay_root" in target_config:
             # Modify the overlay root to point to a different directory
             overlay_root = target_config["overlay_root"]
             if overlay_root.startswith("local://"):
@@ -56,7 +96,7 @@ def source_target_configs(test_payload):
             "source_config": test_payload["cfg_file"],
             "target_config": str(target_config_path),
             "source_root": test_payload["root"],
-            "target_root": CopickRootFSSpec.from_file(target_config_path),
+            "target_root": copick.from_file(target_config_path),
         }
 
 

@@ -6,6 +6,7 @@ from copick.impl.cryoet_data_portal import (
     CopickTomogramCDP,
 )
 from copick.impl.filesystem import CopickRootFSSpec, CopickRunFSSpec
+from copick.impl.mlcroissant import CopickRootMLC, CopickRunMLC
 from copick.models import (
     CopickFeatures,
     CopickMesh,
@@ -70,6 +71,8 @@ def root_to_md(root: CopickRoot) -> str:
         md += "* Project Type: Filesystem\n"
     elif root.config.config_type == "cryoet_data_portal":
         md += "* Project Type: CryoET Data Portal\n"
+    elif root.config.config_type == "mlcroissant":
+        md += "* Project Type: mlcroissant\n"
 
     if isinstance(root, CopickRootFSSpec):
         if root.static_is_overlay:
@@ -83,6 +86,11 @@ def root_to_md(root: CopickRoot) -> str:
             md += f"[{dataset}](https://cryoetdataportal.czscience.com/datasets/{dataset}) "
         md += "\n"
         md += f"* Overlay Location: {root.config.overlay_root}\n"
+    elif isinstance(root, CopickRootMLC):
+        md += f"* Croissant: {root.config.croissant_url}\n"
+        md += f"* Mode: {'self-contained (A)' if root.mode == 'A' else 'overlay (B)'}\n"
+        if root.config.overlay_root:
+            md += f"* Overlay Location: {root.config.overlay_root}\n"
 
     return md
 
@@ -101,6 +109,8 @@ def run_to_md(run: CopickRun) -> str:
     elif isinstance(run, CopickRunCDP):
         md += f"* [cryoET Data portal: {run.portal_run_id}](https://cryoetdataportal.czscience.com/runs/{run.portal_run_id})\n"
         md += f"* Overlay Location: {run.overlay_path}\n"
+    elif isinstance(run, CopickRunMLC):
+        md += f"* Location: {run.overlay_path}\n"
 
     return md
 

@@ -26,7 +26,7 @@ pip install "copick[all]"
 
 ## Example dataset
 
-An example dataset can be obtained from [Zenodo](https://doi.org/10.5281/zenodo.16996074).
+An example dataset can be obtained from [Zenodo](https://doi.org/10.5281/zenodo.19686100).
 
 To test with the example dataset:
 
@@ -101,3 +101,14 @@ To test with the example dataset:
     arrays = list(group.arrays())
     _, array = arrays[0]
     ```
+
+## Other storage backends
+
+Beyond local/fsspec-backed filesystem projects, copick supports:
+
+- **[CZ cryoET Data Portal](examples/setup/data_portal.md)** — read from the
+  portal API and write to any fsspec overlay.
+- **[mlcroissant](examples/setup/croissant.md)** — read from a standards-compliant
+  [Croissant 1.1](https://docs.mlcommons.org/croissant/docs/croissant-spec.html)
+  manifest + CSV sidecars under a `Croissant/` subdirectory. Live auto-sync
+  writes keep the manifest up to date as you annotate.

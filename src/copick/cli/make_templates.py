@@ -4,6 +4,7 @@ import click
 
 from copick.impl.cryoet_data_portal import CopickConfigCDP
 from copick.impl.filesystem import CopickConfigFSSpec
+from copick.impl.mlcroissant import CopickConfigMLCroissant
 from copick.models import PickableObject
 
 LOCAL_OVERLAY = {
@@ -178,6 +179,35 @@ def create(ctx, outdir: str = "docs/templates/configs/") -> None:
         config.config_type = "cryoet_data_portal"
         with open(f"{outdir}/overlay_{overlay_type}_static_data_portal.json", "w") as f:
             f.write(json.dumps(config.dict(exclude_unset=True), indent=4))
+
+    # mlcroissant
+    for overlay_type, overlay in OVERLAY_LOCATIONS.items():
+        config = CopickConfigMLCroissant(
+            name="Example Project",
+            description=f"This is an example project, demonstrating overlaying a {overlay_type}-backend on"
+            f" an mlcroissant-backed project.",
+            version="0.5.0",
+            pickable_objects=OBJECTS,
+            user_id="example.user",
+            croissant_url="https://data.example.org/my_project/Croissant/metadata.json",
+            **overlay,
+        )
+        config.config_type = "mlcroissant"
+        with open(f"{outdir}/overlay_{overlay_type}_static_mlcroissant.json", "w") as f:
+            f.write(json.dumps(config.dict(exclude_unset=True), indent=4))
+
+    # mlcroissant self-contained (Mode A, no overlay)
+    config = CopickConfigMLCroissant(
+        name="Example Project",
+        description="This is an example project, demonstrating a self-contained mlcroissant-backed project.",
+        version="0.5.0",
+        pickable_objects=OBJECTS,
+        user_id="example.user",
+        croissant_url="https://data.example.org/my_project/Croissant/metadata.json",
+    )
+    config.config_type = "mlcroissant"
+    with open(f"{outdir}/mlcroissant.json", "w") as f:
+        f.write(json.dumps(config.dict(exclude_unset=True), indent=4))
 
 
 if __name__ == "__main__":
