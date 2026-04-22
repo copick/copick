@@ -481,7 +481,7 @@ def export_croissant(
     if validate:
         _validate_metadata(metadata_path, doc, croissant_dir)
 
-    logger.info("Wrote Croissant to %s", metadata_path)
+    logger.info(f"Wrote Croissant to {metadata_path}")
     return metadata_path
 
 
@@ -885,7 +885,7 @@ def _pick_url_and_sha(run, pick, base_url: str, is_cdp: bool, compute_sha: bool)
             if fs is not None and abs_path and fs.exists(abs_path):
                 sha = _sha256_file(fs, abs_path)
         except Exception as e:
-            logger.warning("Could not compute sha256 for pick %s: %s", rel, e)
+            logger.warning(f"Could not compute sha256 for pick {rel}: {e}")
     return rel, sha
 
 
@@ -905,7 +905,7 @@ def _mesh_url_and_sha(run, mesh, base_url: str, is_cdp: bool, compute_sha: bool)
             if fs is not None and abs_path and fs.exists(abs_path):
                 sha = _sha256_file(fs, abs_path)
         except Exception as e:
-            logger.warning("Could not compute sha256 for mesh %s: %s", rel, e)
+            logger.warning(f"Could not compute sha256 for mesh {rel}: {e}")
     return rel, sha
 
 
@@ -1166,8 +1166,6 @@ def _union_pickable_objects(
     Applies ``object_name_map`` to source object names and records the original
     portal name in ``metadata["portal_original_name"]`` (idempotent).
     """
-    import warnings
-
     cfg_block = dest_index.config_block
     if not isinstance(cfg_block, dict):
         return
@@ -1193,10 +1191,9 @@ def _union_pickable_objects(
             dest_norm = json.loads(json.dumps(dest_entry, default=list))
             src_norm = json.loads(json.dumps(po_dump, default=list))
             if dest_norm.get("label") != src_norm.get("label") or dest_norm.get("color") != src_norm.get("color"):
-                warnings.warn(
+                logger.warning(
                     f"Pickable object '{name}' already present in destination with "
-                    "different attributes; destination wins.",
-                    stacklevel=2,
+                    f"different attributes; destination wins.",
                 )
             continue
         existing.append(po_dump)
@@ -1332,7 +1329,7 @@ def append_croissant(
                 dest.index.add_row(rs_id, row)
         _union_pickable_objects(dest.index, source_root, filters.object_name_map)
 
-    logger.info("Appended %s rows into %s", sum(len(v) for v in rows.values()), dest_metadata_path)
+    logger.info(f"Appended {sum(len(v) for v in rows.values())} rows into {dest_metadata_path}")
     return dest_metadata_path
 
 
@@ -1389,7 +1386,7 @@ def set_splits(
         for run_name in unassign_list:
             dest.index.set_split(run_name, "")
 
-    logger.info("Updated splits in %s", dest_metadata_path)
+    logger.info(f"Updated splits in {dest_metadata_path}")
     return dest_metadata_path
 
 
@@ -1428,6 +1425,6 @@ def _validate_metadata(metadata_path: str, doc: Dict[str, Any], croissant_dir: s
         if errors:
             raise ValueError(f"Croissant validation failed at {metadata_path}: {errors}")
         if warnings:
-            logger.warning("Croissant validation warnings at %s: %s", metadata_path, warnings)
+            logger.warning(f"Croissant validation warnings at {metadata_path}: {warnings}")
     except mlc.ValidationError as e:
         raise ValueError(f"Croissant validation failed at {metadata_path}: {e}") from e

@@ -1184,3 +1184,284 @@ def test_run_split_is_none_for_filesystem_backend(tiny_filesystem_project):
     root = copick.from_file(str(proj / "filesystem.json"))
     run = root.get_run("run_001")
     assert run.split is None
+
+
+# -----------------------------------------------------------------------------
+# fs_args propagation: consumer config must carry connection args so data URLs
+# resolve, but the Croissant manifest itself stays credential-free.
+# -----------------------------------------------------------------------------
+
+
+def test_config_static_fs_args_round_trip(tiny_filesystem_project, monkeypatch):
+    """static_fs_args on the mlcroissant config reach _fs_for_url via resolve_url."""
+    import copick
+    from copick.impl import mlcroissant as mlc_mod
+    from copick.ops.croissant import export_croissant
+
+    proj = tiny_filesystem_project
+    src = copick.from_file(str(proj / "filesystem.json"))
+    metadata_path = export_croissant(
+        src,
+        project_root=str(proj),
+        base_url=f"file://{proj}",
+    )
+
+    cfg = {
+        "config_type": "mlcroissant",
+        "pickable_objects": [],
+        "croissant_url": str(metadata_path),
+        "static_fs_args": {"host": "example.com", "port": 22},
+    }
+    config_path = proj / "mlc_with_static_args.json"
+    config_path.write_text(json.dumps(cfg))
+
+    root = copick.from_file(str(config_path))
+    assert root.index.static_fs_args == {"host": "example.com", "port": 22}
+
+    captured = {}
+    real_fs_for_url = mlc_mod._fs_for_url
+
+    def capturing(url, **kwargs):
+        captured["url"] = url
+        captured["kwargs"] = dict(kwargs)
+        return real_fs_for_url(url, **{k: v for k, v in kwargs.items() if k not in ("host", "port")})
+
+    monkeypatch.setattr(mlc_mod, "_fs_for_url", capturing)
+
+    root.index.resolve_url("ExperimentRuns/run_001/Picks/alice_42_ribosome.json")
+    assert captured["kwargs"].get("host") == "example.com"
+    assert captured["kwargs"].get("port") == 22
+
+
+def test_cli_emit_config_propagates_source_fs_args(tmp_path):
+    """Source overlay_fs_args flow into the emitted config; the Croissant stays clean."""
+    from click.testing import CliRunner
+    from copick.cli.config import config as config_cli
+
+    proj = tmp_path / "proj"
+    (proj / "ExperimentRuns" / "run_001" / "Picks").mkdir(parents=True)
+    pick = {
+        "pickable_object_name": "ribosome",
+        "user_id": "alice",
+        "session_id": "42",
+        "run_name": "run_001",
+        "voxel_spacing": 10.0,
+        "unit": "angstrom",
+        "points": [{"location": {"x": 1.0, "y": 2.0, "z": 3.0}}],
+        "trust_orientation": False,
+    }
+    (proj / "ExperimentRuns" / "run_001" / "Picks" / "alice_42_ribosome.json").write_text(
+        json.dumps(pick),
+    )
+    src_cfg = {
+        "config_type": "filesystem",
+        "name": "fs-args-src",
+        "version": "1.0.0",
+        "pickable_objects": [
+            {"name": "ribosome", "is_particle": True, "label": 1, "color": [200, 100, 100, 255]},
+        ],
+        "overlay_root": f"local://{proj}",
+        "overlay_fs_args": {"host": "example.com", "port": 2222},
+    }
+    src_path = proj / "filesystem.json"
+    src_path.write_text(json.dumps(src_cfg))
+
+    emitted = tmp_path / "emitted.json"
+
+    runner = CliRunner()
+    r = runner.invoke(
+        config_cli,
+        [
+            "export-croissant",
+            "--config",
+            str(src_path),
+            "--project-root",
+            str(proj),
+            "--base-url",
+            f"file://{proj}",
+            "--emit-config",
+            str(emitted),
+        ],
+    )
+    assert r.exit_code == 0, r.output
+
+    emitted_cfg = json.loads(emitted.read_text())
+    assert emitted_cfg["static_fs_args"] == {"host": "example.com", "port": 2222}
+    assert emitted_cfg["croissant_fs_args"] == {}
+
+    # Credential-leak guard: the Croissant manifest must not carry fs_args.
+    manifest = json.loads((proj / "Croissant" / "metadata.json").read_text())
+
+    def _walk(obj):
+        if isinstance(obj, dict):
+            for k, v in obj.items():
+                assert "fs_args" not in k.lower(), f"leaked fs-args key: {k}"
+                assert not (isinstance(v, dict) and "host" in v and "port" in v), f"leaked host/port under {k}: {v}"
+                _walk(v)
+        elif isinstance(obj, list):
+            for item in obj:
+                _walk(item)
+
+    _walk(manifest)
+
+
+def test_cli_remote_config_overlay(tiny_filesystem_project, tmp_path):
+    """--config-overlay accepts a remote URL; overlay_fs_args are written; no local dir."""
+    from click.testing import CliRunner
+    from copick.cli.config import config as config_cli
+
+    proj = tiny_filesystem_project
+    emitted = tmp_path / "emitted_remote.json"
+    remote_overlay = "ssh:///remote/overlay"
+
+    runner = CliRunner()
+    r = runner.invoke(
+        config_cli,
+        [
+            "export-croissant",
+            "--config",
+            str(proj / "filesystem.json"),
+            "--project-root",
+            str(proj),
+            "--base-url",
+            f"file://{proj}",
+            "--emit-config",
+            str(emitted),
+            "--config-overlay",
+            remote_overlay,
+            "--config-overlay-fs-args",
+            '{"host":"h","port":22}',
+        ],
+    )
+    assert r.exit_code == 0, r.output
+
+    cfg = json.loads(emitted.read_text())
+    assert cfg["overlay_root"] == remote_overlay
+    assert cfg["overlay_fs_args"] == {"host": "h", "port": 22}
+    # No auto_mkdir for remote overlays.
+    assert "auto_mkdir" not in cfg["overlay_fs_args"]
+    # And no stray local directory was created for the remote path.
+    assert not (Path("/remote") / "overlay").exists()
+
+
+def test_cli_local_config_overlay_backcompat(tiny_filesystem_project, tmp_path):
+    """Bare local path still produces local:// URL + auto_mkdir + mkdirs."""
+    from click.testing import CliRunner
+    from copick.cli.config import config as config_cli
+
+    proj = tiny_filesystem_project
+    overlay = tmp_path / "local_overlay"
+    emitted = tmp_path / "emitted_local.json"
+
+    runner = CliRunner()
+    r = runner.invoke(
+        config_cli,
+        [
+            "export-croissant",
+            "--config",
+            str(proj / "filesystem.json"),
+            "--project-root",
+            str(proj),
+            "--base-url",
+            f"file://{proj}",
+            "--emit-config",
+            str(emitted),
+            "--config-overlay",
+            str(overlay),
+        ],
+    )
+    assert r.exit_code == 0, r.output
+
+    cfg = json.loads(emitted.read_text())
+    assert cfg["overlay_root"].startswith("local://")
+    assert cfg["overlay_root"].endswith(str(overlay))
+    assert cfg["overlay_fs_args"].get("auto_mkdir") is True
+    assert overlay.exists() and overlay.is_dir()
+
+
+# -----------------------------------------------------------------------------
+# Mode-B overlay==base_url: queries must not double-count artifacts that live
+# in both the Croissant CSV index and the overlay filesystem when those point
+# to the same location.
+# -----------------------------------------------------------------------------
+
+
+def test_mode_b_overlay_at_base_url_does_not_duplicate(tiny_filesystem_project, tmp_path):
+    """When overlay_root == base_url, static and overlay queries must dedupe.
+
+    The source filesystem project has 1 pick. After exporting a Croissant and
+    loading a Mode-B companion config whose overlay_root points at the same
+    location as base_url, we expect 1 pick (not 2) — the static CSV branch
+    should short-circuit because static_is_overlay is True.
+    """
+    import copick
+    from copick.ops.croissant import export_croissant
+
+    proj = tiny_filesystem_project
+    src = copick.from_file(str(proj / "filesystem.json"))
+    src_run = src.get_run("run_001")
+    src_pick_count = len(src_run.picks)
+    assert src_pick_count == 1
+
+    export_croissant(src, project_root=str(proj), base_url=f"file://{proj}")
+
+    # Mode B with overlay_root == base_url (mirrors the bacteria use case).
+    cfg = {
+        "config_type": "mlcroissant",
+        "pickable_objects": [],
+        "croissant_url": str(proj / "Croissant" / "metadata.json"),
+        "overlay_root": f"file://{proj}",
+        "overlay_fs_args": {"auto_mkdir": True},
+    }
+    config_path = tmp_path / "overlay_eq_base.json"
+    config_path.write_text(json.dumps(cfg))
+
+    root = copick.from_file(str(config_path))
+    assert root.mode == "B", "overlay_root is set, so mode should be B"
+    assert (
+        root.static_is_overlay is True
+    ), "overlay_root normalizes to the same path as base_url, so static_is_overlay must be True for query dedup"
+
+    run = root.get_run("run_001")
+    assert len(run.picks) == src_pick_count, f"picks duplicated: expected {src_pick_count}, got {len(run.picks)}"
+    # Meshes / segs / voxel_spacings lists should also match the source
+    # (all zero in the tiny fixture, but the static_is_overlay gate applies).
+    assert len(run.meshes) == len(src_run.meshes)
+    assert len(run.segmentations) == len(src_run.segmentations)
+    assert len(run.voxel_spacings) == len(src_run.voxel_spacings)
+
+
+def test_mode_b_overlay_distinct_from_base_url_is_not_overlay(
+    tiny_filesystem_project,
+    tmp_path,
+):
+    """When overlay_root is a different path, static_is_overlay is False."""
+    import copick
+    from copick.ops.croissant import export_croissant
+
+    proj = tiny_filesystem_project
+    src = copick.from_file(str(proj / "filesystem.json"))
+    export_croissant(src, project_root=str(proj), base_url=f"file://{proj}")
+
+    overlay = tmp_path / "distinct_overlay"
+    overlay.mkdir()
+    cfg = {
+        "config_type": "mlcroissant",
+        "pickable_objects": [],
+        "croissant_url": str(proj / "Croissant" / "metadata.json"),
+        "overlay_root": f"file://{overlay}",
+        "overlay_fs_args": {"auto_mkdir": True},
+    }
+    config_path = tmp_path / "distinct_overlay.json"
+    config_path.write_text(json.dumps(cfg))
+
+    root = copick.from_file(str(config_path))
+    assert root.mode == "B"
+    assert root.static_is_overlay is False, (
+        "overlay_root is a distinct path from base_url — static_is_overlay "
+        "must be False so Mode-B semantics apply (static CSV + empty overlay)"
+    )
+
+    # Source has 1 pick; distinct overlay is empty; still exactly 1 pick.
+    run = root.get_run("run_001")
+    assert len(run.picks) == 1

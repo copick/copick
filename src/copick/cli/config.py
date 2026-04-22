@@ -1,4 +1,5 @@
 import contextlib
+import json
 import os
 from typing import Any, Dict, List, Optional, Tuple
 
@@ -72,6 +73,44 @@ def _load_splits_file(path: str) -> Dict[str, List[str]]:
                 continue
             mapping.setdefault(split, []).append(run)
     return mapping
+
+
+def _parse_json_opt(value: Optional[str], flag: str) -> Dict[str, Any]:
+    """Parse a JSON-object CLI argument, raising BadParameter on malformed input."""
+    if value is None or value == "":
+        return {}
+    try:
+        parsed = json.loads(value)
+    except json.JSONDecodeError as e:
+        raise click.BadParameter(f"{flag} must be a JSON object; got {value!r} ({e})") from e
+    if not isinstance(parsed, dict):
+        raise click.BadParameter(
+            f"{flag} must be a JSON object (got {type(parsed).__name__}).",
+        )
+    return parsed
+
+
+def _normalize_overlay_url(value: str) -> Tuple[str, bool]:
+    """Return ``(normalized_url, is_local)`` for an overlay URL argument.
+
+    A bare local path is wrapped in ``local://`` (matching the historical CLI
+    shape). ``file://`` and ``local://`` URLs pass through unchanged and are
+    reported as local. Anything with another protocol (``ssh://``, ``s3://``,
+    …) is returned as-is and reported as remote.
+    """
+    if "://" not in value:
+        return (f"local://{os.path.abspath(value)}", True)
+    if value.startswith("file://") or value.startswith("local://"):
+        return (value, True)
+    return (value, False)
+
+
+def _strip_local_prefix(url: str) -> str:
+    """Strip ``local://`` or ``file://`` from ``url`` for filesystem operations."""
+    for prefix in ("local://", "file://"):
+        if url.startswith(prefix):
+            return url[len(prefix) :]
+    return url
 
 
 def _merge_splits_inputs(
@@ -327,9 +366,48 @@ def filesystem(
 )
 @click.option(
     "--overlay",
-    type=click.Path(file_okay=False, dir_okay=True),
+    type=str,
     required=False,
-    help="Optional writable overlay (Mode B). If omitted, the Croissant's copick:baseUrl is used as the write location (Mode A).",
+    help=(
+        "Optional writable overlay (Mode B). Accepts any fsspec URL "
+        "(e.g. 'ssh:///remote/overlay', 's3://bucket/overlay') or a bare "
+        "local path. If omitted, the Croissant's copick:baseUrl is used "
+        "as the write location (Mode A)."
+    ),
+)
+@click.option(
+    "--overlay-fs-args",
+    "overlay_fs_args_arg",
+    type=str,
+    required=False,
+    default=None,
+    help=(
+        "JSON object of fsspec kwargs for --overlay (e.g. "
+        '\'{"host":"localhost","port":2222}\'). Local overlays add '
+        "'auto_mkdir=true' automatically unless overridden."
+    ),
+)
+@click.option(
+    "--static-fs-args",
+    "static_fs_args_arg",
+    type=str,
+    required=False,
+    default=None,
+    help=(
+        "JSON object of fsspec kwargs for resolving data URLs against the "
+        "Croissant's base URL (e.g. SSH credentials for overlay data)."
+    ),
+)
+@click.option(
+    "--croissant-fs-args",
+    "croissant_fs_args_arg",
+    type=str,
+    required=False,
+    default=None,
+    help=(
+        "JSON object of fsspec kwargs for fetching the Croissant manifest "
+        "itself (typically empty when --croissant-url is local)."
+    ),
 )
 @click.option(
     "--base-url",
@@ -350,6 +428,9 @@ def mlcroissant(
     ctx,
     croissant_url: str,
     overlay: str,
+    overlay_fs_args_arg: Optional[str],
+    static_fs_args_arg: Optional[str],
+    croissant_fs_args_arg: Optional[str],
     base_url: str,
     output: str,
     debug: bool = False,
@@ -362,12 +443,27 @@ def mlcroissant(
     logger = get_logger(__name__, debug=debug)
     logger.info("Generating configuration file from Croissant manifest...")
 
+    if overlay:
+        overlay_url, overlay_is_local = _normalize_overlay_url(overlay)
+        overlay_fs_args = _parse_json_opt(overlay_fs_args_arg, "--overlay-fs-args")
+        if overlay_is_local:
+            overlay_fs_args.setdefault("auto_mkdir", True)
+            os.makedirs(_strip_local_prefix(overlay_url), exist_ok=True)
+    else:
+        overlay_url = None
+        overlay_fs_args = None
+
+    static_fs_args = _parse_json_opt(static_fs_args_arg, "--static-fs-args")
+    croissant_fs_args = _parse_json_opt(croissant_fs_args_arg, "--croissant-fs-args")
+
     try:
         copick.from_croissant(
             croissant_url=croissant_url,
-            overlay_root=overlay,
+            overlay_root=overlay_url,
             croissant_base_url=base_url,
-            overlay_fs_args={"auto_mkdir": True} if overlay else None,
+            overlay_fs_args=overlay_fs_args,
+            static_fs_args=static_fs_args or None,
+            croissant_fs_args=croissant_fs_args or None,
             output_path=output,
         )
     except Exception as e:
@@ -440,10 +536,52 @@ def mlcroissant(
 @click.option(
     "--config-overlay",
     "config_overlay",
-    type=click.Path(file_okay=False, dir_okay=True),
+    type=str,
     required=False,
     default=None,
-    help="Overlay directory to embed in the emitted copick config (Mode B). Only used when --emit-config is set. If omitted, the emitted config is Mode A (self-contained).",
+    help=(
+        "Overlay URL to embed in the emitted copick config (Mode B). Accepts "
+        "any fsspec URL (e.g. 'ssh:///remote/overlay', 's3://bucket/overlay') "
+        "or a bare local path. Only used when --emit-config is set. If "
+        "omitted, the emitted config is Mode A (self-contained)."
+    ),
+)
+@click.option(
+    "--config-overlay-fs-args",
+    "config_overlay_fs_args_arg",
+    type=str,
+    required=False,
+    default=None,
+    help=(
+        "JSON object of fsspec kwargs for --config-overlay (e.g. "
+        '\'{"host":"localhost","port":2222}\'). Local overlays add '
+        "'auto_mkdir=true' automatically unless overridden."
+    ),
+)
+@click.option(
+    "--config-static-fs-args",
+    "config_static_fs_args_arg",
+    type=str,
+    required=False,
+    default=None,
+    help=(
+        "JSON object of fsspec kwargs for reaching the Croissant's base URL "
+        "(data location) from the emitted copick config. Defaults to the "
+        "source config's overlay_fs_args. Never written to the Croissant "
+        "manifest itself (kept credential-free for sharing)."
+    ),
+)
+@click.option(
+    "--config-croissant-fs-args",
+    "config_croissant_fs_args_arg",
+    type=str,
+    required=False,
+    default=None,
+    help=(
+        "JSON object of fsspec kwargs for reading the Croissant manifest "
+        "itself from the emitted copick config. Defaults to empty (typical "
+        "when --project-root is local)."
+    ),
 )
 @click.option(
     "--runs",
@@ -600,6 +738,9 @@ def export_croissant_cmd(
     no_file_sha256: bool,
     emit_config: str,
     config_overlay: str,
+    config_overlay_fs_args_arg: Optional[str],
+    config_static_fs_args_arg: Optional[str],
+    config_croissant_fs_args_arg: Optional[str],
     runs_arg: str,
     tomograms_arg: tuple,
     features_arg: tuple,
@@ -695,17 +836,36 @@ def export_croissant_cmd(
     logger.info(f"Wrote Croissant at {metadata_path}.")
 
     if emit_config:
+        source_cfg = root.config
+        default_static_fs_args = dict(getattr(source_cfg, "overlay_fs_args", {}) or {})
+        static_fs_args = (
+            _parse_json_opt(config_static_fs_args_arg, "--config-static-fs-args")
+            if config_static_fs_args_arg is not None
+            else default_static_fs_args
+        )
+        croissant_fs_args = _parse_json_opt(
+            config_croissant_fs_args_arg,
+            "--config-croissant-fs-args",
+        )
+
         mlc_cfg = {
             "config_type": "mlcroissant",
             "pickable_objects": [],
             "croissant_url": str(metadata_path),
+            "static_fs_args": static_fs_args,
+            "croissant_fs_args": croissant_fs_args,
         }
         if config_overlay:
-            import os as _os
-
-            _os.makedirs(config_overlay, exist_ok=True)
-            mlc_cfg["overlay_root"] = f"local://{config_overlay}"
-            mlc_cfg["overlay_fs_args"] = {"auto_mkdir": True}
+            overlay_url, overlay_is_local = _normalize_overlay_url(config_overlay)
+            overlay_args = _parse_json_opt(
+                config_overlay_fs_args_arg,
+                "--config-overlay-fs-args",
+            )
+            if overlay_is_local:
+                overlay_args.setdefault("auto_mkdir", True)
+                os.makedirs(_strip_local_prefix(overlay_url), exist_ok=True)
+            mlc_cfg["overlay_root"] = overlay_url
+            mlc_cfg["overlay_fs_args"] = overlay_args
         with open(emit_config, "w") as f:
             _json.dump(mlc_cfg, f, indent=4)
         logger.info(f"Wrote mlcroissant copick config at {emit_config}.")

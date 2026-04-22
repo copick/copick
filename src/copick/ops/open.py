@@ -119,6 +119,7 @@ def from_croissant(
     croissant_base_url: Optional[str] = None,
     overlay_fs_args: Optional[Dict[str, Any]] = None,
     croissant_fs_args: Optional[Dict[str, Any]] = None,
+    static_fs_args: Optional[Dict[str, Any]] = None,
     output_path: Optional[str] = None,
 ) -> "CopickRootMLC":
     """Create a Copick project from an mlcroissant manifest.
@@ -131,6 +132,10 @@ def from_croissant(
             moved / mirrored datasets).
         overlay_fs_args: Extra fsspec kwargs for the overlay filesystem.
         croissant_fs_args: Extra fsspec kwargs for fetching the Croissant.
+        static_fs_args: Extra fsspec kwargs for resolving data URLs against
+            the Croissant's ``base_url`` (e.g. SSH ``host``/``port``). Kept
+            out of the shared Croissant manifest itself — supply them here
+            in the local config.
         output_path: If set, write the generated copick config JSON to this
             path so that subsequent loads can use :func:`from_file`.
 
@@ -147,6 +152,7 @@ def from_croissant(
         overlay_root=overlay_root,
         overlay_fs_args=overlay_fs_args or {},
         croissant_fs_args=croissant_fs_args or {},
+        static_fs_args=static_fs_args or {},
     )
 
     root = CopickRootMLC(config)

@@ -299,6 +299,12 @@ class CopickConfigMLCroissant(CopickConfig):
             omitted, the Croissant's base URL is used as the write target (Mode A).
         overlay_fs_args: Extra fsspec kwargs for the overlay filesystem.
         croissant_fs_args: Extra fsspec kwargs for fetching metadata.json and CSVs.
+        static_fs_args: Extra fsspec kwargs for resolving data URLs against the
+            Croissant's ``base_url``. Mirrors ``CopickConfigFSSpec.static_fs_args``
+            — the Croissant's ``base_url`` plays the same role as ``static_root``
+            in the filesystem backend (read-only shared data location). Kept out
+            of the Croissant manifest itself so shared artifacts stay credential
+            free; consumers supply these in their local copick config.
     """
 
     config_type: str = "mlcroissant"
@@ -307,6 +313,7 @@ class CopickConfigMLCroissant(CopickConfig):
     overlay_root: Optional[str] = None
     overlay_fs_args: Optional[Dict[str, Any]] = {}
     croissant_fs_args: Optional[Dict[str, Any]] = {}
+    static_fs_args: Optional[Dict[str, Any]] = {}
 
 
 # -----------------------------------------------------------------------------
@@ -352,6 +359,20 @@ def _fs_for_url(url: str, **kwargs) -> Tuple[AbstractFileSystem, str]:
         return fs, path
     # Plain local path
     return fsspec.filesystem("file", **kwargs), url
+
+
+def _is_local_protocol(url: str) -> bool:
+    """Return True when ``url`` targets the local filesystem.
+
+    Covers bare paths, ``file://``, and ``local://``. Used to decide whether
+    kwargs like ``auto_mkdir`` make sense (local-only) vs would confuse a
+    remote fsspec backend.
+    """
+    if not url:
+        return True
+    if url.startswith("file://") or url.startswith("local://"):
+        return True
+    return not _has_protocol(url)
 
 
 def _strip_includes_glob(includes: str) -> str:
@@ -420,6 +441,7 @@ class CroissantIndex:
     croissant_dir: str  # absolute path/URL of the Croissant directory containing metadata.json
     croissant_fs: AbstractFileSystem  # fsspec fs for the Croissant directory
     base_url: str = ""
+    static_fs_args: Dict[str, Any] = field(default_factory=dict)
     config_block: Dict[str, Any] = field(default_factory=dict)
 
     # Materialised rows per RecordSet
@@ -450,8 +472,14 @@ class CroissantIndex:
         *,
         base_url_override: Optional[str] = None,
         fs_args: Optional[Dict[str, Any]] = None,
+        static_fs_args: Optional[Dict[str, Any]] = None,
     ) -> "CroissantIndex":
-        """Fetch and parse the Croissant manifest at ``croissant_url``."""
+        """Fetch and parse the Croissant manifest at ``croissant_url``.
+
+        ``fs_args`` are applied when reading ``metadata.json`` + CSV sidecars.
+        ``static_fs_args`` are stored on the index and applied when resolving
+        data URLs against ``base_url`` via :meth:`resolve_url`.
+        """
         fs_args = fs_args or {}
         croissant_fs, croissant_path = _fs_for_url(croissant_url, **fs_args)
 
@@ -486,6 +514,7 @@ class CroissantIndex:
             croissant_dir=croissant_dir,
             croissant_fs=croissant_fs,
             base_url=base_url,
+            static_fs_args=dict(static_fs_args or {}),
             config_block=doc.get("copick:config", {}),
             _metadata_path=croissant_path,
         )
@@ -607,9 +636,14 @@ class CroissantIndex:
     # ------------------------------------------------------------------
 
     def resolve_url(self, url_value: str, **fs_args) -> Tuple[AbstractFileSystem, str]:
-        """Resolve a CSV ``url`` column value into (fsspec_fs, absolute_path)."""
+        """Resolve a CSV ``url`` column value into (fsspec_fs, absolute_path).
+
+        ``self.static_fs_args`` are merged beneath caller-supplied ``fs_args``
+        so callers can still override on a per-call basis.
+        """
         absolute = _join_url(self.base_url, url_value)
-        fs, path = _fs_for_url(absolute, **fs_args)
+        merged = {**self.static_fs_args, **fs_args}
+        fs, path = _fs_for_url(absolute, **merged)
         return fs, path
 
     # ------------------------------------------------------------------
@@ -879,7 +913,7 @@ class CopickPicksMLC(CopickPicksOverlay):
     @property
     def fs(self) -> AbstractFileSystem:
         if self.read_only:
-            fs, _ = _fs_for_url(self.path)
+            fs, _ = _fs_for_url(self.path, **self._index.static_fs_args)
             return fs
         return self.run.fs_overlay
 
@@ -988,7 +1022,7 @@ class CopickMeshMLC(CopickMeshOverlay):
     @property
     def fs(self) -> AbstractFileSystem:
         if self.read_only:
-            fs, _ = _fs_for_url(self.path)
+            fs, _ = _fs_for_url(self.path, **self._index.static_fs_args)
             return fs
         return self.run.fs_overlay
 
@@ -1100,7 +1134,7 @@ class CopickSegmentationMLC(CopickSegmentationOverlay):
     @property
     def fs(self) -> AbstractFileSystem:
         if self.read_only:
-            fs, _ = _fs_for_url(self.path)
+            fs, _ = _fs_for_url(self.path, **self._index.static_fs_args)
             return fs
         return self.run.fs_overlay
 
@@ -1198,7 +1232,7 @@ class CopickFeaturesMLC(CopickFeaturesOverlay):
     @property
     def fs(self) -> AbstractFileSystem:
         if self.read_only:
-            fs, _ = _fs_for_url(self.path)
+            fs, _ = _fs_for_url(self.path, **self._index.static_fs_args)
             return fs
         return self.tomogram.fs_overlay
 
@@ -1310,7 +1344,7 @@ class CopickTomogramMLC(CopickTomogramOverlay):
         sp = self.static_path
         if sp is None:
             return None
-        fs, _ = _fs_for_url(sp)
+        fs, _ = _fs_for_url(sp, **self._index.static_fs_args)
         return fs
 
     @property
@@ -1322,8 +1356,10 @@ class CopickTomogramMLC(CopickTomogramOverlay):
         return self.voxel_spacing.static_is_overlay
 
     def _query_static_features(self) -> List[CopickFeaturesMLC]:
-        # Mode A: static_is_overlay — everything is in the overlay query.
-        if self.voxel_spacing.run.root.mode == "A":
+        # When static and overlay point to the same location (Mode A, or
+        # Mode B with overlay_root == base_url), skip the static branch
+        # so artifacts aren't returned twice.
+        if self.static_is_overlay:
             return []
         results = []
         for row in self._index.features:
@@ -1454,7 +1490,7 @@ class CopickVoxelSpacingMLC(CopickVoxelSpacingOverlay):
 
     @property
     def fs_static(self) -> AbstractFileSystem:
-        fs, _ = _fs_for_url(self.static_path)
+        fs, _ = _fs_for_url(self.static_path, **self._index.static_fs_args)
         return fs
 
     @property
@@ -1463,11 +1499,13 @@ class CopickVoxelSpacingMLC(CopickVoxelSpacingOverlay):
 
     @property
     def static_is_overlay(self) -> bool:
-        return self.run.root.mode == "A"
+        return self.run.root.static_is_overlay
 
     def _query_static_tomograms(self) -> List[CopickTomogramMLC]:
-        # Mode A: static_is_overlay — everything is in the overlay query.
-        if self.run.root.mode == "A":
+        # When static and overlay point to the same location (Mode A, or
+        # Mode B with overlay_root == base_url), skip the static branch
+        # so artifacts aren't returned twice.
+        if self.static_is_overlay:
             return []
         results = []
         for row in self._index.tomograms:
@@ -1594,7 +1632,7 @@ class CopickRunMLC(CopickRunOverlay):
 
     @property
     def fs_static(self) -> AbstractFileSystem:
-        fs, _ = _fs_for_url(self.static_path)
+        fs, _ = _fs_for_url(self.static_path, **self._index.static_fs_args)
         return fs
 
     @property
@@ -1603,13 +1641,15 @@ class CopickRunMLC(CopickRunOverlay):
 
     @property
     def static_is_overlay(self) -> bool:
-        return self.root.mode == "A"
+        return self.root.static_is_overlay
 
     # ----- static queries: filter index rows by run name -----
 
     def _query_static_voxel_spacings(self) -> List[CopickVoxelSpacingMLC]:
-        # Mode A: static_is_overlay — everything is in the overlay query.
-        if self.root.mode == "A":
+        # When static and overlay point to the same location (Mode A, or
+        # Mode B with overlay_root == base_url), skip the static branch
+        # so artifacts aren't returned twice.
+        if self.static_is_overlay:
             return []
         results = []
         seen = set()
@@ -1659,8 +1699,10 @@ class CopickRunMLC(CopickRunOverlay):
         return [CopickVoxelSpacingMLC(meta=CopickVoxelSpacingMeta(voxel_size=s), run=self) for s in spacings]
 
     def _query_static_picks(self) -> List[CopickPicksMLC]:
-        # Mode A: static_is_overlay — everything is in the overlay query.
-        if self.root.mode == "A":
+        # When static and overlay point to the same location (Mode A, or
+        # Mode B with overlay_root == base_url), skip the static branch
+        # so artifacts aren't returned twice.
+        if self.static_is_overlay:
             return []
         results = []
         for row in self._index.picks:
@@ -1720,8 +1762,10 @@ class CopickRunMLC(CopickRunOverlay):
         return result
 
     def _query_static_meshes(self) -> List[CopickMeshMLC]:
-        # Mode A: static_is_overlay — everything is in the overlay query.
-        if self.root.mode == "A":
+        # When static and overlay point to the same location (Mode A, or
+        # Mode B with overlay_root == base_url), skip the static branch
+        # so artifacts aren't returned twice.
+        if self.static_is_overlay:
             return []
         results = []
         for row in self._index.meshes:
@@ -1781,8 +1825,10 @@ class CopickRunMLC(CopickRunOverlay):
         return result
 
     def _query_static_segmentations(self) -> List[CopickSegmentationMLC]:
-        # Mode A: static_is_overlay — everything is in the overlay query.
-        if self.root.mode == "A":
+        # When static and overlay point to the same location (Mode A, or
+        # Mode B with overlay_root == base_url), skip the static branch
+        # so artifacts aren't returned twice.
+        if self.static_is_overlay:
             return []
         results = []
         for row in self._index.segmentations:
@@ -1924,7 +1970,7 @@ class CopickObjectMLC(CopickObjectOverlay):
         sp = self.static_path
         if sp is None:
             return None
-        fs, _ = _fs_for_url(sp)
+        fs, _ = _fs_for_url(sp, **self._index.static_fs_args)
         return fs
 
     @property
@@ -1992,6 +2038,7 @@ class CopickRootMLC(CopickRoot):
             config.croissant_url,
             base_url_override=config.croissant_base_url,
             fs_args=config.croissant_fs_args or {},
+            static_fs_args=config.static_fs_args or {},
         )
         # Merge copick:config content into the CopickConfig the user supplied.
         # The Croissant on disk is authoritative for pickable_objects / user_id /
@@ -2017,16 +2064,30 @@ class CopickRootMLC(CopickRoot):
             self.overlay_base_url = self.fs_overlay._strip_protocol(config.overlay_root).rstrip("/")
             self.fs_overlay._root_ref = weakref.ref(self)
         else:
-            # Mode A: overlay is the Croissant's base URL location.
-            # auto_mkdir=True mirrors the filesystem backend's default; without
-            # it LocalFileSystem refuses to create parent chunk dirs for zarr
-            # stores.
+            # Mode A: overlay is the Croissant's base URL location. Reuse the
+            # stored static_fs_args for authentication to that location; add
+            # auto_mkdir=True only for local schemes (LocalFileSystem refuses
+            # to create parent chunk dirs for zarr stores without it; remote
+            # fsspec backends reject the unknown kwarg).
             base = self.index.base_url or ""
+            fs_kwargs = dict(self.index.static_fs_args)
+            if not base or _is_local_protocol(base):
+                fs_kwargs.setdefault("auto_mkdir", True)
             if base:
-                self.fs_overlay, _ = _fs_for_url(base, auto_mkdir=True)
+                self.fs_overlay, _ = _fs_for_url(base, **fs_kwargs)
             else:
                 self.fs_overlay = fsspec.filesystem("file", auto_mkdir=True)
             self.overlay_base_url = None  # signals Mode A
+
+        # Comparable form of the Croissant's base_url, stripped with the same
+        # rules as overlay_base_url above. Lets static_is_overlay detect the
+        # Mode-B case where overlay and base point to the same location.
+        self.static_base_url: Optional[str] = None
+        if self.index.base_url:
+            try:
+                self.static_base_url = self.fs_overlay._strip_protocol(self.index.base_url).rstrip("/")
+            except Exception:
+                self.static_base_url = self.index.base_url.rstrip("/") or None
 
     @classmethod
     def from_file(cls, path: str) -> "CopickRootMLC":
@@ -2038,6 +2099,22 @@ class CopickRootMLC(CopickRoot):
     @property
     def mode(self) -> str:
         return "B" if self.overlay_base_url else "A"
+
+    @property
+    def static_is_overlay(self) -> bool:
+        """Whether the Croissant base URL and the overlay point to the same location.
+
+        True in Mode A by construction (``overlay_base_url is None`` and
+        ``fs_overlay`` is built from ``base_url``) and in Mode B when the
+        configured ``overlay_root`` resolves to the same path as the Croissant's
+        ``base_url``. Query methods consult this to avoid returning each
+        artifact twice (once from the CSV index, once from the overlay glob).
+        """
+        if self.overlay_base_url is None:
+            return True
+        if not self.static_base_url:
+            return False
+        return self.static_base_url == self.overlay_base_url
 
     # ----- Factories -----
     def _run_factory(self) -> Tuple[Type[CopickRunMLC], Type[CopickRunMeta]]:
