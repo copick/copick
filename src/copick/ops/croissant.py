@@ -17,7 +17,8 @@ import hashlib
 import io
 import json
 import os
-from typing import Any, Dict, List, Optional
+from dataclasses import dataclass
+from typing import Any, Dict, Iterable, List, Optional, Set, Tuple
 
 from fsspec import AbstractFileSystem
 
@@ -29,6 +30,7 @@ from copick.impl.mlcroissant import (
 )
 from copick.models import CopickRoot
 from copick.util.log import get_logger
+from copick.util.uri import resolve_copick_objects
 
 logger = get_logger(__name__)
 
@@ -38,6 +40,44 @@ CONFORMS_TO = "http://mlcommons.org/croissant/1.1"
 # Canonical S3 base URL for the CZ cryoET Data Portal public bucket. Portal URLs
 # are of the form ``s3://cryoet-data-portal-public/<dataset_id>/...``.
 CDP_PORTAL_BASE_URL = "s3://cryoet-data-portal-public/"
+
+
+@dataclass
+class _ExportFilters:
+    """Per-artifact-type subset filters for :func:`export_croissant`.
+
+    ``None`` means "include everything of this type" (no filter).
+    A non-None value is a list of names (for ``runs`` / ``objects``) or URIs
+    (for the others), matched via :func:`copick.util.uri.resolve_copick_objects`.
+    """
+
+    runs: Optional[List[str]] = None
+    tomograms: Optional[List[str]] = None
+    features: Optional[List[str]] = None
+    picks: Optional[List[str]] = None
+    meshes: Optional[List[str]] = None
+    segmentations: Optional[List[str]] = None
+    objects: Optional[List[str]] = None
+
+
+def _resolve_allowed_keys(
+    uri_list: Optional[List[str]],
+    root: CopickRoot,
+    object_type: str,
+    run_name: str,
+    key_fn,
+) -> Optional[Set[Tuple]]:
+    """Resolve a list of URIs scoped to one run and return the set of key tuples.
+
+    Returns ``None`` when ``uri_list`` is ``None`` (the "no filter" sentinel).
+    """
+    if uri_list is None:
+        return None
+    allowed: Set[Tuple] = set()
+    for uri in uri_list:
+        for obj in resolve_copick_objects(uri, root, object_type, run_name=run_name):
+            allowed.add(key_fn(obj))
+    return allowed
 
 
 def _strip_proto(url: str) -> str:
@@ -126,6 +166,13 @@ def export_croissant(
     date_published: Optional[str] = None,
     validate: bool = True,
     compute_file_sha256: bool = True,
+    runs: Optional[Iterable[str]] = None,
+    tomograms: Optional[Iterable[str]] = None,
+    features: Optional[Iterable[str]] = None,
+    picks: Optional[Iterable[str]] = None,
+    meshes: Optional[Iterable[str]] = None,
+    segmentations: Optional[Iterable[str]] = None,
+    objects: Optional[Iterable[str]] = None,
 ) -> str:
     """Export ``root`` to ``<project_root>/Croissant/``.
 
@@ -143,10 +190,34 @@ def export_croissant(
         date_published: ISO date string. Defaults to today.
         validate: Run the Croissant validator after assembly. Raises on errors.
         compute_file_sha256: Compute sha256 per picks JSON / mesh GLB (O(N) reads).
+        runs: Optional iterable of run names to include. If ``None`` (default),
+            every run is exported. Names that don't exist in ``root`` are
+            silently skipped.
+        tomograms: Optional iterable of copick URIs (e.g. ``"wbp@10.0"``) to
+            filter tomograms. Each URI is resolved via
+            :func:`copick.util.uri.resolve_copick_objects` and the results are
+            unioned. ``None`` means no filter.
+        features: Optional iterable of copick URIs (e.g. ``"wbp@10.0:sobel"``).
+        picks: Optional iterable of copick URIs (e.g. ``"ribosome:*/*"``).
+        meshes: Optional iterable of copick URIs (e.g. ``"ribosome:*/*"``).
+        segmentations: Optional iterable of copick URIs (e.g.
+            ``"membrane:*/*@10.0"``).
+        objects: Optional iterable of pickable-object names to include in the
+            object density map CSV. ``copick:config.pickable_objects`` is
+            unaffected.
 
     Returns:
         The path to the written metadata.json.
     """
+    filters = _ExportFilters(
+        runs=list(runs) if runs is not None else None,
+        tomograms=list(tomograms) if tomograms is not None else None,
+        features=list(features) if features is not None else None,
+        picks=list(picks) if picks is not None else None,
+        meshes=list(meshes) if meshes is not None else None,
+        segmentations=list(segmentations) if segmentations is not None else None,
+        objects=list(objects) if objects is not None else None,
+    )
     project_root_str = _strip_proto(project_root)
     croissant_dir = os.path.join(project_root_str, "Croissant")
 
@@ -168,7 +239,13 @@ def export_croissant(
         copick_base_url = base_url
 
     # Walk the project and build per-type row lists
-    rows = _walk_project(root, copick_base_url, source_type=source_type, compute_file_sha256=compute_file_sha256)
+    rows = _walk_project(
+        root,
+        copick_base_url,
+        source_type=source_type,
+        compute_file_sha256=compute_file_sha256,
+        filters=filters,
+    )
 
     # Write CSVs
     csv_bytes: Dict[str, bytes] = {}
@@ -215,33 +292,107 @@ def _walk_project(
     *,
     source_type: str,
     compute_file_sha256: bool,
+    filters: _ExportFilters,
 ) -> Dict[str, List[Dict[str, Any]]]:
     rows: Dict[str, List[Dict[str, Any]]] = {rs_id: [] for rs_id in RECORDSET_ORDER}
     is_cdp = source_type == "cryoet_data_portal"
 
-    for run in root.runs:
+    # Top-level run filter: restrict which runs we walk at all.
+    all_runs = list(root.runs)
+    if filters.runs is not None:
+        allowed_run_names = set(filters.runs)
+        runs_iter = [r for r in all_runs if r.name in allowed_run_names]
+    else:
+        runs_iter = all_runs
+
+    for run in runs_iter:
         rows["copick/runs"].append({"name": run.name})
 
+        # Resolve per-run allow-sets for URI-filtered artifact types.
+        allowed_tomos = _resolve_allowed_keys(
+            filters.tomograms,
+            root,
+            "tomogram",
+            run.name,
+            lambda t: (float(t.voxel_spacing.voxel_size), t.tomo_type),
+        )
+        allowed_feats = _resolve_allowed_keys(
+            filters.features,
+            root,
+            "feature",
+            run.name,
+            lambda f: (
+                float(f.tomogram.voxel_spacing.voxel_size),
+                f.tomogram.tomo_type,
+                f.feature_type,
+            ),
+        )
+        allowed_picks = _resolve_allowed_keys(
+            filters.picks,
+            root,
+            "picks",
+            run.name,
+            lambda p: (p.user_id, p.session_id, p.pickable_object_name),
+        )
+        allowed_meshes = _resolve_allowed_keys(
+            filters.meshes,
+            root,
+            "mesh",
+            run.name,
+            lambda m: (m.user_id, m.session_id, m.pickable_object_name),
+        )
+        allowed_segs = _resolve_allowed_keys(
+            filters.segmentations,
+            root,
+            "segmentation",
+            run.name,
+            lambda s: (
+                float(s.voxel_size),
+                s.user_id,
+                s.session_id,
+                s.name,
+                bool(s.is_multilabel),
+            ),
+        )
+
+        # Voxel spacings are derived: emit a VS row only when at least one
+        # surviving tomogram / feature / segmentation sits at that (run, vs).
+        vs_emitted: Set[float] = set()
+
         for vs in run.voxel_spacings:
-            rows["copick/voxel_spacings"].append(
-                {"run": run.name, "voxel_size": float(vs.voxel_size)},
-            )
+            vs_size = float(vs.voxel_size)
             for tomo in vs.tomograms:
+                tomo_key = (vs_size, tomo.tomo_type)
+                if allowed_tomos is not None and tomo_key not in allowed_tomos:
+                    continue
+                if vs_size not in vs_emitted:
+                    vs_emitted.add(vs_size)
+                    rows["copick/voxel_spacings"].append(
+                        {"run": run.name, "voxel_size": vs_size},
+                    )
                 tomo_url = _tomo_url(run, vs, tomo, copick_base_url, is_cdp)
                 rows["copick/tomograms"].append(
                     {
                         "run": run.name,
-                        "voxel_size": float(vs.voxel_size),
+                        "voxel_size": vs_size,
                         "tomo_type": tomo.tomo_type,
                         "url": tomo_url,
                     },
                 )
                 for feat in tomo.features:
+                    feat_key = (vs_size, tomo.tomo_type, feat.feature_type)
+                    if allowed_feats is not None and feat_key not in allowed_feats:
+                        continue
+                    if vs_size not in vs_emitted:
+                        vs_emitted.add(vs_size)
+                        rows["copick/voxel_spacings"].append(
+                            {"run": run.name, "voxel_size": vs_size},
+                        )
                     feat_url = _feat_url(run, vs, tomo, feat, copick_base_url, is_cdp)
                     rows["copick/features"].append(
                         {
                             "run": run.name,
-                            "voxel_size": float(vs.voxel_size),
+                            "voxel_size": vs_size,
                             "tomo_type": tomo.tomo_type,
                             "feature_type": feat.feature_type,
                             "url": feat_url,
@@ -249,6 +400,9 @@ def _walk_project(
                     )
 
         for pick in run.picks:
+            key = (pick.user_id, pick.session_id, pick.pickable_object_name)
+            if allowed_picks is not None and key not in allowed_picks:
+                continue
             pick_url, sha = _pick_url_and_sha(run, pick, copick_base_url, is_cdp, compute_file_sha256)
             rows["copick/picks"].append(
                 {
@@ -262,6 +416,9 @@ def _walk_project(
             )
 
         for mesh in run.meshes:
+            key = (mesh.user_id, mesh.session_id, mesh.pickable_object_name)
+            if allowed_meshes is not None and key not in allowed_meshes:
+                continue
             mesh_url, sha = _mesh_url_and_sha(run, mesh, copick_base_url, is_cdp, compute_file_sha256)
             rows["copick/meshes"].append(
                 {
@@ -275,6 +432,21 @@ def _walk_project(
             )
 
         for seg in run.segmentations:
+            key = (
+                float(seg.voxel_size),
+                seg.user_id,
+                seg.session_id,
+                seg.name,
+                bool(seg.is_multilabel),
+            )
+            if allowed_segs is not None and key not in allowed_segs:
+                continue
+            seg_vs = float(seg.voxel_size)
+            if seg_vs not in vs_emitted:
+                vs_emitted.add(seg_vs)
+                rows["copick/voxel_spacings"].append(
+                    {"run": run.name, "voxel_size": seg_vs},
+                )
             seg_url = _seg_url(run, seg, copick_base_url, is_cdp)
             rows["copick/segmentations"].append(
                 {
@@ -288,8 +460,14 @@ def _walk_project(
                 },
             )
 
+    # Object density maps. The filter targets pickable-object names; the
+    # ``copick:config.pickable_objects`` blob is NOT filtered so picks/meshes/
+    # segmentations referring to other objects stay internally consistent.
+    allowed_objects: Optional[Set[str]] = set(filters.objects) if filters.objects is not None else None
     for obj in root.pickable_objects:
         if not obj.is_particle:
+            continue
+        if allowed_objects is not None and obj.name not in allowed_objects:
             continue
         try:
             z = obj.zarr()

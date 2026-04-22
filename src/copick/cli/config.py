@@ -307,6 +307,57 @@ def mlcroissant(
     default=None,
     help="Overlay directory to embed in the emitted copick config (Mode B). Only used when --emit-config is set. If omitted, the emitted config is Mode A (self-contained).",
 )
+@click.option(
+    "--runs",
+    "runs_arg",
+    type=str,
+    required=False,
+    default=None,
+    help="Comma-separated run names to include. Omit to include all runs.",
+)
+@click.option(
+    "--tomograms",
+    "tomograms_arg",
+    type=str,
+    multiple=True,
+    help="Copick URI to filter tomograms (e.g. 'wbp@10.0'). Repeatable. Omit to include all tomograms.",
+)
+@click.option(
+    "--features",
+    "features_arg",
+    type=str,
+    multiple=True,
+    help="Copick URI to filter features (e.g. 'wbp@10.0:sobel'). Repeatable. Omit to include all features.",
+)
+@click.option(
+    "--picks",
+    "picks_arg",
+    type=str,
+    multiple=True,
+    help="Copick URI to filter picks (e.g. 'ribosome:*/*'). Repeatable. Omit to include all picks.",
+)
+@click.option(
+    "--meshes",
+    "meshes_arg",
+    type=str,
+    multiple=True,
+    help="Copick URI to filter meshes (e.g. 'ribosome:*/*'). Repeatable. Omit to include all meshes.",
+)
+@click.option(
+    "--segmentations",
+    "segmentations_arg",
+    type=str,
+    multiple=True,
+    help="Copick URI to filter segmentations (e.g. 'membrane:*/*@10.0'). Repeatable. Omit to include all segmentations.",
+)
+@click.option(
+    "--objects",
+    "objects_arg",
+    type=str,
+    required=False,
+    default=None,
+    help="Comma-separated pickable object names to emit density maps for. Omit to include all objects.",
+)
 @add_debug_option
 @click.pass_context
 def export_croissant_cmd(
@@ -322,6 +373,13 @@ def export_croissant_cmd(
     no_file_sha256: bool,
     emit_config: str,
     config_overlay: str,
+    runs_arg: str,
+    tomograms_arg: tuple,
+    features_arg: tuple,
+    picks_arg: tuple,
+    meshes_arg: tuple,
+    segmentations_arg: tuple,
+    objects_arg: str,
     debug: bool = False,
 ):
     """
@@ -332,11 +390,18 @@ def export_croissant_cmd(
     configuration JSON at PATH. Pair with --config-overlay DIR to embed a
     writable overlay (Mode B) so viz tools can annotate without touching the
     source data.
+
+    Subset selection: any of --runs / --tomograms / --features / --picks /
+    --meshes / --segmentations / --objects may be provided to restrict the
+    export. URI-based flags follow copick's standard URI grammar and can be
+    repeated to union multiple selectors. Any flag that's omitted means "no
+    filter, include everything of that type".
     """
     import json as _json
 
     import copick
     from copick.ops.croissant import export_croissant
+    from copick.util.sync import parse_list
 
     logger = get_logger(__name__, debug=debug)
     logger.info("Loading copick project...")
@@ -360,6 +425,13 @@ def export_croissant_cmd(
             cite_as=cite_as,
             date_published=date_published,
             compute_file_sha256=not no_file_sha256,
+            runs=parse_list(runs_arg) if runs_arg else None,
+            tomograms=list(tomograms_arg) if tomograms_arg else None,
+            features=list(features_arg) if features_arg else None,
+            picks=list(picks_arg) if picks_arg else None,
+            meshes=list(meshes_arg) if meshes_arg else None,
+            segmentations=list(segmentations_arg) if segmentations_arg else None,
+            objects=parse_list(objects_arg) if objects_arg else None,
         )
     except Exception as e:
         logger.critical(f"Failed to export Croissant: {e}")

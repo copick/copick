@@ -94,10 +94,57 @@ and mesh GLBs. Pass `--no-file-sha256` to skip the per-file hashing when
 speed matters.
 
 For a CryoET Data Portal-backed source, `--base-url` is ignored — the
-exporter derives the longest common `s3://` prefix among the referenced
-portal URLs and uses that as `copick:baseUrl`. The generated Croissant's CSV
-`url` columns contain absolute `s3://` paths straight from the portal,
-so consumers can read data without the portal GraphQL API.
+exporter uses the canonical `s3://cryoet-data-portal-public/` as `copick:baseUrl`.
+The generated Croissant's CSV `url` columns contain absolute `s3://` paths
+straight from the portal, so consumers can read data without the portal
+GraphQL API.
+
+### Exporting a subset
+
+By default `export-croissant` emits every run, voxel spacing, tomogram,
+feature, pick, mesh, segmentation, and object density map from the source
+project. To restrict the export, pass any combination of the following
+filter flags. An omitted flag means "no filter — include everything of that
+type"; URIs follow copick's standard per-type URI grammar and each URI
+flag can be repeated to union multiple selectors.
+
+| Flag              | Accepts                                           |
+|-------------------|---------------------------------------------------|
+| `--runs`          | comma-separated run names                         |
+| `--tomograms`     | URI (e.g. `wbp@10.0`), repeatable                 |
+| `--features`      | URI (e.g. `wbp@10.0:sobel`), repeatable           |
+| `--picks`         | URI (e.g. `ribosome:*/*`), repeatable             |
+| `--meshes`        | URI (e.g. `ribosome:*/*`), repeatable             |
+| `--segmentations` | URI (e.g. `membrane:*/*@10.0`), repeatable        |
+| `--objects`       | comma-separated pickable-object names (density maps) |
+
+Example — restrict to two runs + only ribosome picks at 10 Å tomograms:
+
+```bash
+copick config export-croissant \
+    --config my_project/filesystem.json \
+    --project-root my_project \
+    --base-url https://data.example.org/my_project/ \
+    --runs TS_001,TS_002 \
+    --tomograms "wbp@10.0" \
+    --picks "ribosome:*/*"
+```
+
+Example — export only the membrane segmentations at VS 10.0 across all runs:
+
+```bash
+copick config export-croissant \
+    --config my_project/filesystem.json \
+    --project-root my_project \
+    --base-url https://data.example.org/my_project/ \
+    --segmentations "membrane:*/*@10.0"
+```
+
+The filters are independent: omitting `--picks` while setting `--tomograms`
+exports all picks and only the matching tomograms. Voxel-spacings rows are
+derived — they're emitted only for `(run, voxel_size)` pairs observed in at
+least one surviving tomogram / feature / segmentation, so a filter that
+selects only picks yields an empty `voxel_spacings.csv`.
 
 ## Opening a Croissant-backed project
 
