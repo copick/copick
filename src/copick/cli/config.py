@@ -1,9 +1,67 @@
-from typing import List
+import contextlib
+import os
+from typing import Any, Dict, List, Optional, Tuple
 
 import click
 
 from copick.cli.util import add_debug_option
 from copick.util.log import get_logger
+
+
+def _parse_kv(arg: Optional[str]) -> Dict[str, Any]:
+    """Parse a comma-separated ``key=value`` string into a dict.
+
+    Empty/None input yields ``{}``. Whitespace around each key and value is
+    stripped. No type coercion — downstream consumers (e.g.
+    ``PortalAnnotationMeta.compare``) cast through their pydantic models.
+    """
+    if not arg:
+        return {}
+    result: Dict[str, Any] = {}
+    for pair in arg.split(","):
+        pair = pair.strip()
+        if not pair:
+            continue
+        if "=" not in pair:
+            raise click.BadParameter(f"Expected 'key=value' in '{pair}'.")
+        k, v = pair.split("=", 1)
+        result[k.strip()] = v.strip()
+    return result
+
+
+def _load_source_root(
+    source_config: Optional[str],
+    source_dataset_ids: Optional[str],
+) -> Tuple[Any, Optional[str]]:
+    """Load a copick root from either a config file or CDP dataset IDs.
+
+    Returns ``(root, temp_config_path)``. ``temp_config_path`` is non-None
+    only when the CDP shortcut was used; callers should delete it in a
+    ``finally`` clause.
+
+    Raises :class:`click.BadParameter` when neither or both inputs are
+    provided.
+    """
+    import copick
+    from copick.util.sync import create_dataportal_config, parse_dataset_ids
+
+    if bool(source_config) == bool(source_dataset_ids):
+        raise click.BadParameter(
+            "Provide exactly one of --config / --source-config or --source-dataset-ids.",
+        )
+    if source_dataset_ids:
+        dataset_ids = parse_dataset_ids(source_dataset_ids)
+        temp_path = create_dataportal_config(dataset_ids)
+        try:
+            root = copick.from_file(temp_path)
+        except Exception:
+            # On failure clean up the temp file immediately so we don't leak.
+            with contextlib.suppress(OSError):
+                os.unlink(temp_path)
+            raise
+        return root, temp_path
+    root = copick.from_file(source_config)
+    return root, None
 
 
 @click.group(short_help="Create and manage copick configuration files.")
@@ -265,14 +323,29 @@ def mlcroissant(
     "--config",
     "config_path",
     type=click.Path(dir_okay=False, exists=True),
-    required=True,
-    help="Path to the input copick configuration file.",
+    required=False,
+    default=None,
+    help="Path to the input copick configuration file. Mutually exclusive with --source-dataset-ids.",
+)
+@click.option(
+    "--source-dataset-ids",
+    "source_dataset_ids",
+    type=str,
+    required=False,
+    default=None,
+    help="Comma-separated CryoET Data Portal dataset IDs (e.g. '10000,10001'). Creates a temporary CDP config; mutually exclusive with --config.",
 )
 @click.option(
     "--project-root",
     type=click.Path(file_okay=False, dir_okay=True),
     required=True,
     help="Copick project root directory; Croissant/ is written under this.",
+)
+@click.option(
+    "--force",
+    is_flag=True,
+    default=False,
+    help="Overwrite an existing Croissant/metadata.json under --project-root.",
 )
 @click.option(
     "--base-url",
@@ -358,12 +431,86 @@ def mlcroissant(
     default=None,
     help="Comma-separated pickable object names to emit density maps for. Omit to include all objects.",
 )
+@click.option(
+    "--tomo-type-map",
+    "tomo_type_map_arg",
+    type=str,
+    required=False,
+    default=None,
+    help="Rename tomo_type values at CSV emission time, e.g. 'wbp-raw:wbp,denoised-cryocare:denoised'.",
+)
+@click.option(
+    "--object-name-map",
+    "object_name_map_arg",
+    type=str,
+    required=False,
+    default=None,
+    help="Rename object names at CSV emission time (applies to picks/meshes/segmentations/objects and copick:config.pickable_objects), e.g. 'cytosolic-ribosome:ribosome'.",
+)
+@click.option(
+    "--session-id-template",
+    "session_id_template_arg",
+    type=str,
+    required=False,
+    default=None,
+    help="Python str.format template for synthesizing picks/segmentations session_id values from CDP annotation metadata (CDP-only). Placeholders: any scalar _PortalAnnotation field, plus {author}, {authors}, {annotation_file_id}.",
+)
+@click.option(
+    "--picks-portal-meta",
+    "picks_portal_meta_arg",
+    type=str,
+    required=False,
+    default=None,
+    help="Comma-separated k=v pairs filtering CDP picks by portal annotation metadata (e.g. 'ground_truth_status=true,method_type=manual'). CDP-only.",
+)
+@click.option(
+    "--picks-author",
+    "picks_author_arg",
+    type=str,
+    required=False,
+    default=None,
+    help="Comma-separated author names filtering CDP picks (e.g. 'Alice,Bob'). CDP-only.",
+)
+@click.option(
+    "--segmentations-portal-meta",
+    "segmentations_portal_meta_arg",
+    type=str,
+    required=False,
+    default=None,
+    help="Comma-separated k=v pairs filtering CDP segmentations by portal annotation metadata. CDP-only.",
+)
+@click.option(
+    "--segmentations-author",
+    "segmentations_author_arg",
+    type=str,
+    required=False,
+    default=None,
+    help="Comma-separated author names filtering CDP segmentations. CDP-only.",
+)
+@click.option(
+    "--tomograms-portal-meta",
+    "tomograms_portal_meta_arg",
+    type=str,
+    required=False,
+    default=None,
+    help="Comma-separated k=v pairs filtering CDP tomograms by portal tomogram metadata (e.g. 'reconstruction_method=wbp,ctf_corrected=true'). CDP-only.",
+)
+@click.option(
+    "--tomograms-author",
+    "tomograms_author_arg",
+    type=str,
+    required=False,
+    default=None,
+    help="Comma-separated author names filtering CDP tomograms. CDP-only.",
+)
 @add_debug_option
 @click.pass_context
 def export_croissant_cmd(
     ctx,
     config_path: str,
+    source_dataset_ids: str,
     project_root: str,
+    force: bool,
     base_url: str,
     dataset_name: str,
     description: str,
@@ -380,6 +527,15 @@ def export_croissant_cmd(
     meshes_arg: tuple,
     segmentations_arg: tuple,
     objects_arg: str,
+    tomo_type_map_arg: str,
+    object_name_map_arg: str,
+    session_id_template_arg: str,
+    picks_portal_meta_arg: str,
+    picks_author_arg: str,
+    segmentations_portal_meta_arg: str,
+    segmentations_author_arg: str,
+    tomograms_portal_meta_arg: str,
+    tomograms_author_arg: str,
     debug: bool = False,
 ):
     """
@@ -399,15 +555,16 @@ def export_croissant_cmd(
     """
     import json as _json
 
-    import copick
     from copick.ops.croissant import export_croissant
-    from copick.util.sync import parse_list
+    from copick.util.sync import parse_list, parse_mapping
 
     logger = get_logger(__name__, debug=debug)
     logger.info("Loading copick project...")
 
     try:
-        root = copick.from_file(config_path)
+        root, temp_config_path = _load_source_root(config_path, source_dataset_ids)
+    except click.BadParameter:
+        raise
     except Exception as e:
         logger.critical(f"Failed to load copick project: {e}")
         ctx.fail(f"Error loading copick project: {e}")
@@ -425,6 +582,7 @@ def export_croissant_cmd(
             cite_as=cite_as,
             date_published=date_published,
             compute_file_sha256=not no_file_sha256,
+            force=force,
             runs=parse_list(runs_arg) if runs_arg else None,
             tomograms=list(tomograms_arg) if tomograms_arg else None,
             features=list(features_arg) if features_arg else None,
@@ -432,11 +590,24 @@ def export_croissant_cmd(
             meshes=list(meshes_arg) if meshes_arg else None,
             segmentations=list(segmentations_arg) if segmentations_arg else None,
             objects=parse_list(objects_arg) if objects_arg else None,
+            tomo_type_map=parse_mapping(tomo_type_map_arg) if tomo_type_map_arg else None,
+            object_name_map=parse_mapping(object_name_map_arg) if object_name_map_arg else None,
+            session_id_template=session_id_template_arg or None,
+            picks_portal_meta=_parse_kv(picks_portal_meta_arg) or None,
+            picks_author=parse_list(picks_author_arg) if picks_author_arg else None,
+            segmentations_portal_meta=_parse_kv(segmentations_portal_meta_arg) or None,
+            segmentations_author=parse_list(segmentations_author_arg) if segmentations_author_arg else None,
+            tomograms_portal_meta=_parse_kv(tomograms_portal_meta_arg) or None,
+            tomograms_author=parse_list(tomograms_author_arg) if tomograms_author_arg else None,
         )
     except Exception as e:
         logger.critical(f"Failed to export Croissant: {e}")
         ctx.fail(f"Error exporting Croissant: {e}")
         return
+    finally:
+        if temp_config_path:
+            with contextlib.suppress(OSError):
+                os.unlink(temp_config_path)
 
     logger.info(f"Wrote Croissant at {metadata_path}.")
 
@@ -455,3 +626,253 @@ def export_croissant_cmd(
         with open(emit_config, "w") as f:
             _json.dump(mlc_cfg, f, indent=4)
         logger.info(f"Wrote mlcroissant copick config at {emit_config}.")
+
+
+@config.command(
+    name="append-croissant",
+    context_settings={"show_default": True},
+    short_help="Append filtered rows from a copick project into an existing Croissant.",
+    no_args_is_help=True,
+)
+@click.option(
+    "--croissant",
+    "croissant_path",
+    type=click.Path(dir_okay=False, exists=True),
+    required=True,
+    help="Path / URL to the destination Croissant metadata.json. Must be writable (Mode A).",
+)
+@click.option(
+    "--source-config",
+    "source_config",
+    type=click.Path(dir_okay=False, exists=True),
+    required=False,
+    default=None,
+    help="Path to a copick config JSON (filesystem, CDP, or mlcroissant). Mutually exclusive with --source-dataset-ids.",
+)
+@click.option(
+    "--source-dataset-ids",
+    "source_dataset_ids",
+    type=str,
+    required=False,
+    default=None,
+    help="Comma-separated CryoET Data Portal dataset IDs (e.g. '10000,10001'). Mutually exclusive with --source-config.",
+)
+@click.option(
+    "--no-file-sha256",
+    is_flag=True,
+    default=False,
+    help="Skip computing sha256 for picks/meshes (faster but marks output non-strict).",
+)
+@click.option(
+    "--runs",
+    "runs_arg",
+    type=str,
+    required=False,
+    default=None,
+    help="Comma-separated run names to include. Omit to include all runs.",
+)
+@click.option(
+    "--tomograms",
+    "tomograms_arg",
+    type=str,
+    multiple=True,
+    help="Copick URI to filter tomograms (e.g. 'wbp@10.0'). Repeatable.",
+)
+@click.option(
+    "--features",
+    "features_arg",
+    type=str,
+    multiple=True,
+    help="Copick URI to filter features (e.g. 'wbp@10.0:sobel'). Repeatable.",
+)
+@click.option(
+    "--picks",
+    "picks_arg",
+    type=str,
+    multiple=True,
+    help="Copick URI to filter picks (e.g. 'ribosome:*/*'). Repeatable.",
+)
+@click.option(
+    "--meshes",
+    "meshes_arg",
+    type=str,
+    multiple=True,
+    help="Copick URI to filter meshes (e.g. 'ribosome:*/*'). Repeatable.",
+)
+@click.option(
+    "--segmentations",
+    "segmentations_arg",
+    type=str,
+    multiple=True,
+    help="Copick URI to filter segmentations (e.g. 'membrane:*/*@10.0'). Repeatable.",
+)
+@click.option(
+    "--objects",
+    "objects_arg",
+    type=str,
+    required=False,
+    default=None,
+    help="Comma-separated pickable object names to emit density maps for.",
+)
+@click.option(
+    "--tomo-type-map",
+    "tomo_type_map_arg",
+    type=str,
+    required=False,
+    default=None,
+    help="Rename tomo_type values at emission time, e.g. 'wbp-raw:wbp'.",
+)
+@click.option(
+    "--object-name-map",
+    "object_name_map_arg",
+    type=str,
+    required=False,
+    default=None,
+    help="Rename object names at emission time (also updates copick:config.pickable_objects and records portal_original_name in metadata).",
+)
+@click.option(
+    "--session-id-template",
+    "session_id_template_arg",
+    type=str,
+    required=False,
+    default=None,
+    help="Python str.format template for synthesizing picks/segmentations session_id from CDP annotation metadata. CDP-only.",
+)
+@click.option(
+    "--picks-portal-meta",
+    "picks_portal_meta_arg",
+    type=str,
+    required=False,
+    default=None,
+    help="Comma-separated k=v pairs filtering CDP picks by portal metadata. CDP-only.",
+)
+@click.option(
+    "--picks-author",
+    "picks_author_arg",
+    type=str,
+    required=False,
+    default=None,
+    help="Comma-separated author names filtering CDP picks. CDP-only.",
+)
+@click.option(
+    "--segmentations-portal-meta",
+    "segmentations_portal_meta_arg",
+    type=str,
+    required=False,
+    default=None,
+    help="Comma-separated k=v pairs filtering CDP segmentations. CDP-only.",
+)
+@click.option(
+    "--segmentations-author",
+    "segmentations_author_arg",
+    type=str,
+    required=False,
+    default=None,
+    help="Comma-separated author names filtering CDP segmentations. CDP-only.",
+)
+@click.option(
+    "--tomograms-portal-meta",
+    "tomograms_portal_meta_arg",
+    type=str,
+    required=False,
+    default=None,
+    help="Comma-separated k=v pairs filtering CDP tomograms. CDP-only.",
+)
+@click.option(
+    "--tomograms-author",
+    "tomograms_author_arg",
+    type=str,
+    required=False,
+    default=None,
+    help="Comma-separated author names filtering CDP tomograms. CDP-only.",
+)
+@add_debug_option
+@click.pass_context
+def append_croissant_cmd(
+    ctx,
+    croissant_path: str,
+    source_config: str,
+    source_dataset_ids: str,
+    no_file_sha256: bool,
+    runs_arg: str,
+    tomograms_arg: tuple,
+    features_arg: tuple,
+    picks_arg: tuple,
+    meshes_arg: tuple,
+    segmentations_arg: tuple,
+    objects_arg: str,
+    tomo_type_map_arg: str,
+    object_name_map_arg: str,
+    session_id_template_arg: str,
+    picks_portal_meta_arg: str,
+    picks_author_arg: str,
+    segmentations_portal_meta_arg: str,
+    segmentations_author_arg: str,
+    tomograms_portal_meta_arg: str,
+    tomograms_author_arg: str,
+    debug: bool = False,
+):
+    """
+    Append filtered rows from a source copick project into an existing
+    Croissant at --croissant.
+
+    The destination's top-level metadata (name, description, license, etc.) is
+    preserved; only rows and copick:config.pickable_objects are unioned.
+    Rows with the same primary key as an existing destination row are replaced
+    (last append wins). Appended URLs are absolutized so the destination CSVs
+    remain self-sufficient even when source and destination use different
+    base URLs.
+
+    Multiple appends with different filters / transforms let you build up a
+    Croissant incrementally — e.g. export curated tomograms first, then append
+    ribosome picks from one author with a session template, then append
+    proteasome picks from a different author with a different template.
+    """
+    from copick.ops.croissant import append_croissant
+    from copick.util.sync import parse_list, parse_mapping
+
+    logger = get_logger(__name__, debug=debug)
+    logger.info("Loading source copick project...")
+
+    try:
+        source_root, temp_config_path = _load_source_root(source_config, source_dataset_ids)
+    except click.BadParameter:
+        raise
+    except Exception as e:
+        logger.critical(f"Failed to load source copick project: {e}")
+        ctx.fail(f"Error loading source copick project: {e}")
+        return
+
+    logger.info(f"Appending into Croissant at {croissant_path}...")
+    try:
+        metadata_path = append_croissant(
+            croissant_path,
+            source_root,
+            compute_file_sha256=not no_file_sha256,
+            runs=parse_list(runs_arg) if runs_arg else None,
+            tomograms=list(tomograms_arg) if tomograms_arg else None,
+            features=list(features_arg) if features_arg else None,
+            picks=list(picks_arg) if picks_arg else None,
+            meshes=list(meshes_arg) if meshes_arg else None,
+            segmentations=list(segmentations_arg) if segmentations_arg else None,
+            objects=parse_list(objects_arg) if objects_arg else None,
+            tomo_type_map=parse_mapping(tomo_type_map_arg) if tomo_type_map_arg else None,
+            object_name_map=parse_mapping(object_name_map_arg) if object_name_map_arg else None,
+            session_id_template=session_id_template_arg or None,
+            picks_portal_meta=_parse_kv(picks_portal_meta_arg) or None,
+            picks_author=parse_list(picks_author_arg) if picks_author_arg else None,
+            segmentations_portal_meta=_parse_kv(segmentations_portal_meta_arg) or None,
+            segmentations_author=parse_list(segmentations_author_arg) if segmentations_author_arg else None,
+            tomograms_portal_meta=_parse_kv(tomograms_portal_meta_arg) or None,
+            tomograms_author=parse_list(tomograms_author_arg) if tomograms_author_arg else None,
+        )
+    except Exception as e:
+        logger.critical(f"Failed to append to Croissant: {e}")
+        ctx.fail(f"Error appending to Croissant: {e}")
+        return
+    finally:
+        if temp_config_path:
+            with contextlib.suppress(OSError):
+                os.unlink(temp_config_path)
+
+    logger.info(f"Appended rows into {metadata_path}.")

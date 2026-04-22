@@ -146,6 +146,153 @@ derived — they're emitted only for `(run, voxel_size)` pairs observed in at
 least one surviving tomogram / feature / segmentation, so a filter that
 selects only picks yields an empty `voxel_spacings.csv`.
 
+## Starting from portal dataset IDs
+
+Both `export-croissant` and `append-croissant` accept `--source-dataset-ids`
+as an alternative to `--config`. It takes a comma-separated list of CryoET
+Data Portal dataset IDs and creates a temporary CDP config under the hood
+(same mechanism as `copick sync picks --source-dataset-ids`). This skips the
+pre-requisite `copick config dataportal` step for one-off exports:
+
+```bash
+copick config export-croissant \
+    --source-dataset-ids 10000,10001 \
+    --project-root /tmp/curated \
+    --runs TS_001,TS_002
+```
+
+`--source-dataset-ids` and `--config` are mutually exclusive — provide one or
+the other, not both.
+
+## CDP-specific export transforms
+
+CDP-sourced projects often benefit from a bit of reshaping on the way out:
+portal-derived `tomo_type` strings are long (`wbp-raw-aretomo3-ctfdeconv`),
+portal `object_name` values don't match local conventions
+(`cytosolic-ribosome` vs `ribosome`), and `session_id` is just a numeric
+annotation-file id. Four flags let you customise these without having to
+post-process the resulting CSVs.
+
+| Flag                   | Accepts                                                                 |
+|------------------------|-------------------------------------------------------------------------|
+| `--tomo-type-map`      | `src:dst,src2:dst2` — rewrites `tomograms.csv` / `features.csv` values  |
+| `--object-name-map`    | `src:dst,...` — rewrites picks / meshes / segs / objects + pickable_objects |
+| `--session-id-template`| Python format template, e.g. `"{method_type}"` — CDP only               |
+| `--picks-portal-meta`  | `k=v,k=v` — filters picks by portal annotation metadata — CDP only      |
+| `--picks-author`       | comma-separated author names — CDP only                                 |
+| `--segmentations-portal-meta` / `--segmentations-author` | ditto for segmentations — CDP only   |
+| `--tomograms-portal-meta` / `--tomograms-author` | ditto for tomograms — CDP only              |
+
+Example — rename tomo types and canonicalise the ribosome label while
+exporting:
+
+```bash
+copick config export-croissant \
+    --source-dataset-ids 10000 \
+    --project-root /tmp/curated \
+    --tomograms "wbp-raw@13.48" \
+    --tomo-type-map "wbp-raw:wbp" \
+    --picks "cytosolic-ribosome:*/*" \
+    --object-name-map "cytosolic-ribosome:ribosome"
+```
+
+Example — synthesize readable session IDs from portal method type (so URIs
+like `ribosome:alice/template-matching` become meaningful again) and restrict
+to a single author:
+
+```bash
+copick config export-croissant \
+    --source-dataset-ids 10000 \
+    --project-root /tmp/curated \
+    --picks "cytosolic-ribosome:*/*" \
+    --object-name-map "cytosolic-ribosome:ribosome" \
+    --session-id-template "{method_type}" \
+    --picks-author "Alice"
+```
+
+Session template placeholders are any scalar field of the portal
+`_PortalAnnotation` (e.g. `{method_type}`, `{annotation_method}`,
+`{deposition_id}`), plus the convenience tokens `{author}` (first author
+name), `{authors}` (comma-joined), and `{annotation_file_id}` (the original
+default session_id). Missing fields substitute as the empty string so sparse
+portal records don't crash. Results are sanitized via copick's standard name
+sanitizer (underscores → dashes etc.).
+
+### Provenance columns
+
+CDP-sourced rows carry their original portal identifiers in ancillary CSV
+columns so renames and templates can always be reversed:
+
+| CSV                 | Provenance columns                                                                                 |
+|---------------------|----------------------------------------------------------------------------------------------------|
+| `runs.csv`          | `portal_run_id`                                                                                    |
+| `tomograms.csv`     | `portal_tomo_type`, `portal_tomogram_id`                                                           |
+| `picks.csv` / `segmentations.csv` | `portal_object_name`, `portal_session_id`, `portal_annotation_id`, `portal_annotation_file_id`    |
+
+These columns stay empty for non-CDP sources and for CDP rows that weren't
+transformed. Renamed `pickable_objects` also keep a
+`metadata["portal_original_name"]` entry in the Croissant's
+`copick:config`.
+
+### CDP-only guard
+
+`--session-id-template`, `--picks-portal-meta`, `--picks-author`,
+`--segmentations-portal-meta`, `--segmentations-author`,
+`--tomograms-portal-meta`, and `--tomograms-author` raise a clear error when
+the source config isn't CDP. `--tomo-type-map` and `--object-name-map` are
+universally applicable.
+
+## Appending to an existing Croissant
+
+Real-world exports often mix heterogeneous slices: curated tomograms from one
+pipeline, ribosome picks from a template-matching run, proteasome picks from
+a manual curator. Rather than trying to express all of that in a single
+global filter set, `copick config append-croissant` unions additional
+filtered rows into an existing Croissant. Each append carries its own filter
+and reshape flags.
+
+```bash
+# 1. Start with tomograms only.
+copick config export-croissant \
+    --source-dataset-ids 10000 \
+    --project-root /tmp/curated \
+    --tomograms "wbp-raw@13.48" \
+    --tomo-type-map "wbp-raw:wbp"
+
+# 2. Append template-matching ribosome picks with readable sessions.
+copick config append-croissant \
+    --croissant /tmp/curated/Croissant/metadata.json \
+    --source-dataset-ids 10000 \
+    --picks "cytosolic-ribosome:*/*" \
+    --object-name-map "cytosolic-ribosome:ribosome" \
+    --session-id-template "{method_type}" \
+    --picks-portal-meta "method_type=template-matching"
+
+# 3. Append manually curated proteasome picks under a different transform.
+copick config append-croissant \
+    --croissant /tmp/curated/Croissant/metadata.json \
+    --source-dataset-ids 10000 \
+    --picks "fatty-acid-synthase-complex:*/*" \
+    --object-name-map "fatty-acid-synthase-complex:fas" \
+    --session-id-template "{method_type}-{deposition_id}" \
+    --picks-author "Zachs"
+```
+
+Semantics:
+
+- The destination's top-level metadata (name, description, license,
+  `citeAs`, etc.) is preserved — append unions **rows** and
+  **`copick:config.pickable_objects`** only.
+- Rows with the same primary key (`run` + `user_id` + `session_id` +
+  `object_name` for picks, analogous for other types) are replaced in place
+  — last append wins. A warning is emitted on `pickable_objects` attribute
+  drift.
+- Appended URLs are written absolute so the destination CSV resolves
+  regardless of its `copick:baseUrl`. Rows written by the initial
+  `export-croissant` keep whatever relative form they had.
+- The destination must be Mode A (writable `copick:baseUrl`). For a
+  read-only Croissant, re-export from the merged source view instead.
+
 ## Opening a Croissant-backed project
 
 Use the `mlcroissant` config command to generate a copick config:

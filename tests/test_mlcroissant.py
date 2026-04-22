@@ -467,3 +467,344 @@ def test_export_filter_cli(multi_run_filesystem_project):
     picks_rows = _read_csv(proj / "Croissant" / "picks.csv")
     assert all(r["object_name"] == "ribosome" and r["run"] == "TS_001" for r in picks_rows)
     assert len(picks_rows) == 2  # alice + bob, both ribosome in TS_001
+
+
+# -----------------------------------------------------------------------------
+# Reshape tests (remap + templates) — filesystem source, no CDP required.
+# -----------------------------------------------------------------------------
+
+
+def test_export_object_name_map_rewrites_csv(multi_run_filesystem_project):
+    """object_name_map rewrites picks.csv and copick:config.pickable_objects."""
+    import copick
+    from copick.ops.croissant import export_croissant
+
+    proj = multi_run_filesystem_project
+    root = copick.from_file(str(proj / "filesystem.json"))
+    export_croissant(
+        root,
+        project_root=str(proj),
+        base_url=f"file://{proj}",
+        object_name_map={"ribosome": "rib", "proteasome": "proteasome"},
+    )
+
+    picks_rows = _read_csv(proj / "Croissant" / "picks.csv")
+    names = {r["object_name"] for r in picks_rows}
+    assert "rib" in names
+    assert "ribosome" not in names  # all ribosome entries renamed
+    # portal_object_name should stay blank for non-CDP sources
+    assert all(r.get("portal_object_name", "") == "" for r in picks_rows)
+
+    doc = json.loads((proj / "Croissant" / "metadata.json").read_text())
+    cfg = doc["copick:config"]
+    po_names = {po["name"] for po in cfg["pickable_objects"]}
+    assert "rib" in po_names
+    assert "ribosome" not in po_names
+    rib_entry = next(po for po in cfg["pickable_objects"] if po["name"] == "rib")
+    assert rib_entry.get("metadata", {}).get("portal_original_name") == "ribosome"
+
+
+def test_export_session_id_template_non_cdp_raises(tiny_filesystem_project):
+    """Non-CDP + session_id_template must raise ValueError at entry."""
+    import copick
+    from copick.ops.croissant import export_croissant
+
+    proj = tiny_filesystem_project
+    root = copick.from_file(str(proj / "filesystem.json"))
+    with pytest.raises(ValueError, match="CryoET Data Portal source"):
+        export_croissant(
+            root,
+            project_root=str(proj),
+            base_url=f"file://{proj}",
+            session_id_template="{method_type}",
+        )
+
+
+def test_export_cdp_only_flags_non_cdp_raise(tiny_filesystem_project):
+    """All CDP-only flags raise on non-CDP sources."""
+    import copick
+    from copick.ops.croissant import export_croissant
+
+    proj = tiny_filesystem_project
+    root = copick.from_file(str(proj / "filesystem.json"))
+    with pytest.raises(ValueError, match="CryoET Data Portal source"):
+        export_croissant(
+            root,
+            project_root=str(proj),
+            base_url=f"file://{proj}",
+            picks_portal_meta={"ground_truth_status": "true"},
+        )
+
+
+# -----------------------------------------------------------------------------
+# --force behaviour
+# -----------------------------------------------------------------------------
+
+
+def test_export_refuses_existing_without_force(tiny_filesystem_project):
+    """Running export twice without --force raises FileExistsError."""
+    import copick
+    from copick.ops.croissant import export_croissant
+
+    proj = tiny_filesystem_project
+    root = copick.from_file(str(proj / "filesystem.json"))
+    export_croissant(root, project_root=str(proj), base_url=f"file://{proj}")
+    with pytest.raises(FileExistsError, match="already exists"):
+        export_croissant(root, project_root=str(proj), base_url=f"file://{proj}")
+
+
+def test_export_force_overwrites(tiny_filesystem_project):
+    """--force bypasses the FileExistsError guard."""
+    import copick
+    from copick.ops.croissant import export_croissant
+
+    proj = tiny_filesystem_project
+    root = copick.from_file(str(proj / "filesystem.json"))
+    export_croissant(root, project_root=str(proj), base_url=f"file://{proj}")
+    # No exception with force=True
+    export_croissant(
+        root,
+        project_root=str(proj),
+        base_url=f"file://{proj}",
+        force=True,
+        dataset_name="overwritten",
+    )
+    doc = json.loads((proj / "Croissant" / "metadata.json").read_text())
+    assert doc["name"] == "overwritten"
+
+
+# -----------------------------------------------------------------------------
+# Append tests — filesystem source, no CDP required.
+# -----------------------------------------------------------------------------
+
+
+def test_append_adds_new_picks(multi_run_filesystem_project):
+    """Export a subset, then append a different subset; final CSV unions both."""
+    import copick
+    from copick.ops.croissant import append_croissant, export_croissant
+
+    proj = multi_run_filesystem_project
+    root = copick.from_file(str(proj / "filesystem.json"))
+
+    # Step 1: export ribosome picks only
+    export_croissant(
+        root,
+        project_root=str(proj),
+        base_url=f"file://{proj}",
+        picks=["ribosome:*/*"],
+    )
+    picks_rows = _read_csv(proj / "Croissant" / "picks.csv")
+    assert {r["object_name"] for r in picks_rows} == {"ribosome"}
+
+    # Step 2: append proteasome picks
+    append_croissant(
+        str(proj / "Croissant" / "metadata.json"),
+        root,
+        picks=["proteasome:*/*"],
+    )
+    picks_rows = _read_csv(proj / "Croissant" / "picks.csv")
+    assert {r["object_name"] for r in picks_rows} == {"ribosome", "proteasome"}
+
+
+def test_append_validator_clean(multi_run_filesystem_project):
+    """After append, Croissant still validates with 0 errors."""
+    import copick
+    import mlcroissant as mlc
+    from copick.ops.croissant import append_croissant, export_croissant
+
+    proj = multi_run_filesystem_project
+    root = copick.from_file(str(proj / "filesystem.json"))
+    export_croissant(
+        root,
+        project_root=str(proj),
+        base_url=f"file://{proj}",
+        picks=["ribosome:*/*"],
+    )
+    metadata_path = append_croissant(
+        str(proj / "Croissant" / "metadata.json"),
+        root,
+        picks=["proteasome:*/*"],
+    )
+
+    ds = mlc.Dataset(jsonld=metadata_path)
+    errors = list(ds.metadata.ctx.issues.errors)
+    assert errors == [], f"validator errors after append: {errors}"
+
+
+def test_append_replaces_on_key_collision(multi_run_filesystem_project):
+    """Re-append the same row with a transformed field; final row reflects last append."""
+    import copick
+    from copick.ops.croissant import append_croissant, export_croissant
+
+    proj = multi_run_filesystem_project
+    root = copick.from_file(str(proj / "filesystem.json"))
+    export_croissant(
+        root,
+        project_root=str(proj),
+        base_url=f"file://{proj}",
+        picks=["ribosome:*/*"],
+    )
+    picks_before = _read_csv(proj / "Croissant" / "picks.csv")
+    n_before = len(picks_before)
+
+    # Re-append the same rows — should replace in place (same count, no duplication).
+    append_croissant(
+        str(proj / "Croissant" / "metadata.json"),
+        root,
+        picks=["ribosome:*/*"],
+    )
+    picks_after = _read_csv(proj / "Croissant" / "picks.csv")
+    assert len(picks_after) == n_before
+
+
+def test_append_unions_pickable_objects(tmp_path):
+    """Appending from a source with extra pickable objects grows dest config."""
+    import copick
+    from copick.ops.croissant import append_croissant, export_croissant
+
+    # Destination project: just ribosome.
+    dest = tmp_path / "dest"
+    (dest / "ExperimentRuns" / "run_001" / "Picks").mkdir(parents=True)
+    (dest / "filesystem.json").write_text(
+        json.dumps(
+            {
+                "config_type": "filesystem",
+                "name": "dest",
+                "version": "1.0.0",
+                "user_id": "u",
+                "session_id": "s",
+                "pickable_objects": [
+                    {"name": "ribosome", "is_particle": True, "label": 1, "color": [200, 100, 100, 255]},
+                ],
+                "overlay_root": f"local://{dest}",
+                "overlay_fs_args": {"auto_mkdir": True},
+            },
+        ),
+    )
+    dest_root = copick.from_file(str(dest / "filesystem.json"))
+    export_croissant(dest_root, project_root=str(dest), base_url=f"file://{dest}")
+
+    # Source project: has ribosome + proteasome.
+    src = tmp_path / "src"
+    (src / "ExperimentRuns" / "run_001" / "Picks").mkdir(parents=True)
+    (src / "filesystem.json").write_text(
+        json.dumps(
+            {
+                "config_type": "filesystem",
+                "name": "src",
+                "version": "1.0.0",
+                "user_id": "u",
+                "session_id": "s",
+                "pickable_objects": [
+                    {"name": "ribosome", "is_particle": True, "label": 1, "color": [200, 100, 100, 255]},
+                    {"name": "proteasome", "is_particle": True, "label": 2, "color": [100, 200, 100, 255]},
+                ],
+                "overlay_root": f"local://{src}",
+                "overlay_fs_args": {"auto_mkdir": True},
+            },
+        ),
+    )
+    src_root = copick.from_file(str(src / "filesystem.json"))
+
+    append_croissant(str(dest / "Croissant" / "metadata.json"), src_root)
+
+    doc = json.loads((dest / "Croissant" / "metadata.json").read_text())
+    names = {po["name"] for po in doc["copick:config"]["pickable_objects"]}
+    assert names == {"ribosome", "proteasome"}
+
+
+def test_append_cli(multi_run_filesystem_project):
+    """End-to-end: copick config append-croissant ... --picks proteasome:*/*."""
+    from click.testing import CliRunner
+    from copick.cli.config import config
+
+    proj = multi_run_filesystem_project
+    runner = CliRunner()
+
+    # Initial export restricted to ribosome.
+    r = runner.invoke(
+        config,
+        [
+            "export-croissant",
+            "--config",
+            str(proj / "filesystem.json"),
+            "--project-root",
+            str(proj),
+            "--base-url",
+            f"file://{proj}",
+            "--picks",
+            "ribosome:*/*",
+        ],
+    )
+    assert r.exit_code == 0, r.output
+
+    # Append proteasome picks.
+    r = runner.invoke(
+        config,
+        [
+            "append-croissant",
+            "--croissant",
+            str(proj / "Croissant" / "metadata.json"),
+            "--source-config",
+            str(proj / "filesystem.json"),
+            "--picks",
+            "proteasome:*/*",
+        ],
+    )
+    assert r.exit_code == 0, r.output
+
+    picks_rows = _read_csv(proj / "Croissant" / "picks.csv")
+    assert {r["object_name"] for r in picks_rows} == {"ribosome", "proteasome"}
+
+
+def test_append_cli_requires_source(multi_run_filesystem_project):
+    """append-croissant without --source-config or --source-dataset-ids errors."""
+    from click.testing import CliRunner
+    from copick.cli.config import config
+
+    proj = multi_run_filesystem_project
+    runner = CliRunner()
+    # Pre-create a Croissant so the --croissant path exists.
+    import copick
+    from copick.ops.croissant import export_croissant
+
+    export_croissant(
+        copick.from_file(str(proj / "filesystem.json")),
+        project_root=str(proj),
+        base_url=f"file://{proj}",
+    )
+    r = runner.invoke(
+        config,
+        [
+            "append-croissant",
+            "--croissant",
+            str(proj / "Croissant" / "metadata.json"),
+        ],
+    )
+    assert r.exit_code != 0
+    assert "source-config" in r.output or "source-dataset-ids" in r.output
+
+
+def test_append_url_absolutized(multi_run_filesystem_project):
+    """Appended rows carry absolute URLs so the destination is self-sufficient."""
+    import copick
+    from copick.ops.croissant import append_croissant, export_croissant
+
+    proj = multi_run_filesystem_project
+    root = copick.from_file(str(proj / "filesystem.json"))
+    export_croissant(
+        root,
+        project_root=str(proj),
+        base_url=f"file://{proj}",
+        picks=["ribosome:*/*"],
+    )
+    append_croissant(
+        str(proj / "Croissant" / "metadata.json"),
+        root,
+        picks=["proteasome:*/*"],
+    )
+    picks_rows = _read_csv(proj / "Croissant" / "picks.csv")
+    # Newly appended proteasome row should have an absolute URL (scheme or /-rooted).
+    proteasome_row = next(r for r in picks_rows if r["object_name"] == "proteasome")
+    u = proteasome_row["url"]
+    assert "://" in u or u.startswith("/"), f"expected absolute URL, got {u!r}"
