@@ -808,3 +808,379 @@ def test_append_url_absolutized(multi_run_filesystem_project):
     proteasome_row = next(r for r in picks_rows if r["object_name"] == "proteasome")
     u = proteasome_row["url"]
     assert "://" in u or u.startswith("/"), f"expected absolute URL, got {u!r}"
+
+
+# -----------------------------------------------------------------------------
+# Splits tests
+# -----------------------------------------------------------------------------
+
+
+def test_export_with_splits(multi_run_filesystem_project):
+    """Export with --split ... populates runs.csv and emits splits RecordSet."""
+    import copick
+    from copick.ops.croissant import export_croissant
+
+    proj = multi_run_filesystem_project
+    root = copick.from_file(str(proj / "filesystem.json"))
+    export_croissant(
+        root,
+        project_root=str(proj),
+        base_url=f"file://{proj}",
+        splits={"train": ["TS_001"], "val": ["TS_002"]},
+    )
+
+    runs_rows = _read_csv(proj / "Croissant" / "runs.csv")
+    by_name = {r["name"]: r for r in runs_rows}
+    assert by_name["TS_001"]["split"] == "train"
+    assert by_name["TS_002"]["split"] == "val"
+
+    doc = json.loads((proj / "Croissant" / "metadata.json").read_text())
+    splits_rs = next(rs for rs in doc["recordSet"] if rs["@id"] == "copick/splits")
+    # RecordSet is keyed on name so consumers can navigate via `references`.
+    assert splits_rs["key"] == {"@id": "copick/splits/name"}
+    names_in_data = {d["copick/splits/name"] for d in splits_rs["data"]}
+    assert names_in_data == {"train", "val"}
+    train_entry = next(d for d in splits_rs["data"] if d["copick/splits/name"] == "train")
+    assert train_entry["copick/splits/url"] == "https://mlcommons.org/definitions/training_split"
+    val_entry = next(d for d in splits_rs["data"] if d["copick/splits/name"] == "val")
+    assert val_entry["copick/splits/url"] == "https://mlcommons.org/definitions/validation_split"
+
+    # runs/split field should have references into copick/splits/name
+    runs_rs = next(rs for rs in doc["recordSet"] if rs["@id"] == "copick/runs")
+    split_field = next(f for f in runs_rs["field"] if f["@id"] == "copick/runs/split")
+    assert split_field["references"] == {"field": {"@id": "copick/splits/name"}}
+
+
+def test_export_splits_custom_name_has_no_url(multi_run_filesystem_project):
+    """Non-standard split names emit without a canonical URI."""
+    import copick
+    from copick.ops.croissant import export_croissant
+
+    proj = multi_run_filesystem_project
+    root = copick.from_file(str(proj / "filesystem.json"))
+    export_croissant(
+        root,
+        project_root=str(proj),
+        base_url=f"file://{proj}",
+        splits={"holdout": ["TS_001"]},
+    )
+    doc = json.loads((proj / "Croissant" / "metadata.json").read_text())
+    splits_rs = next(rs for rs in doc["recordSet"] if rs["@id"] == "copick/splits")
+    holdout_entry = next(d for d in splits_rs["data"] if d["copick/splits/name"] == "holdout")
+    # Validator requires every column in every row; custom splits get empty url.
+    assert holdout_entry.get("copick/splits/url", "") == ""
+
+
+def test_export_splits_unknown_run_raises(multi_run_filesystem_project):
+    """Listing a run that doesn't exist raises ValueError before writing."""
+    import copick
+    from copick.ops.croissant import export_croissant
+
+    proj = multi_run_filesystem_project
+    root = copick.from_file(str(proj / "filesystem.json"))
+    with pytest.raises(ValueError, match="unknown runs"):
+        export_croissant(
+            root,
+            project_root=str(proj),
+            base_url=f"file://{proj}",
+            splits={"train": ["TS_does_not_exist"]},
+        )
+
+
+def test_export_no_splits_omits_splits_recordset(tiny_filesystem_project):
+    """When no splits are provided, the splits RecordSet isn't emitted and runs/split has no references."""
+    import copick
+    from copick.ops.croissant import export_croissant
+
+    proj = tiny_filesystem_project
+    root = copick.from_file(str(proj / "filesystem.json"))
+    export_croissant(root, project_root=str(proj), base_url=f"file://{proj}")
+    doc = json.loads((proj / "Croissant" / "metadata.json").read_text())
+    ids = {rs["@id"] for rs in doc["recordSet"]}
+    assert "copick/splits" not in ids
+
+    runs_rs = next(rs for rs in doc["recordSet"] if rs["@id"] == "copick/runs")
+    split_field = next(f for f in runs_rs["field"] if f["@id"] == "copick/runs/split")
+    assert "references" not in split_field
+
+
+def test_run_split_property_round_trip(multi_run_filesystem_project):
+    """Setting run.split persists to the CSV and survives refresh."""
+    import copick
+    from copick.ops.croissant import export_croissant
+
+    proj = multi_run_filesystem_project
+    root = copick.from_file(str(proj / "filesystem.json"))
+    export_croissant(root, project_root=str(proj), base_url=f"file://{proj}")
+
+    r = copick.from_croissant(str(proj / "Croissant" / "metadata.json"))
+    run = r.get_run("TS_001")
+    assert run.split is None
+    run.split = "train"
+    assert run.split == "train"
+
+    # Reload from disk
+    r2 = copick.from_croissant(str(proj / "Croissant" / "metadata.json"))
+    assert r2.get_run("TS_001").split == "train"
+    assert r2.splits == {"train": ["TS_001"]}
+
+
+def test_root_set_splits_bulk(multi_run_filesystem_project):
+    """root.set_splits does one commit covering all assignments."""
+    import copick
+    from copick.ops.croissant import export_croissant
+
+    proj = multi_run_filesystem_project
+    root = copick.from_file(str(proj / "filesystem.json"))
+    export_croissant(root, project_root=str(proj), base_url=f"file://{proj}")
+
+    md_path = proj / "Croissant" / "metadata.json"
+    r = copick.from_croissant(str(md_path))
+    t_before = md_path.stat().st_mtime_ns
+
+    import time
+
+    time.sleep(0.01)
+    r.set_splits({"train": ["TS_001"], "val": ["TS_002"]})
+    t_after = md_path.stat().st_mtime_ns
+    assert t_after > t_before
+    assert r.splits == {"train": ["TS_001"], "val": ["TS_002"]}
+
+    # clear_existing wipes the previous state
+    r.set_splits({"test": ["TS_001"]}, clear_existing=True)
+    assert r.splits == {"test": ["TS_001"]}
+
+
+def test_root_clear_splits(multi_run_filesystem_project):
+    """clear_splits removes split assignments."""
+    import copick
+    from copick.ops.croissant import export_croissant
+
+    proj = multi_run_filesystem_project
+    root = copick.from_file(str(proj / "filesystem.json"))
+    export_croissant(
+        root,
+        project_root=str(proj),
+        base_url=f"file://{proj}",
+        splits={"train": ["TS_001"], "val": ["TS_002"]},
+    )
+    r = copick.from_croissant(str(proj / "Croissant" / "metadata.json"))
+    r.clear_splits(["TS_001"])
+    assert r.splits == {"val": ["TS_002"]}
+    r.clear_splits()
+    assert r.splits == {}
+
+
+def test_mode_b_split_assignment_raises(multi_run_filesystem_project, tmp_path):
+    """Mode B refuses split assignment (read-only Croissant)."""
+    import copick
+    from copick.ops.croissant import export_croissant
+
+    proj = multi_run_filesystem_project
+    root = copick.from_file(str(proj / "filesystem.json"))
+    export_croissant(root, project_root=str(proj), base_url=f"file://{proj}")
+
+    overlay = tmp_path / "overlay"
+    overlay.mkdir()
+    r = copick.from_croissant(
+        str(proj / "Croissant" / "metadata.json"),
+        overlay_root=f"local://{overlay}",
+    )
+    assert r.mode == "B"
+    run = r.get_run("TS_001")
+    with pytest.raises(PermissionError, match="read-only"):
+        run.split = "train"
+    with pytest.raises(PermissionError, match="read-only"):
+        r.set_splits({"train": ["TS_001"]})
+
+
+def test_append_with_splits_preserves_prior(multi_run_filesystem_project):
+    """Appending without --split preserves any previously-set split for that run."""
+    import copick
+    from copick.ops.croissant import append_croissant, export_croissant
+
+    proj = multi_run_filesystem_project
+    root = copick.from_file(str(proj / "filesystem.json"))
+    export_croissant(
+        root,
+        project_root=str(proj),
+        base_url=f"file://{proj}",
+        splits={"train": ["TS_001"], "val": ["TS_002"]},
+    )
+    # Append a data-only slice (no --split); the existing splits must survive.
+    append_croissant(
+        str(proj / "Croissant" / "metadata.json"),
+        root,
+        picks=["proteasome:*/*"],
+    )
+    runs_rows = _read_csv(proj / "Croissant" / "runs.csv")
+    by_name = {r["name"]: r for r in runs_rows}
+    assert by_name["TS_001"]["split"] == "train"
+    assert by_name["TS_002"]["split"] == "val"
+
+
+def test_append_with_splits_override(multi_run_filesystem_project):
+    """Explicit --split in append wins over existing destination split."""
+    import copick
+    from copick.ops.croissant import append_croissant, export_croissant
+
+    proj = multi_run_filesystem_project
+    root = copick.from_file(str(proj / "filesystem.json"))
+    export_croissant(
+        root,
+        project_root=str(proj),
+        base_url=f"file://{proj}",
+        splits={"train": ["TS_001"]},
+    )
+    append_croissant(
+        str(proj / "Croissant" / "metadata.json"),
+        root,
+        splits={"test": ["TS_001"]},
+    )
+    runs_rows = _read_csv(proj / "Croissant" / "runs.csv")
+    by_name = {r["name"]: r for r in runs_rows}
+    assert by_name["TS_001"]["split"] == "test"
+
+
+def test_set_splits_cli(multi_run_filesystem_project):
+    """End-to-end `copick config set-splits` invocation."""
+    import copick
+    from click.testing import CliRunner
+    from copick.cli.config import config
+    from copick.ops.croissant import export_croissant
+
+    proj = multi_run_filesystem_project
+    root = copick.from_file(str(proj / "filesystem.json"))
+    export_croissant(root, project_root=str(proj), base_url=f"file://{proj}")
+
+    runner = CliRunner()
+    r = runner.invoke(
+        config,
+        [
+            "set-splits",
+            "--croissant",
+            str(proj / "Croissant" / "metadata.json"),
+            "--split",
+            "train=TS_001",
+            "--split",
+            "val=TS_002",
+        ],
+    )
+    assert r.exit_code == 0, r.output
+
+    r2 = copick.from_croissant(str(proj / "Croissant" / "metadata.json"))
+    assert r2.splits == {"train": ["TS_001"], "val": ["TS_002"]}
+
+    # Now unassign TS_002 and clear-all+reassign
+    r = runner.invoke(
+        config,
+        [
+            "set-splits",
+            "--croissant",
+            str(proj / "Croissant" / "metadata.json"),
+            "--clear-all",
+            "--split",
+            "test=TS_001,TS_002",
+        ],
+    )
+    assert r.exit_code == 0, r.output
+    r3 = copick.from_croissant(str(proj / "Croissant" / "metadata.json"))
+    assert r3.splits == {"test": ["TS_001", "TS_002"]}
+
+
+def test_set_splits_cli_noop_errors(multi_run_filesystem_project):
+    """set-splits with no options errors out with a helpful message."""
+    import copick
+    from click.testing import CliRunner
+    from copick.cli.config import config
+    from copick.ops.croissant import export_croissant
+
+    proj = multi_run_filesystem_project
+    root = copick.from_file(str(proj / "filesystem.json"))
+    export_croissant(root, project_root=str(proj), base_url=f"file://{proj}")
+
+    runner = CliRunner()
+    r = runner.invoke(
+        config,
+        ["set-splits", "--croissant", str(proj / "Croissant" / "metadata.json")],
+    )
+    assert r.exit_code != 0
+    assert "Nothing to do" in r.output
+
+
+def test_splits_from_file(multi_run_filesystem_project, tmp_path):
+    """--splits-file CSV provides the mapping."""
+    import copick
+
+    proj = multi_run_filesystem_project
+    copick.from_file(str(proj / "filesystem.json"))
+
+    splits_csv = tmp_path / "splits.csv"
+    splits_csv.write_text("split,run\ntrain,TS_001\nval,TS_002\n")
+
+    from click.testing import CliRunner
+    from copick.cli.config import config
+
+    runner = CliRunner()
+    r = runner.invoke(
+        config,
+        [
+            "export-croissant",
+            "--config",
+            str(proj / "filesystem.json"),
+            "--project-root",
+            str(proj),
+            "--base-url",
+            f"file://{proj}",
+            "--splits-file",
+            str(splits_csv),
+        ],
+    )
+    assert r.exit_code == 0, r.output
+
+    r2 = copick.from_croissant(str(proj / "Croissant" / "metadata.json"))
+    assert r2.splits == {"train": ["TS_001"], "val": ["TS_002"]}
+
+
+def test_splits_validator_clean(multi_run_filesystem_project):
+    """Splits-enabled Croissants pass the mlcroissant validator cleanly."""
+    import copick
+    import mlcroissant as mlc
+    from copick.ops.croissant import export_croissant
+
+    proj = multi_run_filesystem_project
+    root = copick.from_file(str(proj / "filesystem.json"))
+    metadata_path = export_croissant(
+        root,
+        project_root=str(proj),
+        base_url=f"file://{proj}",
+        splits={"train": ["TS_001"], "val": ["TS_002"]},
+    )
+    ds = mlc.Dataset(jsonld=metadata_path)
+    assert list(ds.metadata.ctx.issues.errors) == []
+
+
+def test_splits_conflict_raises(multi_run_filesystem_project):
+    """A run assigned to two different splits raises ValueError."""
+    import copick
+    from copick.ops.croissant import export_croissant
+
+    proj = multi_run_filesystem_project
+    root = copick.from_file(str(proj / "filesystem.json"))
+    with pytest.raises(ValueError, match="two splits"):
+        export_croissant(
+            root,
+            project_root=str(proj),
+            base_url=f"file://{proj}",
+            splits={"train": ["TS_001"], "val": ["TS_001"]},
+        )
+
+
+def test_run_split_is_none_for_filesystem_backend(tiny_filesystem_project):
+    """Non-mlcroissant backends return None for run.split."""
+    import copick
+
+    proj = tiny_filesystem_project
+    root = copick.from_file(str(proj / "filesystem.json"))
+    run = root.get_run("run_001")
+    assert run.split is None

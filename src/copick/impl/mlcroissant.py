@@ -124,9 +124,9 @@ CSV_SCHEMA: Dict[str, Dict[str, Any]] = {
         "csv_name": "runs.csv",
         "file_object_id": "runs-csv",
         "recordset_name": "runs",
-        "columns": ["name", "portal_run_id"],
+        "columns": ["name", "portal_run_id", "split"],
         "key_fields": ("name",),
-        "types": {"name": "sc:Text", "portal_run_id": "sc:Text"},
+        "types": {"name": "sc:Text", "portal_run_id": "sc:Text", "split": "sc:Text"},
     },
     "copick/voxel_spacings": {
         "csv_name": "voxel_spacings.csv",
@@ -263,6 +263,23 @@ RECORDSET_ORDER = [
     "copick/segmentations",
     "copick/objects",
 ]
+
+
+# Mapping from copick-side split names to canonical MLCommons split URLs.
+# The Croissant 1.1 spec names ``cr:TrainingSplit`` / ``cr:ValidationSplit`` /
+# ``cr:TestSplit``, but the canonical mlcommons reference implementation (see
+# the COCO-2014-mini example) expresses these as ``sc:URL`` values with the
+# ``https://mlcommons.org/definitions/..._split`` form — that's what the
+# mlcroissant validator actually accepts. Arbitrary split names (e.g.
+# "holdout", "fold-1") emit without a ``url`` field.
+SPLITS_RECORDSET_ID = "copick/splits"
+STANDARD_SPLIT_URIS: Dict[str, str] = {
+    "train": "https://mlcommons.org/definitions/training_split",
+    "val": "https://mlcommons.org/definitions/validation_split",
+    "validation": "https://mlcommons.org/definitions/validation_split",
+    "test": "https://mlcommons.org/definitions/test_split",
+    "eval": "https://mlcommons.org/definitions/test_split",
+}
 
 
 # -----------------------------------------------------------------------------
@@ -740,6 +757,51 @@ class CroissantIndex:
         else:
             with fs.open(path, "wb") as f:
                 f.write(data)
+
+    # ------------------------------------------------------------------
+    # Splits (run-level ML split metadata on runs.csv)
+    # ------------------------------------------------------------------
+
+    def get_split(self, run_name: str) -> Optional[str]:
+        """Return the split for ``run_name``, or ``None`` if unassigned."""
+        row = self.runs_by_name.get(run_name)
+        if not row:
+            return None
+        val = row.get("split")
+        if val is None or val == "":
+            return None
+        return val
+
+    def set_split(self, run_name: str, split: Optional[str]) -> None:
+        """Assign ``split`` to ``run_name`` (empty string / None clears).
+
+        Raises :class:`KeyError` if ``run_name`` is not in the index. Marks
+        ``copick/runs`` dirty; honours ``_auto_commit``.
+        """
+        with self._write_lock:
+            if run_name not in self.runs_by_name:
+                raise KeyError(f"Run '{run_name}' is not in the Croissant index.")
+            normalized = "" if split is None else str(split)
+            self.runs_by_name[run_name]["split"] = normalized
+            self._dirty.add("copick/runs")
+            if self._auto_commit:
+                self._commit_locked()
+
+    def clear_split(self, run_name: str) -> None:
+        """Clear the split assignment for ``run_name``."""
+        self.set_split(run_name, "")
+
+    def get_all_splits(self) -> Dict[str, List[str]]:
+        """Return ``{split_name: [sorted run names]}`` from the current index."""
+        groups: Dict[str, List[str]] = {}
+        for run_name, row in self.runs_by_name.items():
+            val = row.get("split")
+            if not val:
+                continue
+            groups.setdefault(val, []).append(run_name)
+        for names in groups.values():
+            names.sort()
+        return groups
 
     # ------------------------------------------------------------------
     # Batch context manager helpers (called by root.batch())
@@ -1504,6 +1566,21 @@ class CopickRunMLC(CopickRunOverlay):
     def _index(self) -> CroissantIndex:
         return self.root.index
 
+    # Override the base CopickRun.split property to read/write via the index.
+    @property
+    def split(self) -> Optional[str]:
+        return self._index.get_split(self.name)
+
+    @split.setter
+    def split(self, value: Optional[str]) -> None:
+        if self.root.mode == "B":
+            raise PermissionError(
+                "Splits are stored in the Croissant's runs.csv; the Croissant "
+                "is read-only in Mode B. Republish the Croissant or use "
+                "`set_splits`/`copick config set-splits` against a writable copy.",
+            )
+        self._index.set_split(self.name, value)
+
     @property
     def static_path(self) -> str:
         return f"{_join_url(self.root.index.base_url, 'ExperimentRuns')}/{self.name}"
@@ -2023,6 +2100,55 @@ class CopickRootMLC(CopickRoot):
         """
         self.index.reload()
         super().refresh()
+
+    # ----- Splits -----
+    @property
+    def splits(self) -> Dict[str, List[str]]:
+        """Return ``{split_name: [run names]}`` from the Croissant index."""
+        return self.index.get_all_splits()
+
+    def get_runs_in_split(self, split_name: str) -> List["CopickRunMLC"]:
+        """Return all runs currently assigned to ``split_name``."""
+        names = self.splits.get(split_name, [])
+        return [r for r in (self.get_run(n) for n in names) if r is not None]
+
+    def set_splits(
+        self,
+        mapping: Dict[str, Any],
+        *,
+        clear_existing: bool = False,
+    ) -> None:
+        """Bulk-assign splits. ``mapping`` is ``{split: iterable_of_run_names}``.
+
+        When ``clear_existing`` is True, every run's split is cleared first
+        so the final state matches ``mapping`` exactly. Otherwise the
+        existing splits are preserved for runs not mentioned in ``mapping``.
+        All writes coalesce into a single commit via :meth:`batch`.
+        """
+        if self.mode == "B":
+            raise PermissionError(
+                "Splits are stored in the Croissant's runs.csv; Mode B is read-only.",
+            )
+        with self.batch():
+            if clear_existing:
+                for run_name in list(self.index.runs_by_name.keys()):
+                    self.index.set_split(run_name, "")
+            for split_name, runs in mapping.items():
+                for run_name in runs:
+                    self.index.set_split(run_name, split_name)
+
+    def clear_splits(self, runs: Optional[Any] = None) -> None:
+        """Clear split assignment for ``runs`` (iterable) or for every run
+        if ``runs`` is ``None``. All writes coalesce into a single commit.
+        """
+        if self.mode == "B":
+            raise PermissionError(
+                "Splits are stored in the Croissant's runs.csv; Mode B is read-only.",
+            )
+        target = list(runs) if runs is not None else list(self.index.runs_by_name.keys())
+        with self.batch():
+            for name in target:
+                self.index.set_split(name, "")
 
     class _BatchCtx:
         def __init__(self, root: "CopickRootMLC"):

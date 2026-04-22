@@ -293,6 +293,103 @@ Semantics:
 - The destination must be Mode A (writable `copick:baseUrl`). For a
   read-only Croissant, re-export from the merged source view instead.
 
+## Declaring train/val/test splits
+
+Run-level ML splits are first-class in the mlcroissant backend. Each run gets
+an optional `split` value in `runs.csv`, and the Croissant emits a
+spec-conforming `copick/splits` RecordSet with inline data mapping each
+distinct split name to its canonical MLCommons URL (standard names only;
+custom names emit with an empty URL). Runs without an assigned split appear
+with an empty `split` column — those are ignored by split-aware consumers.
+
+Three places to set splits — pick whichever fits:
+
+### During export
+
+```bash
+copick config export-croissant \
+    --config my/filesystem.json \
+    --project-root my \
+    --base-url file://my \
+    --split train=TS_001,TS_002 \
+    --split val=TS_003 \
+    --split test=TS_004
+```
+
+`--split NAME=RUN1,RUN2,...` is repeatable. Alternatively pass a CSV via
+`--splits-file splits.csv` (columns `split,run`); `--split` flags override
+duplicate split names from the file.
+
+### During append
+
+```bash
+copick config append-croissant \
+    --croissant my/Croissant/metadata.json \
+    --source-config my/filesystem.json \
+    --picks "ribosome:*/*" \
+    --split train=TS_005
+```
+
+Appends preserve any existing split on runs you don't mention, so a
+data-only append won't silently wipe split assignments set by a prior
+invocation.
+
+### Post-hoc with `set-splits`
+
+```bash
+copick config set-splits \
+    --croissant my/Croissant/metadata.json \
+    --split train=TS_001,TS_002 \
+    --split val=TS_003 \
+    --unassign TS_004
+```
+
+Useful flags:
+
+| Flag              | Effect                                                         |
+|-------------------|----------------------------------------------------------------|
+| `--split NAME=RUN,...` | Assign each listed run to ``NAME``. Repeatable.           |
+| `--splits-file PATH`   | CSV with ``split,run`` columns.                           |
+| `--clear-all`     | Wipe every run's split before applying (explicit opt-in).     |
+| `--unassign RUN,...` | Clear split on listed runs, applied after the mapping.     |
+
+### Python API
+
+```python
+import copick
+
+root = copick.from_croissant("my/Croissant/metadata.json")
+
+# Query
+print(root.splits)                        # {'train': ['TS_001'], 'val': ['TS_003'], ...}
+print(root.get_run("TS_001").split)       # 'train'
+train_runs = root.get_runs_in_split("train")
+
+# Mutate (Mode A; Mode B raises PermissionError)
+root.get_run("TS_005").split = "test"
+root.set_splits({"train": ["TS_001", "TS_002"]}, clear_existing=True)
+root.clear_splits(["TS_004"])
+```
+
+Non-mlcroissant backends (`filesystem`, `cryoet_data_portal`) return `None`
+from `run.split` and an empty `{}` from `root.splits` — splits are an
+mlcroissant-only concept.
+
+### Spec representation
+
+The emitted `copick/splits` RecordSet mirrors the canonical mlcommons COCO
+example (`sc:Text` for split names, `sc:URL` for canonical URLs, `references`
+on `copick/runs/split` pointing at `copick/splits/name`). Arbitrary split
+names (`holdout`, `fold-1`, etc.) are fine — they get an empty URL rather
+than a canonical URI. Standard names map to:
+
+- `train` → `https://mlcommons.org/definitions/training_split`
+- `val` / `validation` → `https://mlcommons.org/definitions/validation_split`
+- `test` / `eval` → `https://mlcommons.org/definitions/test_split`
+
+A run can only belong to one split at a time; listing the same run under two
+different splits (via CLI or Python) raises `ValueError`.
+
 ## Opening a Croissant-backed project
 
 Use the `mlcroissant` config command to generate a copick config:

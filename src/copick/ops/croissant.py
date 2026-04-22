@@ -26,6 +26,8 @@ from copick.impl.mlcroissant import (
     CROISSANT_CONTEXT,
     CSV_SCHEMA,
     RECORDSET_ORDER,
+    SPLITS_RECORDSET_ID,
+    STANDARD_SPLIT_URIS,
     _fs_for_url,
 )
 from copick.models import CopickRoot
@@ -40,6 +42,42 @@ CONFORMS_TO = "http://mlcommons.org/croissant/1.1"
 # Canonical S3 base URL for the CZ cryoET Data Portal public bucket. Portal URLs
 # are of the form ``s3://cryoet-data-portal-public/<dataset_id>/...``.
 CDP_PORTAL_BASE_URL = "s3://cryoet-data-portal-public/"
+
+
+def _load_split_assignments(
+    splits: Optional[Dict[str, Any]],
+) -> Dict[str, str]:
+    """Normalise a ``{split: iterable_of_run_names}`` mapping into a
+    ``{run_name: split}`` dict.
+
+    Duplicate run names across different splits are a configuration error —
+    a run can only belong to one split at a time. Raises ``ValueError`` on
+    such conflicts.
+    """
+    if not splits:
+        return {}
+    run_to_split: Dict[str, str] = {}
+    for split_name, runs in splits.items():
+        if not split_name:
+            raise ValueError("Split name cannot be empty.")
+        for run_name in runs or []:
+            if run_name in run_to_split and run_to_split[run_name] != split_name:
+                raise ValueError(
+                    f"Run '{run_name}' was assigned to two splits: '{run_to_split[run_name]}' and '{split_name}'.",
+                )
+            run_to_split[run_name] = split_name
+    return run_to_split
+
+
+def _validate_split_runs(run_to_split: Dict[str, str], available_run_names: Set[str]) -> None:
+    """Raise ``ValueError`` if any split references a run that isn't present."""
+    missing: List[Tuple[str, str]] = []
+    for run_name, split_name in run_to_split.items():
+        if run_name not in available_run_names:
+            missing.append((split_name, run_name))
+    if missing:
+        rendered = ", ".join(f"'{s}'→'{r}'" for s, r in sorted(missing))
+        raise ValueError(f"Splits reference unknown runs: {rendered}")
 
 
 @dataclass
@@ -236,19 +274,22 @@ def _serialize_csv(recordset_id: str, rows: List[Dict[str, Any]]) -> bytes:
 
 def _build_field_list(recordset_id: str) -> List[Dict[str, Any]]:
     schema = CSV_SCHEMA[recordset_id]
+    field_extras = schema.get("field_extras", {}) or {}
     fields = []
     for col in schema["columns"]:
-        fields.append(
-            {
-                "@type": "cr:Field",
-                "@id": f"{recordset_id}/{col}",
-                "dataType": schema["types"][col],
-                "source": {
-                    "fileObject": {"@id": schema["file_object_id"]},
-                    "extract": {"column": col},
-                },
+        field = {
+            "@type": "cr:Field",
+            "@id": f"{recordset_id}/{col}",
+            "dataType": schema["types"][col],
+            "source": {
+                "fileObject": {"@id": schema["file_object_id"]},
+                "extract": {"column": col},
             },
-        )
+        }
+        extras = field_extras.get(col)
+        if extras:
+            field.update(extras)
+        fields.append(field)
     return fields
 
 
@@ -281,6 +322,7 @@ def export_croissant(
     segmentations_author: Optional[Iterable[str]] = None,
     tomograms_portal_meta: Optional[Dict[str, Any]] = None,
     tomograms_author: Optional[Iterable[str]] = None,
+    splits: Optional[Dict[str, Any]] = None,
 ) -> str:
     """Export ``root`` to ``<project_root>/Croissant/``.
 
@@ -397,6 +439,16 @@ def export_croissant(
         filters=filters,
     )
 
+    # Apply split assignments to the runs rows.
+    run_to_split = _load_split_assignments(splits)
+    if run_to_split:
+        available = {r["name"] for r in rows.get("copick/runs", [])}
+        _validate_split_runs(run_to_split, available)
+        for run_row in rows["copick/runs"]:
+            sp = run_to_split.get(run_row["name"])
+            if sp:
+                run_row["split"] = sp
+
     # Write CSVs
     csv_bytes: Dict[str, bytes] = {}
     for rs_id in RECORDSET_ORDER:
@@ -412,6 +464,7 @@ def export_croissant(
         root=root,
         copick_base_url=copick_base_url,
         csv_bytes=csv_bytes,
+        rows=rows,
         dataset_name=dataset_name,
         description=description,
         license=license,
@@ -888,11 +941,69 @@ def _object_url(obj, base_url: str, is_cdp: bool) -> str:
 # -----------------------------------------------------------------------------
 
 
+def _build_splits_recordset(runs_rows: List[Dict[str, Any]]) -> Optional[Dict[str, Any]]:
+    """Emit the spec-conforming ``copick/splits`` RecordSet from runs rows.
+
+    Derives the unique non-empty ``split`` values and emits one inline data
+    row per split. Standard split names map to Croissant's canonical
+    ``cr:TrainingSplit`` / ``cr:ValidationSplit`` / ``cr:TestSplit`` URIs
+    (case-insensitive lookup); unknown names emit without the ``url`` field.
+
+    Returns ``None`` when no run carries a split — we only pollute the
+    manifest with the extra RecordSet when it's relevant.
+    """
+    names: List[str] = []
+    seen = set()
+    for row in runs_rows:
+        val = row.get("split")
+        if not val:
+            continue
+        if val in seen:
+            continue
+        seen.add(val)
+        names.append(val)
+    if not names:
+        return None
+    data = []
+    for split_name in names:
+        # mlcroissant's validator requires every inline row to list every
+        # column declared on the RecordSet, so emit the url as "" for
+        # non-standard names.
+        url = STANDARD_SPLIT_URIS.get(split_name.lower(), "")
+        data.append(
+            {
+                f"{SPLITS_RECORDSET_ID}/name": split_name,
+                f"{SPLITS_RECORDSET_ID}/url": url,
+            },
+        )
+    return {
+        "@type": "cr:RecordSet",
+        "@id": SPLITS_RECORDSET_ID,
+        "name": "splits",
+        "description": "Maps split names to MLCommons definition URLs.",
+        "key": {"@id": f"{SPLITS_RECORDSET_ID}/name"},
+        "field": [
+            {
+                "@type": "cr:Field",
+                "@id": f"{SPLITS_RECORDSET_ID}/name",
+                "dataType": "sc:Text",
+            },
+            {
+                "@type": "cr:Field",
+                "@id": f"{SPLITS_RECORDSET_ID}/url",
+                "dataType": "sc:URL",
+            },
+        ],
+        "data": data,
+    }
+
+
 def _build_croissant_doc(
     *,
     root: CopickRoot,
     copick_base_url: str,
     csv_bytes: Dict[str, bytes],
+    rows: Dict[str, List[Dict[str, Any]]],
     dataset_name: Optional[str],
     description: Optional[str],
     license: Optional[str],
@@ -936,6 +1047,23 @@ def _build_croissant_doc(
                 "field": _build_field_list(rs_id),
             },
         )
+
+    # Inline splits RecordSet (cr:Split dataType). Only emitted when at least
+    # one run carries a non-empty split — otherwise the `references` target
+    # would dangle and break validation.
+    splits_rs = _build_splits_recordset(rows.get("copick/runs", []))
+    if splits_rs is not None:
+        record_sets.append(splits_rs)
+        # Attach a `references` link on the runs/split field so consumers can
+        # navigate from a run to its split entry.
+        runs_rs = next((r for r in record_sets if r.get("@id") == "copick/runs"), None)
+        if runs_rs:
+            for field in runs_rs.get("field", []):
+                if field.get("@id") == "copick/runs/split":
+                    # mlcommons canonical form wraps the reference under a
+                    # `field` key (see coco2014-mini example).
+                    field["references"] = {"field": {"@id": f"{SPLITS_RECORDSET_ID}/name"}}
+                    break
 
     # Serialise copick:config (PickableObjects etc.)
     cfg = root.config
@@ -1102,6 +1230,7 @@ def append_croissant(
     segmentations_author: Optional[Iterable[str]] = None,
     tomograms_portal_meta: Optional[Dict[str, Any]] = None,
     tomograms_author: Optional[Iterable[str]] = None,
+    splits: Optional[Dict[str, Any]] = None,
     compute_file_sha256: bool = True,
 ) -> str:
     """Union filtered rows from ``source_root`` into an existing Croissant.
@@ -1179,6 +1308,23 @@ def append_croissant(
     )
     _absolutize_row_urls(rows, source_base_url)
 
+    # Apply split assignments to the appended run rows. Explicit overrides
+    # from ``splits`` kwarg win; otherwise preserve any existing split the
+    # destination already has for this run (so a data-only append doesn't
+    # silently clobber splits set via a prior invocation).
+    run_to_split = _load_split_assignments(splits)
+    if run_to_split:
+        available = {r["name"] for r in rows.get("copick/runs", [])}
+        _validate_split_runs(run_to_split, available)
+    for run_row in rows.get("copick/runs", []):
+        name = run_row["name"]
+        if name in run_to_split:
+            run_row["split"] = run_to_split[name]
+        else:
+            existing = dest.index.get_split(name)
+            if existing is not None:
+                run_row["split"] = existing
+
     # Merge rows + pickable_objects into the destination in one commit.
     with dest.batch():
         for rs_id in RECORDSET_ORDER:
@@ -1187,6 +1333,63 @@ def append_croissant(
         _union_pickable_objects(dest.index, source_root, filters.object_name_map)
 
     logger.info("Appended %s rows into %s", sum(len(v) for v in rows.values()), dest_metadata_path)
+    return dest_metadata_path
+
+
+def set_splits(
+    dest_metadata_path: str,
+    mapping: Optional[Dict[str, Any]] = None,
+    *,
+    clear_existing: bool = False,
+    unassign: Optional[Iterable[str]] = None,
+) -> str:
+    """Post-hoc editor for split assignments on an existing Croissant.
+
+    Opens the destination at ``dest_metadata_path`` in Mode A, validates that
+    every run referenced in ``mapping`` / ``unassign`` exists, applies the
+    changes under a single batch commit, and rewrites ``metadata.json`` so the
+    splits RecordSet reflects the new set of distinct split names.
+
+    Args:
+        dest_metadata_path: Path / URL to the destination ``metadata.json``.
+        mapping: ``{split: iterable_of_run_names}``. ``None`` is an empty map.
+        clear_existing: When True, every run's split is cleared before the
+            new mapping is applied, so the final state matches ``mapping``
+            exactly.
+        unassign: Optional iterable of run names to clear after ``mapping``
+            has been applied (useful for surgical removals).
+
+    Returns:
+        The path to the rewritten ``metadata.json``.
+    """
+    from copick.impl.mlcroissant import CopickConfigMLCroissant, CopickRootMLC
+
+    dest_cfg = CopickConfigMLCroissant(croissant_url=dest_metadata_path, pickable_objects=[])
+    dest = CopickRootMLC(dest_cfg)
+    if not dest.index._writable:
+        raise PermissionError(
+            f"Destination Croissant at {dest_metadata_path} is not writable. "
+            "set_splits requires a Mode A (writable copick:baseUrl) destination.",
+        )
+
+    run_to_split = _load_split_assignments(mapping) if mapping else {}
+    unassign_list = list(unassign) if unassign else []
+    available = set(dest.index.runs_by_name.keys())
+    _validate_split_runs(run_to_split, available)
+    unknown_unassign = [r for r in unassign_list if r not in available]
+    if unknown_unassign:
+        raise ValueError(f"Unassign references unknown runs: {sorted(unknown_unassign)}")
+
+    with dest.batch():
+        if clear_existing:
+            for name in list(dest.index.runs_by_name.keys()):
+                dest.index.set_split(name, "")
+        for run_name, split_name in run_to_split.items():
+            dest.index.set_split(run_name, split_name)
+        for run_name in unassign_list:
+            dest.index.set_split(run_name, "")
+
+    logger.info("Updated splits in %s", dest_metadata_path)
     return dest_metadata_path
 
 

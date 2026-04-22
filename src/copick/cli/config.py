@@ -29,6 +29,71 @@ def _parse_kv(arg: Optional[str]) -> Dict[str, Any]:
     return result
 
 
+def _parse_split_option(value: str) -> Tuple[str, List[str]]:
+    """Parse a ``NAME=RUN1,RUN2`` CLI argument.
+
+    Returns ``(split_name, [run_names])``. Whitespace around each token is
+    stripped. Raises :class:`click.BadParameter` when the syntax is wrong or
+    any part is empty.
+    """
+    if not value or "=" not in value:
+        raise click.BadParameter(f"Expected 'NAME=RUN1,RUN2,...' in --split '{value}'.")
+    name, rhs = value.split("=", 1)
+    name = name.strip()
+    if not name:
+        raise click.BadParameter(f"Split name is empty in --split '{value}'.")
+    if "," in name or "=" in name:
+        raise click.BadParameter(f"Split name may not contain ',' or '=' (got '{name}').")
+    runs = [r.strip() for r in rhs.split(",") if r.strip()]
+    if not runs:
+        raise click.BadParameter(f"No runs listed for split '{name}' in --split '{value}'.")
+    return name, runs
+
+
+def _load_splits_file(path: str) -> Dict[str, List[str]]:
+    """Read a CSV with ``split,run`` columns into ``{split: [run, run, ...]}``.
+
+    Extra columns are ignored. Missing columns raise ``ValueError``. Empty
+    cells are skipped.
+    """
+    import csv as _csv
+
+    mapping: Dict[str, List[str]] = {}
+    with open(path, newline="") as fh:
+        reader = _csv.DictReader(fh)
+        if reader.fieldnames is None or "split" not in reader.fieldnames or "run" not in reader.fieldnames:
+            raise ValueError(
+                f"Splits file {path} must have columns 'split' and 'run' (got {reader.fieldnames!r}).",
+            )
+        for row in reader:
+            split = (row.get("split") or "").strip()
+            run = (row.get("run") or "").strip()
+            if not split or not run:
+                continue
+            mapping.setdefault(split, []).append(run)
+    return mapping
+
+
+def _merge_splits_inputs(
+    split_args: Tuple[str, ...],
+    splits_file: Optional[str],
+) -> Optional[Dict[str, List[str]]]:
+    """Combine ``--split`` repeats + ``--splits-file`` into a single mapping.
+
+    CLI ``--split`` entries override any split-name already in the file.
+    Returns ``None`` when neither input is provided.
+    """
+    if not split_args and not splits_file:
+        return None
+    mapping: Dict[str, List[str]] = {}
+    if splits_file:
+        mapping.update(_load_splits_file(splits_file))
+    for raw in split_args:
+        name, runs = _parse_split_option(raw)
+        mapping[name] = runs
+    return mapping
+
+
 def _load_source_root(
     source_config: Optional[str],
     source_dataset_ids: Optional[str],
@@ -503,6 +568,21 @@ def mlcroissant(
     default=None,
     help="Comma-separated author names filtering CDP tomograms. CDP-only.",
 )
+@click.option(
+    "--split",
+    "split_args",
+    type=str,
+    multiple=True,
+    help="Assign runs to an ML split, e.g. 'train=TS_001,TS_002'. Repeatable. Standard names (train/val/validation/test/eval) map to the canonical cr:*Split URIs; custom names emit without a URI.",
+)
+@click.option(
+    "--splits-file",
+    "splits_file",
+    type=click.Path(dir_okay=False, exists=True),
+    required=False,
+    default=None,
+    help="CSV with columns 'split' and 'run' providing split assignments. Combined with any --split flags (the CLI flags override duplicate split names).",
+)
 @add_debug_option
 @click.pass_context
 def export_croissant_cmd(
@@ -536,6 +616,8 @@ def export_croissant_cmd(
     segmentations_author_arg: str,
     tomograms_portal_meta_arg: str,
     tomograms_author_arg: str,
+    split_args: tuple,
+    splits_file: Optional[str],
     debug: bool = False,
 ):
     """
@@ -599,6 +681,7 @@ def export_croissant_cmd(
             segmentations_author=parse_list(segmentations_author_arg) if segmentations_author_arg else None,
             tomograms_portal_meta=_parse_kv(tomograms_portal_meta_arg) or None,
             tomograms_author=parse_list(tomograms_author_arg) if tomograms_author_arg else None,
+            splits=_merge_splits_inputs(split_args, splits_file),
         )
     except Exception as e:
         logger.critical(f"Failed to export Croissant: {e}")
@@ -786,6 +869,21 @@ def export_croissant_cmd(
     default=None,
     help="Comma-separated author names filtering CDP tomograms. CDP-only.",
 )
+@click.option(
+    "--split",
+    "split_args",
+    type=str,
+    multiple=True,
+    help="Assign appended runs to an ML split, e.g. 'train=TS_001,TS_002'. Repeatable. Preserves existing destination splits for runs you don't mention.",
+)
+@click.option(
+    "--splits-file",
+    "splits_file",
+    type=click.Path(dir_okay=False, exists=True),
+    required=False,
+    default=None,
+    help="CSV with columns 'split' and 'run' providing split assignments for appended runs.",
+)
 @add_debug_option
 @click.pass_context
 def append_croissant_cmd(
@@ -810,6 +908,8 @@ def append_croissant_cmd(
     segmentations_author_arg: str,
     tomograms_portal_meta_arg: str,
     tomograms_author_arg: str,
+    split_args: tuple,
+    splits_file: Optional[str],
     debug: bool = False,
 ):
     """
@@ -865,6 +965,7 @@ def append_croissant_cmd(
             segmentations_author=parse_list(segmentations_author_arg) if segmentations_author_arg else None,
             tomograms_portal_meta=_parse_kv(tomograms_portal_meta_arg) or None,
             tomograms_author=parse_list(tomograms_author_arg) if tomograms_author_arg else None,
+            splits=_merge_splits_inputs(split_args, splits_file),
         )
     except Exception as e:
         logger.critical(f"Failed to append to Croissant: {e}")
@@ -876,3 +977,109 @@ def append_croissant_cmd(
                 os.unlink(temp_config_path)
 
     logger.info(f"Appended rows into {metadata_path}.")
+
+
+@config.command(
+    name="set-splits",
+    context_settings={"show_default": True},
+    short_help="Edit train/val/test split assignments on an existing Croissant.",
+    no_args_is_help=True,
+)
+@click.option(
+    "--croissant",
+    "croissant_path",
+    type=click.Path(dir_okay=False, exists=True),
+    required=True,
+    help="Path / URL to the destination Croissant metadata.json. Must be writable (Mode A).",
+)
+@click.option(
+    "--split",
+    "split_args",
+    type=str,
+    multiple=True,
+    help="Assign runs to an ML split, e.g. 'train=TS_001,TS_002'. Repeatable.",
+)
+@click.option(
+    "--splits-file",
+    "splits_file",
+    type=click.Path(dir_okay=False, exists=True),
+    required=False,
+    default=None,
+    help="CSV with columns 'split' and 'run' providing assignments. Combined with --split flags (CLI flags override duplicate split names).",
+)
+@click.option(
+    "--clear-all",
+    "clear_all",
+    is_flag=True,
+    default=False,
+    help="Clear every run's split before applying the new mapping.",
+)
+@click.option(
+    "--unassign",
+    "unassign_arg",
+    type=str,
+    required=False,
+    default=None,
+    help="Comma-separated run names to clear split for, applied AFTER the mapping.",
+)
+@add_debug_option
+@click.pass_context
+def set_croissant_splits_cmd(
+    ctx,
+    croissant_path: str,
+    split_args: tuple,
+    splits_file: Optional[str],
+    clear_all: bool,
+    unassign_arg: Optional[str],
+    debug: bool = False,
+):
+    """
+    Assign or edit train/val/test (or custom) splits on an existing Croissant.
+
+    Splits live in the Croissant's runs.csv `split` column. This command opens
+    the destination in Mode A, applies the mapping + unassign + clear-all
+    options under a single batch commit, and rewrites metadata.json so the
+    spec-conforming splits RecordSet reflects the new set of distinct split
+    names.
+
+    Examples:
+
+    \b
+        copick config set-splits \\
+            --croissant Croissant/metadata.json \\
+            --split train=TS_001,TS_002 \\
+            --split val=TS_003 \\
+            --split test=TS_004
+
+    \b
+        # Start fresh:
+        copick config set-splits --croissant ... --clear-all --split train=TS_001
+    """
+    from copick.ops.croissant import set_splits
+    from copick.util.sync import parse_list
+
+    logger = get_logger(__name__, debug=debug)
+
+    if not split_args and not splits_file and not clear_all and not unassign_arg:
+        ctx.fail("Nothing to do — pass at least one of --split / --splits-file / --clear-all / --unassign.")
+        return
+
+    try:
+        mapping = _merge_splits_inputs(split_args, splits_file)
+    except Exception as e:
+        ctx.fail(f"Error parsing split inputs: {e}")
+        return
+
+    try:
+        metadata_path = set_splits(
+            croissant_path,
+            mapping,
+            clear_existing=clear_all,
+            unassign=parse_list(unassign_arg) if unassign_arg else None,
+        )
+    except Exception as e:
+        logger.critical(f"Failed to set splits: {e}")
+        ctx.fail(f"Error setting splits: {e}")
+        return
+
+    logger.info(f"Updated splits in {metadata_path}.")
