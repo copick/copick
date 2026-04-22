@@ -1,5 +1,26 @@
 # Changelog
 
+## [1.24.0](https://github.com/copick/copick/compare/copick-v1.23.4...copick-v1.24.0) (2026-04-21)
+
+
+### ✨ Features
+
+* Make data portal queries more robust with retries. ([#270](https://github.com/copick/copick/issues/270)) ([3771c93](https://github.com/copick/copick/commit/3771c93dcc71b7aac74e982ca07b47685f566212))
+
+
+### 🐞 Bug Fixes
+
+* bump chanzuckerberg/github-actions from 6.16.0 to 6.20.0 ([#262](https://github.com/copick/copick/issues/262)) ([f8f7f6d](https://github.com/copick/copick/commit/f8f7f6d82271173c426a536f445ece32fd25a38c))
+* bump click from 8.3.1 to 8.3.2 ([#265](https://github.com/copick/copick/issues/265)) ([04fd129](https://github.com/copick/copick/commit/04fd1290a0ce0ac0113e3ac39510acc456f9a2fc))
+* bump cryoet-data-portal from 4.7.0 to 4.8.0 ([#264](https://github.com/copick/copick/issues/264)) ([98e2b57](https://github.com/copick/copick/commit/98e2b572c627316b48662b6942d4a6356ba0da40))
+* bump ipython from 8.38.0 to 8.39.0 ([#266](https://github.com/copick/copick/issues/266)) ([ee05760](https://github.com/copick/copick/commit/ee057601285460f2d15f528108c93f6c1aa6980e))
+* bump pillow from 12.1.1 to 12.2.0 ([#267](https://github.com/copick/copick/issues/267)) ([6e9904d](https://github.com/copick/copick/commit/6e9904d1b19c24fbacc78646bc417ddaa75eb034))
+* bump pydantic from 2.12.4 to 2.13.3 ([#274](https://github.com/copick/copick/issues/274)) ([14d2806](https://github.com/copick/copick/commit/14d2806f6b0049b8760bea50b2951513d828e5fb))
+* bump pytest from 9.0.2 to 9.0.3 ([#263](https://github.com/copick/copick/issues/263)) ([10c9310](https://github.com/copick/copick/commit/10c93101f52e4b36ef3fcb94a4ad4942d40c293e))
+* bump pytest-cov from 7.0.0 to 7.1.0 ([#273](https://github.com/copick/copick/issues/273)) ([794a4f6](https://github.com/copick/copick/commit/794a4f60c732b3b26f7b9905e8a7925cf3e17e93))
+* bump textual from 8.2.3 to 8.2.4 ([#275](https://github.com/copick/copick/issues/275)) ([bfae22f](https://github.com/copick/copick/commit/bfae22f3f8c73d3e50b2e006afb83c0ada72a61d))
+* Fix run name determination in deposit. ([#271](https://github.com/copick/copick/issues/271)) ([0149204](https://github.com/copick/copick/commit/014920457357ae2c9bd153564bb45dee1984b019))
+
 ## [1.23.4](https://github.com/copick/copick/compare/copick-v1.23.3...copick-v1.23.4) (2026-04-10)
 
 
