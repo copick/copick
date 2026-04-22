@@ -1060,7 +1060,11 @@ def _union_pickable_objects(
         name = po_dump.get("name")
         if name in existing_by_name:
             dest_entry = existing_by_name[name]
-            if dest_entry.get("label") != po_dump.get("label") or dest_entry.get("color") != po_dump.get("color"):
+            # Normalize via JSON round-trip so tuple-vs-list drift (from
+            # model_dump vs. JSON-loaded dicts) doesn't fire a false positive.
+            dest_norm = json.loads(json.dumps(dest_entry, default=list))
+            src_norm = json.loads(json.dumps(po_dump, default=list))
+            if dest_norm.get("label") != src_norm.get("label") or dest_norm.get("color") != src_norm.get("color"):
                 warnings.warn(
                     f"Pickable object '{name}' already present in destination with "
                     "different attributes; destination wins.",
@@ -1153,8 +1157,9 @@ def append_croissant(
     source_type = getattr(source_root.config, "config_type", "filesystem")
     _validate_filters_against_source(filters, source_type)
 
-    # Open destination in Mode A
-    dest_cfg = CopickConfigMLCroissant(croissant_url=dest_metadata_path)
+    # Open destination in Mode A. pickable_objects are populated by
+    # CopickRootMLC.__init__ from the Croissant's copick:config block.
+    dest_cfg = CopickConfigMLCroissant(croissant_url=dest_metadata_path, pickable_objects=[])
     dest = CopickRootMLC(dest_cfg)
     if not dest.index._writable:
         raise PermissionError(
