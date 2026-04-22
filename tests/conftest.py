@@ -181,6 +181,7 @@ def mlcroissant_overlay_only(base_project_directory, base_config_overlay_only):
         project_root=str(project_directory),
         base_url="file://" + str(project_directory),
         dataset_name=cfg.get("name", "mlc-test"),
+        force=True,
     )
 
     mlc_cfg_path = temp_dir / "mlcroissant.json"
@@ -240,6 +241,7 @@ def mlcroissant(base_project_directory, base_overlay_directory, base_config_over
         project_root=str(project_directory),
         base_url="file://" + str(project_directory),
         dataset_name=cfg.get("name", "mlc-test"),
+        force=True,
     )
 
     mlc_cfg_path = temp_dir / "mlcroissant.json"
