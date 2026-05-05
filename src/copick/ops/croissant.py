@@ -731,6 +731,7 @@ def _walk_project(
                 "user_id": pick.user_id,
                 "session_id": resolved_session_id,
                 "object_name": remapped_object_name,
+                "voxel_size": _pick_voxel_size(pick, is_cdp),
                 "url": pick_url,
                 "sha256": sha,
                 "portal_object_name": original_object_name
@@ -887,6 +888,35 @@ def _pick_url_and_sha(run, pick, base_url: str, is_cdp: bool, compute_sha: bool)
         except Exception as e:
             logger.warning(f"Could not compute sha256 for pick {rel}: {e}")
     return rel, sha
+
+
+def _pick_voxel_size(pick, is_cdp: bool) -> Optional[float]:
+    """Resolve the voxel size to record for this pick in picks.csv.
+
+    For CDP-sourced picks the value comes from PortalAnnotationMeta (already
+    available without loading the file). For native copick picks ``meta``
+    is typically a stub (only user_id/session_id/object_name) until first
+    access; we trigger ``pick.load()`` to read ``voxel_spacing`` from the
+    underlying ``CopickPicksFile``. ``None`` means "unknown" and is written
+    as an empty cell — non-NDJSON readers don't need it; NDJSON readers
+    fall back to URL parsing for legacy compatibility.
+    """
+    if is_cdp:
+        portal_meta = getattr(pick.meta, "portal_metadata", None)
+        if portal_meta is not None and getattr(portal_meta, "voxel_spacing", None) is not None:
+            return float(portal_meta.voxel_spacing)
+    vs = getattr(pick.meta, "voxel_spacing", None)
+    if vs is not None:
+        return float(vs)
+    # Lazy load to populate meta.voxel_spacing for native copick picks.
+    try:
+        loaded = pick.load()
+        vs = getattr(loaded, "voxel_spacing", None)
+        if vs is not None:
+            return float(vs)
+    except Exception as e:  # noqa: BLE001
+        logger.warning(f"Could not load pick to read voxel_spacing for {pick}: {e}")
+    return None
 
 
 def _mesh_url_and_sha(run, mesh, base_url: str, is_cdp: bool, compute_sha: bool) -> tuple:

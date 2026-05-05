@@ -1465,3 +1465,254 @@ def test_mode_b_overlay_distinct_from_base_url_is_not_overlay(
     # Source has 1 pick; distinct overlay is empty; still exactly 1 pick.
     run = root.get_run("run_001")
     assert len(run.picks) == 1
+
+
+# -----------------------------------------------------------------------------
+# CDP-style NDJSON pick loading + voxel_size column + Mode A graceful exit
+# -----------------------------------------------------------------------------
+
+
+def _patch_picks_csv(proj, *, url, voxel_size, drop_voxel_size_column=False):
+    """Rewrite picks.csv to point at ``url`` and refresh metadata.json.
+
+    Used by the NDJSON-loading tests to redirect the single exported pick at
+    a hand-written CDP-style file. ``drop_voxel_size_column=True`` simulates
+    a legacy Croissant exported before the column was added — also removes
+    the corresponding field declaration from ``metadata.json`` so mlcroissant
+    doesn't fail on schema mismatch.
+    """
+    import csv as _csv
+
+    from copick.impl.mlcroissant import _sha256_bytes
+
+    picks_csv = proj / "Croissant" / "picks.csv"
+    rows = list(_csv.DictReader(picks_csv.open()))
+    fieldnames = list(rows[0].keys()) if rows else []
+    if drop_voxel_size_column and "voxel_size" in fieldnames:
+        fieldnames = [f for f in fieldnames if f != "voxel_size"]
+        for row in rows:
+            row.pop("voxel_size", None)
+    for row in rows:
+        row["url"] = url
+        if not drop_voxel_size_column:
+            row["voxel_size"] = "" if voxel_size is None else str(voxel_size)
+    with picks_csv.open("w", newline="") as f:
+        writer = _csv.DictWriter(f, fieldnames=fieldnames)
+        writer.writeheader()
+        writer.writerows(rows)
+
+    metadata_path = proj / "Croissant" / "metadata.json"
+    doc = json.loads(metadata_path.read_text())
+    if drop_voxel_size_column:
+        for rs in doc.get("recordSet", []):
+            if rs.get("@id") == "copick/picks":
+                rs["field"] = [fld for fld in rs.get("field", []) if fld.get("@id") != "copick/picks/voxel_size"]
+    new_sha = _sha256_bytes(picks_csv.read_bytes())
+    for fo in doc.get("distribution", []):
+        if fo.get("@id") == "picks-csv":
+            fo["sha256"] = new_sha
+    metadata_path.write_text(json.dumps(doc, indent=2))
+
+
+@pytest.fixture
+def cdp_like_croissant_project(tiny_filesystem_project):
+    """Croissant whose picks.csv URL points at a CDP-style NDJSON file.
+
+    Reuses ``tiny_filesystem_project`` to build a valid Croissant via
+    ``export_croissant``, then redirects the pick row at a hand-written
+    NDJSON file at ``<base>/dataset_001/run_001/Reconstructions/
+    VoxelSpacing10.000/Annotations/100-ribosome-0.ndjson``. Coordinates in
+    the NDJSON are in voxel units; the loader must scale by ``voxel_size``
+    (= 10.0) to produce angstroms.
+    """
+    import copick
+    from copick.ops.croissant import export_croissant
+
+    proj = tiny_filesystem_project
+    root = copick.from_file(str(proj / "filesystem.json"))
+    export_croissant(root, project_root=str(proj), base_url=f"file://{proj}")
+
+    ndjson_dir = proj / "dataset_001" / "run_001" / "Reconstructions" / "VoxelSpacing10.000" / "Annotations"
+    ndjson_dir.mkdir(parents=True)
+    ndjson_path = ndjson_dir / "100-ribosome-0.ndjson"
+    ndjson_path.write_text(
+        '{"location":{"x":1.0,"y":2.0,"z":3.0}}\n'
+        '{"location":{"x":4.0,"y":5.0,"z":6.0},"xyz_rotation_matrix":[[1,0,0],[0,1,0],[0,0,1]]}\n',
+    )
+
+    rel_url = "dataset_001/run_001/Reconstructions/VoxelSpacing10.000/Annotations/100-ribosome-0.ndjson"
+    _patch_picks_csv(proj, url=rel_url, voxel_size=10.0)
+    return proj
+
+
+def test_load_ndjson_picks_scales_via_csv_voxel_size(cdp_like_croissant_project):
+    """The voxel_size column drives Å conversion for NDJSON picks."""
+    import copick
+
+    proj = cdp_like_croissant_project
+    root = copick.from_croissant(str(proj / "Croissant" / "metadata.json"))
+    pick = root.get_run("run_001").picks[0]
+    pts = pick.points
+    assert len(pts) == 2
+    assert pts[0].location.x == 10.0  # 1.0 * vs(10.0)
+    assert pts[0].location.y == 20.0
+    assert pts[0].location.z == 30.0
+    assert pts[1].location.z == 60.0  # 6.0 * 10.0
+    assert pick.meta.unit == "angstrom"
+    assert pick.meta.voxel_spacing == 10.0
+
+
+def test_load_ndjson_picks_handles_orientation(cdp_like_croissant_project):
+    """OrientedPoint NDJSON entries produce 4×4 transformations + trust_orientation."""
+    import copick
+
+    proj = cdp_like_croissant_project
+    root = copick.from_croissant(str(proj / "Croissant" / "metadata.json"))
+    pick = root.get_run("run_001").picks[0]
+    pts = pick.points
+    # Second point has xyz_rotation_matrix=identity → 4x4 identity transform
+    mat = pts[1].transformation_
+    assert mat[0][0] == 1.0
+    assert mat[1][1] == 1.0
+    assert mat[2][2] == 1.0
+    assert mat[3][3] == 1.0
+    # First point has no rotation matrix → identity (default)
+    assert pick.meta.trust_orientation is True
+
+
+def test_mode_a_loads_ndjson_via_csv_url(cdp_like_croissant_project):
+    """Mode A reads CDP-style NDJSON picks via the CSV-recorded URL.
+
+    Without the Mode A path-resolution fix, ``_load`` would synthesise an
+    ``ExperimentRuns/.../Picks/...json`` path that doesn't exist and the
+    points access would FileNotFoundError before even hitting the parser.
+    """
+    import copick
+
+    proj = cdp_like_croissant_project
+    root = copick.from_croissant(str(proj / "Croissant" / "metadata.json"))
+    assert root.mode == "A"
+    pick = root.get_run("run_001").picks[0]
+    assert len(pick.points) == 2  # would raise FileNotFoundError without the fix
+
+
+def test_load_pretty_printed_json_still_works(tiny_filesystem_project):
+    """Native CopickPicksFile JSON files (pretty-printed, multi-line) still load.
+
+    Regression guard: the NDJSON branch must key on the ``.ndjson`` suffix,
+    not "this file contains newlines" — otherwise pretty-printed JSON would
+    be misclassified as NDJSON and parsed line-by-line.
+    """
+    import copick
+    from copick.ops.croissant import export_croissant
+
+    proj = tiny_filesystem_project
+    # Rewrite the pick file with indent=4 so it spans multiple lines.
+    pick_path = proj / "ExperimentRuns" / "run_001" / "Picks" / "alice_42_ribosome.json"
+    pick_data = json.loads(pick_path.read_text())
+    pick_path.write_text(json.dumps(pick_data, indent=4))
+    assert "\n" in pick_path.read_text()  # confirm it's now multi-line
+
+    root = copick.from_file(str(proj / "filesystem.json"))
+    export_croissant(root, project_root=str(proj), base_url=f"file://{proj}")
+    root2 = copick.from_croissant(str(proj / "Croissant" / "metadata.json"))
+    pick = root2.get_run("run_001").picks[0]
+    # Coords are stored in Å in the JSON file; no scaling expected.
+    assert pick.points[0].location.x == 1.0
+    assert pick.points[0].location.y == 2.0
+
+
+def test_mode_a_write_to_anon_base_raises_permission_error(tiny_filesystem_project, tmp_path):
+    """Mode A writes against a read-only base URL fail with a clear PermissionError.
+
+    Simulates a CDP-sourced Croissant: ``static_fs_args = {"anon": True}``.
+    Without the guard, this would fail deep in s3fs/boto3 with no hint that
+    Mode B is the right answer.
+    """
+    import copick
+    from copick.impl.mlcroissant import CopickConfigMLCroissant, CopickRootMLC
+    from copick.ops.croissant import export_croissant
+
+    proj = tiny_filesystem_project
+    root = copick.from_file(str(proj / "filesystem.json"))
+    export_croissant(root, project_root=str(proj), base_url=f"file://{proj}")
+
+    # Build a root with anon=True in static_fs_args (the CDP-public-bucket pattern).
+    cfg = CopickConfigMLCroissant(
+        config_type="mlcroissant",
+        name="anon-test",
+        version="1.0.0",
+        user_id="alice",
+        session_id="42",
+        pickable_objects=[],
+        croissant_url=str(proj / "Croissant" / "metadata.json"),
+        static_fs_args={"anon": True},
+    )
+    r = CopickRootMLC(cfg)
+    assert r.mode == "A"
+
+    # Try to write a new pick → must raise PermissionError pointing at Mode B.
+    # ``run.new_picks(...)`` writes through to disk on creation, so the guard
+    # fires inside ``new_picks`` rather than at an explicit ``store()`` call.
+    run = r.get_run("run_001")
+    with pytest.raises(PermissionError, match="overlay_root"):
+        run.new_picks(object_name="ribosome", user_id="bob", session_id="99")
+
+
+def test_legacy_croissant_falls_back_to_url_parsing(cdp_like_croissant_project):
+    """Croissants exported before the voxel_size column was added still load via URL regex.
+
+    Migration safety net: ``picks.csv`` with no ``voxel_size`` column must still
+    produce Å-valued points by parsing ``VoxelSpacing10.000`` from the URL.
+    """
+    import copick
+
+    proj = cdp_like_croissant_project
+    rel_url = "dataset_001/run_001/Reconstructions/VoxelSpacing10.000/Annotations/100-ribosome-0.ndjson"
+    _patch_picks_csv(proj, url=rel_url, voxel_size=None, drop_voxel_size_column=True)
+
+    root = copick.from_croissant(str(proj / "Croissant" / "metadata.json"))
+    pts = root.get_run("run_001").picks[0].points
+    assert len(pts) == 2
+    assert pts[0].location.x == 10.0  # vs parsed from URL = 10.0 → 1.0 * 10.0
+    assert pts[1].location.z == 60.0
+
+
+def test_export_writes_voxel_size_column(tiny_filesystem_project):
+    """export_croissant emits the voxel_size column populated from CopickPicksFile."""
+    import copick
+    from copick.ops.croissant import export_croissant
+
+    proj = tiny_filesystem_project
+    root = copick.from_file(str(proj / "filesystem.json"))
+    export_croissant(root, project_root=str(proj), base_url=f"file://{proj}")
+
+    rows = _read_csv(proj / "Croissant" / "picks.csv")
+    assert len(rows) == 1
+    assert "voxel_size" in rows[0]
+    # tiny_filesystem_project's pick has voxel_spacing=10.0 — exporter must record it.
+    assert float(rows[0]["voxel_size"]) == 10.0
+
+
+def test_export_cdp_pick_uses_portal_metadata_voxel_spacing():
+    """``_pick_voxel_size`` reads voxel_spacing from PortalAnnotationMeta for CDP picks."""
+    from copick.ops.croissant import _pick_voxel_size
+
+    class _Stub:
+        pass
+
+    pick = _Stub()
+    pick.meta = _Stub()
+    pick.meta.portal_metadata = _Stub()
+    pick.meta.portal_metadata.voxel_spacing = 10.0
+    pick.meta.voxel_spacing = None  # CDP picks don't go through CopickPicksFile.voxel_spacing
+
+    assert _pick_voxel_size(pick, is_cdp=True) == 10.0
+    # Non-CDP path with no voxel_spacing → None
+    pick2 = _Stub()
+    pick2.meta = _Stub()
+    pick2.meta.voxel_spacing = None
+    assert _pick_voxel_size(pick2, is_cdp=False) is None
+    # Non-CDP path with voxel_spacing set → that value
+    pick2.meta.voxel_spacing = 7.84
+    assert _pick_voxel_size(pick2, is_cdp=False) == 7.84
