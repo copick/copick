@@ -352,6 +352,17 @@
   
 </li>
       
+        <li class="md-nav__item">
+  <a href="#other-storage-backends" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Other storage backends
+      
+    </span>
+  </a>
+  
+</li>
+      
     </ul>
   
 </nav>
@@ -676,6 +687,34 @@
 
               
             
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../examples/setup/croissant/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    mlcroissant
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
           </ul>
         </nav>
       
@@ -942,6 +981,34 @@
     
   
     Copick-MCP
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../examples/tutorials/croissant/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    mlcroissant
   
 
     
@@ -1927,6 +1994,34 @@
 
               
             
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../api_reference/implementations/Croissant/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    mlcroissant
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
           </ul>
         </nav>
       
@@ -2223,6 +2318,17 @@
   
 </li>
       
+        <li class="md-nav__item">
+  <a href="#other-storage-backends" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Other storage backends
+      
+    </span>
+  </a>
+  
+</li>
+      
     </ul>
   
 </nav>
@@ -2263,7 +2369,7 @@ implementations from the fsspec family (<code>local</code>, <code>s3fs</code>, <
 <p><code>copick&gt;=1.2.0</code> will fail to install with <code>pip~=25.1.0</code>. We recommend using <code>pip&gt;=25.2</code> or  <a href="https://docs.astral.sh/uv/pip/"><code>uv pip</code></a> when installing copick.</p>
 </div>
 <h2 id="example-dataset">Example dataset</h2>
-<p>An example dataset can be obtained from <a href="https://doi.org/10.5281/zenodo.16996074">Zenodo</a>.</p>
+<p>An example dataset can be obtained from <a href="https://doi.org/10.5281/zenodo.19686100">Zenodo</a>.</p>
 <p>To test with the example dataset:</p>
 <ol>
 <li>Download and unpack the example dataset</li>
@@ -2337,6 +2443,16 @@ implementations from the fsspec family (<code>local</code>, <code>s3fs</code>, <
 </span></code></pre></div>
 </li>
 </ol>
+<h2 id="other-storage-backends">Other storage backends</h2>
+<p>Beyond local/fsspec-backed filesystem projects, copick supports:</p>
+<ul>
+<li><strong><a href="../examples/setup/data_portal/">CZ cryoET Data Portal</a></strong> — read from the
+  portal API and write to any fsspec overlay.</li>
+<li><strong><a href="../examples/setup/croissant/">mlcroissant</a></strong> — read from a standards-compliant
+  <a href="https://docs.mlcommons.org/croissant/docs/croissant-spec.html">Croissant 1.1</a>
+  manifest + CSV sidecars under a <code>Croissant/</code> subdirectory. Live auto-sync
+  writes keep the manifest up to date as you annotate.</li>
+</ul>
 
 
 
