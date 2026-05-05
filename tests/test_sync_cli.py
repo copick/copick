@@ -5,19 +5,19 @@ import tempfile
 from pathlib import Path
 from typing import Any, Dict
 
+import copick
 import fsspec
 import numpy as np
 import pytest
 import trimesh
 from click.testing import CliRunner
 from copick.cli.sync import sync
-from copick.impl.filesystem import CopickRootFSSpec
 
 
 @pytest.fixture(params=pytest.common_cases)
 def test_payload(request) -> Dict[str, Any]:
     payload = request.getfixturevalue(request.param)
-    payload["root"] = CopickRootFSSpec.from_file(payload["cfg_file"])
+    payload["root"] = copick.from_file(payload["cfg_file"])
     return payload
 
 
@@ -40,7 +40,52 @@ def source_target_configs(test_payload):
 
         # Create target config with different overlay root
         target_config = source_config.copy()
-        if "overlay_root" in target_config:
+        if target_config.get("config_type") == "mlcroissant":
+            # For mlcroissant: target must be an INDEPENDENT project (not a copy
+            # of source), because sync defaults to exist_ok=False and the sample
+            # project's existing picks would collide. Build a fresh target tree
+            # with an empty ExperimentRuns + Croissant schema that mirrors the
+            # source's pickable objects.
+            source_croissant_url = source_config["croissant_url"]
+            with open(source_croissant_url) as f:
+                src_doc = json.load(f)
+            pickable_objects = src_doc["copick:config"].get("pickable_objects", [])
+
+            target_project_root = Path(tmpdir) / "target_project"
+            target_project_root.mkdir()
+            # Minimal empty project structure
+            (target_project_root / "ExperimentRuns").mkdir()
+            (target_project_root / "Objects").mkdir()
+
+            # Build a fresh filesystem scaffold and export its (empty) Croissant
+            scaffold_cfg = {
+                "config_type": "filesystem",
+                "name": "sync-target",
+                "version": "1.0.0",
+                "pickable_objects": pickable_objects,
+                "user_id": src_doc["copick:config"].get("user_id"),
+                "session_id": src_doc["copick:config"].get("session_id"),
+                "overlay_root": f"local://{target_project_root}",
+                "overlay_fs_args": {"auto_mkdir": True},
+            }
+            scaffold_path = Path(tmpdir) / "target_scaffold.json"
+            with open(scaffold_path, "w") as f:
+                json.dump(scaffold_cfg, f)
+            from copick.ops.croissant import export_croissant as _export
+
+            scaffold_root = copick.from_file(str(scaffold_path))
+            _export(
+                scaffold_root,
+                project_root=str(target_project_root),
+                base_url=f"file://{target_project_root}",
+                dataset_name="sync-target",
+            )
+            target_config["croissant_url"] = str(target_project_root / "Croissant" / "metadata.json")
+            if "overlay_root" in target_config:
+                target_overlay_path = Path(tmpdir) / "target_overlay"
+                target_overlay_path.mkdir()
+                target_config["overlay_root"] = f"local://{target_overlay_path}"
+        elif "overlay_root" in target_config:
             # Modify the overlay root to point to a different directory
             overlay_root = target_config["overlay_root"]
             if overlay_root.startswith("local://"):
@@ -63,7 +108,7 @@ def source_target_configs(test_payload):
             "source_config": test_payload["cfg_file"],
             "target_config": str(target_config_path),
             "source_root": test_payload["root"],
-            "target_root": CopickRootFSSpec.from_file(target_config_path),
+            "target_root": copick.from_file(target_config_path),
         }
 
 
@@ -116,7 +161,7 @@ class TestSyncPicksCLI:
         assert "completed successfully" in result.output
 
         # Verify picks were synchronized
-        target_root = CopickRootFSSpec.from_file(target_config)
+        target_root = copick.from_file(target_config)
         target_run = target_root.get_run(source_run.name)
         assert target_run is not None, "Target run should be created"
 
@@ -194,6 +239,10 @@ class TestSyncPicksCLI:
 
         assert result.exit_code == 0, f"Command failed: {result.output}"
 
+        # The sync CLI mutated a separate target_root instance (and the on-disk
+        # manifest); refresh our cached one so it observes those external writes.
+        target_root.refresh()
+
         # Verify with mapped names
         target_run = target_root.get_run("target_run")
         assert target_run is not None, "Target run should be created with mapped name"
@@ -262,7 +311,7 @@ class TestSyncPicksCLI:
         assert result.exit_code == 0, f"Command failed: {result.output}"
 
         # Verify only user1's picks were synchronized
-        target_root = CopickRootFSSpec.from_file(target_config)
+        target_root = copick.from_file(target_config)
         target_run = target_root.get_run(source_run.name)
 
         user1_picks = target_run.get_picks(
@@ -341,7 +390,7 @@ class TestSyncPicksCLI:
         assert result2.exit_code == 0, f"Second sync failed: {result2.output}"
 
         # Verify updated picks
-        target_root = CopickRootFSSpec.from_file(target_config)
+        target_root = copick.from_file(target_config)
         target_run = target_root.get_run(source_run.name)
         target_picks_list = target_run.get_picks(
             object_name=source_obj.name,
@@ -475,7 +524,7 @@ class TestSyncMeshesCLI:
         assert "completed successfully" in result.output
 
         # Verify mesh was synchronized
-        target_root = CopickRootFSSpec.from_file(target_config)
+        target_root = copick.from_file(target_config)
         target_run = target_root.get_run(source_run.name)
         assert target_run is not None, "Target run should be created"
 
@@ -552,6 +601,10 @@ class TestSyncMeshesCLI:
 
         assert result.exit_code == 0, f"Command failed: {result.output}"
 
+        # The sync CLI mutated a separate target_root instance (and the on-disk
+        # manifest); refresh our cached one so it observes those external writes.
+        target_root.refresh()
+
         # Verify with mapped names
         target_run = target_root.get_run("target_run")
         assert target_run is not None, "Target run should be created with mapped name"
@@ -609,7 +662,7 @@ class TestSyncSegmentationsCLI:
         assert "completed successfully" in result.output
 
         # Verify segmentation was synchronized
-        target_root = CopickRootFSSpec.from_file(target_config)
+        target_root = copick.from_file(target_config)
         target_run = target_root.get_run(source_run.name)
         assert target_run is not None, "Target run should be created"
 
@@ -671,7 +724,7 @@ class TestSyncSegmentationsCLI:
         assert result.exit_code == 0, f"Command failed: {result.output}"
 
         # Verify only 10.0 spacing was synchronized
-        target_root = CopickRootFSSpec.from_file(target_config)
+        target_root = copick.from_file(target_config)
         target_run = target_root.get_run(source_run.name)
 
         target_segs_10 = target_run.get_segmentations(voxel_size=10.0)
@@ -733,7 +786,7 @@ class TestSyncSegmentationsCLI:
         assert result.exit_code == 0, f"Command failed: {result.output}"
 
         # Verify with mapped names
-        target_root = CopickRootFSSpec.from_file(target_config)
+        target_root = copick.from_file(target_config)
         target_run = target_root.get_run("target_run")
         assert target_run is not None, "Target run should be created with mapped name"
 
@@ -787,7 +840,7 @@ class TestSyncTomogramsCLI:
         assert "completed successfully" in result.output
 
         # Verify tomogram was synchronized
-        target_root = CopickRootFSSpec.from_file(target_config)
+        target_root = copick.from_file(target_config)
         target_run = target_root.get_run(source_run.name)
         assert target_run is not None, "Target run should be created"
 
@@ -841,7 +894,7 @@ class TestSyncTomogramsCLI:
         assert result.exit_code == 0, f"Command failed: {result.output}"
 
         # Verify with mapped names
-        target_root = CopickRootFSSpec.from_file(target_config)
+        target_root = copick.from_file(target_config)
         target_run = target_root.get_run("target_run")
         assert target_run is not None, "Target run should be created with mapped name"
 
@@ -888,7 +941,7 @@ class TestSyncTomogramsCLI:
         assert result.exit_code == 0, f"Command failed: {result.output}"
 
         # Verify only the specified voxel spacing was synchronized
-        target_root = CopickRootFSSpec.from_file(target_config)
+        target_root = copick.from_file(target_config)
         target_run = target_root.get_run(source_run.name)
         target_vs = target_run.get_voxel_spacing(target_voxel_size)
         assert target_vs is not None, f"Target voxel spacing {target_voxel_size} should be created"
@@ -993,7 +1046,7 @@ class TestSyncCLIIntegration:
         assert result3.exit_code == 0, f"Segmentations sync failed: {result3.output}"
 
         # Verify all data types were synchronized
-        target_root = CopickRootFSSpec.from_file(target_config)
+        target_root = copick.from_file(target_config)
         target_run = target_root.get_run(source_run.name)
         assert target_run is not None, "Target run should be created"
 

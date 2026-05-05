@@ -714,6 +714,16 @@ class CopickRun:
 
     """
 
+    @property
+    def split(self) -> Optional[str]:
+        """The ML split this run belongs to (train/val/test/custom).
+
+        Supported by the mlcroissant backend (stored in ``runs.csv``).
+        Returns ``None`` on backends without a structured place for split
+        metadata (filesystem, cryoet_data_portal).
+        """
+        return None
+
     def __init__(self, root: "CopickRoot", meta: CopickRunMeta, config: Optional["CopickConfig"] = None):
         self.meta = meta
         self.root = root

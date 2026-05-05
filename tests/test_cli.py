@@ -5,6 +5,7 @@ import tempfile
 from pathlib import Path
 from typing import Any, Dict
 
+import copick
 import mrcfile
 import numpy as np
 import pytest
@@ -13,13 +14,12 @@ from click.testing import CliRunner
 from copick.cli.add import add
 from copick.cli.config import config
 from copick.cli.new import new
-from copick.impl.filesystem import CopickRootFSSpec
 
 
 @pytest.fixture(params=pytest.common_cases)
 def test_payload(request) -> Dict[str, Any]:
     payload = request.getfixturevalue(request.param)
-    payload["root"] = CopickRootFSSpec.from_file(payload["cfg_file"])
+    payload["root"] = copick.from_file(payload["cfg_file"])
     return payload
 
 
@@ -143,7 +143,7 @@ class TestCLIAdd:
         assert result.exit_code == 0, f"Command failed: {result.output}"
 
         # Verify the tomogram was added
-        root = CopickRootFSSpec.from_file(config_file)
+        root = copick.from_file(config_file)
         test_run = root.get_run("test_run_mrc")
         assert test_run is not None, "Run should be created"
 
@@ -176,7 +176,7 @@ class TestCLIAdd:
         assert result.exit_code == 0, f"Command failed: {result.output}"
 
         # Verify the tomogram was added
-        root = CopickRootFSSpec.from_file(config_file)
+        root = copick.from_file(config_file)
         test_run = root.get_run("test_run_zarr")
         assert test_run is not None, "Run should be created"
 
@@ -209,7 +209,7 @@ class TestCLIAdd:
         expected_run_name = Path(sample_mrc_file).stem
 
         # Verify the tomogram was added with auto-detected run name
-        root = CopickRootFSSpec.from_file(config_file)
+        root = copick.from_file(config_file)
         test_run = root.get_run(expected_run_name)
         assert test_run is not None, f"Run {expected_run_name} should be created"
 
@@ -253,7 +253,7 @@ class TestCLIAdd:
         assert result.exit_code == 0, f"Command failed: {result.output}"
 
         # Verify custom voxel size was used
-        root = CopickRootFSSpec.from_file(config_file)
+        root = copick.from_file(config_file)
         test_run = root.get_run("test_custom_voxel")
         voxel_spacing = test_run.get_voxel_spacing(5.0)
         assert voxel_spacing is not None, "Custom voxel spacing should be created"
@@ -345,7 +345,7 @@ class TestCLIAdd:
         assert result.exit_code == 0, f"Command failed: {result.output}"
 
         # Verify the tomogram was added with correct voxel size conversion
-        root = CopickRootFSSpec.from_file(config_file)
+        root = copick.from_file(config_file)
         test_run = root.get_run("test_run_zarr_nm")
         assert test_run is not None, "Run should be created"
 
@@ -398,7 +398,7 @@ class TestCLIAdd:
             assert result.exit_code == 0, f"Command failed: {result.output}"
 
             # Verify all tomograms were added
-            root = CopickRootFSSpec.from_file(config_file)
+            root = copick.from_file(config_file)
 
             for mrc_file in mrc_files:
                 expected_run_name = mrc_file.stem
@@ -465,7 +465,7 @@ class TestCLIAdd:
             assert result.exit_code == 0, f"Command failed: {result.output}"
 
             # Verify the run was created with the extracted name
-            root = CopickRootFSSpec.from_file(config_file)
+            root = copick.from_file(config_file)
             expected_run_name = "Position_60_7"
             test_run = root.get_run(expected_run_name)
             assert test_run is not None, f"Run {expected_run_name} should be created"
@@ -519,7 +519,7 @@ class TestCLIAdd:
             assert result.exit_code == 0, f"Command failed: {result.output}"
 
             # Verify all runs were created with the extracted names
-            root = CopickRootFSSpec.from_file(config_file)
+            root = copick.from_file(config_file)
 
             for expected_run_name in expected_runs:
                 test_run = root.get_run(expected_run_name)
@@ -566,7 +566,7 @@ class TestCLIAdd:
             assert result.exit_code == 0, f"Command failed: {result.output}"
 
             # Since the regex doesn't match, no run should be created
-            root = CopickRootFSSpec.from_file(config_file)
+            root = copick.from_file(config_file)
             # The run name should fall back to default behavior (filename without extension)
             # but since regex doesn't match, it should be skipped
             test_run = root.get_run("regular_filename")
@@ -607,7 +607,7 @@ class TestCLIAdd:
             assert result.exit_code == 0, f"Command failed: {result.output}"
 
             # Verify the run was created with the extracted name
-            root = CopickRootFSSpec.from_file(config_file)
+            root = copick.from_file(config_file)
             expected_run_name = "Position_30_4"
             test_run = root.get_run(expected_run_name)
             assert test_run is not None, f"Run {expected_run_name} should be created"
@@ -644,7 +644,7 @@ class TestCLIAddTomogramsBatch:
             assert result.exit_code == 0, f"Command failed: {result.output}"
 
             # Verify run was created (run name extracted from MRC filename)
-            root = CopickRootFSSpec.from_file(config_file)
+            root = copick.from_file(config_file)
             # The run name should be extracted from the MRC file path
             runs = [r.name for r in root.runs]
             assert len(runs) > 0 or "Command completed" in result.output, "Should process tomogram"
@@ -689,7 +689,7 @@ class TestCLIAddTomogramsBatch:
             assert result.exit_code == 0, f"Command failed: {result.output}"
 
             # Verify run was created with custom name from index map
-            root = CopickRootFSSpec.from_file(config_file)
+            root = copick.from_file(config_file)
             test_run = root.get_run("custom_run_name")
             assert test_run is not None, "Run should be created with custom name from index map"
 
@@ -762,7 +762,7 @@ TS_relion_test 1.0 10.0 {sample_mrc_file} {sample_mrc_file}
             assert result.exit_code == 0, f"Command failed: {result.output}"
 
             # Verify run was created with name from _rlnTomoName
-            root = CopickRootFSSpec.from_file(config_file)
+            root = copick.from_file(config_file)
             test_run = root.get_run("TS_relion_test")
             assert test_run is not None, "Run should be created with name from _rlnTomoName"
 
@@ -913,7 +913,7 @@ class TestCLINew:
         assert result.exit_code == 0, f"Command failed: {result.output}"
 
         # Verify the run was created
-        root = CopickRootFSSpec.from_file(config_file)
+        root = copick.from_file(config_file)
         test_run = root.get_run("test_new_run")
         assert test_run is not None, "Run should be created"
 
@@ -978,7 +978,7 @@ class TestCLINew:
         assert result.exit_code == 0, f"Command failed: {result.output}"
 
         # Verify the voxel spacing was created
-        root = CopickRootFSSpec.from_file(config_file)
+        root = copick.from_file(config_file)
         test_run = root.get_run("test_vs_run")
         voxel_spacing = test_run.get_voxel_spacing(15.0)
         assert voxel_spacing is not None, "Voxel spacing should be created"
@@ -1003,7 +1003,7 @@ class TestCLINew:
         assert result.exit_code == 0, f"Command failed: {result.output}"
 
         # Verify both run and voxel spacing were created
-        root = CopickRootFSSpec.from_file(config_file)
+        root = copick.from_file(config_file)
         test_run = root.get_run("auto_created_run")
         assert test_run is not None, "Run should be auto-created"
 
@@ -1032,7 +1032,7 @@ class TestCLINew:
         assert result.exit_code == 0, f"Command failed: {result.output}"
 
         # Verify picks were created for all runs
-        root = CopickRootFSSpec.from_file(config_file)
+        root = copick.from_file(config_file)
         for run in root.runs:
             picks_list = run.get_picks(
                 object_name="ribosome",
@@ -1170,7 +1170,7 @@ class TestCLIIntegration:
         assert result3.exit_code == 0
 
         # Verify the complete workflow
-        root = CopickRootFSSpec.from_file(config_file)
+        root = copick.from_file(config_file)
 
         # Check run exists
         test_run = root.get_run("integration_test_run")
@@ -1218,7 +1218,7 @@ class TestCLIAddObject:
         assert result.exit_code == 0, f"Command failed: {result.output}"
 
         # Verify the object was added to config
-        root = CopickRootFSSpec.from_file(config_file)
+        root = copick.from_file(config_file)
         obj = root.get_object("test-particle")
         assert obj is not None, "Object should be created"
         assert obj.is_particle is True
@@ -1251,7 +1251,7 @@ class TestCLIAddObject:
         assert result.exit_code == 0, f"Command failed: {result.output}"
 
         # Verify the object was added to config
-        root = CopickRootFSSpec.from_file(config_file)
+        root = copick.from_file(config_file)
         obj = root.get_object("test-segmentation")
         assert obj is not None, "Object should be created"
         assert obj.is_particle is False
@@ -1282,7 +1282,7 @@ class TestCLIAddObject:
         assert result.exit_code == 0, f"Command failed: {result.output}"
 
         # Verify the object was added with volume
-        root = CopickRootFSSpec.from_file(config_file)
+        root = copick.from_file(config_file)
         obj = root.get_object("test-particle-with-volume")
         assert obj is not None, "Object should be created"
         assert obj.is_particle is True
@@ -1314,7 +1314,7 @@ class TestCLIAddObject:
         assert result.exit_code == 0, f"Command failed: {result.output}"
 
         # Verify the object was added with volume
-        root = CopickRootFSSpec.from_file(config_file)
+        root = copick.from_file(config_file)
         obj = root.get_object("test-particle-zarr")
         assert obj is not None, "Object should be created"
 
@@ -1342,7 +1342,7 @@ class TestCLIAddObject:
         assert result.exit_code == 0, f"Command failed: {result.output}"
 
         # Verify the object was added
-        root = CopickRootFSSpec.from_file(config_file)
+        root = copick.from_file(config_file)
         obj = root.get_object("test-format-override")
         assert obj is not None, "Object should be created"
 
@@ -1377,7 +1377,7 @@ class TestCLIAddObject:
         assert result2.exit_code == 0
 
         # Verify automatic label assignment
-        root = CopickRootFSSpec.from_file(config_file)
+        root = copick.from_file(config_file)
         obj1 = root.get_object("auto-label-1")
         obj2 = root.get_object("auto-label-2")
 
@@ -1408,7 +1408,7 @@ class TestCLIAddObject:
         assert result.exit_code == 0, f"Command failed: {result.output}"
 
         # Verify the object was added with metadata
-        root = CopickRootFSSpec.from_file(config_file)
+        root = copick.from_file(config_file)
         obj = root.get_object("test-with-metadata")
         assert obj is not None, "Object should be created"
 
@@ -1438,7 +1438,7 @@ class TestCLIAddObject:
         assert result.exit_code == 0, f"Command failed: {result.output}"
 
         # Verify the object was added with empty metadata
-        root = CopickRootFSSpec.from_file(config_file)
+        root = copick.from_file(config_file)
         obj = root.get_object("test-empty-metadata")
         assert obj is not None, "Object should be created"
         assert obj.metadata == {}, "Metadata should be empty dict"
@@ -1463,7 +1463,7 @@ class TestCLIAddObject:
         assert result.exit_code == 0, f"Command failed: {result.output}"
 
         # Verify the object has default empty metadata
-        root = CopickRootFSSpec.from_file(config_file)
+        root = copick.from_file(config_file)
         obj = root.get_object("test-no-metadata")
         assert obj is not None, "Object should be created"
         assert obj.metadata == {}, "Metadata should default to empty dict"
@@ -1528,7 +1528,7 @@ class TestCLIAddObject:
         assert result2.exit_code == 0, f"Command failed: {result2.output}"
 
         # Verify volume was added
-        root = CopickRootFSSpec.from_file(config_file)
+        root = copick.from_file(config_file)
         obj = root.get_object("test-existing-object")
         assert obj is not None, "Object should exist"
         assert obj.zarr() is not None, "Object should have volume data"

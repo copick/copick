@@ -1,9 +1,9 @@
 from typing import Any, Dict
 
+import copick
 import numpy as np
 import pytest
 import zarr
-from copick.impl.filesystem import CopickRootFSSpec
 from copick.models import CopickPicksFile
 from copick.util.ome import write_ome_zarr_3d
 from scipy.spatial.transform import Rotation
@@ -15,7 +15,7 @@ NUMERICAL_PRECISION = 1e-8
 @pytest.fixture(params=pytest.common_cases)
 def test_payload(request) -> Dict[str, Any]:
     payload = request.getfixturevalue(request.param)
-    payload["root"] = CopickRootFSSpec.from_file(payload["cfg_file"])
+    payload["root"] = copick.from_file(payload["cfg_file"])
     return payload
 
 
@@ -1707,9 +1707,9 @@ def test_root_save_config(test_payload: Dict[str, Any], tmp_path):
     assert config_path.exists()
 
     # Load config and verify object was saved
-    from copick.impl.filesystem import CopickRootFSSpec
+    import copick
 
-    new_root = CopickRootFSSpec.from_file(str(config_path))
+    new_root = copick.from_file(str(config_path))
     saved_obj = new_root.get_object("test-save-object")
     assert saved_obj is not None
     assert saved_obj.name == "test-save-object"
