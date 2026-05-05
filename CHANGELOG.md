@@ -1,5 +1,13 @@
 # Changelog
 
+## [1.24.1](https://github.com/copick/copick/compare/copick-v1.24.0...copick-v1.24.1) (2026-05-05)
+
+
+### 🐞 Bug Fixes
+
+* Bump s3fs from 2026.3.0 to 2026.4.0 ([#285](https://github.com/copick/copick/issues/285)) ([e58d189](https://github.com/copick/copick/commit/e58d189a7b1c3d22ef0ff4e719c42904be7ee956))
+* fix pick reading in copick-mlcroissant ([#289](https://github.com/copick/copick/issues/289)) ([74c52e8](https://github.com/copick/copick/commit/74c52e8d68a30f9741eb0df78e2d08fe6eb1a5b9))
+
 ## [1.24.0](https://github.com/copick/copick/compare/copick-v1.23.4...copick-v1.24.0) (2026-05-05)
 
 
