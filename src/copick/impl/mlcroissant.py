@@ -27,6 +27,7 @@ import hashlib
 import io
 import json
 import os
+import re
 import threading
 import weakref
 from dataclasses import dataclass, field
@@ -34,6 +35,7 @@ from typing import TYPE_CHECKING, Any, Dict, List, Optional, Set, Tuple, Type, U
 from urllib.parse import urlparse
 
 import fsspec
+import numpy as np
 import zarr
 from fsspec import AbstractFileSystem
 from fsspec.implementations.local import LocalFileSystem
@@ -52,8 +54,10 @@ from copick.models import (
     CopickConfig,
     CopickFeatures,
     CopickFeaturesMeta,
+    CopickLocation,
     CopickMeshMeta,
     CopickPicksFile,
+    CopickPoint,
     CopickRoot,
     CopickRunMeta,
     CopickSegmentationMeta,
@@ -174,6 +178,7 @@ CSV_SCHEMA: Dict[str, Dict[str, Any]] = {
             "user_id",
             "session_id",
             "object_name",
+            "voxel_size",
             "url",
             "sha256",
             "portal_object_name",
@@ -187,6 +192,7 @@ CSV_SCHEMA: Dict[str, Dict[str, Any]] = {
             "user_id": "sc:Text",
             "session_id": "sc:Text",
             "object_name": "sc:Text",
+            "voxel_size": "sc:Float",
             "url": "sc:Text",
             "sha256": "sc:Text",
             "portal_object_name": "sc:Text",
@@ -869,6 +875,79 @@ def _fs_writable(fs: AbstractFileSystem, path: str) -> bool:
 
 
 # -----------------------------------------------------------------------------
+# Picks helpers
+# -----------------------------------------------------------------------------
+
+# Legacy fallback: extract voxel size from a CDP-style URL containing
+# "VoxelSpacing<vs>". Used only for Croissants exported before the
+# voxel_size column was added to picks.csv. Re-export to migrate.
+_VOXEL_SPACING_RE = re.compile(r"VoxelSpacing([0-9.]+)")
+
+
+def _voxel_size_from_url(url: str) -> Optional[float]:
+    m = _VOXEL_SPACING_RE.search(url)
+    if not m:
+        return None
+    try:
+        return float(m.group(1))
+    except ValueError:
+        return None
+
+
+def _resolve_pick_voxel_size(row: Optional[Dict[str, Any]], url: str) -> Optional[float]:
+    """Pick voxel size: prefer the CSV column, fall back to URL parsing for
+    legacy Croissants exported before the column was added."""
+    if row is not None:
+        vs = row.get("voxel_size")
+        if vs is not None:
+            return float(vs)
+    return _voxel_size_from_url(url)
+
+
+def _parse_ndjson_picks(
+    text: str,
+    vs: float,
+    *,
+    pickable_object_name: str,
+    user_id: str,
+    session_id: str,
+    run_name: str,
+) -> CopickPicksFile:
+    """Parse CDP-style NDJSON picks: one JSON object per line, voxel-unit coordinates."""
+    points: List[CopickPoint] = []
+    saw_orientation = False
+    for line in text.strip().split("\n"):
+        line = line.strip()
+        if not line:
+            continue
+        d = json.loads(line)
+        loc = d["location"]
+        x, y, z = loc["x"] * vs, loc["y"] * vs, loc["z"] * vs
+        if "xyz_rotation_matrix" in d:
+            saw_orientation = True
+            mat = np.eye(4)
+            mat[:3, :3] = np.array(d["xyz_rotation_matrix"])
+            points.append(
+                CopickPoint(
+                    location=CopickLocation(x=x, y=y, z=z),
+                    transformation_=mat.tolist(),
+                ),
+            )
+        else:
+            points.append(CopickPoint(location=CopickLocation(x=x, y=y, z=z)))
+    return CopickPicksFile(
+        pickable_object_name=pickable_object_name,
+        user_id=user_id,
+        session_id=session_id,
+        run_name=run_name,
+        voxel_spacing=vs,
+        unit="angstrom",
+        points=points,
+        trust_orientation=saw_orientation,
+    )
+
+
+# -----------------------------------------------------------------------------
 # Picks
 # -----------------------------------------------------------------------------
 
@@ -918,22 +997,63 @@ class CopickPicksMLC(CopickPicksOverlay):
         return self.run.fs_overlay
 
     def _load(self) -> CopickPicksFile:
+        row = self._find_row()
         if self.read_only:
-            fs, abs_path = self._index.resolve_url(self._find_row()["url"])
-            if not fs.exists(abs_path):
-                raise FileNotFoundError(f"Pick file not found: {abs_path}")
-            with fs.open(abs_path, "r") as f:
-                data = json.load(f)
+            url = row["url"]
+            fs, abs_path = self._index.resolve_url(url)
+        elif row is not None:
+            # Mode A read: prefer the CSV-recorded URL so CDP-sourced picks
+            # (whose layout differs from the synthesised overlay path) load.
+            url = row["url"]
+            fs, abs_path = self._index.resolve_url(url)
         else:
-            path = self.path
+            url = self.path
+            abs_path = self.path
             fs = self.fs
-            if not fs.exists(path):
-                raise FileNotFoundError(f"Pick file not found: {path}")
-            with fs.open(path, "r") as f:
-                data = json.load(f)
+
+        if not fs.exists(abs_path):
+            raise FileNotFoundError(f"Pick file not found: {abs_path}")
+
+        if abs_path.endswith(".ndjson"):
+            vs = _resolve_pick_voxel_size(row, url)
+            if vs is None:
+                raise ValueError(
+                    f"Cannot determine voxel size for NDJSON pick at {url!r}: "
+                    f"picks.csv has no voxel_size column and no 'VoxelSpacing<vs>' "
+                    f"segment in the URL. Re-export the Croissant with the current "
+                    f"copick to populate the voxel_size column.",
+                )
+            with fs.open(abs_path, "r") as f:
+                text = f.read()
+            return _parse_ndjson_picks(
+                text,
+                vs,
+                pickable_object_name=self.pickable_object_name,
+                user_id=self.user_id,
+                session_id=self.session_id,
+                run_name=self.run.name,
+            )
+
+        with fs.open(abs_path, "r") as f:
+            text = f.read()
+        try:
+            data = json.loads(text)
+        except json.JSONDecodeError:
+            vs = _resolve_pick_voxel_size(row, url)
+            if vs is None:
+                raise
+            return _parse_ndjson_picks(
+                text,
+                vs,
+                pickable_object_name=self.pickable_object_name,
+                user_id=self.user_id,
+                session_id=self.session_id,
+                run_name=self.run.name,
+            )
         return CopickPicksFile(**data)
 
     def _store(self) -> None:
+        self.run.root._assert_writable()
         fs = self.fs
         # Ensure directory exists
         if not fs.exists(self.directory):
@@ -951,12 +1071,14 @@ class CopickPicksMLC(CopickPicksOverlay):
                 "user_id": self.user_id,
                 "session_id": self.session_id,
                 "object_name": self.pickable_object_name,
+                "voxel_size": self.meta.voxel_spacing,
                 "url": rel,
                 "sha256": _sha256_bytes(json_bytes),
             }
             self._index.add_row("copick/picks", row)
 
     def _delete_data(self) -> None:
+        self.run.root._assert_writable()
         fs = self.fs
         if fs.exists(self.path):
             fs.rm(self.path)
@@ -2099,6 +2221,25 @@ class CopickRootMLC(CopickRoot):
     @property
     def mode(self) -> str:
         return "B" if self.overlay_base_url else "A"
+
+    def _assert_writable(self) -> None:
+        """Raise ``PermissionError`` if Mode A is set against a read-only base URL.
+
+        In Mode A the overlay fs is built from the Croissant's ``base_url`` plus
+        ``static_fs_args``. CDP-sourced Croissants set ``base_url =
+        s3://cryoet-data-portal-public/`` and ``static_fs_args = {"anon": True}``
+        — a read-only target. Without this guard, writes get a deep s3fs/boto3
+        AccessDenied with no hint that Mode B is the right answer.
+        """
+        if self.mode != "A":
+            return
+        if self.index.static_fs_args.get("anon") is True:
+            raise PermissionError(
+                f"Cannot write to Mode A Croissant: base URL "
+                f"{self.index.base_url!r} is configured for anonymous access "
+                f"(read-only). Pass overlay_root='/path/to/local/dir' to "
+                f"from_croissant() to enter Mode B and edit locally.",
+            )
 
     @property
     def static_is_overlay(self) -> bool:
