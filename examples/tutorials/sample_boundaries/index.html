@@ -12,7 +12,7 @@
         <link rel="prev" href="../album/">
       
       
-        <link rel="next" href="../sample_boundaries_filtering.md">
+        <link rel="next" href="../sample_boundaries_filtering/">
       
       
         
@@ -1116,7 +1116,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../sample_boundaries_filtering.md" class="md-nav__link">
+      <a href="../sample_boundaries_filtering/" class="md-nav__link">
         
   
   
@@ -2964,8 +2964,8 @@ as a segmentation target:</p>
 <p>Next, we will train the octopi model using the training targets. Octopi uses a SmartCache data loading strategy that
 efficiently samples training patches from the segmentation volumes:</p>
 <div class="language-bash highlight"><pre><span></span><code><span id="__span-12-1"><a id="__codelineno-12-1" name="__codelineno-12-1" href="#__codelineno-12-1"></a>octopi<span class="w"> </span>train<span class="w"> </span>-c<span class="w"> </span>config_train.json<span class="w"> </span><span class="se">\</span>
-</span><span id="__span-12-2"><a id="__codelineno-12-2" name="__codelineno-12-2" href="#__codelineno-12-2"></a><span class="w">  </span>-tinfo<span class="w"> </span><span class="s2">&quot;sampletargets,train-octopi,0&quot;</span><span class="w"> </span><span class="se">\</span>
-</span><span id="__span-12-3"><a id="__codelineno-12-3" name="__codelineno-12-3" href="#__codelineno-12-3"></a><span class="w">  </span>-alg<span class="w"> </span>wbp<span class="w"> </span>-vs<span class="w"> </span><span class="m">7</span>.84<span class="w"> </span><span class="se">\</span>
+</span><span id="__span-12-2"><a id="__codelineno-12-2" name="__codelineno-12-2" href="#__codelineno-12-2"></a><span class="w">  </span>-turi<span class="w"> </span><span class="s2">&quot;sampletargets:train-octopi/0&quot;</span><span class="w"> </span><span class="se">\</span>
+</span><span id="__span-12-3"><a id="__codelineno-12-3" name="__codelineno-12-3" href="#__codelineno-12-3"></a><span class="w">  </span>-uri<span class="w"> </span>wbp@7.84<span class="w"> </span><span class="se">\</span>
 </span><span id="__span-12-4"><a id="__codelineno-12-4" name="__codelineno-12-4" href="#__codelineno-12-4"></a><span class="w">  </span>-o<span class="w"> </span>outputs/<span class="w"> </span><span class="se">\</span>
 </span><span id="__span-12-5"><a id="__codelineno-12-5" name="__codelineno-12-5" href="#__codelineno-12-5"></a><span class="w">  </span>-vruns<span class="w"> </span><span class="m">14069</span>,14070,14071<span class="w"> </span><span class="se">\</span>
 </span><span id="__span-12-6"><a id="__codelineno-12-6" name="__codelineno-12-6" href="#__codelineno-12-6"></a><span class="w">  </span>-truns<span class="w"> </span><span class="m">14072</span>,14073,14074,14075,14076,14077,14078,14079,14080,14081,14082,14083,14084,14085,14086<span class="w"> </span><span class="se">\</span>
@@ -2978,9 +2978,9 @@ training. The model will be saved in the <code>outputs/</code>-directory.</p>
 tomograms:</p>
 <div class="language-bash highlight"><pre><span></span><code><span id="__span-13-1"><a id="__codelineno-13-1" name="__codelineno-13-1" href="#__codelineno-13-1"></a>octopi<span class="w"> </span>segment<span class="w"> </span>-c<span class="w"> </span>config_evaluate.json<span class="w"> </span><span class="se">\</span>
 </span><span id="__span-13-2"><a id="__codelineno-13-2" name="__codelineno-13-2" href="#__codelineno-13-2"></a><span class="w">  </span>-mc<span class="w"> </span>outputs/model_config.yaml<span class="w"> </span><span class="se">\</span>
-</span><span id="__span-13-3"><a id="__codelineno-13-3" name="__codelineno-13-3" href="#__codelineno-13-3"></a><span class="w">  </span>-mw<span class="w"> </span>outputs/best_model_weights.pth<span class="w"> </span><span class="se">\</span>
-</span><span id="__span-13-4"><a id="__codelineno-13-4" name="__codelineno-13-4" href="#__codelineno-13-4"></a><span class="w">  </span>-alg<span class="w"> </span>wbp<span class="w"> </span>-vs<span class="w"> </span><span class="m">7</span>.84<span class="w"> </span><span class="se">\</span>
-</span><span id="__span-13-5"><a id="__codelineno-13-5" name="__codelineno-13-5" href="#__codelineno-13-5"></a><span class="w">  </span>-seginfo<span class="w"> </span><span class="s2">&quot;segmentation,output,0&quot;</span><span class="w"> </span><span class="se">\</span>
+</span><span id="__span-13-3"><a id="__codelineno-13-3" name="__codelineno-13-3" href="#__codelineno-13-3"></a><span class="w">  </span>-mw<span class="w"> </span>outputs/best_model.pth<span class="w"> </span><span class="se">\</span>
+</span><span id="__span-13-4"><a id="__codelineno-13-4" name="__codelineno-13-4" href="#__codelineno-13-4"></a><span class="w">  </span>-uri<span class="w"> </span>wbp@7.84<span class="w"> </span><span class="se">\</span>
+</span><span id="__span-13-5"><a id="__codelineno-13-5" name="__codelineno-13-5" href="#__codelineno-13-5"></a><span class="w">  </span>-suri<span class="w"> </span>segmentation:output/0<span class="w"> </span><span class="se">\</span>
 </span><span id="__span-13-6"><a id="__codelineno-13-6" name="__codelineno-13-6" href="#__codelineno-13-6"></a><span class="w">  </span>-runs<span class="w"> </span><span class="m">14114</span>,14132,14137,14163
 </span></code></pre></div>
 <p>This will create a new segmentation volume with name <code>segmentation</code>, user <code>output</code> and session <code>0</code> for the tomograms
