@@ -122,22 +122,41 @@ def picks(
 ):
     """Synchronize picks between two Copick projects.
 
-    This command copies pick annotations from a source Copick project to a target project.
-    You can specify which runs and objects to sync, and optionally map source names to
-    different target names.
+    Copies pick annotations from a source Copick project to a target project. You can
+    restrict the sync to specific runs, objects, and users, and optionally remap source
+    names to different target names. The source may instead be one or more CryoET Data
+    Portal datasets via `--source-dataset-ids`, in which case `--config` is ignored and a
+    temporary dataportal configuration is created.
+
+    Pickable objects missing from the target project are created automatically before the
+    picks are copied. Use `--exist-ok` to overwrite picks that already exist in the target.
 
     Examples:
 
-    # Sync all picks from all runs
-    copick sync picks -c source_config.json --target-config target_config.json
+        \b
+        # Sync all picks from all runs
+        copick sync picks -c source_config.json --target-config target_config.json
 
-    # Sync specific runs with name mapping
-    copick sync picks -c source_config.json --target-config target_config.json \\
-        --source-runs "run1,run2" --target-runs "run1:new_run1,run2:new_run2"
+        \b
+        # Sync specific runs with name mapping
+        copick sync picks -c source_config.json --target-config target_config.json \\
+            --source-runs "run1,run2" --target-runs "run1:new_run1,run2:new_run2"
 
-    # Sync specific objects with name mapping
-    copick sync picks -c source_config.json --target-config target_config.json \\
-        --source-objects "ribosome,membrane" --target-objects "ribosome:ribo,membrane:mem"
+        \b
+        # Sync specific objects with name mapping
+        copick sync picks -c source_config.json --target-config target_config.json \\
+            --source-objects "ribosome,membrane" --target-objects "ribosome:ribo,membrane:mem"
+
+        \b
+        # Sync picks sourced from CryoET Data Portal datasets
+        copick sync picks --source-dataset-ids "10301,10302" --target-config target_config.json
+
+    See Also:
+
+        \b
+        copick sync meshes: synchronize meshes between projects
+        copick sync segmentations: synchronize segmentations between projects
+        copick sync tomograms: synchronize tomograms between projects
     """
 
     logger = get_logger(__name__, debug=debug)
@@ -301,22 +320,38 @@ def meshes(
 ):
     """Synchronize meshes between two Copick projects.
 
-    This command copies mesh data from a source Copick project to a target project.
-    You can specify which runs and objects to sync, and optionally map source names to
-    different target names.
+    Copies mesh data from a source Copick project to a target project. You can restrict
+    the sync to specific runs, objects, and users, and optionally remap source names to
+    different target names. The source may instead be one or more CryoET Data Portal
+    datasets via `--source-dataset-ids`, in which case `--config` is ignored and a
+    temporary dataportal configuration is created.
+
+    Pickable objects missing from the target project are created automatically before the
+    meshes are copied. Use `--exist-ok` to overwrite meshes that already exist in the
+    target.
 
     Examples:
 
-    # Sync all meshes from all runs
-    copick sync meshes -c source_config.json --target-config target_config.json
+        \b
+        # Sync all meshes from all runs
+        copick sync meshes -c source_config.json --target-config target_config.json
 
-    # Sync specific runs with name mapping
-    copick sync meshes -c source_config.json --target-config target_config.json \\
-        --source-runs "run1,run2" --target-runs "run1:new_run1,run2:new_run2"
+        \b
+        # Sync specific runs with name mapping
+        copick sync meshes -c source_config.json --target-config target_config.json \\
+            --source-runs "run1,run2" --target-runs "run1:new_run1,run2:new_run2"
 
-    # Sync specific objects with name mapping
-    copick sync meshes -c source_config.json --target-config target_config.json \\
-        --source-objects "ribosome,membrane" --target-objects "ribosome:ribo,membrane:mem"
+        \b
+        # Sync specific objects with name mapping
+        copick sync meshes -c source_config.json --target-config target_config.json \\
+            --source-objects "ribosome,membrane" --target-objects "ribosome:ribo,membrane:mem"
+
+    See Also:
+
+        \b
+        copick sync picks: synchronize picks between projects
+        copick sync segmentations: synchronize segmentations between projects
+        copick sync tomograms: synchronize tomograms between projects
     """
     logger = get_logger(__name__, debug=debug)
 
@@ -487,22 +522,39 @@ def segmentations(
 ):
     """Synchronize segmentations between two Copick projects.
 
-    This command copies segmentation data from a source Copick project to a target project.
-    You can specify which runs, voxel spacings, and objects to sync, and optionally map
-    source names to different target names.
+    Copies segmentation data from a source Copick project to a target project. You can
+    restrict the sync to specific runs, voxel spacings, segmentation names, and users, and
+    optionally remap source names to different target names. The source may instead be one
+    or more CryoET Data Portal datasets via `--source-dataset-ids`, in which case
+    `--config` is ignored and a temporary dataportal configuration is created.
+
+    When specific segmentation names are requested, the matching pickable objects are
+    created in the target project before copying (non-multilabel segmentations require the
+    name to match a pickable object). Use `--exist-ok` to overwrite segmentations that
+    already exist in the target.
 
     Examples:
 
-    # Sync all segmentations from all runs
-    copick sync segmentations -c source_config.json --target-config target_config.json
+        \b
+        # Sync all segmentations from all runs
+        copick sync segmentations -c source_config.json --target-config target_config.json
 
-    # Sync specific runs and voxel spacings
-    copick sync segmentations -c source_config.json --target-config target_config.json \\
-        --source-runs "run1,run2" --voxel-spacings "10.0,20.0"
+        \b
+        # Sync specific runs and voxel spacings
+        copick sync segmentations -c source_config.json --target-config target_config.json \\
+            --source-runs "run1,run2" --voxel-spacings "10.0,20.0"
 
-    # Sync specific objects with name mapping
-    copick sync segmentations -c source_config.json --target-config target_config.json \\
-        --source-objects "ribosome,membrane" --target-objects "ribosome:ribo,membrane:mem"
+        \b
+        # Sync specific segmentation names with name mapping
+        copick sync segmentations -c source_config.json --target-config target_config.json \\
+            --source-names "ribosome,membrane" --target-names "ribosome:ribo,membrane:mem"
+
+    See Also:
+
+        \b
+        copick sync picks: synchronize picks between projects
+        copick sync meshes: synchronize meshes between projects
+        copick sync tomograms: synchronize tomograms between projects
     """
     logger = get_logger(__name__, debug=debug)
 
@@ -657,22 +709,36 @@ def tomograms(
 ):
     """Synchronize tomograms between two Copick projects.
 
-    This command copies tomogram data from a source Copick project to a target project.
-    You can specify which runs, voxel spacings, and tomogram types to sync, and optionally
-    map source names to different target names.
+    Copies tomogram data from a source Copick project to a target project. You can restrict
+    the sync to specific runs, voxel spacings, and tomogram types, and optionally remap
+    source tomogram types to different target types. The source may instead be one or more
+    CryoET Data Portal datasets via `--source-dataset-ids`, in which case `--config` is
+    ignored and a temporary dataportal configuration is created.
+
+    Use `--exist-ok` to overwrite tomograms that already exist in the target.
 
     Examples:
 
-    # Sync all tomograms from all runs
-    copick sync tomograms -c source_config.json --target-config target_config.json
+        \b
+        # Sync all tomograms from all runs
+        copick sync tomograms -c source_config.json --target-config target_config.json
 
-    # Sync specific runs and voxel spacings
-    copick sync tomograms -c source_config.json --target-config target_config.json \\
-        --source-runs "run1,run2" --voxel-spacings "10.0,20.0"
+        \b
+        # Sync specific runs and voxel spacings
+        copick sync tomograms -c source_config.json --target-config target_config.json \\
+            --source-runs "run1,run2" --voxel-spacings "10.0,20.0"
 
-    # Sync specific tomogram types with name mapping
-    copick sync tomograms -c source_config.json --target-config target_config.json \\
-        --source-tomo-types "wbp,raw" --target-tomo-types "wbp:filtered,raw:original"
+        \b
+        # Sync specific tomogram types with name mapping
+        copick sync tomograms -c source_config.json --target-config target_config.json \\
+            --source-tomo-types "wbp,raw" --target-tomo-types "wbp:filtered,raw:original"
+
+    See Also:
+
+        \b
+        copick sync picks: synchronize picks between projects
+        copick sync meshes: synchronize meshes between projects
+        copick sync segmentations: synchronize segmentations between projects
     """
     logger = get_logger(__name__, debug=debug)
 

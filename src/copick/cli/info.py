@@ -44,7 +44,21 @@ def get_installed_plugin_packages() -> Set[str]:
 )
 @click.pass_context
 def info(ctx):
-    """Display information about the Copick CLI."""
+    """
+    Display information about the Copick CLI.
+
+    Lists the plugin commands currently registered with the Copick CLI, grouped by
+    command group (main, inference, training, evaluation, process, convert, and
+    logical). For each command the registered short help text and the providing
+    package are shown, which is useful for discovering which plugins are installed
+    and where each command comes from.
+
+    Examples:
+
+        \b
+        # Show CLI information and available plugins
+        copick info
+    """
     logger = get_logger(__name__)
 
     command_groups = {

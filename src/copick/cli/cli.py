@@ -51,9 +51,11 @@ def _cli(ctx):
 @click.pass_context
 def inference(ctx):
     """
-    Inference commands for Copick.
+    Run inference on copick tomograms.
 
-    This group contains commands related to inference tasks.
+    Commands in this group apply trained models to copick tomograms to produce
+    predictions such as segmentations or particle picks. Subcommands are
+    contributed by installed plugins.
     """
     pass
 
@@ -65,37 +67,42 @@ def inference(ctx):
 @click.pass_context
 def training(ctx):
     """
-    Training commands for Copick.
+    Train a model with copick data.
 
-    This group contains commands related to training tasks.
+    Commands in this group train machine-learning models on annotated copick
+    data. Subcommands are contributed by installed plugins.
     """
     pass
 
 
 @click.group(
-    short_help="Evaluate model performance.",
+    short_help="Evaluate model predictions against ground truth.",
     no_args_is_help=True,
 )
 @click.pass_context
 def evaluation(ctx):
     """
-    Evaluation commands for Copick.
+    Evaluate model predictions against ground truth.
 
-    This group contains commands related to evaluation tasks.
+    Commands in this group compare model predictions against ground-truth
+    annotations and report performance metrics. Subcommands are contributed by
+    installed plugins.
     """
     pass
 
 
 @click.group(
-    short_help="Apply processing method to copick entity.",
+    short_help="Apply processing methods to copick data.",
     no_args_is_help=True,
 )
 @click.pass_context
 def process(ctx):
     """
-    Image processing commands for Copick.
+    Apply processing methods to copick data.
 
-    This group contains commands related to data management tasks.
+    Commands in this group apply image-processing operations, such as filtering,
+    denoising, or intensity transforms, to copick tomograms and related entities.
+    Subcommands are contributed by installed plugins.
     """
     pass
 
@@ -107,9 +114,11 @@ def process(ctx):
 @click.pass_context
 def convert(ctx):
     """
-    Data commands for Copick.
+    Convert one copick type to another.
 
-    This group contains commands related to data management tasks.
+    Commands in this group convert between copick entity types, for example
+    turning picks into meshes or segmentations into picks. Subcommands are
+    contributed by installed plugins.
     """
     pass
 
@@ -121,25 +130,27 @@ def convert(ctx):
 @click.pass_context
 def logical(ctx):
     """
-    Logical operation commands for Copick.
+    Perform logical operations on copick objects.
 
-    This group contains commands for boolean operations, distance-based filtering,
-    and point inclusion/exclusion operations on meshes, segmentations, and picks.
+    Commands in this group perform boolean operations, distance-based filtering,
+    and point inclusion/exclusion across meshes, segmentations, and picks.
+    Subcommands are contributed by installed plugins.
     """
     pass
 
 
 @click.group(
-    short_help="Setup and manage external integrations.",
+    short_help="Set up and manage external integrations.",
     no_args_is_help=True,
 )
 @click.pass_context
 def setup(ctx):
     """
-    Setup commands for Copick.
+    Set up and manage external integrations.
 
-    This group contains commands for setting up and managing external integrations
-    like MCP servers, database connections, and other third-party tools.
+    Commands in this group set up and manage external integrations such as MCP
+    servers, database connections, and other third-party tools. Subcommands are
+    contributed by installed plugins.
     """
     pass
 
@@ -151,9 +162,11 @@ def setup(ctx):
 @click.pass_context
 def download(ctx):
     """
-    Download commands for Copick.
+    Download data and metadata for STA.
 
-    This group contains commands for downloading data necessary for downstream tasks, such as subtomogram averaging.
+    Commands in this group download tomograms, particle coordinates, and
+    associated metadata needed for downstream tasks such as subtomogram
+    averaging (STA). Subcommands are contributed by installed plugins.
     """
     pass
 

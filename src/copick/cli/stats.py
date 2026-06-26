@@ -80,7 +80,35 @@ def picks(
     output,
     debug,
 ):
-    """Generate statistics for picks in the project."""
+    """
+    Display statistics about picks.
+
+    Aggregates pick annotations across the project and reports the total number of
+    individual picks and pick files, along with their distribution by run, user,
+    session, and pickable object. Results can be filtered to specific runs, users,
+    sessions, or objects, and printed as a human-readable table or as JSON.
+
+    Examples:
+
+        \b
+        # Summarize every pick in the project
+        copick stats picks --config config.json
+
+        \b
+        # Restrict the summary to specific runs
+        copick stats picks --config config.json --runs TS_001 --runs TS_002
+
+        \b
+        # Filter by object and user, then emit JSON using parallel workers
+        copick stats picks --config config.json --object-name ribosome --user-id alice \\
+            --output json --parallel --workers 12
+
+    See Also:
+
+        \b
+        copick stats meshes: summarize mesh annotations in the project
+        copick stats segmentations: summarize segmentation annotations in the project
+    """
     get_logger(__name__, debug)
 
     if config is None:
@@ -172,7 +200,35 @@ def meshes(
     output,
     debug,
 ):
-    """Generate statistics for meshes in the project."""
+    """
+    Display statistics about meshes.
+
+    Aggregates mesh annotations across the project and reports the total number of
+    meshes, their distribution by user, session, and pickable object, and the most
+    frequent session/user/object combinations. Results can be filtered to specific
+    runs, users, sessions, or objects, and printed as a human-readable table or as
+    JSON.
+
+    Examples:
+
+        \b
+        # Summarize every mesh in the project
+        copick stats meshes --config config.json
+
+        \b
+        # Filter by user and session
+        copick stats meshes --config config.json --user-id analyst --session-id session1
+
+        \b
+        # Emit JSON for integration with other tools
+        copick stats meshes --config config.json --output json
+
+    See Also:
+
+        \b
+        copick stats picks: summarize pick annotations in the project
+        copick stats segmentations: summarize segmentation annotations in the project
+    """
     get_logger(__name__, debug)
 
     if config is None:
@@ -277,7 +333,40 @@ def segmentations(
     output,
     debug,
 ):
-    """Generate statistics for segmentations in the project."""
+    """
+    Display statistics about segmentations.
+
+    Aggregates segmentation annotations across the project and reports the total
+    number of segmentations, their distribution by user, session, name, voxel size,
+    and multilabel status, plus the most frequent session/user/voxel-spacing/multilabel
+    combinations. Results can be filtered to specific runs, users, sessions, names,
+    voxel sizes, or multilabel status, and printed as a human-readable table or as
+    JSON.
+
+    Examples:
+
+        \b
+        # Summarize every segmentation in the project
+        copick stats segmentations --config config.json
+
+        \b
+        # Filter by name and voxel size
+        copick stats segmentations --config config.json --name membrane --voxel-size 10.0
+
+        \b
+        # Restrict to multilabel segmentations only
+        copick stats segmentations --config config.json --multilabel
+
+        \b
+        # Run in parallel and emit JSON
+        copick stats segmentations --config config.json --parallel --output json
+
+    See Also:
+
+        \b
+        copick stats picks: summarize pick annotations in the project
+        copick stats meshes: summarize mesh annotations in the project
+    """
     get_logger(__name__, debug)
 
     if config is None:

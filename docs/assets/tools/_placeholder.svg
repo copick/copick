@@ -1,0 +1,9 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 180" role="img" aria-label="Preview coming soon">
+  <rect width="320" height="180" rx="8" fill="#808a96" fill-opacity="0.14"/>
+  <g fill="none" stroke="#808a96" stroke-width="4" stroke-linecap="round" stroke-linejoin="round" stroke-opacity="0.7">
+    <rect x="120" y="54" width="80" height="56" rx="6"/>
+    <circle cx="143" cy="74" r="7"/>
+    <path d="M122 106l22-20 16 14 18-16 20 22"/>
+  </g>
+  <text x="160" y="140" text-anchor="middle" font-family="system-ui, -apple-system, sans-serif" font-size="13" fill="#808a96" fill-opacity="0.85">preview coming soon</text>
+</svg>

@@ -1,4 +1,8 @@
-There is a growing list of tools that support the copick dataset API, some of them are listed below:
+# Ecosystem Tools
+
+A growing ecosystem of applications builds on the copick dataset API — desktop and web **viewers**, interactive segmentation and picking tools, and AI integrations. Scroll the highlights below, or jump to a category.
+
+--8<-- "ecosystem_carousel.snippet"
 
 ---
 

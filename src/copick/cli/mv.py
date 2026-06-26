@@ -54,46 +54,52 @@ def mv(
     debug: bool,
 ):
     """
-    Move or rename copick objects by URI.
+    Move/rename copick objects by URI.
 
-    \b
-    OBJECT_TYPE: Type of object to move (picks, mesh, segmentation)
-    SOURCE_URI: Source copick URI pattern (supports glob and regex)
-    TARGET_URI: Target copick URI (use templates for pattern operations)
+    Renames or relocates picks, meshes, and segmentations within a project by
+    rewriting their URI. A single concrete source/target pair renames one object,
+    while a glob or regex source pattern combined with a templated target moves
+    many objects at once. Each source object is deleted only after a successful
+    copy to its target.
 
-    \b
-    URI Formats:
-        Picks/Mesh:      object_name:user_id/session_id
-        Segmentation:    name:user_id/session_id@voxel_spacing
+    Picks and meshes are addressed as `object_name:user_id/session_id`, and
+    segmentations append a voxel spacing as `name:user_id/session_id@voxel_spacing`.
+    For pattern-based moves the target URI may use placeholders that are filled in
+    from each matched source: `{object_name}`, `{name}`, `{user_id}`,
+    `{session_id}`, and `{voxel_spacing}` (segmentations only).
 
-    \b
-    Template Placeholders (for pattern-based moves):
-        {object_name}    - Original object/pickable name
-        {name}           - Original segmentation name
-        {user_id}        - Original user ID
-        {session_id}     - Original session ID
-        {voxel_spacing}  - Original voxel spacing (segmentations only)
+    For single-object moves the target URI should be concrete (no placeholders);
+    for pattern-based moves it must contain at least one placeholder. Use
+    `--overwrite` to replace existing target objects and `--run` to limit the
+    operation to a single run.
 
-    \b
+    Arguments:
+
+        \b
+        OBJECT_TYPE: Type of object to move (picks, mesh, or segmentation).
+        SOURCE_URI: Source copick URI pattern (supports glob and regex).
+        TARGET_URI: Target copick URI (use placeholders for pattern-based moves).
+
     Examples:
+
+        \b
         # Rename a single pick set
-        copick mv picks "ribosome:user1/session-001" "ribosome:user2/session-001"
+        copick mv picks "ribosome:user1/session-001" "ribosome:user2/session-001" -c config.json
 
-        # Move all manual picks to a backup user
-        copick mv picks "ribosome:user1/manual-*" "ribosome:backup/{session_id}"
+        \b
+        # Move all manual pick sessions to a backup user with a template
+        copick mv picks "ribosome:user1/manual-*" "ribosome:backup/{session_id}" -c config.json
 
-        # Rename segmentation sessions with pattern
-        copick mv segmentation "membrane:user1/session-*@10.0" "membrane:user1/renamed-{session_id}@10.0"
+        \b
+        # Rename matching segmentation sessions with a pattern
+        copick mv segmentation "membrane:user1/session-*@10.0" \\
+            "membrane:user1/renamed-{session_id}@10.0" -c config.json
 
-        # Change user for all test segmentations
-        copick mv segmentation "membrane:user1/test-*@10.0" "membrane:user2/{session_id}@10.0"
+    See Also:
 
-    \b
-    Notes:
-        - For single object moves, TARGET_URI should be concrete (no templates)
-        - For pattern-based moves, TARGET_URI must contain template placeholders
-        - Source objects are deleted after successful copy to target
-        - Use --overwrite to replace existing target objects
+        \b
+        copick cp: copy or duplicate objects instead of moving them
+        copick rm: remove objects matched by a URI
     """
     # Deferred import for performance
     import copick

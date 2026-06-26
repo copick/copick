@@ -238,7 +238,31 @@ def dataportal(
     debug: bool = False,
 ):
     """
-    Generate a configuration file from a CZDP dataset ID and local overlay directory
+    Set up a configuration file from CZDP dataset IDs.
+
+    Builds a copick configuration that reads tomograms, picks, and other
+    annotations directly from one or more CryoET Data Portal datasets, using a
+    local overlay directory for any new or intermediate files you create. The
+    portal data stays read-only; everything you write lands in the overlay.
+
+    Pass `--dataset-id` once per dataset to combine several portal datasets into
+    a single project.
+
+    Examples:
+
+    \b
+    # Generate a config for a single portal dataset
+    copick config dataportal --dataset-id 10000 --overlay ./overlay --output config.json
+
+    \b
+    # Combine several portal datasets into one project
+    copick config dataportal -ds 10000 -ds 10001 -ds 10002 --overlay ./overlay --output multi_config.json
+
+    See Also:
+
+    \b
+    copick config filesystem: build a config for a purely local project
+    copick config export-croissant: export a portal-backed project to a Croissant manifest
     """
     # Deferred import for performance
     import copick
@@ -308,14 +332,36 @@ def filesystem(
     debug: bool = False,
 ):
     """
-    Generate a configuration file for a local project directory.
+    Set up a configuration file for a local project.
 
-    Example Useage:
-    copick config filesystem \
-        --config config.json \
-        --overlay-root /mnt/24sep24a/run002 \
-        --objects membrane,False --objects apoferritin,True,60,4V1W \
+    Generates a copick configuration for a project stored on a local (or
+    fsspec-accessible) overlay directory. Pickable objects can be declared up
+    front with `--objects name,is_particle,[radius],[pdb_id]` (repeat the flag
+    per object); particle objects may carry a radius and PDB id, while
+    segmentation-style objects use `is_particle=False`.
+
+    Object names may not contain underscores. Objects are assigned sequential
+    integer labels starting at 1 in the order given.
+
+    Examples:
+
+    \b
+    # Minimal config with no objects
+    copick config filesystem --overlay-root /mnt/project --config config.json
+
+    \b
+    # Config with a membrane segmentation and an apoferritin particle
+    copick config filesystem \\
+        --config config.json \\
+        --overlay-root /mnt/24sep24a/run002 \\
+        --objects membrane,False --objects apoferritin,True,60,4V1W \\
         --proj-name 24sep24a --proj-description "Synaptic Vesicles collected on 24sep24"
+
+    See Also:
+
+    \b
+    copick config dataportal: build a config from CryoET Data Portal datasets
+    copick add object: add a pickable object to an existing config
     """
     import copick
     from copick.models import PickableObject
@@ -436,7 +482,50 @@ def mlcroissant(
     debug: bool = False,
 ):
     """
-    Generate a copick configuration file from an mlcroissant manifest.
+    Set up a configuration file from an mlcroissant manifest.
+
+    Generates an `mlcroissant` copick configuration that reads a project through
+    a Croissant `metadata.json` (the manifest plus its CSV sidecars). The
+    Croissant may live locally or behind any fsspec URL (`https://`, `s3://`,
+    `ssh://`, …).
+
+    The command supports two operational modes. In Mode A (default), omit
+    `--overlay` and writes go straight to the Croissant's `copick:baseUrl` — use
+    this when the base URL is writable. In Mode B, pass `--overlay` pointing at a
+    writable location so a read-only published Croissant can be annotated locally
+    without mutating it. The `--*-fs-args` options accept JSON objects of fsspec
+    kwargs for the overlay, the data base URL, and the manifest fetch
+    respectively (e.g. SSH credentials). Use `--base-url` to override a moved
+    dataset's `copick:baseUrl`.
+
+    Examples:
+
+    \b
+    # Mode A: read/write a local self-contained Croissant
+    copick config mlcroissant \\
+        --croissant-url path/to/project/Croissant/metadata.json \\
+        --output config.json
+
+    \b
+    # Mode B: published Croissant with a writable local overlay
+    copick config mlcroissant \\
+        --croissant-url https://data.example.org/project/Croissant/metadata.json \\
+        --overlay /tmp/my_local_overlay \\
+        --output config.json
+
+    \b
+    # Remote overlay over SSH with fsspec credentials
+    copick config mlcroissant \\
+        --croissant-url https://data.example.org/project/Croissant/metadata.json \\
+        --overlay 'ssh:///remote/overlay' \\
+        --overlay-fs-args '{"host":"localhost","port":2222}' \\
+        --output config.json
+
+    See Also:
+
+    \b
+    copick config export-croissant: produce a Croissant manifest from a copick project
+    copick config append-croissant: union more rows into an existing Croissant
     """
     import copick
 
@@ -762,19 +851,67 @@ def export_croissant_cmd(
     debug: bool = False,
 ):
     """
-    Export a copick project to a Croissant manifest + CSV sidecars under
-    <project-root>/Croissant/.
+    Export a copick project to an mlcroissant manifest.
 
-    With --emit-config PATH, also writes a ready-to-use mlcroissant copick
-    configuration JSON at PATH. Pair with --config-overlay DIR to embed a
-    writable overlay (Mode B) so viz tools can annotate without touching the
-    source data.
+    Writes a Croissant `metadata.json` plus CSV sidecars under
+    `<project-root>/Croissant/`. The source project is loaded either from a
+    copick config (`--config`) or directly from CryoET Data Portal dataset IDs
+    (`--source-dataset-ids`); the two are mutually exclusive. For filesystem
+    sources `--base-url` is the absolute URL that resolves to `--project-root`
+    at consumer read time; for CDP sources it is ignored (the canonical portal
+    `s3://` prefix is used).
 
-    Subset selection: any of --runs / --tomograms / --features / --picks /
-    --meshes / --segmentations / --objects may be provided to restrict the
-    export. URI-based flags follow copick's standard URI grammar and can be
-    repeated to union multiple selectors. Any flag that's omitted means "no
-    filter, include everything of that type".
+    With `--emit-config PATH`, also writes a ready-to-use mlcroissant copick
+    configuration JSON at `PATH`. Pair with `--config-overlay DIR` to embed a
+    writable overlay (Mode B) so visualization tools can annotate without
+    touching the source data.
+
+    Subset selection: any of `--runs` / `--tomograms` / `--features` / `--picks`
+    / `--meshes` / `--segmentations` / `--objects` may be provided to restrict
+    the export. URI-based flags follow copick's standard URI grammar and can be
+    repeated to union multiple selectors. Any omitted flag means "no filter,
+    include everything of that type". CDP-only reshape flags
+    (`--tomo-type-map`, `--object-name-map`, `--session-id-template`, the
+    `--*-portal-meta` / `--*-author` filters) let you rename and filter
+    portal-derived rows on the way out.
+
+    Examples:
+
+    \b
+    # Export a filesystem project with an explicit consumer base URL
+    copick config export-croissant \\
+        --config my_project/filesystem.json \\
+        --project-root my_project \\
+        --base-url https://data.example.org/my_project/ \\
+        --dataset-name "My cryoET project" \\
+        --license CC-BY-4.0
+
+    \b
+    # Export a subset: two runs, ribosome picks, 10 A WBP tomograms
+    copick config export-croissant \\
+        --config my_project/filesystem.json \\
+        --project-root my_project \\
+        --base-url https://data.example.org/my_project/ \\
+        --runs TS_001,TS_002 \\
+        --tomograms "wbp@10.0" \\
+        --picks "ribosome:*/*"
+
+    \b
+    # Export straight from portal datasets with CDP reshape transforms
+    copick config export-croissant \\
+        --source-dataset-ids 10000 \\
+        --project-root /tmp/curated \\
+        --picks "cytosolic-ribosome:*/*" \\
+        --object-name-map "cytosolic-ribosome:ribosome" \\
+        --session-id-template "{method_type}" \\
+        --picks-author "Alice"
+
+    See Also:
+
+    \b
+    copick config append-croissant: union more filtered rows into an existing Croissant
+    copick config set-splits: edit train/val/test split assignments after export
+    copick config mlcroissant: build a copick config that reads the exported Croissant
     """
     import json as _json
 
@@ -1073,20 +1210,50 @@ def append_croissant_cmd(
     debug: bool = False,
 ):
     """
-    Append filtered rows from a source copick project into an existing
-    Croissant at --croissant.
+    Append filtered rows from a copick project into an existing Croissant.
+
+    Unions filtered rows from a source copick project into the destination
+    Croissant at `--croissant`. The source is loaded from a copick config
+    (`--source-config`) or from CryoET Data Portal dataset IDs
+    (`--source-dataset-ids`); the two are mutually exclusive. The destination
+    must be writable (Mode A).
 
     The destination's top-level metadata (name, description, license, etc.) is
-    preserved; only rows and copick:config.pickable_objects are unioned.
-    Rows with the same primary key as an existing destination row are replaced
-    (last append wins). Appended URLs are absolutized so the destination CSVs
-    remain self-sufficient even when source and destination use different
-    base URLs.
+    preserved; only rows and `copick:config.pickable_objects` are unioned. Rows
+    with the same primary key as an existing destination row are replaced (last
+    append wins). Appended URLs are absolutized so the destination CSVs remain
+    self-sufficient even when source and destination use different base URLs.
 
     Multiple appends with different filters / transforms let you build up a
     Croissant incrementally — e.g. export curated tomograms first, then append
     ribosome picks from one author with a session template, then append
     proteasome picks from a different author with a different template.
+
+    Examples:
+
+    \b
+    # Append template-matching ribosome picks with readable session IDs
+    copick config append-croissant \\
+        --croissant /tmp/curated/Croissant/metadata.json \\
+        --source-dataset-ids 10000 \\
+        --picks "cytosolic-ribosome:*/*" \\
+        --object-name-map "cytosolic-ribosome:ribosome" \\
+        --session-id-template "{method_type}" \\
+        --picks-portal-meta "method_type=template-matching"
+
+    \b
+    # Append picks from a filesystem source and assign a split
+    copick config append-croissant \\
+        --croissant my/Croissant/metadata.json \\
+        --source-config my/filesystem.json \\
+        --picks "ribosome:*/*" \\
+        --split train=TS_005
+
+    See Also:
+
+    \b
+    copick config export-croissant: create the initial Croissant manifest
+    copick config set-splits: edit train/val/test split assignments afterwards
     """
     from copick.ops.croissant import append_croissant
     from copick.util.sync import parse_list, parse_mapping
@@ -1194,26 +1361,46 @@ def set_croissant_splits_cmd(
     debug: bool = False,
 ):
     """
-    Assign or edit train/val/test (or custom) splits on an existing Croissant.
+    Edit train/val/test split assignments on an existing Croissant.
 
-    Splits live in the Croissant's runs.csv `split` column. This command opens
-    the destination in Mode A, applies the mapping + unassign + clear-all
-    options under a single batch commit, and rewrites metadata.json so the
-    spec-conforming splits RecordSet reflects the new set of distinct split
-    names.
+    Assigns or edits train/val/test (or custom) splits on an existing Croissant.
+    Splits live in the Croissant's `runs.csv` `split` column. This command opens
+    the destination in Mode A, applies the mapping plus `--unassign` and
+    `--clear-all` options under a single batch commit, and rewrites
+    `metadata.json` so the spec-conforming splits RecordSet reflects the new set
+    of distinct split names.
+
+    Provide assignments via repeated `--split NAME=RUN1,RUN2` flags and/or a
+    `--splits-file` CSV (columns `split,run`); the CLI flags override duplicate
+    split names from the file.
 
     Examples:
 
     \b
-        copick config set-splits \\
-            --croissant Croissant/metadata.json \\
-            --split train=TS_001,TS_002 \\
-            --split val=TS_003 \\
-            --split test=TS_004
+    # Assign train/val/test splits
+    copick config set-splits \\
+        --croissant Croissant/metadata.json \\
+        --split train=TS_001,TS_002 \\
+        --split val=TS_003 \\
+        --split test=TS_004
 
     \b
-        # Start fresh:
-        copick config set-splits --croissant ... --clear-all --split train=TS_001
+    # Wipe every existing split first, then assign fresh
+    copick config set-splits --croissant Croissant/metadata.json --clear-all --split train=TS_001
+
+    \b
+    # Assign some runs and clear the split on another
+    copick config set-splits \\
+        --croissant Croissant/metadata.json \\
+        --split train=TS_001,TS_002 \\
+        --split val=TS_003 \\
+        --unassign TS_004
+
+    See Also:
+
+    \b
+    copick config export-croissant: set splits at export time with --split
+    copick config append-croissant: assign splits to appended runs
     """
     from copick.ops.croissant import set_splits
     from copick.util.sync import parse_list

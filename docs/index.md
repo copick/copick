@@ -4,6 +4,18 @@
 provided through an object-oriented API that abstracts away the underlying storage using the
 [fsspec](https://filesystem-spec.readthedocs.io/en/latest/)-family of libraries.
 
+## See your data
+
+Explore and curate copick projects in your favorite **viewer** — ChimeraX, napari, or the web — backed by a growing ecosystem of analysis and AI tools.
+
+--8<-- "ecosystem_carousel.snippet"
+
+## Process your data
+
+Transform picks, segmentations, and meshes straight from the command line with copick's **processing tools**.
+
+--8<-- "processing_carousel.snippet"
+
 ## Why copick?
 
 <div class="grid cards" markdown>
@@ -51,7 +63,7 @@ provided through an object-oriented API that abstracts away the underlying stora
 
     Using the copick API allows visualizing and curating data in ChimeraX and Napari right away!
 
-    [:octicons-arrow-right-24: Explore tools](tools.md)
+    [:octicons-arrow-right-24: Explore the ecosystem](tools.md)
 
 -   :material-scale-balance:{ .lg .middle } __open source__
 

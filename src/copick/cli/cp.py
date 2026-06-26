@@ -8,7 +8,7 @@ from copick.util.log import get_logger
 
 
 @click.command(
-    short_help="Copy/duplicate copick objects by URI.",
+    short_help="Copy or duplicate copick objects by URI.",
     no_args_is_help=True,
 )
 @add_config_option
@@ -56,44 +56,49 @@ def cp(
     """
     Copy or duplicate copick objects by URI.
 
-    \b
-    OBJECT_TYPE: Type of object to copy (picks, mesh, segmentation)
-    SOURCE_URI: Source copick URI pattern (supports glob and regex)
-    TARGET_URI: Target copick URI (use templates for pattern operations)
+    Copies picks, meshes, or segmentations identified by copick URIs, either within a
+    run or across runs. Both single-object copies and pattern-based batch copies are
+    supported: a concrete TARGET_URI duplicates one object, while a glob/regex SOURCE_URI
+    combined with a templated TARGET_URI copies many matching objects at once. Source
+    objects are never modified, and existing targets are only replaced when --overwrite
+    is given.
 
-    \b
-    URI Formats:
-        Picks/Mesh:      object_name:user_id/session_id
-        Segmentation:    name:user_id/session_id@voxel_spacing
+    Picks and meshes are addressed as `object_name:user_id/session_id`; segmentations
+    add a voxel spacing as `name:user_id/session_id@voxel_spacing`. For pattern-based
+    copies, the TARGET_URI may use the placeholders `{object_name}`, `{name}`,
+    `{user_id}`, `{session_id}`, and `{voxel_spacing}` (segmentations only), each filled
+    from the corresponding field of the matched source object.
 
-    \b
-    Template Placeholders (for pattern-based copies):
-        {object_name}    - Original object/pickable name
-        {name}           - Original segmentation name
-        {user_id}        - Original user ID
-        {session_id}     - Original session ID
-        {voxel_spacing}  - Original voxel spacing (segmentations only)
+    Arguments:
 
-    \b
+        \b
+        OBJECT_TYPE: Type of object to copy (picks, mesh, or segmentation).
+        SOURCE_URI: Source copick URI pattern (supports glob and regex).
+        TARGET_URI: Target copick URI (use template placeholders for pattern-based copies).
+
     Examples:
+
+        \b
         # Create a backup copy of a single pick set
-        copick cp picks "ribosome:user1/session-001" "ribosome:backup/session-001"
+        copick cp picks "ribosome:user1/session-001" "ribosome:backup/session-001" -c config.json
 
+        \b
         # Duplicate all manual picks to a backup user
-        copick cp picks "ribosome:user1/manual-*" "ribosome:backup/{session_id}"
+        copick cp picks "ribosome:user1/manual-*" "ribosome:backup/{session_id}" -c config.json
 
-        # Create test copies of segmentations
-        copick cp segmentation "membrane:user1/final-*@10.0" "membrane:user1/test-{session_id}@10.0"
+        \b
+        # Create test copies of segmentations across voxel spacing
+        copick cp segmentation "membrane:user1/final-*@10.0" "membrane:user1/test-{session_id}@10.0" -c config.json
 
+        \b
         # Copy picks to a different object name
-        copick cp picks "ribosome:user1/*" "ribosome_80s:user1/{session_id}"
+        copick cp picks "ribosome:user1/*" "ribosome_80s:user1/{session_id}" -c config.json
 
-    \b
-    Notes:
-        - For single object copies, TARGET_URI should be concrete (no templates)
-        - For pattern-based copies, TARGET_URI must contain template placeholders
-        - Source objects remain unchanged after copying
-        - Use --overwrite to replace existing target objects
+    See Also:
+
+        \b
+        copick mv: move or rename copick objects by URI
+        copick rm: remove copick objects by URI
     """
     # Deferred import for performance
     import copick
