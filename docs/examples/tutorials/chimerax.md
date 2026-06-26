@@ -19,7 +19,7 @@ Download and install ChimeraX from the [official website](https://www.cgl.ucsf.e
 4. Download and install the copick plugin by clicking on **Install**
 
 <figure markdown="span">
-  ![Toolshed](../../../assets/chimerax_tutorial/toolshed_full.png){ width="100%" }
+  ![Toolshed](../../assets/chimerax_tutorial/toolshed_full.png){ width="100%" }
   <figcaption>copick on the ChimeraX toolshed.</figcaption>
 </figure>
 
@@ -94,7 +94,7 @@ The plugin will launch and display the **Annotation Panel** on the left side of 
 showing thumbnail previews of all available tomograms.
 
 <figure markdown="span">
-  ![Main GUI](../../../assets/chimerax_tutorial/main_gui_overview.png){ width="100%" }
+  ![Main GUI](../../assets/chimerax_tutorial/main_gui_overview.png){ width="100%" }
   <figcaption>Run Gallery showing thumbnail previews of all available tomograms. Each thumbnail displays a central
               slice preview with the run name.</figcaption>
 </figure>
@@ -109,7 +109,7 @@ hierarchical view of the image data (Run -> VoxelSpacing -> Tomogram).
 <div markdown>
 **Annotation Panel**
 <div markdown>
-![Annotation Panel](../../../assets/chimerax_tutorial/main_gui_annotation_panel.png)
+![Annotation Panel](../../assets/chimerax_tutorial/main_gui_annotation_panel.png)
 </div>
 
 <div markdown>
@@ -126,7 +126,7 @@ hierarchical view of the image data (Run -> VoxelSpacing -> Tomogram).
 <div markdown>
 **Tomogram Panel**
 <div markdown>
-![Tomogram Panel](../../../assets/chimerax_tutorial/main_gui_tomogram_panel.png)
+![Tomogram Panel](../../assets/chimerax_tutorial/main_gui_tomogram_panel.png)
 </div>
 <div markdown>
 
@@ -157,7 +157,7 @@ The dialog has two main sections: A table showing all currently defined pickable
 for new objects.
 
 <figure markdown="span">
-  ![Edit Object](../../../assets/chimerax_tutorial/add_object_dialog.png){ width="100%" }
+  ![Edit Object](../../assets/chimerax_tutorial/add_object_dialog.png){ width="100%" }
   <figcaption>Empty "Edit Objects" dialog with sections highlighted.</figcaption>
 </figure>
 
@@ -207,7 +207,7 @@ for new objects.
     </div>
 
 <figure markdown="span">
-  ![Edit Object](../../../assets/chimerax_tutorial/add_object_params.png){ width="100%" }
+  ![Edit Object](../../assets/chimerax_tutorial/add_object_params.png){ width="100%" }
   <figcaption>Edit Objects Dialog form with metadata fields filled in.</figcaption>
 </figure>
 
@@ -218,7 +218,7 @@ for new objects.
 5. Click [**Save & Close**](javascript:void(0); "<img src='../../../assets/chimerax_tutorial/add_object_save_close.png'>") to apply changes to your configuration
 
 <figure markdown="span">
-  ![Edit Object](../../../assets/chimerax_tutorial/add_object_finish.png){ width="100%" }
+  ![Edit Object](../../assets/chimerax_tutorial/add_object_finish.png){ width="100%" }
   <figcaption>Edit Objects Dialog with a new object added.</figcaption>
 </figure>
 
@@ -247,7 +247,7 @@ for new objects.
 Once a tomogram is loaded, ChimeraX displays:
 
 <figure markdown="span">
-  ![Opened Tomogram](../../../assets/chimerax_tutorial/main_gui_view_tomogram.png){ width="100%" }
+  ![Opened Tomogram](../../assets/chimerax_tutorial/main_gui_view_tomogram.png){ width="100%" }
   <figcaption>ChimeraX picking interface: Copick Control Panel (left), tomogram visualization (center), toolbar (top),
               and navigation panels (right).</figcaption>
 </figure>
@@ -299,7 +299,7 @@ A **Particle List** (Pick Set) is a collection of particle locations for a speci
 <div class="side-by-side" markdown>
 
 <div markdown>
-![Create New Pick dialog](../../../assets/chimerax_tutorial/pick_new_picks_dialog.png)
+![Create New Pick dialog](../../assets/chimerax_tutorial/pick_new_picks_dialog.png)
 </div>
 
 <div markdown>
@@ -329,7 +329,7 @@ After creating the pick set:
 
 <div class="side-by-side" markdown>
 <div markdown>
-![Create New Pick dialog](../../../assets/chimerax_tutorial/pick_picks_set_added.png)
+![Create New Pick dialog](../../assets/chimerax_tutorial/pick_picks_set_added.png)
 </div>
 
 <div markdown>
@@ -365,7 +365,7 @@ With a pick set selected and mouse mode set to "mark plane":
 3. The particle marker appears at the clicked location
 
 <figure markdown="span">
-  ![Picked](../../../assets/chimerax_tutorial/pick_actual_picks_added.png){ width="100%" }
+  ![Picked](../../assets/chimerax_tutorial/pick_actual_picks_added.png){ width="100%" }
   <figcaption>A tomogram with selected particles. </figcaption>
 </figure>
 
