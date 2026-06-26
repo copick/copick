@@ -1,12 +1,7 @@
 ## Filtering particles by sample boundaries
 
-<!-- FIGURE (placeholder — capture & save as docs/assets/boundary_filtering_goal_{light,dark}.png):
-     Side view of a tomogram with the fitted valid-sample slab outlined, particle picks drawn as
-     spheres, and the kept "interior" particles highlighted in one color and the discarded
-     near-surface particles dimmed/greyed out. Communicates the end goal of the tutorial. -->
 <figure markdown="span">
-  ![tutorial-goal](../../assets/boundary_filtering_goal_light.png#only-light)
-  ![tutorial-goal](../../assets/boundary_filtering_goal_dark.png#only-dark)
+  ![tutorial-goal](../../assets/boundary_filtering_goal.png)
   <figcaption>Particle picks filtered by their position in the specimen: particles in the bulk
 interior (light green) are kept, while those near the top and bottom surfaces (orange) or outside the specimen (red)
 are removed.</figcaption>
@@ -94,7 +89,7 @@ pip install "copick[all]" copick-utils copick-torch octopi
 ### Step 1: Run inference across the dataset
 
 `octopi segment` runs the trained model over a tomogram and writes the resulting segmentation back into
-the copick project. We reuse the same `-alg`/`-vs` as during training and write the output to the
+the copick project. We reuse the same tomogram URI (`-uri`) as during training and write the prediction (`-suri`) to the
 `segmentation` object under user `output`.
 
 === "Selected runs"
@@ -102,8 +97,8 @@ the copick project. We reuse the same `-alg`/`-vs` as during training and write 
     octopi segment -c config_evaluate.json \
       -mc outputs/model_config.yaml \
       -mw outputs/best_model_weights.pth \
-      -alg wbp -vs 7.84 \
-      -seginfo "segmentation,output,0" \
+      -uri wbp@7.84 \
+      -suri segmentation:output/0 \
       -runs 14114,14132,14137,14163
     ```
 
@@ -112,8 +107,8 @@ the copick project. We reuse the same `-alg`/`-vs` as during training and write 
     octopi segment -c config_evaluate.json \
       -mc outputs/model_config.yaml \
       -mw outputs/best_model_weights.pth \
-      -alg wbp -vs 7.84 \
-      -seginfo "segmentation,output,0"
+      -uri wbp@7.84 \
+      -suri segmentation:output/0
     ```
     Omitting `-runs` segments **every** run in the project.
 
@@ -125,12 +120,9 @@ predicted valid sample region (label 2 is the `valid-sample` object from the pre
     `-mc a.yaml,b.yaml -mw a.pth,b.pth`. This often produces noticeably cleaner boundaries than a
     single model.
 
-<!-- FIGURE (placeholder — capture & save as docs/assets/boundary_prediction.png):
-     Side view of one evaluation tomogram (e.g. run 14114) with the raw `segmentation:output/0`
-     overlaid as a translucent volume, showing the blobby predicted sample region (and any stray
-     components) BEFORE post-processing. -->
 <figure markdown="span">
-  ![raw-prediction](../../assets/boundary_prediction.png){width="800"}
+  ![raw-prediction](../../assets/boundary_prediction_light.png#only-light)
+  ![raw-prediction](../../assets/boundary_prediction_dark.png#only-dark)
   <figcaption>Raw model prediction (<code>segmentation:output/0</code>) overlaid on
 <a href="https://cryoetdataportal.czscience.com/runs/14114">run 14114</a>. Predictions are blobby and
 may contain stray components — Step 2 cleans this up.</figcaption>
@@ -209,12 +201,9 @@ copick logical meshop -c config_evaluate.json \
 The result, `valid-sample:postproc/0`, is a watertight slab "box" mesh (a curved top, a parallel
 bottom, and four side walls) approximating the specimen volume.
 
-<!-- FIGURE (placeholder — capture & save as docs/assets/boundary_postproc.png):
-     Side view of the same tomogram with the clean, fitted `valid-sample:postproc/0` slab mesh
-     overlaid (smooth top + bottom + side walls), contrasting with the blobby raw prediction in the
-     previous figure. Ideally show 2-4 runs in a grid like the previous tutorial's `final.png`. -->
 <figure markdown="span">
-  ![clean-boundary](../../assets/boundary_postproc.png){width="800"}
+  ![clean-boundary](../../assets/boundary_postproc_light.png#only-light)
+  ![clean-boundary](../../assets/boundary_postproc_dark.png#only-dark)
   <figcaption>The post-processed boundary (<code>valid-sample:postproc/0</code>) for run 14114
  — a clean, fitted slab clipped to the valid reconstruction area.</figcaption>
 </figure>
@@ -272,12 +261,9 @@ side by side in the viewers.
     "distance from top/bottom" measurement. `mesh2caps` removes the walls so distance is measured to
     the top/bottom surfaces only.
 
-<!-- FIGURE (placeholder — capture & save as docs/assets/boundary_caps.png):
-     Side-by-side (or before/after) of the closed slab box mesh `valid-sample:postproc/0` vs. the
-     open `valid-sample:mesh2caps/0` mesh — same top/bottom surfaces, but with the four side
-     walls removed. A small inset arrow indicating the measured "distance to cap" would help. -->
 <figure markdown="span">
-  ![slab-caps](../../assets/boundary_caps.png){width="600"}
+  ![slab-caps](../../assets/boundary_caps_light.png#only-light)
+  ![slab-caps](../../assets/boundary_caps_dark.png#only-dark)
   <figcaption>The closed slab box (left) and the extracted caps (right): <code>mesh2caps</code> keeps
 the near-horizontal top/bottom surfaces and drops the near-vertical side walls.</figcaption>
 </figure>
@@ -327,13 +313,8 @@ threshold defines the edge-exclusion zone:
 The result, `nucleosome:interior/0`, contains the picks inside the specimen and away from the
 top/bottom edges.
 
-<!-- FIGURE (placeholder — capture & save as docs/assets/boundary_particles_filtered_{light,dark}.png):
-     Side view of one tomogram with all input picks `nucleosome:alice/0` shown, color-coded into kept
-     interior picks (`nucleosome:interior/0`) vs. discarded near-surface / outside picks. The caps mesh
-     overlaid faintly helps show the exclusion zone. -->
 <figure markdown="span">
-  ![filtered-particles](../../assets/boundary_particles_filtered_light.png#only-light)
-  ![filtered-particles](../../assets/boundary_particles_filtered_dark.png#only-dark)
+  ![filtered-particles](../../assets/boundary_particles_filtered.png)
   <figcaption>Input picks (<code>nucleosome:alice/0</code>) split into kept interior picks
 (<code>nucleosome:interior/0</code>, highlighted) and discarded near-surface picks. The caps define the
 edge-exclusion zone.</figcaption>
@@ -357,7 +338,7 @@ stages apply to a single run or to an entire project (drop the `-runs`/`-r` flag
     # 1. inference — predict the valid sample region
     octopi segment -c config_evaluate.json \
       -mc outputs/model_config.yaml -mw outputs/best_model_weights.pth \
-      -alg wbp -vs 7.84 -seginfo "segmentation,output,0" \
+      -uri wbp@7.84 -suri segmentation:output/0 \
       -runs 14114,14132,14137,14163
 
     # 2. post-process into a clean, fitted boundary
