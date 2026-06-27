@@ -20,10 +20,11 @@ rest of the file byte-for-byte), grouped by the same ``COMMAND_CATEGORIES`` used
 for ``copick --help``.
 
 It also emits a visual **Processing Tools gallery** (``docs/processing_tools.md``)
-and a carousel teaser snippet (``docs/snippets/processing_carousel.snippet``)
-from the same introspection — one card per convert/process/logical command, with
-a thumbnail resolved from ``docs/assets/tools/<group>/<command>.<ext>`` (falling
-back to a shared placeholder until a real render is dropped in).
+and two carousel teaser snippets (``docs/snippets/processing_carousel.snippet`` and
+``ecosystem_carousel.snippet``) from the same introspection — one card per
+convert/process/logical command (or ecosystem viewer), with a thumbnail resolved from
+``docs/assets/tools/<group>/<command>.<ext>`` (falling back to a shared placeholder until
+a real render is dropped in).
 
 Run ``make_cli_docs`` to (re)generate, or ``make_cli_docs --check`` to verify
 the committed docs are up to date (used in CI / pre-commit).
@@ -571,8 +572,9 @@ def _render_gallery() -> str:
 
 
 # Seconds the marquee takes to traverse one card; the full loop duration scales
-# with card count so every carousel auto-scrolls at the same gentle speed.
-_MARQUEE_SECONDS_PER_CARD = 6
+# with card count so every carousel auto-scrolls at the same gentle speed. Kept
+# deliberately slow for a relaxed, readable scroll.
+_MARQUEE_SECONDS_PER_CARD = 10
 
 
 def _marquee(cards: List[str]) -> str:
@@ -585,7 +587,7 @@ def _marquee(cards: List[str]) -> str:
     to a manual scroll strip under ``prefers-reduced-motion``.
     """
     group = "\n\n".join(cards)
-    duration = max(20, len(cards) * _MARQUEE_SECONDS_PER_CARD)
+    duration = max(30, len(cards) * _MARQUEE_SECONDS_PER_CARD)
     return (
         '<div class="tool-marquee" markdown>\n'
         f'<div class="tool-marquee__track" markdown style="--marquee-duration: {duration}s">\n\n'
@@ -632,6 +634,12 @@ ECOSYSTEM_VIEWERS = [
         "napari-copick",
         "assets/tools/ecosystem/napari-copick.png",
         "Browse and curate copick datasets in napari.",
+    ),
+    (
+        "copick-web",
+        "copick-web",
+        "assets/tools/ecosystem/copick-web.png",
+        "View copick datasets in the browser — tomograms, picks, and segmentations.",
     ),
     (
         "CellCanvas",

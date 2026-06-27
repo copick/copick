@@ -1,3 +1,53 @@
+# Python API
+
+**copick** exposes an object-oriented Python API for cryoET datasets, plus functional helpers and the
+companion `copick-utils` and `copick-torch` libraries. Jump in with the cards below, or browse the full
+reference in the sidebar.
+
+<div class="grid cards" markdown>
+
+-   :fontawesome-solid-cubes:{ .lg .middle } __Base Classes__
+
+    ---
+
+    The abstract data-entity and metadata models that define the copick object hierarchy.
+
+    [:octicons-arrow-right-24: Browse base classes](base_classes/data_entity_models/CopickRoot.md)
+
+-   :fontawesome-solid-plug:{ .lg .middle } __Implementations__
+
+    ---
+
+    Concrete backends: overlay, filesystem, CZ cryoET Data Portal, and mlcroissant.
+
+    [:octicons-arrow-right-24: Browse implementations](implementations/Overlay.md)
+
+-   :fontawesome-solid-code:{ .lg .middle } __Functional API__
+
+    ---
+
+    Top-level helpers for opening projects and adding, getting, and syncing data.
+
+    [:octicons-arrow-right-24: Browse functional API](functional/open.md)
+
+-   :fontawesome-solid-screwdriver-wrench:{ .lg .middle } __copick-utils__
+
+    ---
+
+    Converters, processing, logical operations, and I/O helpers built on copick.
+
+    [:octicons-arrow-right-24: Browse copick-utils](copick_utils/converters.md)
+
+-   :fontawesome-solid-robot:{ .lg .middle } __copick-torch__
+
+    ---
+
+    PyTorch datasets, augmentations, samplers, and filters for ML on cryoET data.
+
+    [:octicons-arrow-right-24: Browse copick-torch](copick_torch/datasets.md)
+
+</div>
+
 ## Abstract Data Entities
 
 The **copick** API allows object-oriented access to cryoET data entities. Each data entity has a corresponding metadata

@@ -8,17 +8,14 @@ extra_css = ["stylesheets/extra.css"]
 extra_javascript = [
     "javascripts/mathjax.js",
     "https://unpkg.com/mathjax@3/es5/tex-mml-chtml.js",
+    "javascripts/home_carousel.js",
 ]
 
 nav = [
     {"Home" = "index.md"},
-    {"Quick Start" = "quickstart.md"},
-    {"Processing Tools" = "processing_tools.md"},
-    {"Ecosystem Tools" = "tools.md"},
-    {"Data Model" = "datamodel.md"},
-    {"Geometry Conventions" = "geometry.md"},
-    {"Examples" = [
-        {"Overview" = "examples/overview.md"},
+    {"Get Started" = [
+        {"Overview" = "get-started/index.md"},
+        {"Quick Start" = "quickstart.md"},
         {"Setup" = [
             {"Local Project" = "examples/setup/local.md"},
             {"Shared Project" = "examples/setup/shared.md"},
@@ -27,17 +24,24 @@ nav = [
             {"CZ cryoET Data Portal" = "examples/setup/data_portal.md"},
             {"mlcroissant" = "examples/setup/croissant.md"},
         ]},
-        {"Tutorials" = [
-            {"CZ cryoET Data Portal" = "examples/tutorials/data_portal.md"},
-            {"Syncing CZII Kaggle Challenge Dataset" = "examples/tutorials/kaggle_czii_sync.md"},
-            {"Copick and HPC" = "examples/tutorials/hpc.md"},
-            {"ChimeraX-Copick" = "examples/tutorials/chimerax.md"},
-            {"Copick and Album" = "examples/tutorials/album.md"},
-            {"Detecting Sample Boundaries" = "examples/tutorials/sample_boundaries.md"},
-            {"Copick and membrain-seg" = "examples/tutorials/membrain.md"},
-            {"Copick-MCP" = "examples/tutorials/copick_mcp.md"},
-            {"mlcroissant" = "examples/tutorials/croissant.md"},
-        ]},
+    ]},
+    {"Concepts" = [
+        {"Overview" = "concepts/index.md"},
+        {"Data Model" = "datamodel.md"},
+        {"Geometry Conventions" = "geometry.md"},
+        {"Processing Tools" = "processing_tools.md"},
+    ]},
+    {"Tutorials" = [
+        {"Overview" = "examples/overview.md"},
+        {"CZ cryoET Data Portal" = "examples/tutorials/data_portal.md"},
+        {"Syncing CZII Kaggle Challenge Dataset" = "examples/tutorials/kaggle_czii_sync.md"},
+        {"Copick and HPC" = "examples/tutorials/hpc.md"},
+        {"ChimeraX-Copick" = "examples/tutorials/chimerax.md"},
+        {"Copick and Album" = "examples/tutorials/album.md"},
+        {"Detecting Sample Boundaries" = "examples/tutorials/sample_boundaries.md"},
+        {"Copick and membrain-seg" = "examples/tutorials/membrain.md"},
+        {"Copick-MCP" = "examples/tutorials/copick_mcp.md"},
+        {"mlcroissant" = "examples/tutorials/croissant.md"},
         {"Snippets" = "examples/snippets.md"},
     ]},
     {"CLI Reference" = [
@@ -166,7 +170,7 @@ nav = [
             ]},
         ]},
     ]},
-    {"API Reference" = [
+    {"Python API" = [
         {"API Overview" = "api_reference/api.md"},
         {"Base Classes" = [
             {"Data Entity Models" = [
@@ -213,7 +217,14 @@ nav = [
             {"I/O Helpers" = "api_reference/copick_utils/io.md"},
             {"Features & Pickers" = "api_reference/copick_utils/features_pickers.md"},
         ]},
+        {"copick-torch API" = [
+            {"Datasets" = "api_reference/copick_torch/datasets.md"},
+            {"Augmentations" = "api_reference/copick_torch/augmentations.md"},
+            {"Samplers" = "api_reference/copick_torch/samplers.md"},
+            {"Filters & Fitting" = "api_reference/copick_torch/filters_fitting.md"},
+        ]},
     ]},
+    {"Ecosystem" = "tools.md"},
     {"Contributing" = "contributing.md"},
 ]
 
@@ -223,6 +234,9 @@ nav = [
 variant = "classic"
 logo = "assets/logo.png"
 features = [
+    "navigation.tabs",
+    "navigation.sections",
+    "navigation.top",
     "content.code.copy",
     "search.highlight",
     "search.share",

@@ -18,6 +18,161 @@
   flex: 1;
 }
 
+/* --- Header navigation tabs -------------------------------------------- */
+
+/* Center the top-bar tab links within the (centered) content column.
+   .md-tabs__list is a flex row, so this is all that's needed. */
+.md-tabs__list {
+  justify-content: center;
+}
+
+/* Larger, bolder top-level tab labels. */
+.md-tabs__link {
+  font-size: 0.8rem;
+  font-weight: 700;
+}
+
+/* --- Header branding --------------------------------------------------- */
+
+/* The tabbed header otherwise leaves a tiny logo floating in a large bar;
+   enlarge the logo to fill the header-row height and bump the site title so
+   they anchor the left of the header. */
+.md-header__button.md-logo {
+  padding: 0.2rem;
+}
+.md-header__button.md-logo img,
+.md-header__button.md-logo svg {
+  height: 2.4rem;
+}
+.md-header__title {
+  font-size: 1.3rem;
+  font-weight: 700;
+}
+
+/* --- Home hero --------------------------------------------------------- */
+
+/* Split hero: text + install + CTAs on the left, a figure on the right.
+   Wraps to a single column on narrow viewports. */
+.md-typeset .cp-hero {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 2rem;
+  margin: 0.8rem 0 2.5rem;
+}
+.md-typeset .cp-hero__text {
+  flex: 1 1 22rem;
+  min-width: 0;
+}
+.md-typeset .cp-hero__text > h1 {
+  margin-top: 0;
+}
+/* Hero CTA row: stretch the three buttons to fill the column width (like the
+   install code block above them). md_in_html wraps the links in a <p>. */
+.md-typeset .cp-hero__actions p {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  gap: 0.6rem;
+  margin: 0.4rem 0 0;
+}
+.md-typeset .cp-hero__actions .md-button {
+  margin: 0;
+  white-space: nowrap;
+}
+.md-typeset .cp-hero__figure {
+  flex: 1 1 22rem;
+  margin: 0;
+}
+.md-typeset .cp-hero__figure img {
+  width: 100%;
+  height: auto;
+}
+
+/* Light/dark-only images: the hero render swaps with the active color scheme
+   (default = light, slate = dark). */
+[data-md-color-scheme="default"] .md-typeset img[src$="#only-dark"] {
+  display: none;
+}
+[data-md-color-scheme="slate"] .md-typeset img[src$="#only-light"] {
+  display: none;
+}
+
+/* --- Home showcase carousel ------------------------------------------- */
+.md-typeset .cp-carousel {
+  position: relative;
+  margin: 1.5rem 0 2rem;
+}
+
+/* No-JS / pre-init fallback: all slides visible, simply stacked. */
+.md-typeset .cp-carousel__slide + .cp-carousel__slide {
+  margin-top: 1.5rem;
+}
+
+/* Once JS marks the carousel ready, show one slide at a time. */
+.md-typeset .cp-carousel--ready .cp-carousel__slide {
+  display: none;
+  margin-top: 0;
+}
+.md-typeset .cp-carousel--ready .cp-carousel__slide.is-active {
+  display: block;
+  animation: cp-carousel-fade 0.4s ease;
+}
+@keyframes cp-carousel-fade {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+/* Slide title: shown only in the no-JS fallback. Once JS builds the tab bar the
+   labels live in the tabs, so the in-slide title is hidden. */
+.md-typeset .cp-carousel__title {
+  margin: 0 0 0.6rem;
+  font-size: 0.75rem;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--md-default-fg-color--light);
+}
+.md-typeset .cp-carousel--ready .cp-carousel__title {
+  display: none;
+}
+
+/* Tab bar: one always-visible, clickable tab per slide (built from the titles). */
+.md-typeset .cp-carousel__tabs {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 1.4rem;
+  margin: 0 0 1.2rem;
+  border-bottom: 0.05rem solid var(--md-default-fg-color--lightest);
+}
+.md-typeset .cp-carousel__tab {
+  appearance: none;
+  background: none;
+  border: none;
+  border-bottom: 0.12rem solid transparent;
+  margin-bottom: -0.05rem;
+  padding: 0.2rem 0.1rem 0.6rem;
+  font-size: 0.75rem;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--md-default-fg-color--light);
+  cursor: pointer;
+  transition: color 125ms, border-color 125ms;
+}
+.md-typeset .cp-carousel__tab:hover {
+  color: var(--md-default-fg-color);
+}
+.md-typeset .cp-carousel__tab.is-active {
+  color: var(--md-accent-fg-color);
+  border-bottom-color: var(--md-accent-fg-color);
+}
+
 /* --- Tools galleries & carousels --------------------------------------- */
 
 /* Consistent, cropped thumbnail for tool cards (processing gallery + teasers). */
@@ -50,7 +205,7 @@
 .md-typeset .tool-marquee__track {
   display: flex;
   width: max-content;
-  animation: tool-marquee-scroll var(--marquee-duration, 48s) linear infinite;
+  animation: tool-marquee-scroll var(--marquee-duration, 80s) linear infinite;
   will-change: transform;
 }
 /* Pause when the reader hovers or tabs into the strip so they can read & click. */

@@ -1,20 +1,196 @@
+---
+hide:
+  - navigation
+---
+
+<div class="cp-hero" markdown>
+<div class="cp-hero__text" markdown>
+
 # copick
 
-**copick** is a cross-platform, storage-agnostic and server-less dataset API for cryoET datasets. Access to the data is
-provided through an object-oriented API that abstracts away the underlying storage using the
-[fsspec](https://filesystem-spec.readthedocs.io/en/latest/)-family of libraries.
+**A storage-agnostic, server-less dataset API for cryo-electron tomography.**
+Access tomograms, segmentations, meshes, and point annotations through one object-oriented
+Python API — backed by [fsspec](https://filesystem-spec.readthedocs.io/en/latest/) and multiscale
+OME-Zarr, from a laptop to the cloud.
 
-## See your data
+```bash
+pip install copick
+```
 
-Explore and curate copick projects in your favorite **viewer** — ChimeraX, napari, or the web — backed by a growing ecosystem of analysis and AI tools.
+<div class="cp-hero__actions" markdown>
 
---8<-- "ecosystem_carousel.snippet"
+[Get Started](get-started/index.md){ .md-button .md-button--primary }
+[Tutorials](examples/overview.md){ .md-button }
+[GitHub](https://github.com/copick/copick){ .md-button }
 
-## Process your data
+</div>
 
-Transform picks, segmentations, and meshes straight from the command line with copick's **processing tools**.
+</div>
+<div class="cp-hero__figure" markdown>
 
---8<-- "processing_carousel.snippet"
+![cryoET data visualized with copick](assets/hero_light.png#only-light)
+![cryoET data visualized with copick](assets/hero_dark.png#only-dark)
+
+</div>
+</div>
+
+<div class="cp-carousel" data-autoplay="7000" markdown>
+
+<section class="cp-carousel__slide" markdown>
+<p class="cp-carousel__title">Visualization &amp; curation</p>
+
+<div class="grid cards" markdown>
+
+-   [![ChimeraX-copick](assets/chimerax-copick.png){ .tool-thumb }](tools.md#chimerax-copick)
+
+    **[ChimeraX-copick](tools.md#chimerax-copick)**
+
+    Visualize and curate copick datasets in UCSF ChimeraX.
+
+-   [![napari-copick](assets/tools/ecosystem/napari-copick.png){ .tool-thumb }](tools.md#napari-copick)
+
+    **[napari-copick](tools.md#napari-copick)**
+
+    Browse and curate copick datasets in napari.
+
+-   [![copick-web](assets/tools/ecosystem/copick-web.png){ .tool-thumb }](tools.md#copick-web)
+
+    **[copick-web](tools.md#copick-web)**
+
+    View copick datasets in the browser — tomograms, picks, and segmentations.
+
+-   [![CellCanvas](assets/tools/ecosystem/cellcanvas.png){ .tool-thumb }](tools.md#cellcanvas)
+
+    **[CellCanvas](tools.md#cellcanvas)**
+
+    Interactive 3D segmentation in napari, backed by copick.
+
+</div>
+
+[:octicons-arrow-right-24: Explore the ecosystem](tools.md)
+
+</section>
+
+<section class="cp-carousel__slide" markdown>
+<p class="cp-carousel__title">Processing &amp; conversion</p>
+
+<div class="grid cards" markdown>
+
+-   [![convert](assets/tools/_placeholder.svg){ .tool-thumb }](cli/convert/index.md)
+
+    **[convert](cli/convert/index.md)**
+
+    Convert one copick type to another.
+
+-   [![process](assets/tools/_placeholder.svg){ .tool-thumb }](cli/process/index.md)
+
+    **[process](cli/process/index.md)**
+
+    Apply processing methods to copick data.
+
+-   [![logical](assets/tools/_placeholder.svg){ .tool-thumb }](cli/logical/index.md)
+
+    **[logical](cli/logical/index.md)**
+
+    Perform logical operations on copick objects.
+
+-   [![inference](assets/tools/_placeholder.svg){ .tool-thumb }](cli/inference/index.md)
+
+    **[inference](cli/inference/index.md)**
+
+    Run inference on copick tomograms.
+
+</div>
+
+[:octicons-arrow-right-24: Browse all processing tools](processing_tools.md)
+
+</section>
+
+<section class="cp-carousel__slide" markdown>
+<p class="cp-carousel__title">Workflows &amp; tutorials</p>
+
+<div class="grid cards" markdown>
+
+-   [![CZ cryoET Data Portal](assets/tools/_placeholder.svg){ .tool-thumb }](examples/tutorials/data_portal.md)
+
+    **[CZ cryoET Data Portal](examples/tutorials/data_portal.md)**
+
+    Access and annotate tomograms from the CZ cryoET Data Portal.
+
+-   [![ChimeraX-copick](assets/tools/_placeholder.svg){ .tool-thumb }](examples/tutorials/chimerax.md)
+
+    **[ChimeraX-copick](examples/tutorials/chimerax.md)**
+
+    Visualize and curate a copick project interactively.
+
+-   [![Sample Boundaries](assets/tools/_placeholder.svg){ .tool-thumb }](examples/tutorials/sample_boundaries.md)
+
+    **[Sample Boundaries](examples/tutorials/sample_boundaries.md)**
+
+    Train a network to predict sample boundaries end-to-end.
+
+-   [![membrain-seg](assets/tools/_placeholder.svg){ .tool-thumb }](examples/tutorials/membrain.md)
+
+    **[membrain-seg](examples/tutorials/membrain.md)**
+
+    Run the membrain-seg segmentation pipeline.
+
+</div>
+
+[:octicons-arrow-right-24: Browse all tutorials](examples/overview.md)
+
+</section>
+
+</div>
+
+## Supported data types
+
+copick represents the data types frequently encountered in cryoET datasets through a single object-oriented
+API.
+
+<div class="grid cards" markdown>
+
+-   :fontawesome-solid-cube:{ .lg .middle } __Tomograms__
+
+    ---
+
+    Multiscale 3D reconstructions stored as OME-Zarr.
+
+    [:octicons-arrow-right-24: Data model](datamodel.md)
+
+-   :fontawesome-solid-wave-square:{ .lg .middle } __Feature maps__
+
+    ---
+
+    Derived voxel-wise feature volumes computed from tomograms.
+
+    [:octicons-arrow-right-24: Data model](datamodel.md)
+
+-   :fontawesome-solid-fill-drip:{ .lg .middle } __Segmentations__
+
+    ---
+
+    Dense, multiscale volumetric labels.
+
+    [:octicons-arrow-right-24: Data model](datamodel.md)
+
+-   :fontawesome-solid-draw-polygon:{ .lg .middle } __Meshes__
+
+    ---
+
+    Surface annotations stored as GLB.
+
+    [:octicons-arrow-right-24: Data model](datamodel.md)
+
+-   :fontawesome-solid-location-dot:{ .lg .middle } __Picks__
+
+    ---
+
+    Point annotations with per-particle position and orientation.
+
+    [:octicons-arrow-right-24: Data model](datamodel.md)
+
+</div>
 
 ## Why copick?
 
@@ -74,24 +250,3 @@ Transform picks, segmentations, and meshes straight from the command line with c
     [:octicons-arrow-right-24: License](https://github.com/copick/copick/blob/main/LICENSE)
 
 </div>
-
-## Data
-
-Currently, copick supports the following types of data frequently encountered in cryoET datasets:
-
-- tomograms
-- feature maps
-- dense segmentations
-- mesh annotations
-- point annotations
-
-## Storage backends
-
-Copick should support any storage backend that is supported by fsspec.
-
-The following backends are included in tests and should work out of the box:
-
-- local filesystem
-- s3
-- smb
-- access via ssh

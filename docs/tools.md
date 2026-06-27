@@ -1,3 +1,8 @@
+---
+hide:
+  - navigation
+---
+
 # Ecosystem Tools
 
 A growing ecosystem of applications builds on the copick dataset API — desktop and web **viewers**, interactive segmentation and picking tools, and AI integrations. Scroll the highlights below, or jump to a category.
@@ -72,6 +77,18 @@ using **copick.**
 - :fontawesome-solid-circle-info: __Tutorial__
 - :fontawesome-solid-globe: __Website__
 - :fontawesome-solid-question: __Docs__
+
+</div>
+
+### copick-web
+
+copick-web is the official browser-based viewer for **copick** datasets, built directly on the copick data model.
+Browse runs, voxel spacings, and tomograms; view tomogram slices with channel controls and a scale bar; and overlay
+particle picks and multilabel segmentations.
+
+<div class="grid cards" markdown>
+
+- :fontawesome-solid-code: [__Repository__](https://github.com/copick/copick-web)
 
 </div>
 

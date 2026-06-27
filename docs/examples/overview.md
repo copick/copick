@@ -1,124 +1,85 @@
+# Tutorials
 
-
-## Setup
-
-**copick** projects can be distributed across multiple storage backends. The following short tutorials outline the most
-common setups, and provide template configuration files for each case.
+Step-by-step guides for common **copick** curation and analysis tasks. Looking for installation and
+project setup instead? Head to [Get Started](../get-started/index.md).
 
 <div class="grid cards" markdown>
 
--   :fontawesome-solid-hard-drive:{ .lg .middle }   __Local Project__
+-   :fontawesome-solid-circle-nodes:{ .lg .middle }   __CZ cryoET Data Portal__
 
     ---
 
-    All data is accessible on the local filesystem.
-
-    [:octicons-arrow-right-24: Learn more](setup/local.md)
-
--   :fontawesome-solid-circle-nodes:{ .lg .middle } __cryoET Data Portal Project__
-
-    ---
-
-    Static data is accessed via the [CZ cryoET Data Portal](https://cryoetdataportal.czscience.com/).
-
-    [:octicons-arrow-right-24: Learn more](setup/data_portal.md)
-
--   :fontawesome-solid-share-nodes:{ .lg .middle }   __Shared Project__
-
-    ---
-
-    Some or all data is stored on a shared filesystem.
-
-    [:octicons-arrow-right-24: Learn more](setup/shared.md)
-
--   :fontawesome-solid-cloud:{ .lg .middle } __S3 Project__
-
-    ---
-
-    Some or all data is stored on AWS or local S3.
-
-    [:octicons-arrow-right-24: Learn more](setup/aws_s3.md)
-
--   :fontawesome-solid-terminal:{ .lg .middle } __SSH Project__
-
-    ---
-
-    Some or all data is stored on a filesystem accessible via SSH.
-
-    [:octicons-arrow-right-24: Learn more](setup/ssh.md)
-
-[//]: # (-   :fontawesome-solid-file-zipper:{ .lg .middle } __ZIP Project__)
-
-[//]: # ()
-[//]: # (    ---)
-
-[//]: # ()
-[//]: # (    Some or all data is stored in a ZIP archive.)
-
-[//]: # (    )
-[//]: # (    [:octicons-arrow-right-24: Learn more]&#40;setup/zip.md&#41;)
-
-</div>
-
-
-
-## Tutorials
-
-The following tutorials provide step-by-step instructions for using copick to perform specific curation or analysis
-tasks.
-
-
-<div class="grid cards" markdown>
-
--   :fontawesome-solid-truck-fast:{ .lg .middle }   __Quickstart__
-
-    ---
-
-    Install **copick** and set up a simple project.
-
-    [:octicons-arrow-right-24: Learn more](../quickstart.md)
-
-
--   :fontawesome-solid-circle-nodes:{ .lg .middle }   __Data Portal__
-
-    ---
-
-    Accessing data from the CZ cryoET Data Portal and creating new
-    annotations for data portal tomograms.
+    Access data from the CZ cryoET Data Portal and create new annotations for portal tomograms.
 
     [:octicons-arrow-right-24: Learn more](tutorials/data_portal.md)
 
--   :fontawesome-solid-x:{ .lg .middle } __ChimeraX-copick__
+-   :fontawesome-solid-trophy:{ .lg .middle }   __Syncing the CZII Kaggle Dataset__
 
     ---
 
-    Using the ChimeraX-copick interface to visualize data from a copick project.
+    Synchronize the CZII Kaggle challenge dataset into a copick project.
+
+    [:octicons-arrow-right-24: Learn more](tutorials/kaggle_czii_sync.md)
+
+-   :fontawesome-solid-server:{ .lg .middle } __Copick and HPC__
+
+    ---
+
+    Run copick workflows at scale on HPC clusters.
+
+    [:octicons-arrow-right-24: Learn more](tutorials/hpc.md)
+
+-   :fontawesome-solid-cube:{ .lg .middle } __ChimeraX-copick__
+
+    ---
+
+    Visualize and curate data from a copick project in UCSF ChimeraX.
 
     [:octicons-arrow-right-24: Learn more](tutorials/chimerax.md)
 
--   :fontawesome-solid-image:{ .lg .middle } __Album__
+-   :fontawesome-solid-compact-disc:{ .lg .middle } __Copick and Album__
 
     ---
 
-    Creating album-based solutions to process copick data.
+    Create album-based solutions to process copick data.
 
     [:octicons-arrow-right-24: Learn more](tutorials/album.md)
 
-
--   :fontawesome-solid-pallet:{ .lg .middle } __Sample Boundaries__
+-   :fontawesome-solid-vector-square:{ .lg .middle } __Detecting Sample Boundaries__
 
     ---
 
-    An end-to-end tutorial on how to train a neural network to predict sample boundaries.
+    An end-to-end tutorial on training a neural network to predict sample boundaries.
 
     [:octicons-arrow-right-24: Learn more](tutorials/sample_boundaries.md)
 
--   :fontawesome-solid-circle-notch:{ .lg .middle } __membrain-seg__
+-   :fontawesome-solid-circle-notch:{ .lg .middle } __Copick and membrain-seg__
 
     ---
 
-    Running the Membrain-seg segmentation pipeline on a copick project.
+    Run the membrain-seg segmentation pipeline on a copick project.
 
     [:octicons-arrow-right-24: Learn more](tutorials/membrain.md)
 
+-   :fontawesome-solid-plug:{ .lg .middle } __Copick-MCP__
+
+    ---
+
+    Drive copick from an MCP-enabled assistant.
+
+    [:octicons-arrow-right-24: Learn more](tutorials/copick_mcp.md)
+
+-   :fontawesome-solid-box-open:{ .lg .middle } __mlcroissant__
+
+    ---
+
+    Work with copick projects described by an ML Commons Croissant manifest.
+
+    [:octicons-arrow-right-24: Learn more](tutorials/croissant.md)
+
 </div>
+
+## Snippets
+
+Short, copy-pasteable examples for common API operations are collected in the
+[Snippets](snippets.md) page.

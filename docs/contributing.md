@@ -1,3 +1,8 @@
+---
+hide:
+  - navigation
+---
+
 # Contributing to Copick
 
 We welcome contributions to copick! Whether you're reporting bugs, suggesting features, improving documentation, or contributing code, your help is appreciated.
