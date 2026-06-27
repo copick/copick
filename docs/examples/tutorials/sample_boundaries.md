@@ -315,8 +315,8 @@ efficiently samples training patches from the segmentation volumes:
 
 ```bash
 octopi train -c config_train.json \
-  -tinfo "sampletargets,train-octopi,0" \
-  -alg wbp -vs 7.84 \
+  -turi "sampletargets:train-octopi/0" \
+  -uri wbp@7.84 \
   -o outputs/ \
   -vruns 14069,14070,14071 \
   -truns 14072,14073,14074,14075,14076,14077,14078,14079,14080,14081,14082,14083,14084,14085,14086 \
@@ -334,9 +334,9 @@ tomograms:
 ```bash
 octopi segment -c config_evaluate.json \
   -mc outputs/model_config.yaml \
-  -mw outputs/best_model_weights.pth \
-  -alg wbp -vs 7.84 \
-  -seginfo "segmentation,output,0" \
+  -mw outputs/best_model.pth \
+  -uri wbp@7.84 \
+  -suri segmentation:output/0 \
   -runs 14114,14132,14137,14163
 ```
 
