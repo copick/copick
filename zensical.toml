@@ -39,6 +39,7 @@ nav = [
         {"ChimeraX-Copick" = "examples/tutorials/chimerax.md"},
         {"Copick and Album" = "examples/tutorials/album.md"},
         {"Detecting Sample Boundaries" = "examples/tutorials/sample_boundaries.md"},
+        {"Filtering Particles by Sample Boundaries" = "examples/tutorials/sample_boundaries_filtering.md"},
         {"Copick and membrain-seg" = "examples/tutorials/membrain.md"},
         {"Copick-MCP" = "examples/tutorials/copick_mcp.md"},
         {"mlcroissant" = "examples/tutorials/croissant.md"},

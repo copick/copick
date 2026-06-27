@@ -53,6 +53,14 @@ project setup instead? Head to [Get Started](../get-started/index.md).
 
     [:octicons-arrow-right-24: Learn more](tutorials/sample_boundaries.md)
 
+-   :fontawesome-solid-filter:{ .lg .middle } __Filtering by Sample Boundaries__
+
+    ---
+
+    Filter particle picks by their position relative to the detected sample boundaries.
+
+    [:octicons-arrow-right-24: Learn more](tutorials/sample_boundaries_filtering.md)
+
 -   :fontawesome-solid-circle-notch:{ .lg .middle } __Copick and membrain-seg__
 
     ---

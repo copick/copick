@@ -111,29 +111,29 @@ pip install copick
 
 <div class="grid cards" markdown>
 
--   [![CZ cryoET Data Portal](assets/tools/_placeholder.svg){ .tool-thumb }](examples/tutorials/data_portal.md)
-
-    **[CZ cryoET Data Portal](examples/tutorials/data_portal.md)**
-
-    Access and annotate tomograms from the CZ cryoET Data Portal.
-
--   [![ChimeraX-copick](assets/tools/_placeholder.svg){ .tool-thumb }](examples/tutorials/chimerax.md)
+-   [![ChimeraX-copick](assets/chimerax-copick.png){ .tool-thumb }](examples/tutorials/chimerax.md)
 
     **[ChimeraX-copick](examples/tutorials/chimerax.md)**
 
-    Visualize and curate a copick project interactively.
+    Visualize and curate a copick project in ChimeraX.
 
--   [![Sample Boundaries](assets/tools/_placeholder.svg){ .tool-thumb }](examples/tutorials/sample_boundaries.md)
+-   [![Filtering by Sample Boundaries](assets/boundary_filtering_goal.png){ .tool-thumb }](examples/tutorials/sample_boundaries_filtering.md)
 
-    **[Sample Boundaries](examples/tutorials/sample_boundaries.md)**
+    **[Filtering by Sample Boundaries](examples/tutorials/sample_boundaries_filtering.md)**
 
-    Train a network to predict sample boundaries end-to-end.
+    Filter particle picks by their position relative to the sample boundaries.
 
--   [![membrain-seg](assets/tools/_placeholder.svg){ .tool-thumb }](examples/tutorials/membrain.md)
+-   [![mlcroissant](assets/tools/tutorials/mlcroissant.png){ .tool-thumb }](examples/tutorials/croissant.md)
 
-    **[membrain-seg](examples/tutorials/membrain.md)**
+    **[mlcroissant](examples/tutorials/croissant.md)**
 
-    Run the membrain-seg segmentation pipeline.
+    Work with copick projects described by an ML Commons Croissant manifest.
+
+-   [![Copick-MCP](assets/tools/tutorials/copick_mcp.png){ .tool-thumb }](examples/tutorials/copick_mcp.md)
+
+    **[Copick-MCP](examples/tutorials/copick_mcp.md)**
+
+    Drive copick from an MCP-enabled assistant.
 
 </div>
 

@@ -17,73 +17,75 @@ pip install "copick[all]"
 
 ## Open your first project
 
-An example dataset is available on [Zenodo](https://doi.org/10.5281/zenodo.19686100).
+A copick project is described by a small JSON **config file**. The `copick config`
+commands build one for you — no hand-editing required. Pick the tab that matches where
+your data lives.
 
-1. Download and unpack the example dataset.
-2. Point a config file at the unpacked `sample_project` directory:
+=== "From the CZ cryoET Data Portal"
 
-    ```json
-    {
-        "name": "test",
-        "description": "A test project.",
-        "version": "1.0.0",
+    Build a project that streams tomograms and annotations straight from the
+    [CZ cryoET Data Portal](https://cryoetdataportal.czscience.com/) — no downloads. Here
+    we use [dataset 10301](https://cryoetdataportal.czscience.com/datasets/10301):
 
-        "pickable_objects": [
-            {
-                "name": "proteasome",
-                "is_particle": true,
-                "pdb_id": "3J9I",
-                "label": 1,
-                "color": [255, 0, 0, 255],
-                "radius": 60,
-                "map_threshold": 0.0418
-            },
-            {
-                "name": "ribosome",
-                "is_particle": true,
-                "pdb_id": "7P6Z",
-                "label": 2,
-                "color": [0, 255, 0, 255],
-                "radius": 150,
-                "map_threshold": 0.037
-            },
-            {
-                "name": "membrane",
-                "is_particle": false,
-                "label": 3,
-                "color": [0, 0, 0, 255]
-            }
-        ],
-
-        // Change this path to the location of sample_project
-        "overlay_root": "local:///PATH/TO/EXTRACTED/PROJECT/",
-
-        "overlay_fs_args": {
-            "auto_mkdir": true
-        }
-    }
+    ```shell
+    copick config dataportal --dataset-id 10301 --overlay ./overlay --output config.json
     ```
 
-3. Open the project and access the data through the copick API:
+    The pickable object types are discovered from the dataset automatically, so the
+    tomograms **and** the existing (read-only) portal annotations are ready to use right
+    away. Anything you create is written to the local `./overlay` directory. Pass
+    `--dataset-id` more than once to combine several datasets into one project.
 
-    ```python
-    import zarr
+=== "From your own tomograms"
 
-    from copick.impl.filesystem import CopickRootFSSpec
+    Build a local project and import your own reconstructions. Each tomogram is converted
+    to a multiscale OME-Zarr pyramid so it streams efficiently.
 
-    root = CopickRootFSSpec.from_file('path/to/filesystem_overlay_only.json')
+    ```shell
+    # 1. Create a local project and declare the objects you'll annotate.
+    #    --objects format: name,is_particle,[radius],[pdb_id]  (repeat per object)
+    copick config filesystem \
+        --config config.json \
+        --overlay-root ./my_project \
+        --objects ribosome,True,150,7P6Z \
+        --objects membrane,False \
+        --proj-name my-project --proj-description "My cryo-ET dataset"
 
-    # Get a run, then a tomogram
-    run = root.get_run("TS_001")
-    tomogram = run.get_voxel_spacing(10).get_tomogram("wbp")
+    # 2. Import a tomogram (file type and voxel size are read from the MRC header;
+    #    the run is named after the file unless you pass --run).
+    copick add tomogram TS_001.mrc --config config.json --tomo-type wbp
 
-    # Access the image data
-    group = zarr.open(tomogram.zarr())
-    _, array = next(iter(group.arrays()))
+    # 3. Or batch-import a whole folder of MRCs (run name taken from each filename).
+    copick add tomogram "tomograms/*.mrc" --config config.json --tomo-type wbp
     ```
+
+    copick also imports tomograms and picks from RELION and Dynamo — see the
+    [`add` CLI reference](cli/add/index.md).
 
 !!! tip "Skip the `--config` flag"
     Set `export COPICK_CONFIG=/path/to/config.json` once and every `copick` command picks it up automatically.
+
+## See your data
+
+With a `config.json` in hand, here are three ways to dig in.
+
+**Browse in the terminal.** Explore runs, tomograms, picks, meshes, and segmentations in
+an interactive TUI:
+
+```shell
+copick browse --config config.json
+```
+
+**Script it with Python.** The object-oriented API mirrors the data model — root → runs →
+voxel spacings → tomograms, plus picks/meshes/segmentations:
+
+```python
+--8<-- "root_list_objects_runs.py"
+```
+
+**Visualize and annotate.** Open the project in a 3D viewer to inspect tomograms and
+create picks. See the [ChimeraX-copick tutorial](examples/tutorials/chimerax.md), or the
+[ecosystem](tools.md) for napari-copick, CellCanvas, and the web viewer.
 
 ## What can you do?
 
@@ -148,10 +150,16 @@ annotations, fit surfaces, and more — all from the command line. Scroll throug
 
 ## Other storage backends
 
-Beyond local/fsspec-backed filesystem projects, copick supports:
+The two paths above cover local files and the CZ cryoET Data Portal, but a copick
+project's data and overlay can live almost anywhere — pick the setup that matches your
+storage:
 
-- **[CZ cryoET Data Portal](examples/setup/data_portal.md)** — read from the
-  portal API and write to any fsspec overlay.
+- **[Local](examples/setup/local.md)** / **[Shared](examples/setup/shared.md)** — data on
+  a local or shared filesystem.
+- **[AWS S3](examples/setup/aws_s3.md)** / **[SSH](examples/setup/ssh.md)** — data on
+  object storage or a remote server.
+- **[CZ cryoET Data Portal](examples/setup/data_portal.md)** — read from the portal API
+  and write to any fsspec overlay.
 - **[mlcroissant](examples/setup/croissant.md)** — read from a standards-compliant
   [Croissant 1.1](https://docs.mlcommons.org/croissant/docs/croissant-spec.html)
   manifest + CSV sidecars under a `Croissant/` subdirectory. Live auto-sync
