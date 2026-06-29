@@ -1,4 +1,4 @@
-__version__ = "1.25.1"
+__version__ = "1.25.2"
 
 from copick.models import COPICK_TYPES
 from copick.ops.open import from_croissant, from_czcdp_datasets, from_file, from_string, new_config
