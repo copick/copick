@@ -135,15 +135,25 @@ Because dataset 10476 already ships a portal `membrane` annotation (from
 [membrain-seg](membrain.md)), you can sanity-check easymode against an independent method on the very
 same tomogram:
 
+<div class="side-by-side" markdown>
+<div markdown>
 <figure markdown="span">
-  ![easymode membrane](../../assets/easymode_membrane_light.png#only-light){width="340"}
-  ![easymode membrane](../../assets/easymode_membrane_dark.png#only-dark){width="340"}
-  ![membrain-seg membrane](../../assets/membrain_membrane_light.png#only-light){width="340"}
-  ![membrain-seg membrane](../../assets/membrain_membrane_dark.png#only-dark){width="340"}
-  <figcaption>easymode's <code>membrane</code> (purple, left) next to the Data Portal's membrain-seg
-membrane annotation (green, right) on the same tomogram — two independent networks picking out the
-same membranes.</figcaption>
+![easymode membrane](../../assets/easymode_membrane_light.png#only-light)
+![easymode membrane](../../assets/easymode_membrane_dark.png#only-dark)
+<figcaption>easymode <code>membrane</code> (purple)</figcaption>
 </figure>
+</div>
+<div markdown>
+<figure markdown="span">
+![membrain-seg membrane](../../assets/membrain_membrane_light.png#only-light)
+![membrain-seg membrane](../../assets/membrain_membrane_dark.png#only-dark)
+<figcaption>membrain-seg <code>membrane</code> (green)</figcaption>
+</figure>
+</div>
+</div>
+
+easymode (left) and membrain-seg (right) — two independent networks picking out the same membranes
+on the same tomogram.
 
 !!! tip "Make a 3D figure"
     For a publication-style render, open the segmentations in
