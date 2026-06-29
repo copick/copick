@@ -60,37 +60,51 @@ def rm(
     debug: bool,
 ):
     """
-    Remove copick objects matching a URI pattern.
+    Remove copick objects by URI.
 
-    \b
-    OBJECT_TYPE: Type of object to remove (picks, mesh, segmentation, tomogram, feature)
-    URI: Copick URI pattern (supports glob and regex with 're:' prefix)
+    Deletes picks, meshes, segmentations, tomograms, or features that match a
+    copick URI. A URI may target a single object or many at once via glob (`*`)
+    wildcards or a regular expression prefixed with `re:`. The command operates
+    across every run by default, or on a single run when `--run` is given.
 
-    \b
-    URI Formats:
-        Picks/Mesh:      object_name:user_id/session_id
-        Segmentation:    name:user_id/session_id@voxel_spacing
-        Tomogram:        tomo_type@voxel_spacing
-        Feature:         tomo_type@voxel_spacing:feature_type
+    The URI shape depends on the object type: picks and meshes use
+    `object_name:user_id/session_id`; segmentations use
+    `name:user_id/session_id@voxel_spacing`; tomograms use
+    `tomo_type@voxel_spacing`; and features use `tomo_type@voxel_spacing:feature_type`.
 
-    \b
-    Pattern Examples:
-        Glob:    "ribosome:user1/session-*"
-        Regex:   "re:ribosome:user1/session-\\d+"
+    Pattern-based deletions require `--force` as a safety measure, unless
+    `--dry-run` is used. Use `--dry-run` to preview exactly what would be removed
+    without deleting anything.
 
-    \b
+    Arguments:
+
+        \b
+        OBJECT_TYPE: Type of object to remove (picks, mesh, segmentation, tomogram, or feature).
+        URI: Copick URI selecting the objects to remove; supports glob wildcards and `re:` regex patterns.
+
     Examples:
+
+        \b
         # Remove a specific pick set
-        copick rm picks "ribosome:user1/session-001"
+        copick rm picks "ribosome:user1/session-001" -c config.json
 
-        # Preview deletion of test segmentations (dry run)
-        copick rm --dry-run segmentation "membrane:*/test-*@10.0"
+        \b
+        # Preview deletion of test segmentations without removing them
+        copick rm --dry-run segmentation "membrane:*/test-*@10.0" -c config.json
 
-        # Remove all manual picks from user1 (requires --force)
-        copick rm --force picks "ribosome:user1/manual-*"
+        \b
+        # Remove all manual picks from user1 (pattern requires --force)
+        copick rm --force picks "ribosome:user1/manual-*" -c config.json
 
-        # Remove segmentations using regex pattern
-        copick rm --force segmentation "re:membrane:user1/session-\\d+@10.0"
+        \b
+        # Remove segmentations matching a regex pattern
+        copick rm --force segmentation "re:membrane:user1/session-\\d+@10.0" -c config.json
+
+    See Also:
+
+        \b
+        copick cp: copy or duplicate copick objects by URI
+        copick mv: move or rename copick objects by URI
     """
     # Deferred import for performance
     import copick

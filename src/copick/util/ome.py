@@ -123,15 +123,13 @@ def segmentation_pyramid(
     for _ in range(1, levels):
         array = pyramid[vs]
         vs *= 2
-        pyramid[vs] = (
-            rescale(
-                array,
-                (1.0 / 2.0, 1.0 / 2.0, 1.0 / 2.0),
-                anti_aliasing=False,
-                preserve_range=True,
-                order=0,
-            ).astype(dtype),
-        )
+        pyramid[vs] = rescale(
+            array,
+            (1.0 / 2.0, 1.0 / 2.0, 1.0 / 2.0),
+            anti_aliasing=False,
+            preserve_range=True,
+            order=0,
+        ).astype(dtype)
 
     return pyramid
 

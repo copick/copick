@@ -24,6 +24,30 @@ jobs:
       - name: Install copick
         run: uv sync --locked --extra docs
 
+      # The unified CLI reference documents plugin commands (convert/process/logical/
+      # training/inference/download) contributed by these packages, so they must be
+      # importable for `make_cli_docs` to introspect them. Installed separately from the
+      # locked sync to keep the (heavy, torch-pulling) plugins out of the docs lockfile.
+      # Uses the CPU torch wheel to keep the CI install light. These must be released with
+      # the normalized command docstrings for the rendered docs to be up to date.
+      - name: Install plugin packages for CLI introspection
+        env:
+          UV_TORCH_BACKEND: cpu
+        # Pin minimum versions to the releases that ship the normalized command docstrings, so the
+        # rendered CLI reference can't regress to an older (pre-normalization) plugin.
+        run: uv pip install "copick>=1.24.1" "copick-utils>=1.7.1" "copick-torch>=1.1.1" "copick-mcp>=0.6.0"
+
+      # copick-easymode is git-only (not on PyPI) and its CLI module defers all heavy imports
+      # (easymode/TensorFlow), so a --no-deps install is enough for make_cli_docs to introspect
+      # `copick inference easymode` without pulling TensorFlow or the git-easymode/old-numpy chain.
+      - name: Install copick-easymode for CLI introspection
+        run: uv pip install --no-deps "copick-easymode @ git+https://github.com/copick/copick-easymode.git"
+
+      # Regenerate the per-command CLI reference pages and the CLI-Reference nav node
+      # from the live --help/docstrings before building.
+      - name: Generate CLI reference
+        run: make_cli_docs
+
       # Build the book
       - name: Build the book
         run: |

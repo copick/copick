@@ -85,53 +85,55 @@ def deposit(
     max_workers,
     debug,
 ):
-    """Create a depositable view of a copick project using symlinks.
+    """
+    Create a depositable view of a copick project using symlinks.
 
     This command creates a hierarchical directory structure suitable for uploading to the
     cryoET data portal. It operates on a single copick config and creates symlinks to the
     actual data files, allowing multiple projects to be deposited into the same target
-    directory through successive executions.
+    directory through successive executions. The directory structure conforms to the
+    standard copick filesystem layout.
 
-    The directory structure created conforms to the standard copick filesystem layout.
+    Picks, meshes, segmentations, tomograms, and features are selected via URI filters and
+    are skipped entirely when their option is not provided. For data portal projects, run
+    names are automatically transformed from portal run IDs to
+    `{dataset_id}_{portal_run_name}_{portal_run_id}` unless `--run-name-prefix` is given.
+
+    Successive executions to the same target directory are safe and idempotent: symlinks
+    that already exist and point to the correct source are skipped. Read-only data from the
+    portal cannot be symlinked and will raise an error.
 
     Examples:
 
-    \b
-    # Deposit all runs from a filesystem project
-    copick deposit -c filesystem_config.json --target-dir /path/to/deposit \\
-        --picks "*:*/*" --meshes "*:*/*"
+        \b
+        # Deposit all runs from a filesystem project
+        copick deposit -c filesystem_config.json --target-dir /path/to/deposit \\
+            --picks "*:*/*" --meshes "*:*/*"
 
-    \b
-    # Deposit from a data portal project (automatic run name transformation)
-    # Runs will be named like: 10301_TS_001_<portal_run_id>
-    copick deposit -c portal_config.json --target-dir /path/to/deposit \\
-        --picks "proteasome:*/*" --picks "ribosome:*/*" \\
-        --segmentations "membrane:*/*@10.0"
+        \b
+        # Deposit from a data portal project (automatic run name transformation)
+        # Runs will be named like: 10301_TS_001_<portal_run_id>
+        copick deposit -c portal_config.json --target-dir /path/to/deposit \\
+            --picks "proteasome:*/*" --picks "ribosome:*/*" \\
+            --segmentations "membrane:*/*@10.0"
 
-    \b
-    # Deposit with explicit prefix override
-    copick deposit -c config.json --target-dir /path/to/deposit \\
-        --run-names "TS_001,TS_002" --run-name-prefix "custom_prefix_" \\
-        --picks "*:*/*"
+        \b
+        # Deposit with an explicit prefix override
+        copick deposit -c config.json --target-dir /path/to/deposit \\
+            --run-names "TS_001,TS_002" --run-name-prefix "custom_prefix_" \\
+            --picks "*:*/*"
 
-    \b
-    # Deposit with regex to extract run names
-    copick deposit -c config.json --target-dir /path/to/deposit \\
-        --run-name-regex "^(TS_\\d+).*" --tomograms "wbp@10.0"
+        \b
+        # Deposit with a regex to extract run names
+        copick deposit -c config.json --target-dir /path/to/deposit \\
+            --run-name-regex "^(TS_\\d+).*" --tomograms "wbp@10.0"
 
-    \b
-    # Multiple projects to same target (successive executions)
-    copick deposit -c project1.json --target-dir /deposit --run-name-prefix "proj1_" \\
-        --picks "*:*/*"
-    copick deposit -c project2.json --target-dir /deposit --run-name-prefix "proj2_" \\
-        --picks "*:*/*"
-
-    Notes:
-    - For data portal projects, run names are automatically transformed from portal run IDs
-      to "{dataset_id}_{portal_run_name}_{portal_run_id}" unless run_name_prefix is provided.
-    - Multiple executions to the same target_dir are safe and idempotent.
-    - Symlinks that already exist and point to the correct source are skipped.
-    - Read-only data from the portal cannot be symlinked and will raise an error.
+        \b
+        # Deposit multiple projects to the same target (successive executions)
+        copick deposit -c project1.json --target-dir /deposit --run-name-prefix "proj1_" \\
+            --picks "*:*/*"
+        copick deposit -c project2.json --target-dir /deposit --run-name-prefix "proj2_" \\
+            --picks "*:*/*"
     """
     from copick.ops.deposit import deposit as deposit_op
 

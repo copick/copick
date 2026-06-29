@@ -91,28 +91,38 @@ def tomogram(
     """
     Add a tomogram to the project.
 
-    PATH: Path to the tomogram file (MRC, Zarr, TIFF, or EM format) or glob pattern.
+    Imports a single tomogram, or many at once via a glob pattern, into one or more
+    runs. The file format is inferred from the extension unless ``--file-type`` is
+    given, and a multiscale pyramid is computed by default.
 
-    For batch imports from Dynamo tomolist files, use 'copick add tomograms-dynamo'.
-    For batch imports from RELION tomograms.star, use 'copick add tomograms-relion'.
+    Arguments:
+
+        \b
+        PATH: Path to the tomogram file (MRC, Zarr, TIFF, or EM) or a glob pattern.
 
     Examples:
 
-    \\b
-    # Import single tomogram
-    copick add tomogram tomo.mrc -c config.json
+        \b
+        # Import a single tomogram
+        copick add tomogram tomo.mrc -c config.json
 
-    \\b
-    # Import from glob pattern
-    copick add tomogram "*.mrc" -c config.json
+        \b
+        # Import every matching file via a glob pattern
+        copick add tomogram "*.mrc" -c config.json
 
-    \\b
-    # Import with explicit run name
-    copick add tomogram tomo.mrc -c config.json --run TS_001
+        \b
+        # Import with an explicit run name
+        copick add tomogram tomo.mrc -c config.json --run TS_001
 
-    \\b
-    # Import with regex to extract run name from filename
-    copick add tomogram "TS*.mrc" -c config.json --run-regex "^(TS_\\d+)"
+        \b
+        # Extract the run name from the filename with a regex
+        copick add tomogram "TS*.mrc" -c config.json --run-regex "^(TS_\\d+)"
+
+    See Also:
+
+        \b
+        copick add tomograms-dynamo: batch import from a Dynamo tomolist file
+        copick add tomograms-relion: batch import from a RELION tomograms.star file
     """
     # Deferred imports for performance
     import copick
@@ -273,18 +283,28 @@ def tomogram_from_tomolist(
     """
     Add tomograms from a Dynamo tomolist file.
 
-    The tomolist file should be a 2-column TSV with tomogram index and MRC path.
-    Run names are extracted from MRC filenames unless --index-map is provided.
+    Reads a Dynamo tomolist (a 2-column TSV of tomogram index and MRC path) and
+    imports each listed tomogram into its own run. Run names are taken from the MRC
+    filenames unless `--index-map` supplies an explicit index-to-run mapping. The
+    file format is inferred from the extension unless `--file-type` is given, and a
+    multiscale pyramid is computed by default.
 
     Examples:
 
-    \\b
-    # Import from Dynamo tomolist (run names from MRC filenames)
-    copick add tomograms-dynamo -c config.json --tomolist tomograms.doc
+        \b
+        # Import from a Dynamo tomolist (run names from MRC filenames)
+        copick add tomograms-dynamo -c config.json --tomolist tomograms.doc
 
-    \\b
-    # Import with custom run names from index map
-    copick add tomograms-dynamo -c config.json --tomolist tomograms.doc --index-map run_mapping.csv
+        \b
+        # Import with custom run names from an index map
+        copick add tomograms-dynamo -c config.json --tomolist tomograms.doc \\
+            --index-map run_mapping.csv
+
+    See Also:
+
+        \b
+        copick add tomogram: import a single tomogram or a glob of files
+        copick add tomograms-relion: batch import from a RELION tomograms.star file
     """
     import copick
     from copick.ops.run import map_runs, report_results
@@ -466,20 +486,30 @@ def tomogram_from_star(
     """
     Add tomograms from a RELION tomograms.star file.
 
-    Run names are extracted from _rlnTomoName column. Voxel sizes are read from
-    the star file unless overridden with --voxel-size. The --base-dir option
-    specifies the RELION project root directory for resolving relative paths
-    in the STAR file.
+    Reads a RELION tomograms.star file and imports each reconstruction into its own
+    run, with run names taken from the `_rlnTomoName` column. Voxel sizes are read
+    from the star file unless overridden with `--voxel-size`, and `--base-dir` sets
+    the RELION project root used to resolve relative paths in the file. Use `--half`
+    to choose which reconstruction half to import. A multiscale pyramid is computed
+    by default.
 
     Examples:
 
-    \\b
-    # Import from RELION tomograms.star file (half1, default)
-    copick add tomograms-relion -c config.json --tomograms-star tomograms.star --base-dir /path/to/relion_project
+        \b
+        # Import the half1 reconstructions (default)
+        copick add tomograms-relion -c config.json --tomograms-star tomograms.star \\
+            --base-dir /path/to/relion_project
 
-    \\b
-    # Import half2 reconstructions
-    copick add tomograms-relion -c config.json --tomograms-star tomograms.star --base-dir /path/to/relion_project --half half2
+        \b
+        # Import the half2 reconstructions instead
+        copick add tomograms-relion -c config.json --tomograms-star tomograms.star \\
+            --base-dir /path/to/relion_project --half half2
+
+    See Also:
+
+        \b
+        copick add tomogram: import a single tomogram or a glob of files
+        copick add tomograms-dynamo: batch import from a Dynamo tomolist file
     """
     import copick
     from copick.ops.run import map_runs, report_results
@@ -636,7 +666,36 @@ def segmentation(
     """
     Add a segmentation to the project.
 
-    PATH: Path to the segmentation file (MRC, Zarr, TIFF, or EM format) or glob pattern.
+    Imports a single segmentation, or many at once via a glob pattern, into one or
+    more runs. The file format is inferred from the extension unless `--file-type`
+    is given. Segmentations are imported as multilabel volumes and may be tagged
+    with a name, user ID, and session ID.
+
+    Arguments:
+
+        \b
+        PATH: Path to the segmentation file (MRC, Zarr, TIFF, or EM) or a glob pattern.
+
+    Examples:
+
+        \b
+        # Import a single segmentation into a named run
+        copick add segmentation seg.mrc -c config.json --run TS_001 --name membrane
+
+        \b
+        # Import every matching file via a glob pattern
+        copick add segmentation "*.mrc" -c config.json --name membrane
+
+        \b
+        # Extract the run name from the filename with a regex
+        copick add segmentation "TS*.mrc" -c config.json --name membrane \\
+            --run-regex "^(TS_\\d+)"
+
+    See Also:
+
+        \b
+        copick add tomogram: import a tomogram volume into a run
+        copick add object: register a pickable object in the project configuration
     """
     # Deferred import for performance
     import copick
@@ -834,6 +893,35 @@ def object(
 ):
     """
     Add a pickable object to the project configuration.
+
+    Registers a new pickable object (a particle for point annotations or a
+    segmentation for mask annotations) and writes it back to the configuration
+    file. Optional metadata such as a numeric label, RGBA color, EMDB/PDB IDs, an
+    ontology identifier, a display radius, and a density map (via `--volume`) can be
+    attached to the object.
+
+    Examples:
+
+        \b
+        # Add a particle object with a display radius
+        copick add object -c config.json --name ribosome --object-type particle \\
+            --radius 120
+
+        \b
+        # Add a particle with a PDB reference and a custom color
+        copick add object -c config.json --name ribosome --object-type particle \\
+            --radius 120 --pdb-id 4V9D --color "255,0,0,255"
+
+        \b
+        # Add a segmentation object with an explicit label
+        copick add object -c config.json --name membrane --object-type segmentation \\
+            --label 1 --color "0,255,0,128"
+
+    See Also:
+
+        \b
+        copick add object-volume: attach a density map to an existing object
+        copick add picks: import picks for a registered object
     """
     # Deferred import for performance
     import copick
@@ -962,6 +1050,28 @@ def object_volume(
 ):
     """
     Add volume data to an existing pickable object.
+
+    Loads a density map from disk and attaches it to an object that already exists
+    in the project configuration. The volume format is inferred from the file
+    extension unless `--volume-format` is given, and `--voxel-size` records the
+    voxel size of the map in Angstrom.
+
+    Examples:
+
+        \b
+        # Attach an MRC density map to an existing object
+        copick add object-volume -c config.json --object-name ribosome \\
+            --volume-path data/ribosome_volume.mrc
+
+        \b
+        # Attach a Zarr volume with an explicit voxel size
+        copick add object-volume -c config.json --object-name proteasome \\
+            --volume-path data/proteasome.zarr --voxel-size 8.0
+
+    See Also:
+
+        \b
+        copick add object: register a pickable object in the project configuration
     """
     # Deferred import for performance
     import copick
@@ -1064,49 +1174,53 @@ def picks(
     debug: bool,
 ):
     """
-    Add picks from external file formats.
+    Add picks from external formats (EM, STAR, Dynamo, CSV).
 
-    PATH: Path to the picks file (EM, STAR, Dynamo .tbl, or CSV) or glob pattern.
+    Imports particle picks from a single file, or many at once via a glob pattern,
+    into one or more runs. The format is inferred from the extension unless
+    `--file-type` is given. Supported formats are TOM toolbox EM motivelists
+    (.em), RELION particle STAR files (.star), Dynamo tables (.tbl), and copick CSV
+    files (.csv). A voxel size is required for the EM, STAR, and Dynamo formats so
+    coordinates can be converted; CSV files carry a `run_name` column and are
+    grouped automatically.
 
-    This command imports picks from a single file (or files via glob) to individual
-    runs. For batch imports from files containing multiple tomograms, use:
-    - copick add picks-em: EM motivelists with index mapping
-    - copick add picks-dynamo: Dynamo tables with index mapping or tomolist
-    - copick add picks-relion: RELION STAR files with _rlnTomoName column
+    For batch imports from a single file that spans many tomograms, use the
+    dedicated commands `copick add picks-em`, `copick add picks-dynamo`, or
+    `copick add picks-relion` instead. For format-specific conventions (coordinate
+    systems, Euler angle conventions), see the docstrings in `copick.util.formats`.
 
-    Supported formats:
-    - EM: TOM toolbox motivelist format (.em)
-    - STAR: RELION particle STAR files (.star)
-    - Dynamo: Dynamo table files (.tbl)
-    - CSV: Copick CSV format with run_name column (.csv)
+    Arguments:
+
+        \b
+        PATH: Path to the picks file (EM, STAR, Dynamo .tbl, or CSV) or a glob pattern.
 
     Examples:
 
-    \\b
-    # Import picks from a TOM toolbox EM motivelist
-    copick add picks particles.em -c config.json --object-name ribosome \\
-        --voxel-size 10.0 --run TS_001
+        \b
+        # Import picks from a TOM toolbox EM motivelist
+        copick add picks particles.em -c config.json --object-name ribosome \\
+            --voxel-size 10.0 --run TS_001
 
-    \\b
-    # Import picks from a RELION STAR file
-    copick add picks particles.star -c config.json --object-name ribosome \\
-        --voxel-size 10.0 --run TS_001
+        \b
+        # Import picks from a RELION STAR file
+        copick add picks particles.star -c config.json --object-name ribosome \\
+            --voxel-size 10.0 --run TS_001
 
-    \\b
-    # Import picks from a Dynamo table
-    copick add picks table.tbl -c config.json --object-name ribosome \\
-        --voxel-size 10.0 --run TS_001
+        \b
+        # Import picks from a CSV (run names come from the file)
+        copick add picks particles.csv -c config.json --object-name ribosome
 
-    \\b
-    # Import picks from CSV (run names from file)
-    copick add picks particles.csv -c config.json --object-name ribosome
+        \b
+        # Import from multiple files via a glob (run names from filenames)
+        copick add picks "*.star" -c config.json --object-name ribosome \\
+            --voxel-size 10.0
 
-    \\b
-    # Import from multiple files using glob pattern (run names from filenames)
-    copick add picks "*.star" -c config.json --object-name ribosome --voxel-size 10.0
+    See Also:
 
-    For format-specific conventions (coordinate systems, Euler angle conventions),
-    see the documentation or the docstrings in copick.util.formats.
+        \b
+        copick add picks-em: batch import an EM motivelist spanning many tomograms
+        copick add picks-dynamo: batch import a Dynamo table spanning many tomograms
+        copick add picks-relion: batch import a RELION STAR file with _rlnTomoName
     """
     import copick
     from copick.ops.add import add_picks_from_file
@@ -1271,35 +1385,41 @@ def picks_em(
     """
     Add picks from EM motivelist files containing multiple tomograms.
 
-    PATH: Path to the EM motivelist file (.em) or glob pattern.
+    Imports particle picks from one or more TOM toolbox EM motivelists, where a
+    single file can hold picks from many tomograms. Each particle's tomogram is
+    identified by an index stored in a configurable motivelist row
+    (`--tomo-index-row`, default 4 for the Artiatomi convention), and `--index-map`
+    provides a 2-column CSV/TSV that maps those indices to copick run names (e.g.
+    `1,TS_001`). A voxel size is required to convert coordinates.
 
-    This command is for importing particle picks from TOM toolbox motivelist files
-    that contain picks from multiple tomograms. The tomogram is identified by an
-    index in the motivelist (configurable row), and the index map file maps these
-    indices to copick run names.
+    Arguments:
+
+        \b
+        PATH: Path to the EM motivelist file (.em) or a glob pattern.
 
     Examples:
 
-    \\b
-    # Import EM motivelist with index map
-    copick add picks-em motivelist.em -c config.json --object-name ribosome \\
-        --voxel-size 10.0 --index-map tomo_mapping.csv
+        \b
+        # Import an EM motivelist with an index map
+        copick add picks-em motivelist.em -c config.json --object-name ribosome \\
+            --voxel-size 10.0 --index-map tomo_mapping.csv
 
-    \\b
-    # Import with custom tomo-index-row
-    copick add picks-em motivelist.em -c config.json --object-name ribosome \\
-        --voxel-size 10.0 --index-map tomo_mapping.csv --tomo-index-row 5
+        \b
+        # Import with a custom tomogram-index row
+        copick add picks-em motivelist.em -c config.json --object-name ribosome \\
+            --voxel-size 10.0 --index-map tomo_mapping.csv --tomo-index-row 5
 
-    \\b
-    # Import multiple files using glob pattern
-    copick add picks-em "*.em" -c config.json --object-name ribosome \\
-        --voxel-size 10.0 --index-map tomo_mapping.csv
+        \b
+        # Import multiple files via a glob pattern
+        copick add picks-em "*.em" -c config.json --object-name ribosome \\
+            --voxel-size 10.0 --index-map tomo_mapping.csv
 
-    Index map file format (CSV or TSV, 2 columns):
-        index,run_name
-        1,TS_001
-        2,TS_002
-        3,TS_003
+    See Also:
+
+        \b
+        copick add picks: import picks from a single file into one run
+        copick add picks-dynamo: batch import a Dynamo table spanning many tomograms
+        copick add picks-relion: batch import a RELION STAR file with _rlnTomoName
     """
     import copick
     from copick.ops.add import add_picks_grouped_from_file
@@ -1413,41 +1533,41 @@ def picks_dynamo(
     """
     Add picks from Dynamo table files containing multiple tomograms.
 
-    PATH: Path to the Dynamo table file (.tbl) or glob pattern.
+    Imports particle picks from one or more Dynamo table files, where a single file
+    can hold picks from many tomograms (the tomogram index is read from column 20).
+    Provide exactly one of `--index-map` (a 2-column CSV/TSV mapping tomogram index
+    to run name, e.g. `1,TS_001`) or `--tomolist` (a Dynamo tomolist whose run names
+    come from the MRC filenames) to map indices to copick runs. A voxel size is
+    required to convert coordinates.
 
-    This command is for importing particle picks from Dynamo table files that
-    contain picks from multiple tomograms. The tomogram index is in column 20.
+    Arguments:
 
-    You must provide either --index-map OR --tomolist to map tomogram indices
-    to run names:
-    - --index-map: CSV/TSV file with explicit index-to-run mapping
-    - --tomolist: Dynamo tomolist file (run names extracted from MRC filenames)
+        \b
+        PATH: Path to the Dynamo table file (.tbl) or a glob pattern.
 
     Examples:
 
-    \\b
-    # Import using index map
-    copick add picks-dynamo particles.tbl -c config.json --object-name ribosome \\
-        --voxel-size 10.0 --index-map tomo_mapping.csv
+        \b
+        # Import using an index map
+        copick add picks-dynamo particles.tbl -c config.json --object-name ribosome \\
+            --voxel-size 10.0 --index-map tomo_mapping.csv
 
-    \\b
-    # Import using tomolist (run names from MRC filenames)
-    copick add picks-dynamo particles.tbl -c config.json --object-name ribosome \\
-        --voxel-size 10.0 --tomolist tomograms.doc
+        \b
+        # Import using a Dynamo tomolist (run names from MRC filenames)
+        copick add picks-dynamo particles.tbl -c config.json --object-name ribosome \\
+            --voxel-size 10.0 --tomolist tomograms.doc
 
-    \\b
-    # Import multiple files using glob pattern
-    copick add picks-dynamo "*.tbl" -c config.json --object-name ribosome \\
-        --voxel-size 10.0 --index-map tomo_mapping.csv
+        \b
+        # Import multiple files via a glob pattern
+        copick add picks-dynamo "*.tbl" -c config.json --object-name ribosome \\
+            --voxel-size 10.0 --index-map tomo_mapping.csv
 
-    Index map file format (CSV or TSV, 2 columns):
-        index,run_name
-        1,TS_001
-        2,TS_002
+    See Also:
 
-    Tomolist file format (Dynamo format, 2 columns TSV):
-        1    /path/to/TS_001.mrc
-        2    /path/to/TS_002.mrc
+        \b
+        copick add picks: import picks from a single file into one run
+        copick add picks-em: batch import an EM motivelist spanning many tomograms
+        copick add picks-relion: batch import a RELION STAR file with _rlnTomoName
     """
     import copick
     from copick.ops.add import add_picks_grouped_from_file
@@ -1571,40 +1691,45 @@ def picks_relion(
     """
     Add picks from RELION STAR files containing multiple tomograms.
 
-    PATH: Path to the RELION particles STAR file or glob pattern.
-
-    This command imports particle picks from RELION STAR files that contain
-    the _rlnTomoName column identifying which tomogram each particle belongs to.
-    Run names are automatically extracted from the _rlnTomoName column.
-
-    Supports both RELION 4.x and RELION 5.0 coordinate formats:
-
-    RELION 4.x format (pixel coordinates):
-    - rlnCoordinateX, rlnCoordinateY, rlnCoordinateZ
-
-    RELION 5.0 format (centered Angstrom coordinates):
-    - rlnCenteredCoordinateXAngst, rlnCenteredCoordinateYAngst, rlnCenteredCoordinateZAngst
+    Imports particle picks from one or more RELION particle STAR files that carry
+    the `_rlnTomoName` column identifying each particle's tomogram; run names are
+    extracted from that column automatically. Both RELION 4.x (pixel coordinates in
+    `rlnCoordinateX/Y/Z`) and RELION 5.0 (centered Angstrom coordinates in
+    `rlnCenteredCoordinateX/Y/ZAngst`) formats are supported, with the version
+    auto-detected from the column names unless overridden by `--relion-version`.
 
     For RELION 5.0, tomogram dimensions are needed to convert centered coordinates
-    to absolute coordinates. These can be provided via --tomograms-star, or will be
-    read from existing tomograms in the copick project.
+    to absolute coordinates. Supply them with `--tomograms-star`, or omit it to read
+    the dimensions from tomograms already present in the copick project.
+
+    Arguments:
+
+        \b
+        PATH: Path to the RELION particles STAR file (.star) or a glob pattern.
 
     Examples:
 
-    \\b
-    # Import RELION 4.x particles
-    copick add picks-relion particles.star -c config.json --object-name ribosome \\
-        --voxel-size 10.0
+        \b
+        # Import RELION 4.x particles
+        copick add picks-relion particles.star -c config.json --object-name ribosome \\
+            --voxel-size 10.0
 
-    \\b
-    # Import RELION 5.0 particles with tomograms.star
-    copick add picks-relion particles.star -c config.json --object-name ribosome \\
-        --voxel-size 5.0 --tomograms-star tomograms.star
+        \b
+        # Import RELION 5.0 particles using a tomograms.star for dimensions
+        copick add picks-relion particles.star -c config.json --object-name ribosome \\
+            --voxel-size 5.0 --tomograms-star tomograms.star
 
-    \\b
-    # Import RELION 5.0 particles using existing copick tomogram dimensions
-    copick add picks-relion particles.star -c config.json --object-name ribosome \\
-        --voxel-size 5.0
+        \b
+        # Import RELION 5.0 particles using existing copick tomogram dimensions
+        copick add picks-relion particles.star -c config.json --object-name ribosome \\
+            --voxel-size 5.0
+
+    See Also:
+
+        \b
+        copick add picks: import picks from a single file into one run
+        copick add picks-em: batch import an EM motivelist spanning many tomograms
+        copick add picks-dynamo: batch import a Dynamo table spanning many tomograms
     """
     import copick
     from copick.ops.add import add_picks_grouped_from_file

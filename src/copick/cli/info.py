@@ -3,7 +3,7 @@ from typing import Set
 
 import click
 
-from copick.cli.ext import load_plugin_commands
+from copick.cli.ext import PLUGIN_GROUPS, load_plugin_commands
 from copick.util.log import get_logger
 
 
@@ -13,20 +13,9 @@ def get_installed_plugin_packages() -> Set[str]:
     Returns:
         Set of strings in format "package-name version"
     """
-    command_groups = [
-        "main",
-        "inference",
-        "training",
-        "evaluation",
-        "process",
-        "convert",
-        "logical",
-        "setup",
-        "stats",
-    ]
     plugin_packages = set()
 
-    for group in command_groups:
+    for group in PLUGIN_GROUPS:
         commands = load_plugin_commands(group)
         for _command, package_name in commands:
             try:
@@ -44,7 +33,21 @@ def get_installed_plugin_packages() -> Set[str]:
 )
 @click.pass_context
 def info(ctx):
-    """Display information about the Copick CLI."""
+    """
+    Display information about the Copick CLI.
+
+    Lists the plugin commands currently registered with the Copick CLI, grouped by
+    command group (main, inference, training, evaluation, process, convert, and
+    logical). For each command the registered short help text and the providing
+    package are shown, which is useful for discovering which plugins are installed
+    and where each command comes from.
+
+    Examples:
+
+        \b
+        # Show CLI information and available plugins
+        copick info
+    """
     logger = get_logger(__name__)
 
     command_groups = {

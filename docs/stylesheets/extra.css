@@ -17,3 +17,531 @@
 .side-by-side > div {
   flex: 1;
 }
+
+/* --- Header navigation tabs -------------------------------------------- */
+
+/* Center the top-bar tab links within the (centered) content column.
+   .md-tabs__list is a flex row, so this is all that's needed. */
+.md-tabs__list {
+  justify-content: center;
+}
+
+/* Larger, bolder top-level tab labels. */
+.md-tabs__link {
+  font-size: 0.8rem;
+  font-weight: 700;
+}
+
+/* --- Header branding --------------------------------------------------- */
+
+/* The tabbed header otherwise leaves a tiny logo floating in a large bar;
+   enlarge the logo to fill the header-row height and bump the site title so
+   they anchor the left of the header. */
+.md-header__button.md-logo {
+  padding: 0.2rem;
+}
+.md-header__button.md-logo img,
+.md-header__button.md-logo svg {
+  height: 2.4rem;
+}
+.md-header__title {
+  font-size: 1.3rem;
+  font-weight: 700;
+}
+
+/* --- Home hero --------------------------------------------------------- */
+
+/* Split hero: text + install + CTAs on the left, a figure on the right.
+   Wraps to a single column on narrow viewports. */
+.md-typeset .cp-hero {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 2rem;
+  margin: 0.8rem 0 2.5rem;
+}
+.md-typeset .cp-hero__text {
+  flex: 1 1 22rem;
+  min-width: 0;
+}
+.md-typeset .cp-hero__text > h1 {
+  margin-top: 0;
+}
+/* Hero CTA row: stretch the three buttons to fill the column width (like the
+   install code block above them). md_in_html wraps the links in a <p>. */
+.md-typeset .cp-hero__actions p {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  gap: 0.6rem;
+  margin: 0.4rem 0 0;
+}
+.md-typeset .cp-hero__actions .md-button {
+  margin: 0;
+  white-space: nowrap;
+}
+.md-typeset .cp-hero__figure {
+  flex: 1 1 22rem;
+  margin: 0;
+}
+.md-typeset .cp-hero__figure img {
+  width: 100%;
+  height: auto;
+}
+
+/* Light/dark-only images: the hero render swaps with the active color scheme
+   (default = light, slate = dark). */
+[data-md-color-scheme="default"] .md-typeset img[src$="#only-dark"] {
+  display: none;
+}
+[data-md-color-scheme="slate"] .md-typeset img[src$="#only-light"] {
+  display: none;
+}
+
+/* --- Home showcase carousel ------------------------------------------- */
+.md-typeset .cp-carousel {
+  position: relative;
+  margin: 1.5rem 0 2rem;
+}
+
+/* No-JS / pre-init fallback: all slides visible, simply stacked. */
+.md-typeset .cp-carousel__slide + .cp-carousel__slide {
+  margin-top: 1.5rem;
+}
+
+/* Once JS marks the carousel ready, show one slide at a time. */
+.md-typeset .cp-carousel--ready .cp-carousel__slide {
+  display: none;
+  margin-top: 0;
+}
+.md-typeset .cp-carousel--ready .cp-carousel__slide.is-active {
+  display: block;
+  animation: cp-carousel-fade 0.4s ease;
+}
+@keyframes cp-carousel-fade {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+/* Slide title: shown only in the no-JS fallback. Once JS builds the tab bar the
+   labels live in the tabs, so the in-slide title is hidden. */
+.md-typeset .cp-carousel__title {
+  margin: 0 0 0.6rem;
+  font-size: 0.75rem;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--md-default-fg-color--light);
+}
+.md-typeset .cp-carousel--ready .cp-carousel__title {
+  display: none;
+}
+
+/* Tab bar: one always-visible, clickable tab per slide (built from the titles). */
+.md-typeset .cp-carousel__tabs {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 1.4rem;
+  margin: 0 0 1.2rem;
+  border-bottom: 0.05rem solid var(--md-default-fg-color--lightest);
+}
+.md-typeset .cp-carousel__tab {
+  appearance: none;
+  background: none;
+  border: none;
+  border-bottom: 0.12rem solid transparent;
+  margin-bottom: -0.05rem;
+  padding: 0.2rem 0.1rem 0.6rem;
+  font-size: 0.75rem;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--md-default-fg-color--light);
+  cursor: pointer;
+  transition: color 125ms, border-color 125ms;
+}
+.md-typeset .cp-carousel__tab:hover {
+  color: var(--md-default-fg-color);
+}
+.md-typeset .cp-carousel__tab.is-active {
+  color: var(--md-accent-fg-color);
+  border-bottom-color: var(--md-accent-fg-color);
+}
+
+/* --- Tools galleries & carousels --------------------------------------- */
+
+/* Consistent, cropped thumbnail for tool cards (processing gallery + teasers). */
+.md-typeset .tool-thumb {
+  width: 100%;
+  aspect-ratio: 16 / 9;
+  object-fit: contain; /* scale the whole image to fit the box (no cropping) */
+  border-radius: 0.2rem;
+  display: block;
+}
+
+/* --- Before/after CLI renders (command pages + processing gallery) ------ */
+
+/* Two figures side by side with a centered arrow between them. Specializes the
+   .side-by-side flex idiom for paired renders. */
+.md-typeset .before-after {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 1rem;
+  margin: 1.2rem 0 0.4rem;
+}
+.md-typeset .before-after__fig {
+  flex: 1 1 0; /* equal basis -> both panels exactly the same width */
+  max-width: 28rem;
+  margin: 0;
+  text-align: center;
+}
+
+/* Neutral, theme-aware panel so the transparent ChimeraX PNGs stay legible in both
+   the default (light) and slate (dark) schemes; contain (not cover) so nothing is
+   cropped and the input/output boxes match in size regardless of pixel dimensions. */
+.md-typeset .before-after__fig img,
+.md-typeset .before-after--card img {
+  width: 100%;
+  height: auto;
+  aspect-ratio: 1 / 1;
+  object-fit: contain;
+  padding: 0.4rem;
+  border: 0.05rem solid var(--md-default-fg-color--lightest);
+  border-radius: 0.2rem;
+  background-color: var(--md-default-fg-color--lightest);
+}
+.md-typeset .before-after__arrow {
+  flex: 0 0 auto;
+  margin: 0;
+  font-size: 1.6rem;
+  line-height: 1;
+  color: var(--md-default-fg-color--light);
+  user-select: none;
+}
+.md-typeset .before-after figcaption {
+  margin-top: 0.4rem;
+  font-size: 0.7rem;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--md-default-fg-color--light);
+}
+
+/* Descriptive caption below a before/after pair: a normal-case sentence (in contrast with the
+   UPPERCASE Input/Output figcaptions) describing what the command does. Inside a content-tab set
+   each tab carries its own caption, so the bottom margin closes out the figure. */
+.md-typeset .before-after__caption {
+  margin: 0.2rem 0 1.8rem;
+  text-align: center;
+  font-size: 0.75rem;
+  color: var(--md-default-fg-color--light);
+}
+
+/* Compact two-up used inside processing-gallery cards (no arrow). */
+.md-typeset .before-after--card {
+  display: flex;
+  gap: 0.4rem;
+}
+.md-typeset .before-after--card img {
+  width: 50%;
+  aspect-ratio: 16 / 9; /* matches .tool-thumb proportion for card consistency */
+  padding: 0.2rem;
+}
+
+/* Stack on narrow screens; the arrow rotates to point downward. */
+@media screen and (max-width: 44.9375em) {
+  .md-typeset .before-after {
+    flex-direction: column;
+  }
+  .md-typeset .before-after__arrow {
+    transform: rotate(90deg);
+  }
+}
+
+/* Infinite, slowly auto-scrolling marquee for the tool teasers
+   (home / quickstart / ecosystem). The generated markup is:
+
+     .tool-marquee                      viewport (clips + edge-fades)
+       .tool-marquee__track             flex row, animated, width: max-content
+         .tool-marquee__group  > ul     one copy of the cards (flex row)
+         .tool-marquee__group  > ul     identical copy (aria-hidden)
+
+   Translating the track by one group width (-50% of the duplicated track) loops
+   seamlessly. Duration comes from --marquee-duration (set inline, scaled to the
+   card count) so every carousel moves at the same gentle speed. */
+.md-typeset .tool-marquee {
+  overflow: hidden;
+  margin: 0.6rem 0 0.4rem;
+  /* Dissolve cards at the edges instead of a hard clip. */
+  -webkit-mask-image: linear-gradient(to right, transparent, #000 4%, #000 96%, transparent);
+  mask-image: linear-gradient(to right, transparent, #000 4%, #000 96%, transparent);
+}
+.md-typeset .tool-marquee__track {
+  display: flex;
+  width: max-content;
+  animation: tool-marquee-scroll var(--marquee-duration, 80s) linear infinite;
+  will-change: transform;
+}
+/* Pause when the reader hovers or tabs into the strip so they can read & click. */
+.md-typeset .tool-marquee:hover .tool-marquee__track,
+.md-typeset .tool-marquee:focus-within .tool-marquee__track {
+  animation-play-state: paused;
+}
+.md-typeset .tool-marquee__group > ul {
+  list-style: none;
+  display: flex;
+  margin: 0;
+  padding: 0.3rem 0 0.8rem;
+}
+.md-typeset .tool-marquee__group > ul > li {
+  flex: 0 0 15rem;
+  /* Trailing margin (incl. after the last card) keeps the gap uniform across the
+     seam between the two looped copies. */
+  margin: 0 0.8rem 0 0;
+  padding: 0.7rem;
+  border: 0.05rem solid var(--md-default-fg-color--lightest);
+  border-radius: 0.2rem;
+  background: var(--md-default-bg-color);
+  transition: border-color 125ms, box-shadow 125ms, transform 125ms;
+}
+.md-typeset .tool-marquee__group > ul > li:hover {
+  border-color: var(--md-accent-fg-color);
+  box-shadow: var(--md-shadow-z1);
+  transform: translateY(-0.1rem);
+}
+.md-typeset .tool-marquee__group > ul > li > :first-child {
+  margin-top: 0;
+}
+.md-typeset .tool-marquee__group > ul > li > :last-child {
+  margin-bottom: 0;
+}
+
+@keyframes tool-marquee-scroll {
+  from {
+    transform: translateX(0);
+  }
+  to {
+    transform: translateX(-50%);
+  }
+}
+
+/* Respect reduced-motion: stop the spin and fall back to a manual scroll strip
+   showing a single set of cards. */
+@media (prefers-reduced-motion: reduce) {
+  .md-typeset .tool-marquee {
+    overflow-x: auto;
+    -webkit-mask-image: none;
+    mask-image: none;
+    scroll-snap-type: x mandatory;
+    -webkit-overflow-scrolling: touch;
+  }
+  .md-typeset .tool-marquee__track {
+    animation: none;
+    width: auto;
+  }
+  .md-typeset .tool-marquee__group[aria-hidden="true"] {
+    display: none;
+  }
+  .md-typeset .tool-marquee__group > ul > li {
+    scroll-snap-align: start;
+  }
+}
+
+/* --- Command-source badge (CLI command pages) -------------------------- */
+
+/* A small pill rendered next to a command's title naming its source: "core" for
+   built-in commands, or a plugin short-tag (e.g. "utils", "torch") for ones
+   contributed by a plugin (which also get the matching install admonition below).
+   The muted base styles the neutral "core" case; plugin tints override it so
+   plugin-provided commands stand out. Theme-aware for the light + slate schemes. */
+.md-typeset .source-badge {
+  display: inline-block;
+  vertical-align: middle;
+  margin: 0 0 0.3rem;
+  padding: 0.1rem 0.45rem;
+  border: 0.05rem solid var(--md-default-fg-color--lighter);
+  border-radius: 0.6rem;
+  color: var(--md-default-fg-color--light);
+  background-color: transparent;
+  font-size: 0.62rem;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  line-height: 1.4;
+}
+
+/* Per-plugin tints for the two first-party plugins; any other plugin falls back to
+   the muted base style above. "core" uses the base style as-is. */
+.md-typeset .source-badge--utils {
+  border-color: #2e7d32;
+  color: #2e7d32;
+}
+.md-typeset .source-badge--torch {
+  border-color: #ee4c2c; /* PyTorch flame */
+  color: #ee4c2c;
+}
+
+/* --- Tools gallery (top-level "Tools" page): slider cards by category -------- */
+
+/* Responsive grid of command cards; fills the full width of the chrome-free page. */
+.md-typeset .cmd-gallery {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(15rem, 1fr));
+  gap: 1rem;
+  margin: 1rem 0 2.5rem;
+}
+.md-typeset .cmd-card {
+  border: 0.05rem solid var(--md-default-fg-color--lightest);
+  border-radius: 0.2rem;
+  padding: 0.7rem;
+  background: var(--md-default-bg-color);
+  transition: border-color 125ms, box-shadow 125ms, transform 125ms;
+}
+.md-typeset .cmd-card:hover {
+  border-color: var(--md-accent-fg-color);
+  box-shadow: var(--md-shadow-z1);
+  transform: translateY(-0.1rem);
+}
+.md-typeset .cmd-card > p {
+  margin: 0.35rem 0 0;
+  line-height: 1.4;
+}
+.md-typeset .cmd-card > p:first-of-type {
+  margin-top: 0.6rem; /* gap between the slider and the badge */
+}
+.md-typeset .cmd-card strong {
+  font-size: 0.82rem;
+}
+.md-typeset .cmd-card > p:last-child {
+  font-size: 0.72rem;
+  color: var(--md-default-fg-color--light);
+}
+
+/* Tutorial cards lead with a square thumbnail (same 1:1 sizing as the Tools slider)
+   instead of a before/after slider. When the card's first element is that thumbnail it
+   sits flush at the top (no badge gap). */
+.md-typeset .cmd-card__thumb {
+  display: block;
+  width: 100%;
+  aspect-ratio: 1 / 1;
+  object-fit: contain; /* scale the whole image to fit the box (no cropping) */
+  border-radius: 0.2rem;
+  margin: 0;
+  background-color: var(--md-default-bg-color);
+}
+
+.md-typeset .cmd-card > p:first-of-type:has(.cmd-card__thumb) {
+  margin-top: 0;
+}
+
+/* Draggable before/after comparison slider. Two stacked images; the top (before)
+   image is clipped to [0, --pos] so dragging wipes between input and result.
+   Divider/handle/labels are injected by ba_slider.js; --pos defaults to 50% so the
+   card still reads as a 50/50 split without JS. */
+.md-typeset .ba-slider {
+  position: relative;
+  aspect-ratio: 1 / 1;
+  overflow: hidden;
+  border-radius: 0.2rem;
+  background: var(--md-default-fg-color--lightest);
+  cursor: ew-resize;
+  user-select: none;
+  touch-action: none;
+}
+.md-typeset .ba-slider:focus-visible {
+  outline: 0.12rem solid var(--md-accent-fg-color);
+  outline-offset: 0.1rem;
+}
+.md-typeset .ba-slider p {
+  margin: 0;
+}
+.md-typeset .ba-slider img {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+  margin: 0;
+  pointer-events: none;
+  /* The ChimeraX renders are transparent PNGs; both stacked images need a fully OPAQUE
+     fill or the clipped top (before) image reveals the after image through its transparent
+     areas. The translucent panel tint (--md-default-fg-color--lightest, ~7% alpha) is
+     composited OVER the opaque page background, giving the same theme-aware grey (slightly
+     lighter than the bg in dark mode) but fully opaque. */
+  background-color: var(--md-default-bg-color);
+  background-image: linear-gradient(
+    var(--md-default-fg-color--lightest),
+    var(--md-default-fg-color--lightest)
+  );
+}
+.md-typeset .ba-slider__after {
+  z-index: 1;
+}
+.md-typeset .ba-slider__before {
+  z-index: 2;
+  clip-path: inset(0 calc(100% - var(--pos, 50%)) 0 0);
+}
+
+/* Wipe divider + circular drag handle, pinned at --pos. */
+.md-typeset .ba-slider__divider {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  left: var(--pos, 50%);
+  width: 0.12rem;
+  margin-left: -0.06rem;
+  background: #fff;
+  box-shadow: 0 0 0.2rem rgba(0, 0, 0, 0.5);
+  z-index: 3;
+  pointer-events: none;
+}
+.md-typeset .ba-slider__handle {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  width: 1.7rem;
+  height: 1.7rem;
+  border-radius: 50%;
+  background: #fff;
+  box-shadow: 0 0 0.25rem rgba(0, 0, 0, 0.45);
+}
+.md-typeset .ba-slider__handle::before {
+  content: "⟺";
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.85rem;
+  line-height: 1;
+  color: #333;
+}
+
+/* Corner Input / Output tags. */
+.md-typeset .ba-slider__label {
+  position: absolute;
+  top: 0.4rem;
+  z-index: 3;
+  padding: 0.05rem 0.35rem;
+  border-radius: 0.2rem;
+  background: rgba(0, 0, 0, 0.55);
+  color: #fff;
+  font-size: 0.58rem;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  pointer-events: none;
+}
+.md-typeset .ba-slider__label--before {
+  left: 0.4rem;
+}
+.md-typeset .ba-slider__label--after {
+  right: 0.4rem;
+}

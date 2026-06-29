@@ -1,124 +1,139 @@
+---
+hide:
+  - navigation
+  - toc
+---
 
+# Tutorials
 
-## Setup
+*Step-by-step guides for common copick curation and analysis tasks. Looking for installation and
+project setup instead? Head to [Get Started](../get-started/index.md).*
 
-**copick** projects can be distributed across multiple storage backends. The following short tutorials outline the most
-common setups, and provide template configuration files for each case.
+<div class="cmd-gallery" markdown>
 
-<div class="grid cards" markdown>
+<div class="cmd-card" markdown>
 
--   :fontawesome-solid-hard-drive:{ .lg .middle }   __Local Project__
+[![CZ cryoET Data Portal](../assets/tools/tutorials/data_portal.png){ .cmd-card__thumb }](tutorials/data_portal.md)
 
-    ---
+**[CZ cryoET Data Portal](tutorials/data_portal.md)**
 
-    All data is accessible on the local filesystem.
-
-    [:octicons-arrow-right-24: Learn more](setup/local.md)
-
--   :fontawesome-solid-circle-nodes:{ .lg .middle } __cryoET Data Portal Project__
-
-    ---
-
-    Static data is accessed via the [CZ cryoET Data Portal](https://cryoetdataportal.czscience.com/).
-
-    [:octicons-arrow-right-24: Learn more](setup/data_portal.md)
-
--   :fontawesome-solid-share-nodes:{ .lg .middle }   __Shared Project__
-
-    ---
-
-    Some or all data is stored on a shared filesystem.
-
-    [:octicons-arrow-right-24: Learn more](setup/shared.md)
-
--   :fontawesome-solid-cloud:{ .lg .middle } __S3 Project__
-
-    ---
-
-    Some or all data is stored on AWS or local S3.
-
-    [:octicons-arrow-right-24: Learn more](setup/aws_s3.md)
-
--   :fontawesome-solid-terminal:{ .lg .middle } __SSH Project__
-
-    ---
-
-    Some or all data is stored on a filesystem accessible via SSH.
-
-    [:octicons-arrow-right-24: Learn more](setup/ssh.md)
-
-[//]: # (-   :fontawesome-solid-file-zipper:{ .lg .middle } __ZIP Project__)
-
-[//]: # ()
-[//]: # (    ---)
-
-[//]: # ()
-[//]: # (    Some or all data is stored in a ZIP archive.)
-
-[//]: # (    )
-[//]: # (    [:octicons-arrow-right-24: Learn more]&#40;setup/zip.md&#41;)
+Access data from the CZ cryoET Data Portal and create new annotations for portal tomograms.
 
 </div>
 
+<div class="cmd-card" markdown>
 
+[![ChimeraX-copick](../assets/chimerax-copick.png){ .cmd-card__thumb }](tutorials/chimerax.md)
 
-## Tutorials
+**[ChimeraX-copick](tutorials/chimerax.md)**
 
-The following tutorials provide step-by-step instructions for using copick to perform specific curation or analysis
-tasks.
+Visualize and curate data from a copick project in UCSF ChimeraX.
 
+</div>
 
-<div class="grid cards" markdown>
+<div class="cmd-card" markdown>
 
--   :fontawesome-solid-truck-fast:{ .lg .middle }   __Quickstart__
+[![Detecting Sample Boundaries](../assets/tomo_side_light.png#only-light){ .cmd-card__thumb }![Detecting Sample Boundaries](../assets/tomo_side_dark.png#only-dark){ .cmd-card__thumb }](tutorials/sample_boundaries.md)
 
-    ---
+**[Detecting Sample Boundaries](tutorials/sample_boundaries.md)**
 
-    Install **copick** and set up a simple project.
+An end-to-end tutorial on training a neural network to predict sample boundaries.
 
-    [:octicons-arrow-right-24: Learn more](../quickstart.md)
+</div>
 
+<div class="cmd-card" markdown>
 
--   :fontawesome-solid-circle-nodes:{ .lg .middle }   __Data Portal__
+[![Filtering by Sample Boundaries](../assets/boundary_filtering_goal.png){ .cmd-card__thumb }](tutorials/sample_boundaries_filtering.md)
 
-    ---
+**[Filtering by Sample Boundaries](tutorials/sample_boundaries_filtering.md)**
 
-    Accessing data from the CZ cryoET Data Portal and creating new
-    annotations for data portal tomograms.
+Filter particle picks by their position relative to the detected sample boundaries.
 
-    [:octicons-arrow-right-24: Learn more](tutorials/data_portal.md)
+</div>
 
--   :fontawesome-solid-x:{ .lg .middle } __ChimeraX-copick__
+<div class="cmd-card" markdown>
 
-    ---
+[![Copick and membrain-seg](../assets/membrain_goal_light.png#only-light){ .cmd-card__thumb }![Copick and membrain-seg](../assets/membrain_goal_dark.png#only-dark){ .cmd-card__thumb }](tutorials/membrain.md)
 
-    Using the ChimeraX-copick interface to visualize data from a copick project.
+**[Copick and membrain-seg](tutorials/membrain.md)**
 
-    [:octicons-arrow-right-24: Learn more](tutorials/chimerax.md)
+Run the membrain-seg segmentation pipeline on a copick project.
 
--   :fontawesome-solid-image:{ .lg .middle } __Album__
+</div>
 
-    ---
+<div class="cmd-card" markdown>
 
-    Creating album-based solutions to process copick data.
+[![Copick and easymode](../assets/easymode_goal_light.png#only-light){ .cmd-card__thumb }![Copick and easymode](../assets/easymode_goal_dark.png#only-dark){ .cmd-card__thumb }](tutorials/easymode.md)
 
-    [:octicons-arrow-right-24: Learn more](tutorials/album.md)
+**[Copick and easymode](tutorials/easymode.md)**
 
+Run easymode's pretrained segmentation networks on a copick project.
 
--   :fontawesome-solid-pallet:{ .lg .middle } __Sample Boundaries__
+</div>
 
-    ---
+<div class="cmd-card" markdown>
 
-    An end-to-end tutorial on how to train a neural network to predict sample boundaries.
+[![Syncing the CZII Kaggle Dataset](../assets/tools/tutorials/kaggle.png){ .cmd-card__thumb }](tutorials/kaggle_czii_sync.md)
 
-    [:octicons-arrow-right-24: Learn more](tutorials/sample_boundaries.md)
+**[Syncing the CZII Kaggle Dataset](tutorials/kaggle_czii_sync.md)**
 
--   :fontawesome-solid-circle-notch:{ .lg .middle } __membrain-seg__
+Synchronize the CZII Kaggle challenge dataset into a copick project.
 
-    ---
+</div>
 
-    Running the Membrain-seg segmentation pipeline on a copick project.
+<div class="cmd-card" markdown>
 
-    [:octicons-arrow-right-24: Learn more](tutorials/membrain.md)
+[![Copick-MCP](../assets/tools/tutorials/copick_mcp.png){ .cmd-card__thumb }](tutorials/copick_mcp.md)
+
+**[Copick-MCP](tutorials/copick_mcp.md)**
+
+Drive copick from an MCP-enabled assistant.
+
+</div>
+
+<div class="cmd-card" markdown>
+
+[![mlcroissant](../assets/tools/tutorials/mlcroissant.png){ .cmd-card__thumb }](tutorials/croissant.md)
+
+**[mlcroissant](tutorials/croissant.md)**
+
+Work with copick projects described by an ML Commons Croissant manifest.
+
+</div>
+
+<div class="cmd-card" markdown>
+
+[![Copick and HPC](../assets/tools/_placeholder.svg){ .cmd-card__thumb }](tutorials/hpc.md)
+
+**[Copick and HPC](tutorials/hpc.md)**
+
+Run copick workflows at scale on HPC clusters.
+
+</div>
+
+<div class="cmd-card" markdown>
+
+[![Copick and Album](../assets/tools/_placeholder.svg){ .cmd-card__thumb }](tutorials/album.md)
+
+**[Copick and Album](tutorials/album.md)**
+
+Create album-based solutions to process copick data.
+
+</div>
+
+</div>
+
+## Snippets
+
+<div class="cmd-gallery" markdown>
+
+<div class="cmd-card cmd-card--text" markdown>
+
+**[Snippets](snippets.md)**
+
+Short, copy-pasteable Python examples for common copick API operations — reading runs, objects,
+tomograms, picks, segmentations, and meshes.
+
+</div>
 
 </div>

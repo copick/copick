@@ -37,6 +37,32 @@ def picks(
 ):
     """
     Create empty picks for a given particle name.
+
+    Creates an empty pick set for the named particle in every run of the project,
+    seeding an annotation session that can be populated later. Picks are written to
+    the given output user and session (defaulting to `copick` and `0`). Runs that
+    already have matching picks are skipped unless `--overwrite` is passed.
+
+    Examples:
+
+        \b
+        # Create empty picks for ribosomes
+        copick new picks --config config.json --particle-name ribosome
+
+        \b
+        # Create picks with a custom output user and session
+        copick new picks --config config.json --particle-name proteasome \\
+            --out-user alice --out-session 1
+
+        \b
+        # Overwrite existing picks for the particle
+        copick new picks --config config.json --particle-name ribosome --overwrite
+
+    See Also:
+
+        \b
+        copick new run: create an empty run to hold picks
+        copick add picks: import picks from external formats (EM, STAR, Dynamo, CSV)
     """
     # Deferred import for performance
     import copick
@@ -99,7 +125,31 @@ def run(
     """
     Create an empty run with the given name.
 
-    NAME: The name of the new run to be created.
+    Adds a new, empty run to the project so that tomograms, picks, segmentations,
+    and other entities can later be attached to it. By default (`--create`) the run
+    is created if it does not already exist; pass `--overwrite` to replace an
+    existing run of the same name.
+
+    Arguments:
+
+        \b
+        NAME: The name of the new run to be created.
+
+    Examples:
+
+        \b
+        # Create a new run
+        copick new run --config config.json TS_005
+
+        \b
+        # Create a run, overwriting any existing run of the same name
+        copick new run --config config.json --overwrite TS_005
+
+    See Also:
+
+        \b
+        copick new voxelspacing: add a voxel spacing to a run
+        copick add tomogram: import a tomogram into a run
     """
     # Deferred import for performance
     import copick
@@ -134,7 +184,31 @@ def voxelspacing(
     """
     Create an empty voxelspacing with the given name.
 
-    VOXEL_SPACING: The voxel spacing in Angstrom to be added to the run.
+    Adds an empty voxel spacing (in Angstrom) to an existing run, providing a
+    container for tomograms and segmentations at that resolution. Use `--run` to
+    select the target run; `--create` makes the run if it does not yet exist, and
+    `--overwrite` replaces an existing voxel spacing of the same value.
+
+    Arguments:
+
+        \b
+        VOXEL_SPACING: The voxel spacing in Angstrom to be added to the run.
+
+    Examples:
+
+        \b
+        # Add a 10.0 Angstrom voxel spacing to a run
+        copick new voxelspacing --config config.json --run TS_001 10.0
+
+        \b
+        # Add a voxel spacing, overwriting any existing one
+        copick new voxelspacing --config config.json --run TS_001 --overwrite 5.0
+
+    See Also:
+
+        \b
+        copick new run: create the run that holds the voxel spacing
+        copick add tomogram: import a tomogram at this voxel spacing
     """
     # Deferred import for performance
     import copick

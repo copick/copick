@@ -1,0 +1,342 @@
+{
+  "convert/mesh2caps": {
+    "modes": [
+      {
+        "key": "",
+        "label": "Default"
+      },
+      {
+        "key": "top",
+        "label": "Top"
+      },
+      {
+        "key": "bottom",
+        "label": "Bottom"
+      }
+    ]
+  },
+  "convert/mesh2picks": {
+    "modes": [
+      {
+        "key": "",
+        "label": "Default"
+      },
+      {
+        "key": "inside",
+        "label": "Inside"
+      },
+      {
+        "key": "outside",
+        "label": "Outside"
+      },
+      {
+        "key": "vertices",
+        "label": "Vertices"
+      }
+    ]
+  },
+  "convert/mesh2seg": {
+    "modes": [
+      {
+        "key": "",
+        "label": "Default"
+      },
+      {
+        "key": "boundary",
+        "label": "Boundary"
+      },
+      {
+        "key": "invert",
+        "label": "Invert"
+      }
+    ]
+  },
+  "convert/picks2ellipsoid": {
+    "modes": [
+      {
+        "key": "",
+        "label": "Default"
+      }
+    ]
+  },
+  "convert/picks2mesh": {
+    "modes": [
+      {
+        "key": "",
+        "label": "Default"
+      }
+    ]
+  },
+  "convert/picks2plane": {
+    "modes": [
+      {
+        "key": "",
+        "label": "Default"
+      }
+    ]
+  },
+  "convert/picks2seg": {
+    "modes": [
+      {
+        "key": "",
+        "label": "Default"
+      }
+    ]
+  },
+  "convert/picks2slab": {
+    "modes": [
+      {
+        "key": "",
+        "label": "Default"
+      },
+      {
+        "key": "coupled",
+        "label": "Coupled"
+      },
+      {
+        "key": "parallel",
+        "label": "Parallel"
+      }
+    ]
+  },
+  "convert/picks2sphere": {
+    "modes": [
+      {
+        "key": "",
+        "label": "Default"
+      }
+    ]
+  },
+  "convert/picks2surface": {
+    "modes": [
+      {
+        "key": "",
+        "label": "Default"
+      }
+    ]
+  },
+  "convert/seg2mesh": {
+    "modes": [
+      {
+        "key": "",
+        "label": "Default"
+      }
+    ]
+  },
+  "convert/seg2picks": {
+    "modes": [
+      {
+        "key": "",
+        "label": "Default"
+      }
+    ]
+  },
+  "convert/seg2slab": {
+    "modes": [
+      {
+        "key": "",
+        "label": "Default"
+      },
+      {
+        "key": "spline",
+        "label": "Spline"
+      },
+      {
+        "key": "parallel",
+        "label": "Parallel"
+      },
+      {
+        "key": "iou",
+        "label": "IoU"
+      }
+    ]
+  },
+  "logical/clipmesh": {
+    "modes": [
+      {
+        "key": "",
+        "label": "Default"
+      },
+      {
+        "key": "beyond",
+        "label": "Invert (beyond)"
+      }
+    ]
+  },
+  "logical/clippicks": {
+    "modes": [
+      {
+        "key": "",
+        "label": "Default"
+      },
+      {
+        "key": "beyond",
+        "label": "Invert (beyond)"
+      }
+    ]
+  },
+  "logical/clipseg": {
+    "modes": [
+      {
+        "key": "",
+        "label": "Default"
+      },
+      {
+        "key": "beyond",
+        "label": "Invert (beyond)"
+      }
+    ]
+  },
+  "logical/enclosed": {
+    "modes": [
+      {
+        "key": "",
+        "label": "Default"
+      }
+    ]
+  },
+  "logical/meshop": {
+    "modes": [
+      {
+        "key": "",
+        "label": "Default"
+      },
+      {
+        "key": "difference",
+        "label": "Difference"
+      },
+      {
+        "key": "intersection",
+        "label": "Intersection"
+      },
+      {
+        "key": "exclusion",
+        "label": "Exclusion"
+      }
+    ]
+  },
+  "logical/picksin": {
+    "modes": [
+      {
+        "key": "",
+        "label": "Default"
+      }
+    ]
+  },
+  "logical/picksout": {
+    "modes": [
+      {
+        "key": "",
+        "label": "Default"
+      }
+    ]
+  },
+  "logical/segop": {
+    "modes": [
+      {
+        "key": "",
+        "label": "Default"
+      },
+      {
+        "key": "difference",
+        "label": "Difference"
+      },
+      {
+        "key": "intersection",
+        "label": "Intersection"
+      },
+      {
+        "key": "exclusion",
+        "label": "Exclusion"
+      }
+    ]
+  },
+  "process/combine": {
+    "modes": [
+      {
+        "key": "",
+        "label": "Default"
+      }
+    ]
+  },
+  "process/expand-labels": {
+    "modes": [
+      {
+        "key": "",
+        "label": "Default"
+      }
+    ]
+  },
+  "process/filter-components": {
+    "modes": [
+      {
+        "key": "",
+        "label": "Default"
+      }
+    ]
+  },
+  "process/fit-spline": {
+    "modes": [
+      {
+        "key": "",
+        "label": "Default"
+      }
+    ]
+  },
+  "process/hull": {
+    "modes": [
+      {
+        "key": "",
+        "label": "Default"
+      }
+    ]
+  },
+  "process/rescale": {
+    "modes": [
+      {
+        "key": "",
+        "label": "Default"
+      }
+    ]
+  },
+  "process/separate-components": {
+    "modes": [
+      {
+        "key": "",
+        "label": "Default"
+      }
+    ]
+  },
+  "process/skeletonize": {
+    "modes": [
+      {
+        "key": "",
+        "label": "Default"
+      }
+    ]
+  },
+  "process/split": {
+    "modes": [
+      {
+        "key": "",
+        "label": "Default"
+      }
+    ]
+  },
+  "process/thickness-filter": {
+    "modes": [
+      {
+        "key": "",
+        "label": "Default"
+      }
+    ]
+  },
+  "process/validbox": {
+    "modes": [
+      {
+        "key": "",
+        "label": "Default"
+      }
+    ]
+  }
+}

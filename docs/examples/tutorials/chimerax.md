@@ -64,29 +64,20 @@ To load a copick project into ChimeraX:
    copick start /path/to/your/config.json
    ```
 
-    ??? example "Example Config - Used in this tutorial."
-        ```json
-        {
-          "name": "CZ cryoET Data Portal Dataset",
-          "description": "This copick project contains data from datasets (10426,).",
-          "version": "1.18.0",
-          "pickable_objects": [
-          ],
-          "user_id": null,
-          "session_id": null,
-          "config_type": "cryoet_data_portal",
-          "overlay_root": "local:///tmp/project/",
-          "dataset_ids": [
-              10426
-          ],
-          "overlay_fs_args": {
-              "auto_mkdir": true
-          }
-        }
+    !!! tip "Generating a config"
+        The quickest way to get a config is the `copick config` CLI. For the
+        [CZ cryoET Data Portal](https://cryoetdataportal.czscience.com/) dataset used in
+        this tutorial ([10301](https://cryoetdataportal.czscience.com/datasets/10301)):
+
+        ```shell
+        copick config dataportal --dataset-id 10301 --overlay ./project --output config.json
         ```
 
-        Results will be stored in `/tmp/project/` Refer to the [Examples](examples/overview.md) for more information on
-        creating config files.
+        The pickable object types are discovered from the dataset automatically, so the
+        tomograms **and** the existing portal annotations are ready to use right away;
+        anything you create is written to `./project`. See the
+        [Quick Start](../../quickstart.md) and [Examples](../overview.md) for other ways to
+        create config files.
 
 3. Press ++enter++
 
@@ -526,6 +517,61 @@ The picks are stored in the overlay directory specified in your copick configura
 | ++question++ | Show all shortcuts |
 
 </div>
+
+---
+
+## Command Reference
+
+Everything in the GUI is also available from the ChimeraX command line, so workflows can
+be scripted or replayed. The annotation commands act on the **currently open run**.
+
+### Project & Session
+
+<div class="center-table" markdown>
+
+| Command | Action |
+|---------|--------|
+| `copick start <config>` | Start the GUI and load a project (or switch to a different config). |
+| `copick new <config> [config_type filesystem\|portal] [dataset_ids …] [root_dir …]` | Create a config file and load it immediately. |
+| `copick reload` | Reload the current project from its config file. |
+| `cks [shortcut]` | Enable copick keyboard shortcuts in the graphics window. |
+
+</div>
+
+### Opening Tomograms
+
+<div class="center-table" markdown>
+
+| Command | Action |
+|---------|--------|
+| `copick open run <run_name> [tomo_type …] [zarr_level 0–2]` | Open a run's tomogram in the viewer. Defaults to the best available tomogram. |
+
+</div>
+
+### Annotations
+
+!!! info "copick URIs"
+    Annotation commands address picks/meshes/segmentations by **copick URI**:
+    `object_name:user_id/session_id` (segmentations add `@voxel_spacing`). A URI of `*` —
+    the default — matches everything in the run, and glob/regex patterns match multiple
+    entities.
+
+<div class="center-table" markdown>
+
+| Command | Action |
+|---------|--------|
+| `copick open picks [uri]` | Load and display picks matching the URI (default: all). |
+| `copick open mesh [uri]` | Load and display meshes matching the URI. |
+| `copick open segmentation [uri]` | Load and display segmentations matching the URI. |
+| `copick hide picks [uri]` | Hide picks matching the URI. |
+| `copick hide mesh [uri]` | Hide meshes matching the URI. |
+| `copick hide segmentation [uri]` | Hide segmentations matching the URI. |
+| `copick new picks <object_name> [user_id …] [session_id …]` | Create a new, empty pick set in the active run. |
+
+</div>
+
+!!! tip "`show` is an alias of `open`"
+    `copick show picks|mesh|segmentation [uri]` does the same thing as `copick open …`.
 
 ---
 

@@ -93,46 +93,44 @@ def picks(
     debug: bool,
 ):
     """
-    Export picks to external file formats.
+    Export picks to external formats (EM, STAR, Dynamo, CSV).
 
-    Two export modes are supported:
+    Selects picks with the `--picks-uri` filter (e.g. `ribosome:user1/*` or
+    `*:*/*`) and writes them as TOM toolbox EM motivelists, RELION STAR files,
+    Dynamo tables, or copick CSV. The EM, STAR, and Dynamo formats require
+    `--voxel-size` (in Angstrom) to convert coordinates.
 
-    \b
-    PER-RUN MODE (--output-dir):
-    Creates one file per run in the output directory. Use --index-map to
-    specify tomogram indices for EM/Dynamo formats (defaults to 1 otherwise).
-
-    \b
-    COMBINED MODE (--output-file):
-    Exports all runs to a single file. For EM/Dynamo formats, --index-map
-    is required to specify tomogram indices. STAR/CSV use run names directly.
+    Two output modes are mutually exclusive: per-run mode (`--output-dir`) writes
+    one file per run, while combined mode (`--output-file`) writes all runs to a
+    single file. Combined EM/Dynamo export requires `--index-map` to assign a
+    tomogram index to each run; per-run EM/Dynamo default to index 1 unless an
+    index map is supplied, and STAR/CSV reference runs by name. For coordinate
+    and Euler-angle conventions, see the docstrings in `copick.util.formats`.
 
     Examples:
 
-    \b
-    # Per-run export: one file per run to EM format
-    copick export picks -c config.json --picks-uri "ribosome:user1/*" \\
-        --output-dir ./output --output-format em --voxel-size 10.0
+        \b
+        # Per-run export: one EM file per run
+        copick export picks -c config.json --picks-uri "ribosome:user1/*" \\
+            --output-dir ./output --output-format em --voxel-size 10.0
 
-    \b
-    # Combined export: all runs to single STAR file
-    copick export picks -c config.json --picks-uri "*:*/*" \\
-        --output-file ./particles.star --output-format star --voxel-size 10.0
+        \b
+        # Combined export: all runs to a single STAR file
+        copick export picks -c config.json --picks-uri "*:*/*" \\
+            --output-file ./particles.star --output-format star --voxel-size 10.0
 
-    \b
-    # Combined export to Dynamo with index map
-    copick export picks -c config.json --picks-uri "ribosome:*/*" \\
-        --output-file ./particles.tbl --output-format dynamo \\
-        --voxel-size 10.0 --index-map ./index_map.csv
+        \b
+        # Combined export to a Dynamo table using an index map
+        copick export picks -c config.json --picks-uri "ribosome:*/*" \\
+            --output-file ./particles.tbl --output-format dynamo \\
+            --voxel-size 10.0 --index-map ./index_map.csv
 
-    \b
-    # Per-run export with index map for custom tomogram indices
-    copick export picks -c config.json --picks-uri "ribosome:*/*" \\
-        --output-dir ./output --output-format em --voxel-size 10.0 \\
-        --index-map ./index_map.csv
+    See Also:
 
-    For format-specific conventions (coordinate systems, Euler angle conventions),
-    see the documentation or the docstrings in copick.util.formats.
+        \b
+        copick export tomogram: export tomograms to MRC, TIFF, or Zarr
+        copick export segmentation: export segmentations to MRC, TIFF, Zarr, or EM
+        copick add picks: import picks from external formats into a project
     """
     from copick.ops.export import export as export_op
     from copick.ops.export import export_picks_combined
@@ -239,30 +237,38 @@ def tomogram(
     debug: bool,
 ):
     """
-    Export tomograms to external file formats.
+    Export tomograms to external formats (MRC, TIFF, Zarr).
+
+    Selects tomograms with the `--tomogram-uri` filter (e.g. `wbp@10.0` or
+    `*@*`, in `tomo-type@voxel-spacing` form) and writes each one to the chosen
+    format under `--output-dir`. For MRC and TIFF the `--level` pyramid level is
+    exported and TIFF supports `--compression`; for Zarr, `--copy-all-levels`
+    writes the full multiscale pyramid. Restrict the export to specific runs with
+    `--run-names`.
 
     Examples:
 
-    \b
-    # Export all wbp tomograms at 10A to MRC
-    copick export tomogram -c config.json --tomogram-uri "wbp@10.0" \\
-        --output-dir ./output --output-format mrc
+        \b
+        # Export all wbp tomograms at 10A to MRC
+        copick export tomogram -c config.json --tomogram-uri "wbp@10.0" \\
+            --output-dir ./output --output-format mrc
 
-    \b
-    # Export tomograms to TIFF with compression
-    copick export tomogram -c config.json --tomogram-uri "wbp@10.0" \\
-        --output-dir ./output --output-format tiff --compression lzw
+        \b
+        # Export tomograms to TIFF with LZW compression
+        copick export tomogram -c config.json --tomogram-uri "wbp@10.0" \\
+            --output-dir ./output --output-format tiff --compression lzw
 
-    \b
-    # Export tomograms to Zarr (copy all levels)
-    copick export tomogram -c config.json --tomogram-uri "*@*" \\
-        --output-dir ./output --output-format zarr --copy-all-levels
+        \b
+        # Export to Zarr, copying the full multiscale pyramid
+        copick export tomogram -c config.json --tomogram-uri "*@*" \\
+            --output-dir ./output --output-format zarr --copy-all-levels
 
-    \b
-    # Export specific level from specific runs
-    copick export tomogram -c config.json --tomogram-uri "wbp@10.0" \\
-        --output-dir ./output --output-format mrc --level 1 \\
-        --run-names "TS_001,TS_002"
+    See Also:
+
+        \b
+        copick export picks: export picks to EM, STAR, Dynamo, or CSV
+        copick export segmentation: export segmentations to MRC, TIFF, Zarr, or EM
+        copick add tomogram: import a tomogram into a project
     """
     from copick.ops.export import export as export_op
 
@@ -295,7 +301,7 @@ def tomogram(
 
 
 @export.command(
-    short_help="Export segmentations to external formats (MRC, TIFF, Zarr, EM).",
+    short_help="Export segmentations to MRC, TIFF, Zarr, or EM.",
     no_args_is_help=True,
 )
 @add_config_option
@@ -330,30 +336,40 @@ def segmentation(
     debug: bool,
 ):
     """
-    Export segmentations to external file formats.
+    Export segmentations to MRC, TIFF, Zarr, or EM.
+
+    Selects segmentations with the `--segmentation-uri` filter (e.g.
+    `membrane:user1/*@10.0`, in `name:user/session@voxel-spacing` form) and
+    writes each label map to the chosen format under `--output-dir`. For MRC,
+    TIFF, and EM the `--level` pyramid level is exported and TIFF supports
+    `--compression`; for Zarr, `--copy-all-levels` writes the full multiscale
+    pyramid. Restrict the export to specific runs with `--run-names`.
 
     Examples:
 
-    \b
-    # Export all membrane segmentations to MRC
-    copick export segmentation -c config.json --segmentation-uri "membrane:*/*@10.0" \\
-        --output-dir ./output --output-format mrc
+        \b
+        # Export all membrane segmentations at 10A to MRC
+        copick export segmentation -c config.json \\
+            --segmentation-uri "membrane:*/*@10.0" \\
+            --output-dir ./output --output-format mrc
 
-    \b
-    # Export segmentations to TIFF with compression
-    copick export segmentation -c config.json --segmentation-uri "membrane:user1/*@10.0" \\
-        --output-dir ./output --output-format tiff --compression lzw
+        \b
+        # Export segmentations to TIFF with LZW compression
+        copick export segmentation -c config.json \\
+            --segmentation-uri "membrane:user1/*@10.0" \\
+            --output-dir ./output --output-format tiff --compression lzw
 
-    \b
-    # Export segmentations to Zarr (copy all levels)
-    copick export segmentation -c config.json --segmentation-uri "*:*/*@*" \\
-        --output-dir ./output --output-format zarr --copy-all-levels
+        \b
+        # Export to Zarr, copying the full multiscale pyramid
+        copick export segmentation -c config.json --segmentation-uri "*:*/*@*" \\
+            --output-dir ./output --output-format zarr --copy-all-levels
 
-    \b
-    # Export specific level from specific runs
-    copick export segmentation -c config.json --segmentation-uri "membrane:*/*@10.0" \\
-        --output-dir ./output --output-format mrc --level 0 \\
-        --run-names "TS_001,TS_002"
+    See Also:
+
+        \b
+        copick export picks: export picks to EM, STAR, Dynamo, or CSV
+        copick export tomogram: export tomograms to MRC, TIFF, or Zarr
+        copick add segmentation: import a segmentation into a project
     """
     from copick.ops.export import export as export_op
 

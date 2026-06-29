@@ -27,6 +27,34 @@ def browse(
 ):
     """
     Browse Copick projects.
+
+    Launches an interactive terminal user interface (TUI) for exploring a copick
+    project: runs, voxel spacings, tomograms, segmentations, picks, and meshes.
+
+    Provide either a local configuration file with `--config` or one or more
+    CryoET Data Portal dataset IDs with `--dataset-ids`; the two are mutually
+    exclusive. If neither is given, the `COPICK_CONFIG` environment variable is
+    used when set.
+
+    Examples:
+
+        \b
+        # Browse a local project from a config file
+        copick browse --config config.json
+
+        \b
+        # Browse CryoET Data Portal datasets by ID
+        copick browse --dataset-ids 10000 --dataset-ids 10001
+
+        \b
+        # Browse using the COPICK_CONFIG environment variable
+        copick browse
+
+    See Also:
+
+        \b
+        copick config filesystem: create a config file for a local project
+        copick config dataportal: create a config file from CryoET Data Portal datasets
     """
     # Deferred import for performance
     import copick
