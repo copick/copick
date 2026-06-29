@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.25.1](https://github.com/copick/copick/compare/copick-v1.25.0...copick-v1.25.1) (2026-06-29)
+
+
+### 🐞 Bug Fixes
+
+* Add missing easymode tutorial figure.  ([#316](https://github.com/copick/copick/issues/316)) ([216c522](https://github.com/copick/copick/commit/216c5220d01e950f0929cee59584793ab0e0d1a2))
+
 ## [1.25.0](https://github.com/copick/copick/compare/copick-v1.24.1...copick-v1.25.0) (2026-06-29)
 
 
