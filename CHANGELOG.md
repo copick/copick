@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.25.2](https://github.com/copick/copick/compare/copick-v1.25.1...copick-v1.25.2) (2026-06-29)
+
+
+### 🐞 Bug Fixes
+
+* Improve Particle Filtering tutorial ([#318](https://github.com/copick/copick/issues/318)) ([1be663a](https://github.com/copick/copick/commit/1be663a8e9136d5e70bed8bb6952c0113084c83f))
+
 ## [1.25.1](https://github.com/copick/copick/compare/copick-v1.25.0...copick-v1.25.1) (2026-06-29)
 
 
