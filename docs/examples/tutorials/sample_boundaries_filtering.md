@@ -141,49 +141,40 @@ but starts from the *prediction* instead of from manual picks.
 component** (discarding stray blobs), then fits smooth top and bottom surfaces — the same B-spline
 machinery used by `picks2slab` in the previous tutorial.
 
-=== "Single-class prediction"
-    Our model predicts a single class (label 2 = valid sample), so we fit it directly:
+Our model predicts several classes (`0 = background`, `1 = sample`, `2 = vacuum`), so we first split
+out the `sample` class and keep its largest component, then fit:
 
-    ```bash
-    copick convert seg2slab -c config_evaluate.json \
-      -i "segmentation:output/0@7.84" \
-      --label 2 --method coupled \
-      --grid-resolution 5 5 --regularization 5 \
-      -o "sample:seg2slab/0"
-    ```
+```bash
+# 1. split the multilabel prediction into per-class binary segmentations
+copick process split -c config_evaluate.json \
+  -i "segmentation:output/0@7.84" \
+  --labels "sample:1,vacuum:2" --output-user-id postproc
 
-=== "Multi-class prediction (sample + vacuum)"
-    If your model instead predicts several classes (e.g. `0 = background`, `1 = sample`,
-    `2 = vacuum`), first split out the `sample` class and keep its largest component, then fit:
+# 2. keep only the largest connected component of the sample class
+copick process filter-components -c config_evaluate.json \
+  -i "sample:postproc/0@7.84" \
+  --keep-largest 1 -o "sample:postproc/largest"
 
-    ```bash
-    # 1. split the multilabel prediction into per-class binary segmentations
-    copick process split -c config_evaluate.json \
-      -i "segmentation:output/0@7.84" \
-      --labels "sample:1,vacuum:2" --output-user-id postproc
+# 3. fit the slab to the cleaned sample
+copick convert seg2slab -c config_evaluate.json \
+  -i "sample:postproc/largest@7.84" \
+  --label 1 --method coupled \
+  --grid-resolution 5 5 --regularization 5 \
+  -o "sample:seg2slab/0"
+```
 
-    # 2. keep only the largest connected component of the sample class
-    copick process filter-components -c config_evaluate.json \
-      -i "sample:postproc/0@7.84" \
-      --keep-largest 1 -o "sample:postproc/largest"
-
-    # 3. fit the slab to the cleaned sample
-    copick convert seg2slab -c config_evaluate.json \
-      -i "sample:postproc/largest@7.84" \
-      --label 1 --method coupled \
-      --grid-resolution 5 5 --regularization 5 \
-      -o "sample:seg2slab/0"
-    ```
-
-    The `--labels "name:value,..."` map is needed because the model's output label values (1, 2)
-    differ from the `pickable_objects` labels in the config. This also requires a `vacuum` object in
-    the config (`copick add object --name vacuum --object-type segmentation --label 25`).
+The `--labels "name:value,..."` map is needed because the model's output label values (1, 2) differ
+from the `pickable_objects` labels in the config. This also requires a `vacuum` object in the config
+(`copick add object --name vacuum --object-type segmentation --label 25`).
 
 !!! tip "Match the fit to your training target"
     Use the same `--method` and `--regularization` you used to build the **ground-truth** slab with
     `picks2slab`. The methods are: `spline` (two independent surfaces), `coupled` (one curved surface
-    with two parallel offsets — a curved but exactly parallel slab), or `parallel`. Matching the GT
-    settings keeps predicted and ground-truth boundaries directly comparable.
+    with two parallel offsets — a curved but exactly parallel slab), or `parallel`. As a rule of
+    thumb, `spline` works best for **plunge-frozen** samples (where the two surfaces vary
+    independently), while `coupled` is better for **lamella** samples (where the two surfaces stay
+    parallel at a fixed thickness). Matching the GT settings keeps predicted and ground-truth
+    boundaries directly comparable.
 
 #### Clip to the valid reconstruction area
 
