@@ -3,7 +3,7 @@ from typing import Set
 
 import click
 
-from copick.cli.ext import load_plugin_commands
+from copick.cli.ext import PLUGIN_GROUPS, load_plugin_commands
 from copick.util.log import get_logger
 
 
@@ -13,20 +13,9 @@ def get_installed_plugin_packages() -> Set[str]:
     Returns:
         Set of strings in format "package-name version"
     """
-    command_groups = [
-        "main",
-        "inference",
-        "training",
-        "evaluation",
-        "process",
-        "convert",
-        "logical",
-        "setup",
-        "stats",
-    ]
     plugin_packages = set()
 
-    for group in command_groups:
+    for group in PLUGIN_GROUPS:
         commands = load_plugin_commands(group)
         for _command, package_name in commands:
             try:

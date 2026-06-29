@@ -3,9 +3,9 @@ hide:
   - navigation
 ---
 
-# Software built on the copick API
+# Software compatible with the copick API
 
-A growing ecosystem of applications builds on the copick dataset API — desktop and web **viewers**, interactive segmentation and picking tools, and AI integrations. Scroll the highlights below, or jump to a category.
+A growing ecosystem of applications is compatible with copick dataset API — desktop and web **viewers**, interactive segmentation and picking tools, and AI integrations. Scroll the highlights below, or jump to a category.
 
 --8<-- "ecosystem_carousel.snippet"
 
@@ -34,7 +34,7 @@ to explore copick projects and discover CLI commands for building processing pip
 
 ---
 
-## **Analysis**
+## **Analysis / ML**
 
 ### octopi
 

@@ -3,6 +3,8 @@
 
 # copick config dataportal
 
+<span class="source-badge source-badge--core" title="Part of copick core">core</span>
+
 *Set up a configuration file from CZDP dataset IDs.*
 
 ## Usage

@@ -30,7 +30,9 @@ Run ``make_cli_docs`` to (re)generate, or ``make_cli_docs --check`` to verify
 the committed docs are up to date (used in CI / pre-commit).
 """
 
+import functools
 import inspect
+import json
 import os
 import re
 import textwrap
@@ -39,6 +41,7 @@ from typing import Dict, List, Optional, Tuple
 import click
 
 from copick.cli.cli import COMMAND_CATEGORIES, cli
+from copick.cli.ext import get_plugin_command_sources
 from copick.util.log import get_logger
 
 logger = get_logger(__name__)
@@ -241,6 +244,7 @@ def _link_command(spec: str, from_path: List[str]) -> str:
 # Page-path / tree helpers
 # --------------------------------------------------------------------------- #
 _LEAF_PATHS: Dict[Tuple[str, ...], bool] = {}  # full path -> is_group
+_PLUGIN_SOURCES: Dict[Tuple[str, ...], str] = {}  # plugin command path -> providing distribution
 
 
 def _page_path_for(path: List[str]) -> Optional[str]:
@@ -291,6 +295,58 @@ def _index_tree(ctx: click.Context) -> None:
                 walk(cmd, full)
 
     walk(cli, [])
+
+
+def _index_plugin_sources() -> None:
+    """Pre-compute the path->distribution map for plugin-contributed commands."""
+    _PLUGIN_SOURCES.clear()
+    _PLUGIN_SOURCES.update(get_plugin_command_sources())
+
+
+# --------------------------------------------------------------------------- #
+# Plugin provenance (badge + install admonition)
+# --------------------------------------------------------------------------- #
+# Per-distribution install-command overrides; anything absent derives ``pip install <dist>``.
+_PLUGIN_INSTALL_OVERRIDES: Dict[str, str] = {}
+
+
+def _plugin_tag(dist: str) -> str:
+    """Short badge label for a distribution (``copick-utils`` -> ``utils``)."""
+    return dist[len("copick-") :] if dist.startswith("copick-") else dist
+
+
+def _plugin_install(dist: str) -> str:
+    return _PLUGIN_INSTALL_OVERRIDES.get(dist, f"pip install {dist}")
+
+
+def _plugin_pypi_url(dist: str) -> str:
+    return f"https://pypi.org/project/{dist}/"
+
+
+def _source_badge(path: List[str]) -> str:
+    """Inline title badge naming the command's source: ``core`` or the plugin short-tag."""
+    dist = _PLUGIN_SOURCES.get(tuple(path))
+    if dist:
+        tag, title = _plugin_tag(dist), f"Provided by the {dist} plugin"
+    else:
+        tag, title = "core", "Part of copick core"
+    return f'<span class="source-badge source-badge--{tag}" title="{title}">{tag}</span>\n'
+
+
+def _plugin_admonition(path: List[str]) -> str:
+    """Install callout for a plugin-contributed command, or ``""`` for core commands."""
+    dist = _PLUGIN_SOURCES.get(tuple(path))
+    if not dist:
+        return ""
+    from_page = _page_path_for(path) or "docs/cli/index.md"
+    rel = os.path.relpath("docs/cli/index.md", os.path.dirname(from_page))
+    return (
+        f'??? info "Plugin command — {dist}"\n'
+        f"    This command is provided by the **[{dist}]({_plugin_pypi_url(dist)})** plugin, not copick "
+        f"core. Install it to make this command available:\n\n"
+        f"    ```bash\n    {_plugin_install(dist)}\n    ```\n\n"
+        f"    See the [plugin system]({rel}#plugin-system) guide for details.\n"
+    )
 
 
 # --------------------------------------------------------------------------- #
@@ -358,11 +414,17 @@ def _render_leaf(cmd: click.Command, path: List[str], ctx: click.Context) -> str
     synopsis = cmd.short_help or cmd.get_short_help_str() or "No description available."
     description, sections = _parse_doc(inspect.getdoc(cmd.callback) if cmd.callback else None, synopsis)
 
-    blocks = [AUTOGEN_HEADER, f"# copick {' '.join(path)}\n", f"*{synopsis}*\n"]
+    blocks = [AUTOGEN_HEADER, f"# copick {' '.join(path)}\n", _source_badge(path), f"*{synopsis}*\n"]
 
     if getattr(cmd, "deprecated", False):
         msg = cmd.deprecated if isinstance(cmd.deprecated, str) else "This command is deprecated."
         blocks.append(f'!!! warning "Deprecated"\n    {msg}\n')
+
+    # Install callout for plugin-contributed commands ("" for core commands -> dropped).
+    blocks.append(_plugin_admonition(path))
+
+    # Before/after render pair (only when both images exist; "" otherwise -> dropped).
+    blocks.append(_beforeafter_block(path, synopsis))
 
     blocks.append(f"## Usage\n\n```bash\n{_usage_line(cmd, path, ctx)}\n```\n")
 
@@ -456,6 +518,7 @@ def _generate_pages(outdir: str) -> Dict[str, str]:
     """Return {page_path: content} for all CLI pages."""
     ctx = click.Context(cli, info_name="copick")
     _index_tree(ctx)
+    _index_plugin_sources()
 
     pages: Dict[str, str] = {}
     pages[os.path.join(outdir, "index.md")] = _render_index(ctx)
@@ -510,6 +573,142 @@ def _tool_image(group: str, command: str) -> str:
     return _PLACEHOLDER_IMAGE
 
 
+def _beforeafter_images(group: str, command: str) -> Optional[Tuple[str, str]]:
+    """Docs-root-relative ``(before, after)`` render paths, or ``None`` if either is
+    missing. Paths are PNGs produced by ``docs/gallery`` (see its README). The return
+    convention matches ``_tool_image`` (relative to ``docs/``), correct for the gallery
+    page; leaf command pages rebase via ``_beforeafter_block``."""
+    base = os.path.join("docs", "assets", "tools", group)
+    before = os.path.join(base, f"{command}-before.png")
+    after = os.path.join(base, f"{command}-after.png")
+    if os.path.exists(before) and os.path.exists(after):
+        return (f"assets/tools/{group}/{command}-before.png", f"assets/tools/{group}/{command}-after.png")
+    return None
+
+
+def _mode_after_images(group: str, command: str) -> List[Tuple[str, str]]:
+    """``(mode_key, docs-root-relative path)`` for each ``{command}.{key}-after.png`` render.
+
+    These are the extra mode variants a command's gallery render produced (e.g. the
+    ``meshop`` operations or a ``--invert`` variant). Discovered purely by filename so the
+    docs generator needs no knowledge of the gallery specs; the key is the caption."""
+    base = os.path.join("docs", "assets", "tools", group)
+    if not os.path.isdir(base):
+        return []
+    prefix, suffix = f"{command}.", "-after.png"
+    out = []
+    for fn in sorted(os.listdir(base)):
+        if fn.startswith(prefix) and fn.endswith(suffix):
+            key = fn[len(prefix) : -len(suffix)]
+            out.append((key, f"assets/tools/{group}/{fn}"))
+    return out
+
+
+@functools.lru_cache(maxsize=1)
+def _gallery_manifest() -> Dict[str, dict]:
+    """Load (and cache) ``docs/assets/tools/gallery.json`` — the gallery's authoritative
+    per-command mode list. Returns ``{}`` if the file is absent or unreadable, so the docs build
+    without it (``_command_modes`` then falls back to filename discovery)."""
+    manifest_path = os.path.join("docs", "assets", "tools", "gallery.json")
+    try:
+        with open(manifest_path) as fh:
+            data = json.load(fh)
+        return data if isinstance(data, dict) else {}
+    except (OSError, json.JSONDecodeError):
+        return {}
+
+
+def _command_modes(group: str, command: str) -> List[Tuple[str, str]]:
+    """Ordered ``(key, label)`` for a command's before/after tabs (``""`` is the default variant).
+
+    Prefers the gallery manifest (authoritative labels + order), keeping only modes whose
+    after-image actually exists. Falls back to filename discovery with prettified labels when the
+    command is absent from the manifest, so command pages still tab correctly without it."""
+    base = os.path.join("docs", "assets", "tools", group)
+
+    def after_exists(key: str) -> bool:
+        fn = f"{command}-after.png" if key == "" else f"{command}.{key}-after.png"
+        return os.path.exists(os.path.join(base, fn))
+
+    entry = _gallery_manifest().get(f"{group}/{command}")
+    if entry and entry.get("modes"):
+        out = [(m["key"], m["label"]) for m in entry["modes"] if after_exists(m["key"])]
+        if out:
+            return out
+
+    # Fallback: default + any {command}.{key}-after.png on disk, labels prettified from the key.
+    out = [("", "Default")]
+    out += [(key, key.replace("-", " ").title()) for key, _ in _mode_after_images(group, command)]
+    return out
+
+
+def _indent(text: str, n: int = 4) -> str:
+    """Indent every non-empty line by ``n`` spaces (blank lines stay empty) so an HTML block nests
+    as the body of a ``pymdownx.tabbed`` content tab."""
+    pad = " " * n
+    return "\n".join(pad + ln if ln.strip() else ln for ln in text.split("\n"))
+
+
+def _pair_html(before: str, after: str, title: str, synopsis: str) -> str:
+    """One Input → Output figure pair plus a descriptive caption.
+
+    Uses Markdown image syntax (``![]()``) inside ``md_in_html`` figures so the build rewrites the
+    relative paths for directory URLs (raw ``<img src>`` would not be rewritten and would 404). The
+    ``markdown``/``markdown="span"`` attributes survive being indented as a content-tab body.
+    ``before`` / ``after`` are page-relative image paths; ``synopsis`` is the caption."""
+    return (
+        '<div class="before-after" markdown>\n\n'
+        '<figure class="before-after__fig" markdown="span">\n'
+        f"![{title} input]({before})\n"
+        "<figcaption>Input</figcaption>\n"
+        "</figure>\n\n"
+        '<p class="before-after__arrow" aria-hidden="true">→</p>\n\n'
+        '<figure class="before-after__fig" markdown="span">\n'
+        f"![{title} output]({after})\n"
+        "<figcaption>Output</figcaption>\n"
+        "</figure>\n\n"
+        "</div>\n\n"
+        f'<p class="before-after__caption">{synopsis}</p>\n'
+    )
+
+
+def _beforeafter_block(path: List[str], synopsis: str = "") -> str:
+    """Top-of-page Input -> Output figure block for a leaf command (``""`` if no renders).
+
+    Emitted right after the synopsis. Paths are rebased from docs-root-relative to the command
+    page's depth (``docs/cli/<group>/<command>.md``) so links resolve. Pure HTML (no headings) → it
+    does not pollute the right-hand table of contents. When the command has mode variants the block
+    becomes a ``pymdownx.tabbed`` set — first tab the default, one per mode — each tab showing the
+    shared input → that variant's output with the command synopsis as the caption."""
+    if len(path) < 2:  # only commands that live under a group have renders
+        return ""
+    group, command = path[0], path[-1]
+    imgs = _beforeafter_images(group, command)
+    if imgs is None:
+        return ""
+    page_dir = os.path.join("docs", "cli", *path[:-1])
+
+    def rebase(rel: str) -> str:
+        return os.path.relpath(os.path.join("docs", rel), page_dir)
+
+    def after_for(key: str) -> str:
+        fn = f"{command}-after.png" if key == "" else f"{command}.{key}-after.png"
+        return rebase(f"assets/tools/{group}/{fn}")
+
+    before = rebase(imgs[0])
+    title = "copick " + " ".join(path)
+    modes = _command_modes(group, command)
+
+    if len(modes) <= 1:
+        return _pair_html(before, after_for(""), title, synopsis)
+
+    tabs = []
+    for key, label in modes:
+        body = _pair_html(before, after_for(key), f"{title} {label}".strip(), synopsis)
+        tabs.append(f'=== "{label}"\n\n{_indent(body)}\n')
+    return "\n".join(tabs)
+
+
 def _group_blurb(ctx: click.Context, group: str) -> str:
     grp = cli.get_command(ctx, group)
     if grp is None:
@@ -535,11 +734,21 @@ def _group_tools(ctx: click.Context, group: str) -> List[Tuple[str, str]]:
 
 
 def _tool_card(group: str, name: str, synopsis: str) -> str:
-    img = _tool_image(group, name)
     link = f"cli/{group}/{name}.md"
+    ba = _beforeafter_images(group, name)  # docs-root-relative; gallery page is at docs root
+    if ba is not None:
+        before, after = ba
+        media = (
+            '<span class="before-after--card" markdown="span">'
+            f"[![{name} input]({before})]({link})"
+            f"[![{name} output]({after})]({link})"
+            "</span>"
+        )
+    else:
+        media = f"[![{name}]({_tool_image(group, name)}){{ .tool-thumb }}]({link})"
     return (
-        f"-   [![{name}]({img}){{ .tool-thumb }}]({link})\n\n"
-        f"    **{name}**\n\n"
+        f"-   {media}\n\n"
+        f"    **[{name}]({link})**\n\n"
         f"    {synopsis}\n\n"
         f"    [:octicons-arrow-right-24: Details]({link})"
     )
@@ -567,6 +776,55 @@ def _render_gallery() -> str:
             blocks.append(f"{blurb}\n")
         cards = "\n\n".join(_tool_card(group, name, syn) for name, syn in tools)
         blocks.append('<div class="grid cards" markdown>\n\n' + cards + "\n\n</div>\n")
+
+    return "\n".join(b for b in blocks if b).rstrip() + "\n"
+
+
+def _slider_card(group: str, name: str, synopsis: str) -> str:
+    """One gallery card: a draggable before/after slider + plugin badge + linked name + synopsis.
+
+    Uses the command's *default* Input→Output renders only (no mode variants). Images and the title
+    link use Markdown syntax so the build rewrites docs-root-relative paths for directory URLs. The
+    divider/handle/labels are injected by ``ba_slider.js`` (the static no-JS fallback is the 50/50
+    split from the ``--pos:50%`` default). Returns ``""`` when the command has no before/after pair."""
+    ba = _beforeafter_images(group, name)
+    if ba is None:
+        return ""
+    before, after = ba
+    badge = _source_badge([group, name]).strip()
+    return (
+        '<div class="cmd-card" markdown>\n\n'
+        '<div class="ba-slider" data-ba style="--pos:50%" markdown>\n\n'
+        f"![{name} input]({before}){{ .ba-slider__img .ba-slider__before }}\n"
+        f"![{name} output]({after}){{ .ba-slider__img .ba-slider__after }}\n\n"
+        "</div>\n\n"
+        f"{badge}\n\n"
+        f"**[{name}](cli/{group}/{name}.md)**\n\n"
+        f"{synopsis}\n\n"
+        "</div>"
+    )
+
+
+def _render_tools_gallery() -> str:
+    """A standalone, chrome-free (no nav / no TOC) gallery of every transform command as a
+    before/after slider card, grouped by category — the top-level ``Tools`` page (``docs/gallery.md``)."""
+    ctx = click.Context(cli, info_name="copick")
+    if not _PLUGIN_SOURCES:  # robustness if generated independently of _generate_pages
+        _index_plugin_sources()
+    front = "---\nhide:\n  - navigation\n  - toc\n---\n"
+    blocks = [
+        front + AUTOGEN_HEADER,
+        "# Tools\n",
+        "*Every copick CLI transform at a glance — drag a slider to wipe between the input and the "
+        "result. Click a tool for full usage and options.*\n",
+    ]
+    for group, title in GALLERY_GROUPS:
+        tools = [(n, s) for n, s in _group_tools(ctx, group) if _beforeafter_images(group, n)]
+        if not tools:
+            continue
+        blocks.append(f"## {title}\n")
+        cards = "\n\n".join(_slider_card(group, name, syn) for name, syn in tools)
+        blocks.append('<div class="cmd-gallery" markdown>\n\n' + cards + "\n\n</div>\n")
 
     return "\n".join(b for b in blocks if b).rstrip() + "\n"
 
@@ -680,6 +938,7 @@ def _generate_gallery() -> Dict[str, str]:
     """Return {path: content} for the generated gallery page and carousel teasers."""
     return {
         "docs/processing_tools.md": _render_gallery(),
+        "docs/gallery.md": _render_tools_gallery(),
         "docs/snippets/processing_carousel.snippet": _render_carousel(),
         "docs/snippets/ecosystem_carousel.snippet": _render_ecosystem_carousel(),
     }

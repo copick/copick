@@ -3,7 +3,102 @@
 
 # copick convert mesh2picks
 
+<span class="source-badge source-badge--utils" title="Provided by the copick-utils plugin">utils</span>
+
 *Convert meshes to picks using different sampling strategies.*
+
+??? info "Plugin command — copick-utils"
+    This command is provided by the **[copick-utils](https://pypi.org/project/copick-utils/)** plugin, not copick core. Install it to make this command available:
+
+    ```bash
+    pip install copick-utils
+    ```
+
+    See the [plugin system](../index.md#plugin-system) guide for details.
+
+=== "Default"
+
+    <div class="before-after" markdown>
+
+    <figure class="before-after__fig" markdown="span">
+    ![copick convert mesh2picks Default input](../../assets/tools/convert/mesh2picks-before.png)
+    <figcaption>Input</figcaption>
+    </figure>
+
+    <p class="before-after__arrow" aria-hidden="true">→</p>
+
+    <figure class="before-after__fig" markdown="span">
+    ![copick convert mesh2picks Default output](../../assets/tools/convert/mesh2picks-after.png)
+    <figcaption>Output</figcaption>
+    </figure>
+
+    </div>
+
+    <p class="before-after__caption">Convert meshes to picks using different sampling strategies.</p>
+
+
+=== "Inside"
+
+    <div class="before-after" markdown>
+
+    <figure class="before-after__fig" markdown="span">
+    ![copick convert mesh2picks Inside input](../../assets/tools/convert/mesh2picks-before.png)
+    <figcaption>Input</figcaption>
+    </figure>
+
+    <p class="before-after__arrow" aria-hidden="true">→</p>
+
+    <figure class="before-after__fig" markdown="span">
+    ![copick convert mesh2picks Inside output](../../assets/tools/convert/mesh2picks.inside-after.png)
+    <figcaption>Output</figcaption>
+    </figure>
+
+    </div>
+
+    <p class="before-after__caption">Convert meshes to picks using different sampling strategies.</p>
+
+
+=== "Outside"
+
+    <div class="before-after" markdown>
+
+    <figure class="before-after__fig" markdown="span">
+    ![copick convert mesh2picks Outside input](../../assets/tools/convert/mesh2picks-before.png)
+    <figcaption>Input</figcaption>
+    </figure>
+
+    <p class="before-after__arrow" aria-hidden="true">→</p>
+
+    <figure class="before-after__fig" markdown="span">
+    ![copick convert mesh2picks Outside output](../../assets/tools/convert/mesh2picks.outside-after.png)
+    <figcaption>Output</figcaption>
+    </figure>
+
+    </div>
+
+    <p class="before-after__caption">Convert meshes to picks using different sampling strategies.</p>
+
+
+=== "Vertices"
+
+    <div class="before-after" markdown>
+
+    <figure class="before-after__fig" markdown="span">
+    ![copick convert mesh2picks Vertices input](../../assets/tools/convert/mesh2picks-before.png)
+    <figcaption>Input</figcaption>
+    </figure>
+
+    <p class="before-after__arrow" aria-hidden="true">→</p>
+
+    <figure class="before-after__fig" markdown="span">
+    ![copick convert mesh2picks Vertices output](../../assets/tools/convert/mesh2picks.vertices-after.png)
+    <figcaption>Output</figcaption>
+    </figure>
+
+    </div>
+
+    <p class="before-after__caption">Convert meshes to picks using different sampling strategies.</p>
+
 
 ## Usage
 

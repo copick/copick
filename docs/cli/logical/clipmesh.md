@@ -3,7 +3,60 @@
 
 # copick logical clipmesh
 
+<span class="source-badge source-badge--utils" title="Provided by the copick-utils plugin">utils</span>
+
 *Limit mesh vertices within distance of a reference surface.*
+
+??? info "Plugin command — copick-utils"
+    This command is provided by the **[copick-utils](https://pypi.org/project/copick-utils/)** plugin, not copick core. Install it to make this command available:
+
+    ```bash
+    pip install copick-utils
+    ```
+
+    See the [plugin system](../index.md#plugin-system) guide for details.
+
+=== "Default"
+
+    <div class="before-after" markdown>
+
+    <figure class="before-after__fig" markdown="span">
+    ![copick logical clipmesh Default input](../../assets/tools/logical/clipmesh-before.png)
+    <figcaption>Input</figcaption>
+    </figure>
+
+    <p class="before-after__arrow" aria-hidden="true">→</p>
+
+    <figure class="before-after__fig" markdown="span">
+    ![copick logical clipmesh Default output](../../assets/tools/logical/clipmesh-after.png)
+    <figcaption>Output</figcaption>
+    </figure>
+
+    </div>
+
+    <p class="before-after__caption">Limit mesh vertices within distance of a reference surface.</p>
+
+
+=== "Invert (beyond)"
+
+    <div class="before-after" markdown>
+
+    <figure class="before-after__fig" markdown="span">
+    ![copick logical clipmesh Invert (beyond) input](../../assets/tools/logical/clipmesh-before.png)
+    <figcaption>Input</figcaption>
+    </figure>
+
+    <p class="before-after__arrow" aria-hidden="true">→</p>
+
+    <figure class="before-after__fig" markdown="span">
+    ![copick logical clipmesh Invert (beyond) output](../../assets/tools/logical/clipmesh.beyond-after.png)
+    <figcaption>Output</figcaption>
+    </figure>
+
+    </div>
+
+    <p class="before-after__caption">Limit mesh vertices within distance of a reference surface.</p>
+
 
 ## Usage
 

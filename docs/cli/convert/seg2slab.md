@@ -3,7 +3,102 @@
 
 # copick convert seg2slab
 
+<span class="source-badge source-badge--torch" title="Provided by the copick-torch plugin">torch</span>
+
 *Fit parallel planes to a segmentation and create a slab mesh.*
+
+??? info "Plugin command — copick-torch"
+    This command is provided by the **[copick-torch](https://pypi.org/project/copick-torch/)** plugin, not copick core. Install it to make this command available:
+
+    ```bash
+    pip install copick-torch
+    ```
+
+    See the [plugin system](../index.md#plugin-system) guide for details.
+
+=== "Default"
+
+    <div class="before-after" markdown>
+
+    <figure class="before-after__fig" markdown="span">
+    ![copick convert seg2slab Default input](../../assets/tools/convert/seg2slab-before.png)
+    <figcaption>Input</figcaption>
+    </figure>
+
+    <p class="before-after__arrow" aria-hidden="true">→</p>
+
+    <figure class="before-after__fig" markdown="span">
+    ![copick convert seg2slab Default output](../../assets/tools/convert/seg2slab-after.png)
+    <figcaption>Output</figcaption>
+    </figure>
+
+    </div>
+
+    <p class="before-after__caption">Fit parallel planes to a segmentation and create a slab mesh.</p>
+
+
+=== "Spline"
+
+    <div class="before-after" markdown>
+
+    <figure class="before-after__fig" markdown="span">
+    ![copick convert seg2slab Spline input](../../assets/tools/convert/seg2slab-before.png)
+    <figcaption>Input</figcaption>
+    </figure>
+
+    <p class="before-after__arrow" aria-hidden="true">→</p>
+
+    <figure class="before-after__fig" markdown="span">
+    ![copick convert seg2slab Spline output](../../assets/tools/convert/seg2slab.spline-after.png)
+    <figcaption>Output</figcaption>
+    </figure>
+
+    </div>
+
+    <p class="before-after__caption">Fit parallel planes to a segmentation and create a slab mesh.</p>
+
+
+=== "Parallel"
+
+    <div class="before-after" markdown>
+
+    <figure class="before-after__fig" markdown="span">
+    ![copick convert seg2slab Parallel input](../../assets/tools/convert/seg2slab-before.png)
+    <figcaption>Input</figcaption>
+    </figure>
+
+    <p class="before-after__arrow" aria-hidden="true">→</p>
+
+    <figure class="before-after__fig" markdown="span">
+    ![copick convert seg2slab Parallel output](../../assets/tools/convert/seg2slab.parallel-after.png)
+    <figcaption>Output</figcaption>
+    </figure>
+
+    </div>
+
+    <p class="before-after__caption">Fit parallel planes to a segmentation and create a slab mesh.</p>
+
+
+=== "IoU"
+
+    <div class="before-after" markdown>
+
+    <figure class="before-after__fig" markdown="span">
+    ![copick convert seg2slab IoU input](../../assets/tools/convert/seg2slab-before.png)
+    <figcaption>Input</figcaption>
+    </figure>
+
+    <p class="before-after__arrow" aria-hidden="true">→</p>
+
+    <figure class="before-after__fig" markdown="span">
+    ![copick convert seg2slab IoU output](../../assets/tools/convert/seg2slab.iou-after.png)
+    <figcaption>Output</figcaption>
+    </figure>
+
+    </div>
+
+    <p class="before-after__caption">Fit parallel planes to a segmentation and create a slab mesh.</p>
+
 
 ## Usage
 
@@ -79,7 +174,3 @@ copick convert seg2slab -c config.json \
     --label 1 --method iou --fit-resolution 100 100 \
     -o "sample:seg2slab/fitted"
 ```
-
-## See also
-
-- [`copick convert picks2slab`](picks2slab.md) — fit the same slab surfaces to picked points instead of a segmentation

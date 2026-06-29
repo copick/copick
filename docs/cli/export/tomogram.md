@@ -3,6 +3,8 @@
 
 # copick export tomogram
 
+<span class="source-badge source-badge--core" title="Part of copick core">core</span>
+
 *Export tomograms to external formats (MRC, TIFF, Zarr).*
 
 ## Usage

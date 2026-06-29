@@ -3,6 +3,8 @@
 
 # copick sync tomograms
 
+<span class="source-badge source-badge--core" title="Part of copick core">core</span>
+
 *Synchronize tomograms between two Copick projects.*
 
 ## Usage

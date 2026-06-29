@@ -76,29 +76,29 @@ pip install copick
 
 <div class="grid cards" markdown>
 
--   [![convert](assets/tools/_placeholder.svg){ .tool-thumb }](cli/convert/index.md)
+-   [![Convert](assets/tools/_placeholder.svg){ .tool-thumb }](cli/convert/index.md)
 
-    **[convert](cli/convert/index.md)**
+    **[Convert](cli/convert/index.md)**
 
-    Convert one copick type to another.
+    Convert between picks, segmentations, and meshes.
 
--   [![process](assets/tools/_placeholder.svg){ .tool-thumb }](cli/process/index.md)
+-   [![Logical](assets/tools/_placeholder.svg){ .tool-thumb }](cli/logical/index.md)
 
-    **[process](cli/process/index.md)**
+    **[Logical](cli/logical/index.md)**
 
-    Apply processing methods to copick data.
+    Combine and clip annotations with boolean & spatial operations.
 
--   [![logical](assets/tools/_placeholder.svg){ .tool-thumb }](cli/logical/index.md)
+-   [![Process](assets/tools/_placeholder.svg){ .tool-thumb }](cli/process/index.md)
 
-    **[logical](cli/logical/index.md)**
+    **[Process](cli/process/index.md)**
 
-    Perform logical operations on copick objects.
+    Transform segmentations and meshes — skeletonize, expand, fit, filter.
 
--   [![inference](assets/tools/_placeholder.svg){ .tool-thumb }](cli/inference/index.md)
+-   [![Inference](assets/tools/_placeholder.svg){ .tool-thumb }](cli/inference/index.md)
 
-    **[inference](cli/inference/index.md)**
+    **[Inference](cli/inference/index.md)**
 
-    Run inference on copick tomograms.
+    Run model inference to generate new annotations.
 
 </div>
 

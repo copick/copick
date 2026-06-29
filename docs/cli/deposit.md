@@ -3,6 +3,8 @@
 
 # copick deposit
 
+<span class="source-badge source-badge--core" title="Part of copick core">core</span>
+
 *Create a depositable view of a copick project using symlinks.*
 
 ## Usage

@@ -3,6 +3,8 @@
 
 # copick mv
 
+<span class="source-badge source-badge--core" title="Part of copick core">core</span>
+
 *Move/rename copick objects by URI.*
 
 ## Usage

@@ -3,6 +3,8 @@
 
 # copick add object-volume
 
+<span class="source-badge source-badge--core" title="Part of copick core">core</span>
+
 *Add volume data to an existing pickable object.*
 
 ## Usage

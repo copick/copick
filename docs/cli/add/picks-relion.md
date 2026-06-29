@@ -3,6 +3,8 @@
 
 # copick add picks-relion
 
+<span class="source-badge source-badge--core" title="Part of copick core">core</span>
+
 *Add picks from RELION STAR files containing multiple tomograms.*
 
 ## Usage

@@ -3,7 +3,18 @@
 
 # copick convert nnunet
 
-*Convert a copick project to nnUNet raw dataset format.*
+<span class="source-badge source-badge--torch" title="Provided by the copick-torch plugin">torch</span>
+
+*Convert a CoPick project to nnUNet raw...*
+
+??? info "Plugin command — copick-torch"
+    This command is provided by the **[copick-torch](https://pypi.org/project/copick-torch/)** plugin, not copick core. Install it to make this command available:
+
+    ```bash
+    pip install copick-torch
+    ```
+
+    See the [plugin system](../index.md#plugin-system) guide for details.
 
 ## Usage
 
@@ -13,15 +24,7 @@ copick convert nnunet [OPTIONS]
 
 ## Description
 
-Reads tomograms and segmentation masks from a copick project and writes them
-as .nii.gz files in the nnUNet raw dataset layout (a `Dataset{id}_{name}`
-folder containing `imagesTr`, `labelsTr`, and optionally `imagesTs`). A
-`dataset.json` describing the channel and label map is generated from the
-targets config stored in the copick overlay.
-
-Training runs default to every run not listed in the test set. The tomogram
-voxel spacing is read from the tomogram URI and converted from Angstroms to
-nanometres so that nnUNet's patch-size planner sees reasonable numbers.
+Convert a CoPick project to nnUNet raw dataset format (imagesTr / labelsTr / imagesTs).
 
 ## Options
 
@@ -36,26 +39,3 @@ nanometres so that nnUNet's patch-size planner sees reasonable numbers.
 | `-n, --dataset-name` | text | **required** | nnUNet dataset name |
 | `-o, --output` | path | **required** | Path to nnunet_raw output directory |
 | `-j, --num-workers` | integer | `4` | Number of parallel worker threads for converting tomograms. |
-
-## Examples
-
-```bash
-# Convert all runs in a project to an nnUNet dataset
-copick convert nnunet -c config.json --dataset-name Membrane \
-    --output /data/nnunet_raw
-
-# Convert with an explicit tomogram URI, segmentation info, and dataset id
-copick convert nnunet -c config.json --tomo-uri wbp@10.0 \
-    --seg-info targets,nnunet,1 --dataset-id 5 --dataset-name Membrane \
-    --output /data/nnunet_raw
-
-# Convert with an explicit train/test split and more worker threads
-copick convert nnunet -c config.json --dataset-name Membrane \
-    --train-run-ids run1,run2,run3 --test-run-ids run4,run5 \
-    --output /data/nnunet_raw -j 8
-```
-
-## See also
-
-- [`copick training nnunet`](../training/nnunet.md) — train an nnUNet model on the converted dataset
-- [`copick inference nnunet`](../inference/nnunet.md) — run inference with a trained nnUNet model

@@ -3,6 +3,8 @@
 
 # copick new voxelspacing
 
+<span class="source-badge source-badge--core" title="Part of copick core">core</span>
+
 *Create an empty voxelspacing with the given name.*
 
 ## Usage

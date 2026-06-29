@@ -3,7 +3,81 @@
 
 # copick convert mesh2caps
 
+<span class="source-badge source-badge--utils" title="Provided by the copick-utils plugin">utils</span>
+
 *Extract the top/bottom surfaces (caps) of a slab box mesh.*
+
+??? info "Plugin command — copick-utils"
+    This command is provided by the **[copick-utils](https://pypi.org/project/copick-utils/)** plugin, not copick core. Install it to make this command available:
+
+    ```bash
+    pip install copick-utils
+    ```
+
+    See the [plugin system](../index.md#plugin-system) guide for details.
+
+=== "Default"
+
+    <div class="before-after" markdown>
+
+    <figure class="before-after__fig" markdown="span">
+    ![copick convert mesh2caps Default input](../../assets/tools/convert/mesh2caps-before.png)
+    <figcaption>Input</figcaption>
+    </figure>
+
+    <p class="before-after__arrow" aria-hidden="true">→</p>
+
+    <figure class="before-after__fig" markdown="span">
+    ![copick convert mesh2caps Default output](../../assets/tools/convert/mesh2caps-after.png)
+    <figcaption>Output</figcaption>
+    </figure>
+
+    </div>
+
+    <p class="before-after__caption">Extract the top/bottom surfaces (caps) of a slab box mesh.</p>
+
+
+=== "Top"
+
+    <div class="before-after" markdown>
+
+    <figure class="before-after__fig" markdown="span">
+    ![copick convert mesh2caps Top input](../../assets/tools/convert/mesh2caps-before.png)
+    <figcaption>Input</figcaption>
+    </figure>
+
+    <p class="before-after__arrow" aria-hidden="true">→</p>
+
+    <figure class="before-after__fig" markdown="span">
+    ![copick convert mesh2caps Top output](../../assets/tools/convert/mesh2caps.top-after.png)
+    <figcaption>Output</figcaption>
+    </figure>
+
+    </div>
+
+    <p class="before-after__caption">Extract the top/bottom surfaces (caps) of a slab box mesh.</p>
+
+
+=== "Bottom"
+
+    <div class="before-after" markdown>
+
+    <figure class="before-after__fig" markdown="span">
+    ![copick convert mesh2caps Bottom input](../../assets/tools/convert/mesh2caps-before.png)
+    <figcaption>Input</figcaption>
+    </figure>
+
+    <p class="before-after__arrow" aria-hidden="true">→</p>
+
+    <figure class="before-after__fig" markdown="span">
+    ![copick convert mesh2caps Bottom output](../../assets/tools/convert/mesh2caps.bottom-after.png)
+    <figcaption>Output</figcaption>
+    </figure>
+
+    </div>
+
+    <p class="before-after__caption">Extract the top/bottom surfaces (caps) of a slab box mesh.</p>
+
 
 ## Usage
 

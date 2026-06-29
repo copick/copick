@@ -3,7 +3,36 @@
 
 # copick convert picks2surface
 
+<span class="source-badge source-badge--utils" title="Provided by the copick-utils plugin">utils</span>
+
 *Convert picks to 2D surface meshes.*
+
+??? info "Plugin command — copick-utils"
+    This command is provided by the **[copick-utils](https://pypi.org/project/copick-utils/)** plugin, not copick core. Install it to make this command available:
+
+    ```bash
+    pip install copick-utils
+    ```
+
+    See the [plugin system](../index.md#plugin-system) guide for details.
+
+<div class="before-after" markdown>
+
+<figure class="before-after__fig" markdown="span">
+![copick convert picks2surface input](../../assets/tools/convert/picks2surface-before.png)
+<figcaption>Input</figcaption>
+</figure>
+
+<p class="before-after__arrow" aria-hidden="true">→</p>
+
+<figure class="before-after__fig" markdown="span">
+![copick convert picks2surface output](../../assets/tools/convert/picks2surface-after.png)
+<figcaption>Output</figcaption>
+</figure>
+
+</div>
+
+<p class="before-after__caption">Convert picks to 2D surface meshes.</p>
 
 ## Usage
 

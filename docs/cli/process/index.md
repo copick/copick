@@ -21,9 +21,9 @@ Subcommands are contributed by installed plugins.
 
 | Command | Description |
 |---------|-------------|
-| [`bandpass`](bandpass.md) | Band-pass filter tomograms in 3D. |
+| [`bandpass`](bandpass.md) | 3D bandpass filter tomograms. |
 | [`combine`](combine.md) | Combine single-label segmentations into a multilabel segmentation. |
-| [`downsample`](downsample.md) | Downsample tomograms via Fourier rescaling. |
+| [`downsample`](downsample.md) | Downsample tomograms with Fourier Re-Scaling. |
 | [`expand-labels`](expand-labels.md) | Expand labels in segmentations to fill holes and gaps. |
 | [`filter-components`](filter-components.md) | Filter connected components in segmentations by size. |
 | [`fit-spline`](fit-spline.md) | Fit 3D splines to skeletons and generate oriented picks. |

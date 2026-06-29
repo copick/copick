@@ -3,6 +3,8 @@
 
 # copick sync picks
 
+<span class="source-badge source-badge--core" title="Part of copick core">core</span>
+
 *Synchronize picks between two Copick projects.*
 
 ## Usage

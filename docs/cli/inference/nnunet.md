@@ -3,7 +3,18 @@
 
 # copick inference nnunet
 
-*Run nnUNet inference on CoPick tomograms.*
+<span class="source-badge source-badge--torch" title="Provided by the copick-torch plugin">torch</span>
+
+*Run nnUNet inference on CoPick tomograms...*
+
+??? info "Plugin command — copick-torch"
+    This command is provided by the **[copick-torch](https://pypi.org/project/copick-torch/)** plugin, not copick core. Install it to make this command available:
+
+    ```bash
+    pip install copick-torch
+    ```
+
+    See the [plugin system](../index.md#plugin-system) guide for details.
 
 ## Usage
 
@@ -13,14 +24,7 @@ copick inference nnunet [OPTIONS]
 
 ## Description
 
-For every run in the project, queries the requested tomogram, runs sliding-window
-nnUNet prediction, and writes the resulting segmentation back into the CoPick
-project. All available GPUs are used automatically, with run IDs sharded across
-devices for batch inference.
-
-Repeat `-w/--weights` to ensemble multiple folds (logits are averaged before
-argmax). Both standard nnUNet and MedNeXt trainers are supported; the trainer
-class is resolved from the checkpoint metadata.
+Run nnUNet inference on CoPick tomograms and write predictions back.
 
 ## Options
 
@@ -34,25 +38,3 @@ class is resolved from the checkpoint metadata.
 | `--tta` | boolean | `True` | Enable mirroring TTA. |
 | `--run-ids, -runs` | text | — | CoPick run IDs to predict (comma-separated). |
 | `-suri, --seg-uri` | text | `predict:nnunet/1` | Segmentation URI to write (name:user_id/session_id) |
-
-## Examples
-
-```bash
-# Segment all runs with a single-fold model, writing to predict:nnunet/1
-copick inference nnunet -c config.json -p plans.json -d dataset.json \
-    -w fold_0/checkpoint_best.pth -turi wbp@10.0
-
-# Ensemble multiple folds and write to a custom segmentation URI
-copick inference nnunet -c config.json -p plans.json -d dataset.json \
-    -w fold_0/checkpoint_best.pth -w fold_1/checkpoint_best.pth \
-    -suri membrane:nnunet/1
-
-# Predict only specific runs with mirroring TTA disabled
-copick inference nnunet -c config.json -p plans.json -d dataset.json \
-    -w fold_0/checkpoint_best.pth -runs TS_01,TS_02 --tta False
-```
-
-## See also
-
-- [`copick convert nnunet`](../convert/nnunet.md) — build the nnUNet training dataset from a CoPick project
-- [`copick training nnunet`](../training/nnunet.md) — train the nnUNet model used for inference

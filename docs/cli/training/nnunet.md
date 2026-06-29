@@ -3,7 +3,18 @@
 
 # copick training nnunet
 
-*Plan, preprocess, and train nnUNet on a CoPick dataset.*
+<span class="source-badge source-badge--torch" title="Provided by the copick-torch plugin">torch</span>
+
+*Plan, preprocess, and train nnUNet on a...*
+
+??? info "Plugin command — copick-torch"
+    This command is provided by the **[copick-torch](https://pypi.org/project/copick-torch/)** plugin, not copick core. Install it to make this command available:
+
+    ```bash
+    pip install copick-torch
+    ```
+
+    See the [plugin system](../index.md#plugin-system) guide for details.
 
 ## Usage
 
@@ -13,17 +24,7 @@ copick training nnunet [OPTIONS]
 
 ## Description
 
-Runs nnUNet planning and preprocessing followed by training on a dataset that
-already exists in `nnunet_raw` (produced by `copick convert nnunet`). The command
-first invokes `nnUNetv2_plan_and_preprocess` to fingerprint the dataset and plan
-patch sizes, then runs `nnUNetv2_train` once per requested fold. Pass
-`--skip-preprocess` to reuse an existing plan.
-
-The `--model` flag selects the architecture and the matching trainer class:
-`nnunet` (standard nnUNet), `resnecl` (Residual Encoder Large), and the MedNeXt
-variants (`mednext_s`, `mednext_b`, `mednext_m`, `mednext_l`). MedNeXt trainers
-require the MedNeXt package to be installed. If a fold checkpoint already exists in
-the results directory, training resumes from it automatically.
+Plan, preprocess, and train nnUNet on a CoPick dataset.
 
 ## Options
 
@@ -38,26 +39,3 @@ the results directory, training resumes from it automatically.
 | `-f, --folds` | text | `0` | Folds to train, e.g. 0 or 0,1,2,3,4 |
 | `-m, --model` | choice (nnunet \| resnecl \| mednext_s \| mednext_b \| mednext_m \| mednext_l) | `nnunet` | Model architecture to train. |
 | `-skip, --skip-preprocess` | boolean flag | `False` | Skip nnUNetv2_plan_and_preprocess (useful if already done). |
-
-## Examples
-
-```bash
-# Plan, preprocess, and train the default nnUNet on fold 0
-copick training nnunet -n my_dataset -id 1 \
-    -r ./nnUNet_raw -pre ./nnUNet_preprocessed -o ./nnUNet_results
-
-# Train a MedNeXt Medium model across all five folds
-copick training nnunet -n my_dataset -id 1 \
-    -r ./nnUNet_raw -pre ./nnUNet_preprocessed -o ./nnUNet_results \
-    --model mednext_m --folds 0,1,2,3,4
-
-# Reuse an existing plan and resume training, skipping preprocessing
-copick training nnunet -n my_dataset -id 1 \
-    -r ./nnUNet_raw -pre ./nnUNet_preprocessed -o ./nnUNet_results \
-    --skip-preprocess
-```
-
-## See also
-
-- [`copick convert nnunet`](../convert/nnunet.md) — convert a CoPick project into an nnUNet raw dataset
-- [`copick inference nnunet`](../inference/nnunet.md) — run inference with a trained nnUNet model

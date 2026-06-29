@@ -3,6 +3,8 @@
 
 # copick stats picks
 
+<span class="source-badge source-badge--core" title="Part of copick core">core</span>
+
 *Display statistics about picks.*
 
 ## Usage

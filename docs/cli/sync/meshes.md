@@ -3,6 +3,8 @@
 
 # copick sync meshes
 
+<span class="source-badge source-badge--core" title="Part of copick core">core</span>
+
 *Synchronize meshes between two Copick projects.*
 
 ## Usage

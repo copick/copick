@@ -9,6 +9,7 @@ extra_javascript = [
     "javascripts/mathjax.js",
     "https://unpkg.com/mathjax@3/es5/tex-mml-chtml.js",
     "javascripts/home_carousel.js",
+    "javascripts/ba_slider.js",
 ]
 
 nav = [
@@ -31,20 +32,8 @@ nav = [
         {"Geometry Conventions" = "geometry.md"},
         {"Processing Tools" = "processing_tools.md"},
     ]},
-    {"Tutorials" = [
-        {"Overview" = "examples/overview.md"},
-        {"CZ cryoET Data Portal" = "examples/tutorials/data_portal.md"},
-        {"Syncing CZII Kaggle Challenge Dataset" = "examples/tutorials/kaggle_czii_sync.md"},
-        {"Copick and HPC" = "examples/tutorials/hpc.md"},
-        {"ChimeraX-Copick" = "examples/tutorials/chimerax.md"},
-        {"Copick and Album" = "examples/tutorials/album.md"},
-        {"Detecting Sample Boundaries" = "examples/tutorials/sample_boundaries.md"},
-        {"Filtering Particles by Sample Boundaries" = "examples/tutorials/sample_boundaries_filtering.md"},
-        {"Copick and membrain-seg" = "examples/tutorials/membrain.md"},
-        {"Copick-MCP" = "examples/tutorials/copick_mcp.md"},
-        {"mlcroissant" = "examples/tutorials/croissant.md"},
-        {"Snippets" = "examples/snippets.md"},
-    ]},
+    {"Tutorials" = "examples/overview.md"},
+    {"Tools" = "gallery.md"},
     {"CLI Reference" = [
         {"Overview" = "cli/index.md"},
         {"Data Management" = [

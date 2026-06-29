@@ -3,6 +3,8 @@
 
 # copick browse
 
+<span class="source-badge source-badge--core" title="Part of copick core">core</span>
+
 *Browse Copick projects.*
 
 ## Usage

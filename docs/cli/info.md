@@ -3,6 +3,8 @@
 
 # copick info
 
+<span class="source-badge source-badge--core" title="Part of copick core">core</span>
+
 *Display information about the Copick CLI.*
 
 ## Usage

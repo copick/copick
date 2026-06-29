@@ -3,6 +3,8 @@
 
 # copick add tomograms-relion
 
+<span class="source-badge source-badge--core" title="Part of copick core">core</span>
+
 *Add tomograms from a RELION tomograms.star file.*
 
 ## Usage

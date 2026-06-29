@@ -3,6 +3,8 @@
 
 # copick cp
 
+<span class="source-badge source-badge--core" title="Part of copick core">core</span>
+
 *Copy or duplicate copick objects by URI.*
 
 ## Usage

@@ -3,6 +3,8 @@
 
 # copick new run
 
+<span class="source-badge source-badge--core" title="Part of copick core">core</span>
+
 *Create an empty run with the given name.*
 
 ## Usage

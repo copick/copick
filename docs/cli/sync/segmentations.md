@@ -3,6 +3,8 @@
 
 # copick sync segmentations
 
+<span class="source-badge source-badge--core" title="Part of copick core">core</span>
+
 *Synchronize segmentations between two Copick projects.*
 
 ## Usage

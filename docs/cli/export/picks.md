@@ -3,6 +3,8 @@
 
 # copick export picks
 
+<span class="source-badge source-badge--core" title="Part of copick core">core</span>
+
 *Export picks to external formats (EM, STAR, Dynamo, CSV).*
 
 ## Usage

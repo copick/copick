@@ -3,6 +3,8 @@
 
 # copick add tomograms-dynamo
 
+<span class="source-badge source-badge--core" title="Part of copick core">core</span>
+
 *Add tomograms from a Dynamo tomolist file.*
 
 ## Usage

@@ -3,7 +3,18 @@
 
 # copick process downsample
 
-*Downsample tomograms via Fourier rescaling.*
+<span class="source-badge source-badge--torch" title="Provided by the copick-torch plugin">torch</span>
+
+*Downsample tomograms with Fourier Re-Scaling.*
+
+??? info "Plugin command — copick-torch"
+    This command is provided by the **[copick-torch](https://pypi.org/project/copick-torch/)** plugin, not copick core. Install it to make this command available:
+
+    ```bash
+    pip install copick-torch
+    ```
+
+    See the [plugin system](../index.md#plugin-system) guide for details.
 
 ## Usage
 
@@ -11,54 +22,12 @@
 copick process downsample [OPTIONS]
 ```
 
-## Description
-
-Downsample tomograms on the GPU with Fourier rescaling.
-
-For every run in the project, queries the tomogram of the given algorithm at the
-source voxel spacing, Fourier-rescales it to the target voxel spacing on the GPU,
-and writes the downsampled tomogram back into the project. Runs are processed in
-parallel on a GPU pool.
-
-## URI Format
-
-```text
-Tomograms: tomo_type@voxel_spacing
-```
-
 ## Options
 
 | Option | Type | Default | Description |
 |--------|------|---------|-------------|
-| `-c, --config` | path | — | Path to the configuration file. |
-| `--debug / --no-debug` | boolean flag | `False` | Enable debug logging. |
-
-### Input Options
-
-| Option | Type | Default | Description |
-|--------|------|---------|-------------|
-| `--tomo-alg, -ta` | text | **required** | Tomogram algorithm/type to query and downsample (e.g. 'wbp'). |
-| `--voxel-size, -vs` | float | `10.0` | Source voxel spacing to query, in angstroms. |
-
-### Tool Options
-
-| Option | Type | Default | Description |
-|--------|------|---------|-------------|
-| `--target-resolution, -tr` | float | `10.0` | Target voxel spacing to downsample to, in angstroms. |
-| `--delete-source / --keep-source` | boolean flag | `False` | Delete the source tomograms after downsampling. |
-
-## Examples
-
-```bash
-# Downsample wbp tomograms from 10 A to 20 A
-copick process downsample -c config.json --tomo-alg wbp \
-    --voxel-size 10.0 --target-resolution 20.0
-
-# Downsample, then delete the source tomograms
-copick process downsample -c config.json --tomo-alg wbp \
-    --voxel-size 10.0 --target-resolution 20.0 --delete-source
-```
-
-## See also
-
-- [`copick process bandpass`](bandpass.md) — band-pass filter tomograms without resampling
+| `--config` | text | **required** | Path to Copick Config for Processing Data |
+| `--tomo-alg` | text | **required** | Tomogram Algorithm to use |
+| `--voxel-size` | float | `10` | Voxel Size to Query the Data |
+| `--target-resolution` | float | `10` | Target Resolution to Downsample to |
+| `--delete-source` | boolean | `False` | Delete the source tomograms after downsampling |

@@ -3,6 +3,8 @@
 
 # copick config append-croissant
 
+<span class="source-badge source-badge--core" title="Part of copick core">core</span>
+
 *Append filtered rows from a copick project into an existing Croissant.*
 
 ## Usage

@@ -3,7 +3,36 @@
 
 # copick convert seg2picks
 
+<span class="source-badge source-badge--utils" title="Provided by the copick-utils plugin">utils</span>
+
 *Convert segmentation to picks.*
+
+??? info "Plugin command — copick-utils"
+    This command is provided by the **[copick-utils](https://pypi.org/project/copick-utils/)** plugin, not copick core. Install it to make this command available:
+
+    ```bash
+    pip install copick-utils
+    ```
+
+    See the [plugin system](../index.md#plugin-system) guide for details.
+
+<div class="before-after" markdown>
+
+<figure class="before-after__fig" markdown="span">
+![copick convert seg2picks input](../../assets/tools/convert/seg2picks-before.png)
+<figcaption>Input</figcaption>
+</figure>
+
+<p class="before-after__arrow" aria-hidden="true">→</p>
+
+<figure class="before-after__fig" markdown="span">
+![copick convert seg2picks output](../../assets/tools/convert/seg2picks-after.png)
+<figcaption>Output</figcaption>
+</figure>
+
+</div>
+
+<p class="before-after__caption">Convert segmentation to picks.</p>
 
 ## Usage
 

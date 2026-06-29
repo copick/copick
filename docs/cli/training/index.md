@@ -20,4 +20,4 @@ data. Subcommands are contributed by installed plugins.
 
 | Command | Description |
 |---------|-------------|
-| [`nnunet`](nnunet.md) | Plan, preprocess, and train nnUNet on a CoPick dataset. |
+| [`nnunet`](nnunet.md) | Plan, preprocess, and train nnUNet on a... |

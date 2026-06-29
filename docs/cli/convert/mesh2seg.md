@@ -3,7 +3,81 @@
 
 # copick convert mesh2seg
 
+<span class="source-badge source-badge--utils" title="Provided by the copick-utils plugin">utils</span>
+
 *Convert meshes to segmentation volumes.*
+
+??? info "Plugin command — copick-utils"
+    This command is provided by the **[copick-utils](https://pypi.org/project/copick-utils/)** plugin, not copick core. Install it to make this command available:
+
+    ```bash
+    pip install copick-utils
+    ```
+
+    See the [plugin system](../index.md#plugin-system) guide for details.
+
+=== "Default"
+
+    <div class="before-after" markdown>
+
+    <figure class="before-after__fig" markdown="span">
+    ![copick convert mesh2seg Default input](../../assets/tools/convert/mesh2seg-before.png)
+    <figcaption>Input</figcaption>
+    </figure>
+
+    <p class="before-after__arrow" aria-hidden="true">→</p>
+
+    <figure class="before-after__fig" markdown="span">
+    ![copick convert mesh2seg Default output](../../assets/tools/convert/mesh2seg-after.png)
+    <figcaption>Output</figcaption>
+    </figure>
+
+    </div>
+
+    <p class="before-after__caption">Convert meshes to segmentation volumes.</p>
+
+
+=== "Boundary"
+
+    <div class="before-after" markdown>
+
+    <figure class="before-after__fig" markdown="span">
+    ![copick convert mesh2seg Boundary input](../../assets/tools/convert/mesh2seg-before.png)
+    <figcaption>Input</figcaption>
+    </figure>
+
+    <p class="before-after__arrow" aria-hidden="true">→</p>
+
+    <figure class="before-after__fig" markdown="span">
+    ![copick convert mesh2seg Boundary output](../../assets/tools/convert/mesh2seg.boundary-after.png)
+    <figcaption>Output</figcaption>
+    </figure>
+
+    </div>
+
+    <p class="before-after__caption">Convert meshes to segmentation volumes.</p>
+
+
+=== "Invert"
+
+    <div class="before-after" markdown>
+
+    <figure class="before-after__fig" markdown="span">
+    ![copick convert mesh2seg Invert input](../../assets/tools/convert/mesh2seg-before.png)
+    <figcaption>Input</figcaption>
+    </figure>
+
+    <p class="before-after__arrow" aria-hidden="true">→</p>
+
+    <figure class="before-after__fig" markdown="span">
+    ![copick convert mesh2seg Invert output](../../assets/tools/convert/mesh2seg.invert-after.png)
+    <figcaption>Output</figcaption>
+    </figure>
+
+    </div>
+
+    <p class="before-after__caption">Convert meshes to segmentation volumes.</p>
+
 
 ## Usage
 

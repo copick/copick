@@ -3,6 +3,8 @@
 
 # copick add picks-em
 
+<span class="source-badge source-badge--core" title="Part of copick core">core</span>
+
 *Add picks from EM motivelist files containing multiple tomograms.*
 
 ## Usage

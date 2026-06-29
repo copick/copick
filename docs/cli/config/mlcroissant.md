@@ -3,6 +3,8 @@
 
 # copick config mlcroissant
 
+<span class="source-badge source-badge--core" title="Part of copick core">core</span>
+
 *Set up a configuration file from an mlcroissant manifest.*
 
 ## Usage

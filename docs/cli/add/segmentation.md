@@ -3,6 +3,8 @@
 
 # copick add segmentation
 
+<span class="source-badge source-badge--core" title="Part of copick core">core</span>
+
 *Add a segmentation to the project.*
 
 ## Usage

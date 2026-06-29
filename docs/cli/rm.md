@@ -3,6 +3,8 @@
 
 # copick rm
 
+<span class="source-badge source-badge--core" title="Part of copick core">core</span>
+
 *Remove copick objects by URI.*
 
 ## Usage

@@ -24,7 +24,7 @@ contributed by installed plugins.
 | [`mesh2caps`](mesh2caps.md) | Extract the top/bottom surfaces (caps) of a slab box mesh. |
 | [`mesh2picks`](mesh2picks.md) | Convert meshes to picks using different sampling strategies. |
 | [`mesh2seg`](mesh2seg.md) | Convert meshes to segmentation volumes. |
-| [`nnunet`](nnunet.md) | Convert a copick project to nnUNet raw dataset format. |
+| [`nnunet`](nnunet.md) | Convert a CoPick project to nnUNet raw... |
 | [`picks2ellipsoid`](picks2ellipsoid.md) | Convert picks to ellipsoid meshes. |
 | [`picks2mesh`](picks2mesh.md) | Convert picks to meshes using convex hull or alpha shapes. |
 | [`picks2plane`](picks2plane.md) | Convert picks to plane meshes. |

@@ -3,6 +3,8 @@
 
 # copick add picks-dynamo
 
+<span class="source-badge source-badge--core" title="Part of copick core">core</span>
+
 *Add picks from Dynamo table files containing multiple tomograms.*
 
 ## Usage

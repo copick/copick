@@ -3,6 +3,8 @@
 
 # copick export segmentation
 
+<span class="source-badge source-badge--core" title="Part of copick core">core</span>
+
 *Export segmentations to MRC, TIFF, Zarr, or EM.*
 
 ## Usage

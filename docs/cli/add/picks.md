@@ -3,6 +3,8 @@
 
 # copick add picks
 
+<span class="source-badge source-badge--core" title="Part of copick core">core</span>
+
 *Add picks from external formats (EM, STAR, Dynamo, CSV).*
 
 ## Usage

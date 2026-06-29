@@ -3,6 +3,8 @@
 
 # copick add tomogram
 
+<span class="source-badge source-badge--core" title="Part of copick core">core</span>
+
 *Add a tomogram to the project.*
 
 ## Usage

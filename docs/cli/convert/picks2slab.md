@@ -3,7 +3,81 @@
 
 # copick convert picks2slab
 
+<span class="source-badge source-badge--torch" title="Provided by the copick-torch plugin">torch</span>
+
 *Fit spline surfaces to two pick sets and create a slab mesh.*
+
+??? info "Plugin command — copick-torch"
+    This command is provided by the **[copick-torch](https://pypi.org/project/copick-torch/)** plugin, not copick core. Install it to make this command available:
+
+    ```bash
+    pip install copick-torch
+    ```
+
+    See the [plugin system](../index.md#plugin-system) guide for details.
+
+=== "Default"
+
+    <div class="before-after" markdown>
+
+    <figure class="before-after__fig" markdown="span">
+    ![copick convert picks2slab Default input](../../assets/tools/convert/picks2slab-before.png)
+    <figcaption>Input</figcaption>
+    </figure>
+
+    <p class="before-after__arrow" aria-hidden="true">→</p>
+
+    <figure class="before-after__fig" markdown="span">
+    ![copick convert picks2slab Default output](../../assets/tools/convert/picks2slab-after.png)
+    <figcaption>Output</figcaption>
+    </figure>
+
+    </div>
+
+    <p class="before-after__caption">Fit spline surfaces to two pick sets and create a slab mesh.</p>
+
+
+=== "Coupled"
+
+    <div class="before-after" markdown>
+
+    <figure class="before-after__fig" markdown="span">
+    ![copick convert picks2slab Coupled input](../../assets/tools/convert/picks2slab-before.png)
+    <figcaption>Input</figcaption>
+    </figure>
+
+    <p class="before-after__arrow" aria-hidden="true">→</p>
+
+    <figure class="before-after__fig" markdown="span">
+    ![copick convert picks2slab Coupled output](../../assets/tools/convert/picks2slab.coupled-after.png)
+    <figcaption>Output</figcaption>
+    </figure>
+
+    </div>
+
+    <p class="before-after__caption">Fit spline surfaces to two pick sets and create a slab mesh.</p>
+
+
+=== "Parallel"
+
+    <div class="before-after" markdown>
+
+    <figure class="before-after__fig" markdown="span">
+    ![copick convert picks2slab Parallel input](../../assets/tools/convert/picks2slab-before.png)
+    <figcaption>Input</figcaption>
+    </figure>
+
+    <p class="before-after__arrow" aria-hidden="true">→</p>
+
+    <figure class="before-after__fig" markdown="span">
+    ![copick convert picks2slab Parallel output](../../assets/tools/convert/picks2slab.parallel-after.png)
+    <figcaption>Output</figcaption>
+    </figure>
+
+    </div>
+
+    <p class="before-after__caption">Fit spline surfaces to two pick sets and create a slab mesh.</p>
+
 
 ## Usage
 
@@ -104,8 +178,3 @@ copick convert picks2slab -c config.json \
     --grid-resolution 7 7 --fit-resolution 100 100 \
     -o "sample:picks2slab/fitted"
 ```
-
-## See also
-
-- [`copick convert seg2slab`](seg2slab.md) — fit a slab mesh to a boundary segmentation instead of picks
-- [`copick convert mesh2caps`](mesh2caps.md) — extract the top/bottom cap surfaces of the resulting slab mesh

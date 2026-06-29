@@ -3,6 +3,8 @@
 
 # copick config set-splits
 
+<span class="source-badge source-badge--core" title="Part of copick core">core</span>
+
 *Edit train/val/test split assignments on an existing Croissant.*
 
 ## Usage

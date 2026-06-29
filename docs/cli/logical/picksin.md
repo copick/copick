@@ -3,7 +3,36 @@
 
 # copick logical picksin
 
+<span class="source-badge source-badge--utils" title="Provided by the copick-utils plugin">utils</span>
+
 *Filter picks to include only those inside a reference volume.*
+
+??? info "Plugin command — copick-utils"
+    This command is provided by the **[copick-utils](https://pypi.org/project/copick-utils/)** plugin, not copick core. Install it to make this command available:
+
+    ```bash
+    pip install copick-utils
+    ```
+
+    See the [plugin system](../index.md#plugin-system) guide for details.
+
+<div class="before-after" markdown>
+
+<figure class="before-after__fig" markdown="span">
+![copick logical picksin input](../../assets/tools/logical/picksin-before.png)
+<figcaption>Input</figcaption>
+</figure>
+
+<p class="before-after__arrow" aria-hidden="true">→</p>
+
+<figure class="before-after__fig" markdown="span">
+![copick logical picksin output](../../assets/tools/logical/picksin-after.png)
+<figcaption>Output</figcaption>
+</figure>
+
+</div>
+
+<p class="before-after__caption">Filter picks to include only those inside a reference volume.</p>
 
 ## Usage
 

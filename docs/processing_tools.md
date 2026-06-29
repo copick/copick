@@ -11,25 +11,25 @@ Convert one copick type to another.
 
 <div class="grid cards" markdown>
 
--   [![mesh2caps](assets/tools/_placeholder.svg){ .tool-thumb }](cli/convert/mesh2caps.md)
+-   <span class="before-after--card" markdown="span">[![mesh2caps input](assets/tools/convert/mesh2caps-before.png)](cli/convert/mesh2caps.md)[![mesh2caps output](assets/tools/convert/mesh2caps-after.png)](cli/convert/mesh2caps.md)</span>
 
-    **mesh2caps**
+    **[mesh2caps](cli/convert/mesh2caps.md)**
 
     Extract the top/bottom surfaces (caps) of a slab box mesh.
 
     [:octicons-arrow-right-24: Details](cli/convert/mesh2caps.md)
 
--   [![mesh2picks](assets/tools/_placeholder.svg){ .tool-thumb }](cli/convert/mesh2picks.md)
+-   <span class="before-after--card" markdown="span">[![mesh2picks input](assets/tools/convert/mesh2picks-before.png)](cli/convert/mesh2picks.md)[![mesh2picks output](assets/tools/convert/mesh2picks-after.png)](cli/convert/mesh2picks.md)</span>
 
-    **mesh2picks**
+    **[mesh2picks](cli/convert/mesh2picks.md)**
 
     Convert meshes to picks using different sampling strategies.
 
     [:octicons-arrow-right-24: Details](cli/convert/mesh2picks.md)
 
--   [![mesh2seg](assets/tools/_placeholder.svg){ .tool-thumb }](cli/convert/mesh2seg.md)
+-   <span class="before-after--card" markdown="span">[![mesh2seg input](assets/tools/convert/mesh2seg-before.png)](cli/convert/mesh2seg.md)[![mesh2seg output](assets/tools/convert/mesh2seg-after.png)](cli/convert/mesh2seg.md)</span>
 
-    **mesh2seg**
+    **[mesh2seg](cli/convert/mesh2seg.md)**
 
     Convert meshes to segmentation volumes.
 
@@ -37,87 +37,87 @@ Convert one copick type to another.
 
 -   [![nnunet](assets/tools/_placeholder.svg){ .tool-thumb }](cli/convert/nnunet.md)
 
-    **nnunet**
+    **[nnunet](cli/convert/nnunet.md)**
 
-    Convert a copick project to nnUNet raw dataset format.
+    Convert a CoPick project to nnUNet raw...
 
     [:octicons-arrow-right-24: Details](cli/convert/nnunet.md)
 
--   [![picks2ellipsoid](assets/tools/_placeholder.svg){ .tool-thumb }](cli/convert/picks2ellipsoid.md)
+-   <span class="before-after--card" markdown="span">[![picks2ellipsoid input](assets/tools/convert/picks2ellipsoid-before.png)](cli/convert/picks2ellipsoid.md)[![picks2ellipsoid output](assets/tools/convert/picks2ellipsoid-after.png)](cli/convert/picks2ellipsoid.md)</span>
 
-    **picks2ellipsoid**
+    **[picks2ellipsoid](cli/convert/picks2ellipsoid.md)**
 
     Convert picks to ellipsoid meshes.
 
     [:octicons-arrow-right-24: Details](cli/convert/picks2ellipsoid.md)
 
--   [![picks2mesh](assets/tools/_placeholder.svg){ .tool-thumb }](cli/convert/picks2mesh.md)
+-   <span class="before-after--card" markdown="span">[![picks2mesh input](assets/tools/convert/picks2mesh-before.png)](cli/convert/picks2mesh.md)[![picks2mesh output](assets/tools/convert/picks2mesh-after.png)](cli/convert/picks2mesh.md)</span>
 
-    **picks2mesh**
+    **[picks2mesh](cli/convert/picks2mesh.md)**
 
     Convert picks to meshes using convex hull or alpha shapes.
 
     [:octicons-arrow-right-24: Details](cli/convert/picks2mesh.md)
 
--   [![picks2plane](assets/tools/_placeholder.svg){ .tool-thumb }](cli/convert/picks2plane.md)
+-   <span class="before-after--card" markdown="span">[![picks2plane input](assets/tools/convert/picks2plane-before.png)](cli/convert/picks2plane.md)[![picks2plane output](assets/tools/convert/picks2plane-after.png)](cli/convert/picks2plane.md)</span>
 
-    **picks2plane**
+    **[picks2plane](cli/convert/picks2plane.md)**
 
     Convert picks to plane meshes.
 
     [:octicons-arrow-right-24: Details](cli/convert/picks2plane.md)
 
--   [![picks2seg](assets/tools/_placeholder.svg){ .tool-thumb }](cli/convert/picks2seg.md)
+-   <span class="before-after--card" markdown="span">[![picks2seg input](assets/tools/convert/picks2seg-before.png)](cli/convert/picks2seg.md)[![picks2seg output](assets/tools/convert/picks2seg-after.png)](cli/convert/picks2seg.md)</span>
 
-    **picks2seg**
+    **[picks2seg](cli/convert/picks2seg.md)**
 
     Convert picks to segmentation volumes by painting spheres.
 
     [:octicons-arrow-right-24: Details](cli/convert/picks2seg.md)
 
--   [![picks2slab](assets/tools/_placeholder.svg){ .tool-thumb }](cli/convert/picks2slab.md)
+-   <span class="before-after--card" markdown="span">[![picks2slab input](assets/tools/convert/picks2slab-before.png)](cli/convert/picks2slab.md)[![picks2slab output](assets/tools/convert/picks2slab-after.png)](cli/convert/picks2slab.md)</span>
 
-    **picks2slab**
+    **[picks2slab](cli/convert/picks2slab.md)**
 
     Fit spline surfaces to two pick sets and create a slab mesh.
 
     [:octicons-arrow-right-24: Details](cli/convert/picks2slab.md)
 
--   [![picks2sphere](assets/tools/_placeholder.svg){ .tool-thumb }](cli/convert/picks2sphere.md)
+-   <span class="before-after--card" markdown="span">[![picks2sphere input](assets/tools/convert/picks2sphere-before.png)](cli/convert/picks2sphere.md)[![picks2sphere output](assets/tools/convert/picks2sphere-after.png)](cli/convert/picks2sphere.md)</span>
 
-    **picks2sphere**
+    **[picks2sphere](cli/convert/picks2sphere.md)**
 
     Convert picks to sphere meshes.
 
     [:octicons-arrow-right-24: Details](cli/convert/picks2sphere.md)
 
--   [![picks2surface](assets/tools/_placeholder.svg){ .tool-thumb }](cli/convert/picks2surface.md)
+-   <span class="before-after--card" markdown="span">[![picks2surface input](assets/tools/convert/picks2surface-before.png)](cli/convert/picks2surface.md)[![picks2surface output](assets/tools/convert/picks2surface-after.png)](cli/convert/picks2surface.md)</span>
 
-    **picks2surface**
+    **[picks2surface](cli/convert/picks2surface.md)**
 
     Convert picks to 2D surface meshes.
 
     [:octicons-arrow-right-24: Details](cli/convert/picks2surface.md)
 
--   [![seg2mesh](assets/tools/_placeholder.svg){ .tool-thumb }](cli/convert/seg2mesh.md)
+-   <span class="before-after--card" markdown="span">[![seg2mesh input](assets/tools/convert/seg2mesh-before.png)](cli/convert/seg2mesh.md)[![seg2mesh output](assets/tools/convert/seg2mesh-after.png)](cli/convert/seg2mesh.md)</span>
 
-    **seg2mesh**
+    **[seg2mesh](cli/convert/seg2mesh.md)**
 
     Convert segmentation volumes to meshes using marching cubes.
 
     [:octicons-arrow-right-24: Details](cli/convert/seg2mesh.md)
 
--   [![seg2picks](assets/tools/_placeholder.svg){ .tool-thumb }](cli/convert/seg2picks.md)
+-   <span class="before-after--card" markdown="span">[![seg2picks input](assets/tools/convert/seg2picks-before.png)](cli/convert/seg2picks.md)[![seg2picks output](assets/tools/convert/seg2picks-after.png)](cli/convert/seg2picks.md)</span>
 
-    **seg2picks**
+    **[seg2picks](cli/convert/seg2picks.md)**
 
     Convert segmentation to picks.
 
     [:octicons-arrow-right-24: Details](cli/convert/seg2picks.md)
 
--   [![seg2slab](assets/tools/_placeholder.svg){ .tool-thumb }](cli/convert/seg2slab.md)
+-   <span class="before-after--card" markdown="span">[![seg2slab input](assets/tools/convert/seg2slab-before.png)](cli/convert/seg2slab.md)[![seg2slab output](assets/tools/convert/seg2slab-after.png)](cli/convert/seg2slab.md)</span>
 
-    **seg2slab**
+    **[seg2slab](cli/convert/seg2slab.md)**
 
     Fit parallel planes to a segmentation and create a slab mesh.
 
@@ -133,15 +133,15 @@ Apply processing methods to copick data.
 
 -   [![bandpass](assets/tools/_placeholder.svg){ .tool-thumb }](cli/process/bandpass.md)
 
-    **bandpass**
+    **[bandpass](cli/process/bandpass.md)**
 
-    Band-pass filter tomograms in 3D.
+    3D bandpass filter tomograms.
 
     [:octicons-arrow-right-24: Details](cli/process/bandpass.md)
 
--   [![combine](assets/tools/_placeholder.svg){ .tool-thumb }](cli/process/combine.md)
+-   <span class="before-after--card" markdown="span">[![combine input](assets/tools/process/combine-before.png)](cli/process/combine.md)[![combine output](assets/tools/process/combine-after.png)](cli/process/combine.md)</span>
 
-    **combine**
+    **[combine](cli/process/combine.md)**
 
     Combine single-label segmentations into a multilabel segmentation.
 
@@ -149,47 +149,47 @@ Apply processing methods to copick data.
 
 -   [![downsample](assets/tools/_placeholder.svg){ .tool-thumb }](cli/process/downsample.md)
 
-    **downsample**
+    **[downsample](cli/process/downsample.md)**
 
-    Downsample tomograms via Fourier rescaling.
+    Downsample tomograms with Fourier Re-Scaling.
 
     [:octicons-arrow-right-24: Details](cli/process/downsample.md)
 
--   [![expand-labels](assets/tools/_placeholder.svg){ .tool-thumb }](cli/process/expand-labels.md)
+-   <span class="before-after--card" markdown="span">[![expand-labels input](assets/tools/process/expand-labels-before.png)](cli/process/expand-labels.md)[![expand-labels output](assets/tools/process/expand-labels-after.png)](cli/process/expand-labels.md)</span>
 
-    **expand-labels**
+    **[expand-labels](cli/process/expand-labels.md)**
 
     Expand labels in segmentations to fill holes and gaps.
 
     [:octicons-arrow-right-24: Details](cli/process/expand-labels.md)
 
--   [![filter-components](assets/tools/_placeholder.svg){ .tool-thumb }](cli/process/filter-components.md)
+-   <span class="before-after--card" markdown="span">[![filter-components input](assets/tools/process/filter-components-before.png)](cli/process/filter-components.md)[![filter-components output](assets/tools/process/filter-components-after.png)](cli/process/filter-components.md)</span>
 
-    **filter-components**
+    **[filter-components](cli/process/filter-components.md)**
 
     Filter connected components in segmentations by size.
 
     [:octicons-arrow-right-24: Details](cli/process/filter-components.md)
 
--   [![fit-spline](assets/tools/_placeholder.svg){ .tool-thumb }](cli/process/fit-spline.md)
+-   <span class="before-after--card" markdown="span">[![fit-spline input](assets/tools/process/fit-spline-before.png)](cli/process/fit-spline.md)[![fit-spline output](assets/tools/process/fit-spline-after.png)](cli/process/fit-spline.md)</span>
 
-    **fit-spline**
+    **[fit-spline](cli/process/fit-spline.md)**
 
     Fit 3D splines to skeletons and generate oriented picks.
 
     [:octicons-arrow-right-24: Details](cli/process/fit-spline.md)
 
--   [![hull](assets/tools/_placeholder.svg){ .tool-thumb }](cli/process/hull.md)
+-   <span class="before-after--card" markdown="span">[![hull input](assets/tools/process/hull-before.png)](cli/process/hull.md)[![hull output](assets/tools/process/hull-after.png)](cli/process/hull.md)</span>
 
-    **hull**
+    **[hull](cli/process/hull.md)**
 
     Compute hull operations on meshes.
 
     [:octicons-arrow-right-24: Details](cli/process/hull.md)
 
--   [![rescale](assets/tools/_placeholder.svg){ .tool-thumb }](cli/process/rescale.md)
+-   <span class="before-after--card" markdown="span">[![rescale input](assets/tools/process/rescale-before.png)](cli/process/rescale.md)[![rescale output](assets/tools/process/rescale-after.png)](cli/process/rescale.md)</span>
 
-    **rescale**
+    **[rescale](cli/process/rescale.md)**
 
     Rescale segmentations to a different voxel spacing.
 
@@ -197,47 +197,47 @@ Apply processing methods to copick data.
 
 -   [![seg-stats](assets/tools/_placeholder.svg){ .tool-thumb }](cli/process/seg-stats.md)
 
-    **seg-stats**
+    **[seg-stats](cli/process/seg-stats.md)**
 
     Analyze connected component sizes per label in segmentations.
 
     [:octicons-arrow-right-24: Details](cli/process/seg-stats.md)
 
--   [![separate-components](assets/tools/_placeholder.svg){ .tool-thumb }](cli/process/separate-components.md)
+-   <span class="before-after--card" markdown="span">[![separate-components input](assets/tools/process/separate-components-before.png)](cli/process/separate-components.md)[![separate-components output](assets/tools/process/separate-components-after.png)](cli/process/separate-components.md)</span>
 
-    **separate-components**
+    **[separate-components](cli/process/separate-components.md)**
 
     Separate connected components in segmentations.
 
     [:octicons-arrow-right-24: Details](cli/process/separate-components.md)
 
--   [![skeletonize](assets/tools/_placeholder.svg){ .tool-thumb }](cli/process/skeletonize.md)
+-   <span class="before-after--card" markdown="span">[![skeletonize input](assets/tools/process/skeletonize-before.png)](cli/process/skeletonize.md)[![skeletonize output](assets/tools/process/skeletonize-after.png)](cli/process/skeletonize.md)</span>
 
-    **skeletonize**
+    **[skeletonize](cli/process/skeletonize.md)**
 
     Skeletonize segmentations in 3D using pattern matching.
 
     [:octicons-arrow-right-24: Details](cli/process/skeletonize.md)
 
--   [![split](assets/tools/_placeholder.svg){ .tool-thumb }](cli/process/split.md)
+-   <span class="before-after--card" markdown="span">[![split input](assets/tools/process/split-before.png)](cli/process/split.md)[![split output](assets/tools/process/split-after.png)](cli/process/split.md)</span>
 
-    **split**
+    **[split](cli/process/split.md)**
 
     Split multilabel segmentations into single-class masks.
 
     [:octicons-arrow-right-24: Details](cli/process/split.md)
 
--   [![thickness-filter](assets/tools/_placeholder.svg){ .tool-thumb }](cli/process/thickness-filter.md)
+-   <span class="before-after--card" markdown="span">[![thickness-filter input](assets/tools/process/thickness-filter-before.png)](cli/process/thickness-filter.md)[![thickness-filter output](assets/tools/process/thickness-filter-after.png)](cli/process/thickness-filter.md)</span>
 
-    **thickness-filter**
+    **[thickness-filter](cli/process/thickness-filter.md)**
 
     Remove thin regions from segmentations.
 
     [:octicons-arrow-right-24: Details](cli/process/thickness-filter.md)
 
--   [![validbox](assets/tools/_placeholder.svg){ .tool-thumb }](cli/process/validbox.md)
+-   <span class="before-after--card" markdown="span">[![validbox input](assets/tools/process/validbox-before.png)](cli/process/validbox.md)[![validbox output](assets/tools/process/validbox-after.png)](cli/process/validbox.md)</span>
 
-    **validbox**
+    **[validbox](cli/process/validbox.md)**
 
     Generate valid area box meshes for tomographic reconstructions.
 
@@ -251,65 +251,65 @@ Perform logical operations on copick objects.
 
 <div class="grid cards" markdown>
 
--   [![clipmesh](assets/tools/_placeholder.svg){ .tool-thumb }](cli/logical/clipmesh.md)
+-   <span class="before-after--card" markdown="span">[![clipmesh input](assets/tools/logical/clipmesh-before.png)](cli/logical/clipmesh.md)[![clipmesh output](assets/tools/logical/clipmesh-after.png)](cli/logical/clipmesh.md)</span>
 
-    **clipmesh**
+    **[clipmesh](cli/logical/clipmesh.md)**
 
     Limit mesh vertices within distance of a reference surface.
 
     [:octicons-arrow-right-24: Details](cli/logical/clipmesh.md)
 
--   [![clippicks](assets/tools/_placeholder.svg){ .tool-thumb }](cli/logical/clippicks.md)
+-   <span class="before-after--card" markdown="span">[![clippicks input](assets/tools/logical/clippicks-before.png)](cli/logical/clippicks.md)[![clippicks output](assets/tools/logical/clippicks-after.png)](cli/logical/clippicks.md)</span>
 
-    **clippicks**
+    **[clippicks](cli/logical/clippicks.md)**
 
     Limit picks to those within distance of a reference surface.
 
     [:octicons-arrow-right-24: Details](cli/logical/clippicks.md)
 
--   [![clipseg](assets/tools/_placeholder.svg){ .tool-thumb }](cli/logical/clipseg.md)
+-   <span class="before-after--card" markdown="span">[![clipseg input](assets/tools/logical/clipseg-before.png)](cli/logical/clipseg.md)[![clipseg output](assets/tools/logical/clipseg-after.png)](cli/logical/clipseg.md)</span>
 
-    **clipseg**
+    **[clipseg](cli/logical/clipseg.md)**
 
     Limit segmentation voxels by distance to a reference.
 
     [:octicons-arrow-right-24: Details](cli/logical/clipseg.md)
 
--   [![enclosed](assets/tools/_placeholder.svg){ .tool-thumb }](cli/logical/enclosed.md)
+-   <span class="before-after--card" markdown="span">[![enclosed input](assets/tools/logical/enclosed-before.png)](cli/logical/enclosed.md)[![enclosed output](assets/tools/logical/enclosed-after.png)](cli/logical/enclosed.md)</span>
 
-    **enclosed**
+    **[enclosed](cli/logical/enclosed.md)**
 
     Remove enclosed components from a segmentation.
 
     [:octicons-arrow-right-24: Details](cli/logical/enclosed.md)
 
--   [![meshop](assets/tools/_placeholder.svg){ .tool-thumb }](cli/logical/meshop.md)
+-   <span class="before-after--card" markdown="span">[![meshop input](assets/tools/logical/meshop-before.png)](cli/logical/meshop.md)[![meshop output](assets/tools/logical/meshop-after.png)](cli/logical/meshop.md)</span>
 
-    **meshop**
+    **[meshop](cli/logical/meshop.md)**
 
     Perform boolean operations between meshes.
 
     [:octicons-arrow-right-24: Details](cli/logical/meshop.md)
 
--   [![picksin](assets/tools/_placeholder.svg){ .tool-thumb }](cli/logical/picksin.md)
+-   <span class="before-after--card" markdown="span">[![picksin input](assets/tools/logical/picksin-before.png)](cli/logical/picksin.md)[![picksin output](assets/tools/logical/picksin-after.png)](cli/logical/picksin.md)</span>
 
-    **picksin**
+    **[picksin](cli/logical/picksin.md)**
 
     Filter picks to include only those inside a reference volume.
 
     [:octicons-arrow-right-24: Details](cli/logical/picksin.md)
 
--   [![picksout](assets/tools/_placeholder.svg){ .tool-thumb }](cli/logical/picksout.md)
+-   <span class="before-after--card" markdown="span">[![picksout input](assets/tools/logical/picksout-before.png)](cli/logical/picksout.md)[![picksout output](assets/tools/logical/picksout-after.png)](cli/logical/picksout.md)</span>
 
-    **picksout**
+    **[picksout](cli/logical/picksout.md)**
 
     Filter picks to exclude those inside a reference volume.
 
     [:octicons-arrow-right-24: Details](cli/logical/picksout.md)
 
--   [![segop](assets/tools/_placeholder.svg){ .tool-thumb }](cli/logical/segop.md)
+-   <span class="before-after--card" markdown="span">[![segop input](assets/tools/logical/segop-before.png)](cli/logical/segop.md)[![segop output](assets/tools/logical/segop-after.png)](cli/logical/segop.md)</span>
 
-    **segop**
+    **[segop](cli/logical/segop.md)**
 
     Perform boolean operations between segmentations.
 

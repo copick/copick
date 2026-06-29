@@ -3,6 +3,8 @@
 
 # copick config export-croissant
 
+<span class="source-badge source-badge--core" title="Part of copick core">core</span>
+
 *Export a copick project to an mlcroissant manifest.*
 
 ## Usage

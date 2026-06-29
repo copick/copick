@@ -3,6 +3,8 @@
 
 # copick new picks
 
+<span class="source-badge source-badge--core" title="Part of copick core">core</span>
+
 *Create empty picks for a given particle name.*
 
 ## Usage

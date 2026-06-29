@@ -3,7 +3,18 @@
 
 # copick setup mcp-status
 
+<span class="source-badge source-badge--mcp" title="Provided by the copick-mcp plugin">mcp</span>
+
 *Check Copick MCP server configuration status.*
+
+??? info "Plugin command — copick-mcp"
+    This command is provided by the **[copick-mcp](https://pypi.org/project/copick-mcp/)** plugin, not copick core. Install it to make this command available:
+
+    ```bash
+    pip install copick-mcp
+    ```
+
+    See the [plugin system](../index.md#plugin-system) guide for details.
 
 ## Usage
 
