@@ -56,21 +56,21 @@ fabricate synthetic inputs (copick API)  ->  run the CLI command  ->  verify out
 
 ```bash
 # 1. Build inputs, run the command(s), verify, and emit .cxc files
-make -C docs/gallery gallery CMD=picks2seg     # one command (fast iteration)
-make -C docs/gallery gallery GROUP=convert     # a whole group
-make -C docs/gallery gallery                   # everything
+make -C util/gallery gallery CMD=picks2seg     # one command (fast iteration)
+make -C util/gallery gallery GROUP=convert     # a whole group
+make -C util/gallery gallery                   # everything
 
 # 2. Render (opens a ChimeraX window, writes PNGs, exits). The driver prints this for you:
-"$CHIMERAX" --exit docs/gallery/build/cxc/master.cxc
+"$CHIMERAX" --exit util/gallery/build/cxc/master.cxc
 #   or, for a single command:
-"$CHIMERAX" --exit docs/gallery/build/cxc/convert-picks2seg.cxc
+"$CHIMERAX" --exit util/gallery/build/cxc/convert-picks2seg.cxc
 
 # 3. Wire into the docs and preview
 cd copick && make_cli_docs && zensical serve    # check light + dark
 make_cli_docs --check                           # must be clean; commit images + regenerated docs together
 ```
 
-Direct (without make): `cd copick/docs && python -m gallery.driver --only picks2seg`.
+Direct (without make): `cd copick/util && python -m gallery.driver --only picks2seg`.
 
 Useful flags: `--skip-fixtures` (reuse built data), `--skip-run` (only fixtures+emit),
 `--skip-emit` (only build+run). A pass/fail summary is written to

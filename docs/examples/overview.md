@@ -23,41 +23,11 @@ Access data from the CZ cryoET Data Portal and create new annotations for portal
 
 <div class="cmd-card" markdown>
 
-[![Syncing the CZII Kaggle Dataset](../assets/tools/tutorials/kaggle.png){ .cmd-card__thumb }](tutorials/kaggle_czii_sync.md)
-
-**[Syncing the CZII Kaggle Dataset](tutorials/kaggle_czii_sync.md)**
-
-Synchronize the CZII Kaggle challenge dataset into a copick project.
-
-</div>
-
-<div class="cmd-card" markdown>
-
-[![Copick and HPC](../assets/tools/_placeholder.svg){ .cmd-card__thumb }](tutorials/hpc.md)
-
-**[Copick and HPC](tutorials/hpc.md)**
-
-Run copick workflows at scale on HPC clusters.
-
-</div>
-
-<div class="cmd-card" markdown>
-
 [![ChimeraX-copick](../assets/chimerax-copick.png){ .cmd-card__thumb }](tutorials/chimerax.md)
 
 **[ChimeraX-copick](tutorials/chimerax.md)**
 
 Visualize and curate data from a copick project in UCSF ChimeraX.
-
-</div>
-
-<div class="cmd-card" markdown>
-
-[![Copick and Album](../assets/tools/_placeholder.svg){ .cmd-card__thumb }](tutorials/album.md)
-
-**[Copick and Album](tutorials/album.md)**
-
-Create album-based solutions to process copick data.
 
 </div>
 
@@ -83,11 +53,31 @@ Filter particle picks by their position relative to the detected sample boundari
 
 <div class="cmd-card" markdown>
 
-[![Copick and membrain-seg](../assets/tools/_placeholder.svg){ .cmd-card__thumb }](tutorials/membrain.md)
+[![Copick and membrain-seg](../assets/membrain_goal_light.png#only-light){ .cmd-card__thumb }![Copick and membrain-seg](../assets/membrain_goal_dark.png#only-dark){ .cmd-card__thumb }](tutorials/membrain.md)
 
 **[Copick and membrain-seg](tutorials/membrain.md)**
 
 Run the membrain-seg segmentation pipeline on a copick project.
+
+</div>
+
+<div class="cmd-card" markdown>
+
+[![Copick and easymode](../assets/easymode_goal_light.png#only-light){ .cmd-card__thumb }![Copick and easymode](../assets/easymode_goal_dark.png#only-dark){ .cmd-card__thumb }](tutorials/easymode.md)
+
+**[Copick and easymode](tutorials/easymode.md)**
+
+Run easymode's pretrained segmentation networks on a copick project.
+
+</div>
+
+<div class="cmd-card" markdown>
+
+[![Syncing the CZII Kaggle Dataset](../assets/tools/tutorials/kaggle.png){ .cmd-card__thumb }](tutorials/kaggle_czii_sync.md)
+
+**[Syncing the CZII Kaggle Dataset](tutorials/kaggle_czii_sync.md)**
+
+Synchronize the CZII Kaggle challenge dataset into a copick project.
 
 </div>
 
@@ -108,6 +98,26 @@ Drive copick from an MCP-enabled assistant.
 **[mlcroissant](tutorials/croissant.md)**
 
 Work with copick projects described by an ML Commons Croissant manifest.
+
+</div>
+
+<div class="cmd-card" markdown>
+
+[![Copick and HPC](../assets/tools/_placeholder.svg){ .cmd-card__thumb }](tutorials/hpc.md)
+
+**[Copick and HPC](tutorials/hpc.md)**
+
+Run copick workflows at scale on HPC clusters.
+
+</div>
+
+<div class="cmd-card" markdown>
+
+[![Copick and Album](../assets/tools/_placeholder.svg){ .cmd-card__thumb }](tutorials/album.md)
+
+**[Copick and Album](tutorials/album.md)**
+
+Create album-based solutions to process copick data.
 
 </div>
 

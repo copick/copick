@@ -76,25 +76,25 @@ pip install copick
 
 <div class="grid cards" markdown>
 
--   [![Convert](assets/tools/_placeholder.svg){ .tool-thumb }](cli/convert/index.md)
+-   [![Convert](assets/tools/convert/mesh2picks-after.png){ .tool-thumb }](cli/convert/index.md)
 
     **[Convert](cli/convert/index.md)**
 
     Convert between picks, segmentations, and meshes.
 
--   [![Logical](assets/tools/_placeholder.svg){ .tool-thumb }](cli/logical/index.md)
+-   [![Logical](assets/tools/logical/clipmesh-after.png){ .tool-thumb }](cli/logical/index.md)
 
     **[Logical](cli/logical/index.md)**
 
     Combine and clip annotations with boolean & spatial operations.
 
--   [![Process](assets/tools/_placeholder.svg){ .tool-thumb }](cli/process/index.md)
+-   [![Process](assets/tools/process/skeletonize-after.png){ .tool-thumb }](cli/process/index.md)
 
     **[Process](cli/process/index.md)**
 
     Transform segmentations and meshes — skeletonize, expand, fit, filter.
 
--   [![Inference](assets/tools/_placeholder.svg){ .tool-thumb }](cli/inference/index.md)
+-   [![Inference](assets/membrain_goal_light.png#only-light){ .tool-thumb }![Inference](assets/membrain_goal_dark.png#only-dark){ .tool-thumb }](cli/inference/index.md)
 
     **[Inference](cli/inference/index.md)**
 

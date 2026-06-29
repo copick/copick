@@ -1,12 +1,12 @@
 """Orchestrate the gallery pipeline: fabricate -> run+verify -> emit .cxc.
 
-Run from the docs directory so ``gallery`` is importable as a package:
+Run from the ``util`` directory so ``gallery`` is importable as a package:
 
-    cd copick/docs && python -m gallery.driver --only picks2seg
-    cd copick/docs && python -m gallery.driver --group convert
-    cd copick/docs && python -m gallery.driver --all
+    cd copick/util && python -m gallery.driver --only picks2seg
+    cd copick/util && python -m gallery.driver --group convert
+    cd copick/util && python -m gallery.driver --all
 
-(or use the Makefile: ``make -C copick/docs/gallery gallery CMD=picks2seg``)
+(or use the Makefile: ``make -C copick/util/gallery gallery CMD=picks2seg``)
 
 The driver never launches ChimeraX. It prints the exact command to render the emitted
 ``.cxc`` (a windowed GUI session is required — see ``chimerax.py``).
@@ -26,11 +26,26 @@ from .runner import CommandRunner, RunResult
 from .schema import RenderSpec
 
 GALLERY_DIR = Path(__file__).resolve().parent
+
+
+def _docs_assets_dir() -> Path:
+    """Locate ``<repo>/docs/assets/tools`` from this package's on-disk location.
+
+    The gallery lives under ``util/`` — outside both the docs tree and the Python package — so we
+    walk up to the repo root (the directory holding ``pyproject.toml`` next to ``docs/``) rather than
+    assuming a fixed parent directory.
+    """
+    for d in (GALLERY_DIR, *GALLERY_DIR.parents):
+        if (d / "pyproject.toml").is_file() and (d / "docs").is_dir():
+            return d / "docs" / "assets" / "tools"
+    raise RuntimeError(f"Could not locate <repo>/docs from {GALLERY_DIR}")
+
+
 BUILD = GALLERY_DIR / "build"
 PROJECT_DIR = BUILD / "project"
 CXC_DIR = BUILD / "cxc"
 LOG_DIR = BUILD / "logs"
-ASSETS_DIR = GALLERY_DIR.parent / "assets" / "tools"  # docs/assets/tools
+ASSETS_DIR = _docs_assets_dir()  # <repo>/docs/assets/tools
 
 
 def _select(args) -> List[RenderSpec]:

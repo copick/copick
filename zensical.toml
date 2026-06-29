@@ -216,6 +216,7 @@ nav = [
     ]},
     {"Ecosystem" = "tools.md"},
     {"Contributing" = "contributing.md"},
+    {"Citation" = "citation.md"},
 ]
 
 # --- Theme ---

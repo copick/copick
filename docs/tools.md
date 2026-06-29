@@ -71,6 +71,52 @@ distributed through CZI Virtual Cell Models.
 
 ---
 
+### membrain-seg
+
+<figure markdown="span">
+  ![membrain-seg input and output](assets/membrain_goal_light.png#only-light){ width="600" }
+  ![membrain-seg input and output](assets/membrain_goal_dark.png#only-dark){ width="600" }
+  <figcaption>membrain-seg turns a raw tomogram (left) into a membrane segmentation (right).</figcaption>
+</figure>
+
+A pretrained 3D U-Net for segmenting membranes in cryoET tomograms. Via the **copick-torch** plugin it runs directly
+on a copick project as `copick inference membrain-seg`, reading tomograms and writing membrane segmentations back
+through the **copick** dataset API.
+
+<div class="grid cards" markdown>
+
+- :fontawesome-solid-code: [__Repository__](https://github.com/teamtomo/membrain-seg)
+- :fontawesome-solid-circle-info: [__Tutorial__](examples/tutorials/membrain.md)
+- :fontawesome-solid-book: [__Preprint__](https://www.biorxiv.org/content/10.1101/2024.01.05.574336v2)
+
+</div>
+
+---
+
+### copick-easymode
+
+<figure markdown="span">
+  ![easymode input and output](assets/easymode_goal_light.png#only-light){ width="600" }
+  ![easymode input and output](assets/easymode_goal_dark.png#only-dark){ width="600" }
+  <figcaption>easymode turns a raw tomogram (left) into dense per-feature segmentations (right).</figcaption>
+</figure>
+
+A collection of pretrained, general-purpose 3D U-Nets for segmenting common eukaryotic features in cryoET — membranes,
+ribosomes, microtubules and more. The **copick-easymode** plugin runs them directly on a copick project as
+`copick inference easymode`, reading tomograms and writing one segmentation per feature back through the **copick**
+dataset API.
+
+<div class="grid cards" markdown>
+
+- :fontawesome-solid-code: [__Repository__](https://github.com/copick/copick-easymode)
+- :fontawesome-solid-circle-info: [__Tutorial__](examples/tutorials/easymode.md)
+- :fontawesome-solid-code: [__easymode__](https://github.com/mgflast/easymode)
+- :fontawesome-solid-book: [__Preprint__](https://www.biorxiv.org/content/10.64898/2026.05.19.726344v1)
+
+</div>
+
+---
+
 ### copick-catalog
 
 An [album](https://album.solutions)-catalog for manipulating copick data entities. Includes solutions to fit planes to

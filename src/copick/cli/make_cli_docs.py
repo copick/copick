@@ -575,7 +575,7 @@ def _tool_image(group: str, command: str) -> str:
 
 def _beforeafter_images(group: str, command: str) -> Optional[Tuple[str, str]]:
     """Docs-root-relative ``(before, after)`` render paths, or ``None`` if either is
-    missing. Paths are PNGs produced by ``docs/gallery`` (see its README). The return
+    missing. Paths are PNGs produced by ``util/gallery`` (see its README). The return
     convention matches ``_tool_image`` (relative to ``docs/``), correct for the gallery
     page; leaf command pages rebase via ``_beforeafter_block``."""
     base = os.path.join("docs", "assets", "tools", group)

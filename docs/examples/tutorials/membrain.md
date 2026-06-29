@@ -1,8 +1,8 @@
 ## Segmenting membranes with membrain-seg
 
-<!-- TODO: replace with a real render; optionally split into membrain_goal_light.png / membrain_goal_dark.png -->
 <figure markdown="span">
-  ![tutorial-goal](../../assets/membrain_goal.png)
+  ![tutorial-goal](../../assets/membrain_goal_light.png#only-light)
+  ![tutorial-goal](../../assets/membrain_goal_dark.png#only-dark)
   <figcaption>The goal: turn a raw cryo-electron tomogram (left) into a dense membrane
 segmentation (right) with a single command. Shown on
 <a href="https://cryoetdataportal.czscience.com/runs/14069">run 14069</a> of
@@ -18,6 +18,14 @@ tomogram, predicts membranes, and writes the result back as a segmentation — n
 In this tutorial we run it on the in-situ *Chlamydomonas reinhardtii* tomograms of CZ cryoET Data
 Portal [dataset 10301](https://cryoetdataportal.czscience.com/datasets/10301), whose lamellae are
 full of membranes (ER, Golgi, vesicles, the chloroplast envelope and thylakoids).
+
+!!! quote "Please cite membrain-seg"
+    copick only wraps the tool — the segmentation model and method are the work of the membrain-seg
+    authors. If membrain-seg contributes to your research, please cite the original project in
+    addition to copick:
+
+    - Repository: <https://github.com/teamtomo/membrain-seg>
+    - Preprint: <https://www.biorxiv.org/content/10.1101/2024.01.05.574336v2>
 
 !!! note "What you get"
     A multilabel segmentation **`membranes:membrain-seg/1`** per run (label `1` = membrane,
@@ -105,9 +113,9 @@ From here the mask feeds straight into copick's [processing tools](../../process
 example, `copick convert seg2mesh` turns it into a surface mesh for visualization or downstream
 geometry operations.
 
-<!-- TODO: replace with a real render; optionally split into membrain_result_light.png / membrain_result_dark.png -->
 <figure markdown="span">
-  ![tutorial-result](../../assets/membrain_result.png)
+  ![tutorial-result](../../assets/membrain_result_light.png#only-light)
+  ![tutorial-result](../../assets/membrain_result_dark.png#only-dark)
   <figcaption>The membrain-seg output (<code>membranes:membrain-seg/1</code>) overlaid on
 <a href="https://cryoetdataportal.czscience.com/runs/14069">run 14069</a> — membranes picked out
 across the lamella in a single pass.</figcaption>
