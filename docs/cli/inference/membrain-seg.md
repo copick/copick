@@ -32,3 +32,5 @@ copick inference membrain-seg [OPTIONS]
 | `--session-id` | text | `1` | Session ID for the Saved Membrane Segmentation |
 | `--user-id` | text | `membrain-seg` | User ID for the Saved Membrane Segmentation |
 | `--threshold` | float | `0` | Segmentation Threshold for Membrane Segmentation |
+
+--8<-- "docs/cli_editorial/inference/membrain-seg.md"

@@ -93,6 +93,7 @@ nav = [
             ]},
             {"inference" = [
                 {"Overview" = "cli/inference/index.md"},
+                {"easymode" = "cli/inference/easymode.md"},
                 {"membrain-seg" = "cli/inference/membrain-seg.md"},
                 {"nnunet" = "cli/inference/nnunet.md"},
             ]},

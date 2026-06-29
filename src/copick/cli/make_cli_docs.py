@@ -53,7 +53,7 @@ AUTOGEN_HEADER = (
 
 # Recognised docstring section headers (a closed vocabulary, matched at column 0
 # after dedent). "Example" and "Examples" are both accepted.
-_SECTION_RE = re.compile(r"^(Arguments|URI Format|Examples?|See Also|Notes):\s*$")
+_SECTION_RE = re.compile(r"^(Arguments|URI Format|Examples?|See Also|Notes|Acknowledgements):\s*$")
 
 
 # --------------------------------------------------------------------------- #
@@ -307,7 +307,21 @@ def _index_plugin_sources() -> None:
 # Plugin provenance (badge + install admonition)
 # --------------------------------------------------------------------------- #
 # Per-distribution install-command overrides; anything absent derives ``pip install <dist>``.
-_PLUGIN_INSTALL_OVERRIDES: Dict[str, str] = {}
+# A multi-line value must pre-indent its continuation lines by 4 spaces so they stay inside the
+# admonition's ```bash``` block (see ``_plugin_admonition``).
+_PLUGIN_INSTALL_OVERRIDES: Dict[str, str] = {
+    # Not on PyPI; easymode itself pins an old NumPy, so it is installed --no-deps from git.
+    "copick-easymode": (
+        "pip install git+https://github.com/copick/copick-easymode.git\n"
+        "    pip install --no-deps git+https://github.com/mgflast/easymode.git"
+    ),
+}
+
+# Per-distribution project-URL overrides for plugins that are not on PyPI (the badge/admonition
+# otherwise links to a non-existent ``pypi.org/project/<dist>/`` page).
+_PLUGIN_URL_OVERRIDES: Dict[str, str] = {
+    "copick-easymode": "https://github.com/copick/copick-easymode",
+}
 
 
 def _plugin_tag(dist: str) -> str:
@@ -320,7 +334,7 @@ def _plugin_install(dist: str) -> str:
 
 
 def _plugin_pypi_url(dist: str) -> str:
-    return f"https://pypi.org/project/{dist}/"
+    return _PLUGIN_URL_OVERRIDES.get(dist, f"https://pypi.org/project/{dist}/")
 
 
 def _source_badge(path: List[str]) -> str:
@@ -440,7 +454,7 @@ def _render_leaf(cmd: click.Command, path: List[str], ctx: click.Context) -> str
     if options:
         blocks.append(options)
 
-    for label in ("Examples", "See Also", "Notes"):
+    for label in ("Examples", "See Also", "Notes", "Acknowledgements"):
         if label in sections:
             blocks.append(_render_section(label, sections[label], path))
 
