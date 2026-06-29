@@ -1,5 +1,37 @@
 # Changelog
 
+## [1.25.0](https://github.com/copick/copick/compare/copick-v1.24.1...copick-v1.25.0) (2026-06-29)
+
+
+### ✨ Features
+
+* Docs rework.  ([#314](https://github.com/copick/copick/issues/314)) ([c797ebf](https://github.com/copick/copick/commit/c797ebfc8dbfbd8cc542bf81a42c8807c4090b11))
+* Tutorial on boundary-distance filtering ([#313](https://github.com/copick/copick/issues/313)) ([ff6a442](https://github.com/copick/copick/commit/ff6a442c08b2039d70707f4cef2cf58d3ee0b430))
+* Update boundary tutorial to reflect new tooling. ([#268](https://github.com/copick/copick/issues/268)) ([ec80e53](https://github.com/copick/copick/commit/ec80e5376720e809f07c62af1043fd0a3698a0cc))
+
+
+### 🐞 Bug Fixes
+
+* Bump actions/checkout from 6 to 7 ([#310](https://github.com/copick/copick/issues/310)) ([54c47d9](https://github.com/copick/copick/commit/54c47d939b5d871669ae14866962f1656e15c4cc))
+* Bump aiohttp from 3.13.4 to 3.13.5 ([#287](https://github.com/copick/copick/issues/287)) ([c8b2ed3](https://github.com/copick/copick/commit/c8b2ed398d06927f53a3f7291c68c4248374d1c5))
+* Bump aiohttp from 3.13.5 to 3.14.1 ([#302](https://github.com/copick/copick/issues/302)) ([be00cb7](https://github.com/copick/copick/commit/be00cb7541a363c906460195889565663e099ba9))
+* Bump asyncssh from 2.22.0 to 2.23.0 ([#296](https://github.com/copick/copick/issues/296)) ([61ea82a](https://github.com/copick/copick/commit/61ea82a73c08220e00763316b992046dabc4978b))
+* Bump chanzuckerberg/github-actions from 6.21.0 to 6.22.1 ([#301](https://github.com/copick/copick/issues/301)) ([e976b96](https://github.com/copick/copick/commit/e976b96b59ed3003b6ddbeb6007b4159244bf826))
+* Bump codecov/codecov-action from 6 to 7 ([#299](https://github.com/copick/copick/issues/299)) ([e4bf145](https://github.com/copick/copick/commit/e4bf1452c2fda27d3f617b56aaace64e29ee7969))
+* Bump cryptography from 46.0.7 to 48.0.1 ([#304](https://github.com/copick/copick/issues/304)) ([dabb4d5](https://github.com/copick/copick/commit/dabb4d55d4ddd4d8e780c28bd2bd1cf17f8db594))
+* Bump googleapis/release-please-action from 4 to 5 ([#279](https://github.com/copick/copick/issues/279)) ([5470e5b](https://github.com/copick/copick/commit/5470e5b9521acbe622bf1fdeeff9bd02181c0629))
+* Bump idna from 3.11 to 3.15 ([#295](https://github.com/copick/copick/issues/295)) ([9ce8b1e](https://github.com/copick/copick/commit/9ce8b1e29028ae452220ac920380bfa77ea5a1fc))
+* Bump mistune from 3.2.0 to 3.2.1 ([#292](https://github.com/copick/copick/issues/292)) ([09b05a3](https://github.com/copick/copick/commit/09b05a3d31ca37c1eca7c4c4f8167bedeb2402c4))
+* Bump msgpack from 1.1.2 to 1.2.1 ([#308](https://github.com/copick/copick/issues/308)) ([810d0bc](https://github.com/copick/copick/commit/810d0bc451b8acae096c9d55e8434894b5f0382a))
+* Bump pyarrow from 23.0.0 to 23.0.1 ([#298](https://github.com/copick/copick/issues/298)) ([2b90d27](https://github.com/copick/copick/commit/2b90d27cd4442f9301ce2907baf5e8f44c534b58))
+* Bump pydantic-settings from 2.13.1 to 2.14.2 ([#307](https://github.com/copick/copick/issues/307)) ([67a9e0a](https://github.com/copick/copick/commit/67a9e0ad09f5bd0437989d2abe8ac0ccbdc59cb9))
+* Bump pymdown-extensions from 10.20.1 to 10.21.3 ([#294](https://github.com/copick/copick/issues/294)) ([f4704bd](https://github.com/copick/copick/commit/f4704bdaaa1664069df5c7441afd4f0b6c1f07a4))
+* Bump textual from 8.2.4 to 8.2.5 ([#288](https://github.com/copick/copick/issues/288)) ([ffaecf9](https://github.com/copick/copick/commit/ffaecf9fc2cb38c590df604fc0c45ac0ff416e69))
+* Bump tornado from 6.5.5 to 6.5.7 ([#303](https://github.com/copick/copick/issues/303)) ([dce511c](https://github.com/copick/copick/commit/dce511c3d09ba240aa9ba44e3716b65b1f62eb13))
+* Bump trimesh from 4.12.1 to 4.12.2 ([#286](https://github.com/copick/copick/issues/286)) ([1869101](https://github.com/copick/copick/commit/1869101dc414a4cb6201cf891ce650d1962cfd84))
+* Bump urllib3 from 2.6.3 to 2.7.0 ([#293](https://github.com/copick/copick/issues/293)) ([841b26f](https://github.com/copick/copick/commit/841b26f5bf546dc499e23ee8e420632e911f0c16))
+* Fix image URLs in chimerax tutorial ([#311](https://github.com/copick/copick/issues/311)) ([db34590](https://github.com/copick/copick/commit/db34590f5fc18239c4dfb15d2a91f83a3e8c13d0))
+
 ## [1.24.1](https://github.com/copick/copick/compare/copick-v1.24.0...copick-v1.24.1) (2026-05-05)
 
 
