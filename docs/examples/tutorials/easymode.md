@@ -135,14 +135,14 @@ Because dataset 10476 already ships a portal `membrane` annotation (from
 [membrain-seg](membrain.md)), you can sanity-check easymode against an independent method on the very
 same tomogram:
 
-<!-- FIGURE (capture in ChimeraX-copick, save as docs/assets/easymode_vs_membrain.png):
-     easymode's membrane:easymode/1 next to the portal membrane:data-portal/244793 (membrain-seg) on
-     the same slice/view. Optionally split into _light/_dark variants. -->
 <figure markdown="span">
-  ![easymode-vs-membrain](../../assets/easymode_vs_membrain.png)
-  <figcaption>easymode's <code>membrane</code> (left) next to the Data Portal's membrain-seg
-membrane annotation (right) on the same slice — two independent networks picking out the same
-membranes.</figcaption>
+  ![easymode membrane](../../assets/easymode_membrane_light.png#only-light){width="340"}
+  ![easymode membrane](../../assets/easymode_membrane_dark.png#only-dark){width="340"}
+  ![membrain-seg membrane](../../assets/membrain_membrane_light.png#only-light){width="340"}
+  ![membrain-seg membrane](../../assets/membrain_membrane_dark.png#only-dark){width="340"}
+  <figcaption>easymode's <code>membrane</code> (purple, left) next to the Data Portal's membrain-seg
+membrane annotation (green, right) on the same tomogram — two independent networks picking out the
+same membranes.</figcaption>
 </figure>
 
 !!! tip "Make a 3D figure"
