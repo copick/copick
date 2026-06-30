@@ -1,5 +1,15 @@
 # Changelog
 
+## [1.25.3](https://github.com/copick/copick/compare/copick-v1.25.2...copick-v1.25.3) (2026-06-30)
+
+
+### 🐞 Bug Fixes
+
+* Bump chanzuckerberg/github-actions from 6.22.1 to 6.28.0 ([#320](https://github.com/copick/copick/issues/320)) ([317f277](https://github.com/copick/copick/commit/317f27779dd7aeebbe443f37b63289cbcd15e9d1))
+* Bump joserfc from 1.6.3 to 1.6.7 ([#315](https://github.com/copick/copick/issues/315)) ([e32914e](https://github.com/copick/copick/commit/e32914e9e6de148853e8cfdcc3272331f33c8e65))
+* Bump pre-commit from 4.5.1 to 4.6.0 ([#321](https://github.com/copick/copick/issues/321)) ([171192d](https://github.com/copick/copick/commit/171192d3199791294496a57b4a892a21e1e419f0))
+* Bump pytest from 9.0.3 to 9.1.1 ([#322](https://github.com/copick/copick/issues/322)) ([d92c208](https://github.com/copick/copick/commit/d92c208e7d042cfe74ccfbff2f69db8f79fbddbb))
+
 ## [1.25.2](https://github.com/copick/copick/compare/copick-v1.25.1...copick-v1.25.2) (2026-06-29)
 
 
