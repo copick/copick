@@ -18,6 +18,7 @@ from copick.models import (
     CopickVoxelSpacing,
     PickableObject,
 )
+from copick.util.ontology import parse_identifier
 
 DEFAULT_MARKDOWN = """\
 # Metadata
@@ -35,18 +36,21 @@ def object_to_md(pickable_object: PickableObject) -> str:
     md = "# PickableObject Metadata\n"
     md += f"## Object: {pickable_object.name}\n"
 
-    if pickable_object.identifier.lower().startswith("go"):
-        md += f"* Identifier: [{pickable_object.identifier}](https://amigo.geneontology.org/amigo/term/{pickable_object.identifier})\n"
-    elif pickable_object.identifier.lower().startswith("uniprotkb"):
-        ident = pickable_object.identifier.split(":")[-1]
-        md += f"* Identifier: [{pickable_object.identifier}](https://www.uniprot.org/uniprotkb/{ident})\n"
-    else:
-        md += f"* Identifier: {pickable_object.identifier}\n"
+    identifier_ref = parse_identifier(pickable_object.identifier)
+    if pickable_object.identifier:
+        if identifier_ref and identifier_ref.url:
+            md += f"* Identifier: [{pickable_object.identifier}]({identifier_ref.url})\n"
+        else:
+            md += f"* Identifier: {pickable_object.identifier}\n"
 
     if pickable_object.emdb_id:
         md += f"* EMDB ID: [{pickable_object.emdb_id}](https://www.ebi.ac.uk/emdb/{pickable_object.emdb_id})\n"
 
-    if pickable_object.pdb_id:
+    # Suppress the duplicate RCSB link when the identifier itself is this same PDB id.
+    pdb_is_identifier = bool(
+        identifier_ref and identifier_ref.namespace == "PDB" and identifier_ref.accession == pickable_object.pdb_id,
+    )
+    if pickable_object.pdb_id and not pdb_is_identifier:
         md += f"* PDB ID: [{pickable_object.pdb_id}](https://www.rcsb.org/structure/{pickable_object.pdb_id})\n"
 
     typ = "particle/segmentation" if pickable_object.is_particle else "segmentation"

@@ -25,7 +25,9 @@ class PickableObject(BaseModel):
         color: RGBA color for the object.
         emdb_id: EMDB ID for the object.
         pdb_id: PDB ID for the object.
-        identifier: Identifier for the object (e.g. Gene Ontology ID or UniProtKB accession).
+        identifier: Identifier for the object, drawn from an ontology/database namespace
+            (GO, UniProtKB, CHEBI, PDB [dash separator, e.g. ``PDB-1BXN``], UBERON, CL, or CDPO).
+            When using the data portal, this must match the annotation ``object_id`` exactly.
         map_threshold: Threshold to apply to the map when rendering the isosurface.
         radius: Radius of the particle, when displaying as a sphere.
         metadata: Additional metadata for the object (user-defined contents).
@@ -598,7 +600,9 @@ class CopickRoot:
             color: RGBA color for the object. If None, will use a default color.
             emdb_id: EMDB ID for the object.
             pdb_id: PDB ID for the object.
-            identifier: Identifier for the object (e.g. Gene Ontology ID or UniProtKB accession).
+            identifier: Identifier for the object, drawn from an ontology/database namespace
+            (GO, UniProtKB, CHEBI, PDB [dash separator, e.g. ``PDB-1BXN``], UBERON, CL, or CDPO).
+            When using the data portal, this must match the annotation ``object_id`` exactly.
             map_threshold: Threshold to apply to the map when rendering the isosurface.
             radius: Radius of the particle, when displaying as a sphere.
             metadata: Additional metadata for the object (user-defined contents).

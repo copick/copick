@@ -102,6 +102,61 @@ def _retry_portal_call(fn, *args, max_retries=3, base_delay=1.0, max_delay=30.0,
                 raise
 
 
+# Default number of runs to query per batch when building the annotation cache. A single
+# unbounded .find() over a large dataset can overload the portal (the heavyweight Tomogram
+# query 502s on datasets with many annotations), so whole-dataset queries are split into
+# per-run batches and their results concatenated. Kept intentionally conservative;
+# _find_batched halves a batch and retries if the portal still rejects it.
+_PORTAL_QUERY_BATCH_SIZE = 50
+
+
+def _find_batched(fn, client, run_ids, filter_builder, *, batch_size=_PORTAL_QUERY_BATCH_SIZE):
+    """Run a portal ``.find`` over run-id batches and concatenate the results.
+
+    A single ``.find()`` spanning an entire large dataset can overload the portal and
+    fail with repeated HTTP 502s. Splitting the query into per-run batches keeps each
+    response small enough to succeed, while producing the exact same combined result set.
+
+    Args:
+        fn: The portal ``.find`` classmethod to call (e.g. ``cdp.Tomogram.find``).
+        client: The portal client.
+        run_ids: Run IDs to cover; queries are issued in batches of these.
+        filter_builder: Callable mapping a batch of run IDs to the list of query filters
+            (including the run-id filter and any static filters such as shape type).
+        batch_size: Number of runs to query per batch.
+
+    Returns:
+        The concatenated results across all batches. On a transient portal error a batch
+        is halved and retried, so oversized responses shrink to a workable size automatically.
+    """
+    if not run_ids:
+        return []
+
+    results: List[Any] = []
+    # Stack of run-id batches still to fetch; a batch that fails is split back onto it.
+    pending = [run_ids[i : i + batch_size] for i in range(0, len(run_ids), batch_size)]
+    while pending:
+        batch = pending.pop()
+        try:
+            results.extend(_retry_portal_call(fn, client, filter_builder(batch)))
+        except Exception as e:  # noqa: BLE001
+            transient = _is_transient_portal_error(e) or isinstance(e, (ConnectionError, TimeoutError, OSError))
+            if transient and len(batch) > 1:
+                mid = len(batch) // 2
+                logger.warning(
+                    "Portal batch of %d runs failed (%s); splitting into %d + %d and retrying.",
+                    len(batch),
+                    type(e).__name__,
+                    mid,
+                    len(batch) - mid,
+                )
+                pending.append(batch[:mid])
+                pending.append(batch[mid:])
+            else:
+                raise
+    return results
+
+
 def camel(s: str) -> str:
     s = re.sub(r"([_\-])+", " ", s).title().replace(" ", "")
     return "".join([s[0].lower(), s[1:]])
@@ -1320,81 +1375,96 @@ class CopickRootCDP(CopickRoot):
         return {po.identifier: po.name for po in self.pickable_objects if po.identifier is not None}
 
     def _ensure_annotation_cache(self) -> PortalCache:
-        """Lazily fetch and cache all portal annotation data for picks, segmentations, and tomograms."""
+        """Fetch (in per-run batches) and cache all portal annotation data for picks, segmentations, and tomograms."""
         if self._portal_cache is not None:
             return self._portal_cache
 
         client = cdp.Client()
         go_map = self.go_map
+        go_keys = list(go_map.keys())
+        shape_types = ["Point", "OrientedPoint", "SegmentationMask"]
 
-        # 1. Fetch ALL annotation files for all datasets (picks + segmentations)
-        all_anno_files = _retry_portal_call(
+        # Fetch the run IDs for the configured datasets up front. Every query below is
+        # batched over these run IDs (via _find_batched) so a large dataset is not pulled
+        # in a single unbounded .find(), which overloads the portal (the Tomogram query
+        # 502s on datasets with many annotations). The batched results are concatenated
+        # and indexed exactly as before, so the resulting cache is identical.
+        runs = _retry_portal_call(cdp.Run.find, client, [cdp.Run.dataset_id._in(self.dataset_ids)])
+        run_ids = [r.id for r in runs]
+
+        # 1. Fetch annotation files (picks + segmentations)
+        all_anno_files = _find_batched(
             cdp.AnnotationFile.find,
             client,
-            [
-                cdp.AnnotationFile.annotation_shape.annotation.run.dataset_id._in(self.dataset_ids),  # noqa
-                cdp.AnnotationFile.annotation_shape.shape_type._in(
-                    ["Point", "OrientedPoint", "SegmentationMask"],
-                ),  # noqa
-                cdp.AnnotationFile.annotation_shape.annotation.object_id._in(list(go_map.keys())),  # noqa
+            run_ids,
+            lambda b: [
+                cdp.AnnotationFile.annotation_shape.annotation.run.id._in(b),  # noqa
+                cdp.AnnotationFile.annotation_shape.shape_type._in(shape_types),  # noqa
+                cdp.AnnotationFile.annotation_shape.annotation.object_id._in(go_keys),  # noqa
             ],
         )
 
-        # 2. Fetch ALL annotation shapes (direct filters to avoid huge _in() lists)
-        all_shapes = _retry_portal_call(
+        # 2. Fetch annotation shapes
+        all_shapes = _find_batched(
             cdp.AnnotationShape.find,
             client,
-            [
-                cdp.AnnotationShape.annotation.run.dataset_id._in(self.dataset_ids),  # noqa
-                cdp.AnnotationShape.shape_type._in(["Point", "OrientedPoint", "SegmentationMask"]),  # noqa
-                cdp.AnnotationShape.annotation.object_id._in(list(go_map.keys())),  # noqa
+            run_ids,
+            lambda b: [
+                cdp.AnnotationShape.annotation.run.id._in(b),  # noqa
+                cdp.AnnotationShape.shape_type._in(shape_types),  # noqa
+                cdp.AnnotationShape.annotation.object_id._in(go_keys),  # noqa
             ],
         )
 
-        # 3. Fetch ALL annotations
-        all_annotations = _retry_portal_call(
+        # 3. Fetch annotations
+        all_annotations = _find_batched(
             cdp.Annotation.find,
             client,
-            [
-                cdp.Annotation.run.dataset_id._in(self.dataset_ids),  # noqa
-                cdp.Annotation.object_id._in(list(go_map.keys())),  # noqa
+            run_ids,
+            lambda b: [
+                cdp.Annotation.run.id._in(b),  # noqa
+                cdp.Annotation.object_id._in(go_keys),  # noqa
             ],
         )
 
-        # 4. Fetch ALL annotation authors
-        all_authors = _retry_portal_call(
+        # 4. Fetch annotation authors
+        all_authors = _find_batched(
             cdp.AnnotationAuthor.find,
             client,
-            [
-                cdp.AnnotationAuthor.annotation.run.dataset_id._in(self.dataset_ids),  # noqa
-                cdp.AnnotationAuthor.annotation.object_id._in(list(go_map.keys())),  # noqa
+            run_ids,
+            lambda b: [
+                cdp.AnnotationAuthor.annotation.run.id._in(b),  # noqa
+                cdp.AnnotationAuthor.annotation.object_id._in(go_keys),  # noqa
             ],
         )
 
-        # 5. Fetch ALL voxel spacings
-        all_voxel_spacings = _retry_portal_call(
+        # 5. Fetch voxel spacings
+        all_voxel_spacings = _find_batched(
             cdp.TomogramVoxelSpacing.find,
             client,
-            [
-                cdp.TomogramVoxelSpacing.run.dataset_id._in(self.dataset_ids),  # noqa
+            run_ids,
+            lambda b: [
+                cdp.TomogramVoxelSpacing.run.id._in(b),  # noqa
             ],
         )
 
-        # 6. Fetch ALL tomograms for all datasets
-        all_tomograms = _retry_portal_call(
+        # 6. Fetch tomograms
+        all_tomograms = _find_batched(
             cdp.Tomogram.find,
             client,
-            [
-                cdp.Tomogram.tomogram_voxel_spacing.run.dataset_id._in(self.dataset_ids),  # noqa
+            run_ids,
+            lambda b: [
+                cdp.Tomogram.tomogram_voxel_spacing.run.id._in(b),  # noqa
             ],
         )
 
-        # 7. Fetch ALL tomogram authors
-        all_tomogram_authors = _retry_portal_call(
+        # 7. Fetch tomogram authors
+        all_tomogram_authors = _find_batched(
             cdp.TomogramAuthor.find,
             client,
-            [
-                cdp.TomogramAuthor.tomogram.tomogram_voxel_spacing.run.dataset_id._in(self.dataset_ids),  # noqa
+            run_ids,
+            lambda b: [
+                cdp.TomogramAuthor.tomogram.tomogram_voxel_spacing.run.id._in(b),  # noqa
             ],
         )
 

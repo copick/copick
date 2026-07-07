@@ -62,8 +62,10 @@ label, color, radius, and other properties.
 
     - `pdb_id`: The PDB ID of the object, if available.
     - `emdb_id`: The EMDB ID of the object, if available.
-    - `identifier`: The GO ID of the object or a UniProtKB accession, if available. When using the data portal, this
-        field is used to find matching annotations in the data portal.
+    - `identifier`: An ontology/database identifier for the object, if available. Supported namespaces are
+        `GO`, `UniProtKB`, `CHEBI`, `PDB` (note the dash separator, e.g. `PDB-1BXN`), `UBERON`, `CL`, and `CDPO`.
+        When using the data portal, this field is matched exactly against the annotation `object_id` to find
+        matching annotations in the data portal.
     - `label`: An integer that indicates which numeric label should be used in segmentations to represent this object.
     - `color`: An array of four integers that represent the RGBA color of the object when rendered in a 3D viewer.
     - `radius`: An integer that represents the radius of the object in angstroms. This is used to determine the size of the
