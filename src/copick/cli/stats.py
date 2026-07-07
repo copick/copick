@@ -2,7 +2,13 @@ import json
 
 import click
 
-from copick.cli.util import add_config_option, add_debug_option
+from copick.cli.util import (
+    add_config_option,
+    add_debug_option,
+    add_deprecated_run_alias,
+    add_run_names_option,
+    resolve_run_names,
+)
 from copick.ops.open import from_file
 from copick.ops.stats import meshes_stats, picks_stats, segmentations_stats
 from copick.util.log import get_logger
@@ -25,12 +31,8 @@ def stats(ctx):
     no_args_is_help=True,
 )
 @add_config_option
-@click.option(
-    "--runs",
-    type=str,
-    multiple=True,
-    help="Specific run names to analyze. Can be specified multiple times.",
-)
+@add_run_names_option
+@add_deprecated_run_alias("--runs")
 @click.option(
     "--user-id",
     type=str,
@@ -71,7 +73,8 @@ def stats(ctx):
 def picks(
     ctx,
     config,
-    runs,
+    run_names,
+    legacy_run_names,
     user_id,
     session_id,
     object_name,
@@ -96,7 +99,7 @@ def picks(
 
         \b
         # Restrict the summary to specific runs
-        copick stats picks --config config.json --runs TS_001 --runs TS_002
+        copick stats picks --config config.json -r TS_001 -r TS_002
 
         \b
         # Filter by object and user, then emit JSON using parallel workers
@@ -109,7 +112,7 @@ def picks(
         copick stats meshes: summarize mesh annotations in the project
         copick stats segmentations: summarize segmentation annotations in the project
     """
-    get_logger(__name__, debug)
+    logger = get_logger(__name__, debug)
 
     if config is None:
         raise click.ClickException("Configuration file path is required. Use -c/--config option.")
@@ -117,7 +120,7 @@ def picks(
     root = from_file(config)
 
     # Convert tuples to lists or None
-    runs_param = list(runs) if runs else None
+    runs_param = resolve_run_names(run_names, legacy_run_names, legacy_flag="--runs", logger=logger)
     user_id_param = list(user_id) if user_id else None
     session_id_param = list(session_id) if session_id else None
     object_name_param = list(object_name) if object_name else None
@@ -145,12 +148,8 @@ def picks(
     no_args_is_help=True,
 )
 @add_config_option
-@click.option(
-    "--runs",
-    type=str,
-    multiple=True,
-    help="Specific run names to analyze. Can be specified multiple times.",
-)
+@add_run_names_option
+@add_deprecated_run_alias("--runs")
 @click.option(
     "--user-id",
     type=str,
@@ -191,7 +190,8 @@ def picks(
 def meshes(
     ctx,
     config,
-    runs,
+    run_names,
+    legacy_run_names,
     user_id,
     session_id,
     object_name,
@@ -229,7 +229,7 @@ def meshes(
         copick stats picks: summarize pick annotations in the project
         copick stats segmentations: summarize segmentation annotations in the project
     """
-    get_logger(__name__, debug)
+    logger = get_logger(__name__, debug)
 
     if config is None:
         raise click.ClickException("Configuration file path is required. Use -c/--config option.")
@@ -237,7 +237,7 @@ def meshes(
     root = from_file(config)
 
     # Convert tuples to lists or None
-    runs_param = list(runs) if runs else None
+    runs_param = resolve_run_names(run_names, legacy_run_names, legacy_flag="--runs", logger=logger)
     user_id_param = list(user_id) if user_id else None
     session_id_param = list(session_id) if session_id else None
     object_name_param = list(object_name) if object_name else None
@@ -265,12 +265,8 @@ def meshes(
     no_args_is_help=True,
 )
 @add_config_option
-@click.option(
-    "--runs",
-    type=str,
-    multiple=True,
-    help="Specific run names to analyze. Can be specified multiple times.",
-)
+@add_run_names_option
+@add_deprecated_run_alias("--runs")
 @click.option(
     "--user-id",
     type=str,
@@ -322,7 +318,8 @@ def meshes(
 def segmentations(
     ctx,
     config,
-    runs,
+    run_names,
+    legacy_run_names,
     user_id,
     session_id,
     name,
@@ -367,7 +364,7 @@ def segmentations(
         copick stats picks: summarize pick annotations in the project
         copick stats meshes: summarize mesh annotations in the project
     """
-    get_logger(__name__, debug)
+    logger = get_logger(__name__, debug)
 
     if config is None:
         raise click.ClickException("Configuration file path is required. Use -c/--config option.")
@@ -375,7 +372,7 @@ def segmentations(
     root = from_file(config)
 
     # Convert tuples to lists or None
-    runs_param = list(runs) if runs else None
+    runs_param = resolve_run_names(run_names, legacy_run_names, legacy_flag="--runs", logger=logger)
     user_id_param = list(user_id) if user_id else None
     session_id_param = list(session_id) if session_id else None
     name_param = list(name) if name else None

@@ -8,6 +8,8 @@ from copick.cli.util import (
     add_export_common_options,
     add_max_workers_option,
     add_pyramid_export_options,
+    add_run_names_option,
+    resolve_run_names,
 )
 from copick.util.log import get_logger
 
@@ -24,6 +26,7 @@ def export(ctx):
     no_args_is_help=True,
 )
 @add_config_option
+@add_run_names_option
 @click.option(
     "--picks-uri",
     required=True,
@@ -43,12 +46,6 @@ def export(ctx):
     default=None,
     help="Output file for combined export (all runs in one file). Mutually exclusive with --output-dir.",
     metavar="PATH",
-)
-@click.option(
-    "--run-names",
-    type=str,
-    default=None,
-    help="Comma-separated list of run names to process.",
 )
 @click.option(
     "--output-format",
@@ -85,7 +82,7 @@ def picks(
     output_dir: str,
     output_file: str,
     output_format: str,
-    run_names: str,
+    run_names,
     voxel_size: float,
     index_map: str,
     include_optics: bool,
@@ -147,10 +144,8 @@ def picks(
     if output_format.lower() in ["em", "star", "dynamo"] and voxel_size is None:
         ctx.fail(f"--voxel-size is required for {output_format.upper()} format export.")
 
-    # Parse run names
-    run_names_list = None
-    if run_names:
-        run_names_list = [name.strip() for name in run_names.split(",") if name.strip()]
+    # Resolve run names (repeatable; legacy comma-separated values tolerated with a warning)
+    run_names_list = resolve_run_names(run_names, logger=logger)
 
     # Load index map if provided
     run_to_index = None
@@ -206,6 +201,7 @@ def picks(
     no_args_is_help=True,
 )
 @add_config_option
+@add_run_names_option
 @click.option(
     "--tomogram-uri",
     required=True,
@@ -229,7 +225,7 @@ def tomogram(
     tomogram_uri: str,
     output_dir: str,
     output_format: str,
-    run_names: str,
+    run_names,
     level: int,
     compression: str,
     copy_all_levels: bool,
@@ -274,10 +270,8 @@ def tomogram(
 
     logger = get_logger(__name__, debug=debug)
 
-    # Parse run names
-    run_names_list = None
-    if run_names:
-        run_names_list = [name.strip() for name in run_names.split(",") if name.strip()]
+    # Resolve run names (repeatable; legacy comma-separated values tolerated with a warning)
+    run_names_list = resolve_run_names(run_names, logger=logger)
 
     # Handle compression
     compression_value = compression if compression and compression.lower() != "none" else None
@@ -305,6 +299,7 @@ def tomogram(
     no_args_is_help=True,
 )
 @add_config_option
+@add_run_names_option
 @click.option(
     "--segmentation-uri",
     required=True,
@@ -328,7 +323,7 @@ def segmentation(
     segmentation_uri: str,
     output_dir: str,
     output_format: str,
-    run_names: str,
+    run_names,
     level: int,
     compression: str,
     copy_all_levels: bool,
@@ -375,10 +370,8 @@ def segmentation(
 
     logger = get_logger(__name__, debug=debug)
 
-    # Parse run names
-    run_names_list = None
-    if run_names:
-        run_names_list = [name.strip() for name in run_names.split(",") if name.strip()]
+    # Resolve run names (repeatable; legacy comma-separated values tolerated with a warning)
+    run_names_list = resolve_run_names(run_names, logger=logger)
 
     # Handle compression
     compression_value = compression if compression and compression.lower() != "none" else None
