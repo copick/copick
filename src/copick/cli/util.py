@@ -1,3 +1,5 @@
+from typing import List, Optional, Sequence
+
 import click
 
 
@@ -54,6 +56,117 @@ def add_debug_option(func: click.Command) -> click.Command:
         func = opt(func)
 
     return func
+
+
+def add_run_names_option(func: click.Command) -> click.Command:
+    """
+    Add the standard ``--run-names`` / ``-r`` run-selection option.
+
+    This is the single, uniform way for copick-internal commands to select which
+    runs to operate on. It is repeatable (``multiple=True``) and yields a tuple in
+    the ``run_names`` parameter; pass that tuple through :func:`resolve_run_names`
+    to obtain a ``list[str] | None`` (``None`` meaning "all runs").
+
+    Args:
+        func (click.Command): The Click command to which the option will be added.
+
+    Returns:
+        click.Command: The Click command with the run-names option added.
+    """
+    opts = [
+        click.option(
+            "--run-names",
+            "-r",
+            multiple=True,
+            help="Specific run names to process (default: all runs). Repeatable; pass -r once per run.",
+        ),
+    ]
+
+    for opt in opts:
+        func = opt(func)
+
+    return func
+
+
+def add_deprecated_run_alias(*flags: str) -> "click.Command":
+    """
+    Add a hidden, deprecated alias for :func:`add_run_names_option`.
+
+    Used for commands whose run-selection flag is being renamed (e.g. ``--runs``
+    or ``--run-ids``). The alias keeps old invocations working while remaining
+    hidden from ``--help``; its value lands in the ``legacy_run_names`` parameter,
+    which :func:`resolve_run_names` merges in (emitting a deprecation warning).
+
+    Args:
+        *flags (str): The deprecated option flag(s), e.g. ``"--runs"`` or
+            ``"--run-ids", "-runs"``.
+
+    Returns:
+        A decorator that adds the hidden alias option to a Click command.
+    """
+
+    def decorator(func: click.Command) -> click.Command:
+        return click.option(
+            *flags,
+            "legacy_run_names",
+            multiple=True,
+            hidden=True,
+            help="Deprecated: use --run-names/-r instead.",
+        )(func)
+
+    return decorator
+
+
+def resolve_run_names(
+    run_names: Sequence[str] = (),
+    legacy_run_names: Sequence[str] = (),
+    *,
+    legacy_flag: Optional[str] = None,
+    logger=None,
+) -> Optional[List[str]]:
+    """
+    Normalize the standard and deprecated run-selection inputs into a run list.
+
+    Merges the values from ``--run-names``/``-r`` with any values collected by a
+    deprecated alias (see :func:`add_deprecated_run_alias`), transparently
+    splitting legacy comma-joined values. Deprecation warnings are emitted (via
+    ``logger``) when a deprecated alias or a comma-joined value is used.
+
+    Args:
+        run_names: Values from the standard ``--run-names``/``-r`` option.
+        legacy_run_names: Values from a deprecated alias option, if any.
+        legacy_flag: Human-readable name of the deprecated flag, used in the
+            warning message (e.g. ``"--runs"``).
+        logger: Optional logger for deprecation warnings.
+
+    Returns:
+        A list of run names, or ``None`` when no runs were specified (meaning
+        "all runs").
+    """
+    values = list(run_names or ())
+
+    legacy = list(legacy_run_names or ())
+    if legacy:
+        if logger is not None:
+            flag = legacy_flag or "This run-selection flag"
+            logger.warning(f"{flag} is deprecated; use --run-names/-r (repeatable) instead.")
+        values.extend(legacy)
+
+    expanded: List[str] = []
+    saw_comma = False
+    for value in values:
+        if value is None:
+            continue
+        if "," in value:
+            saw_comma = True
+            expanded.extend(part.strip() for part in value.split(",") if part.strip())
+        else:
+            expanded.append(value)
+
+    if saw_comma and logger is not None:
+        logger.warning("Comma-separated run names are deprecated; pass -r/--run-names once per run instead.")
+
+    return expanded or None
 
 
 def add_create_overwrite_options(func: click.Command) -> click.Command:
@@ -277,7 +390,9 @@ def add_pyramid_create_options(func: click.Command) -> click.Command:
 
 def add_export_common_options(func: click.Command) -> click.Command:
     """
-    Add common export options: --output-dir, --run-names.
+    Add common export options: --output-dir.
+
+    Run selection is provided separately via :func:`add_run_names_option`.
 
     Args:
         func (click.Command): The Click command to which the options will be added.
@@ -292,12 +407,6 @@ def add_export_common_options(func: click.Command) -> click.Command:
             type=click.Path(file_okay=False, dir_okay=True),
             help="Output directory for exported files.",
             metavar="PATH",
-        ),
-        click.option(
-            "--run-names",
-            type=str,
-            default="",
-            help="Comma-separated list of run names to export. If not specified, exports from all runs.",
         ),
     ]
 
