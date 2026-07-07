@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.26.0](https://github.com/copick/copick/compare/copick-v1.25.3...copick-v1.26.0) (2026-07-07)
+
+
+### ✨ Features
+
+* Normalize run option across CLI tools ([#331](https://github.com/copick/copick/issues/331)) ([e234104](https://github.com/copick/copick/commit/e234104dca57ed3d12e8d28dda0896b698fcdbf0))
+
 ## [1.25.3](https://github.com/copick/copick/compare/copick-v1.25.2...copick-v1.25.3) (2026-07-07)
 
 
