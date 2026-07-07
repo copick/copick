@@ -1,5 +1,21 @@
 # Changelog
 
+## [1.25.3](https://github.com/copick/copick/compare/copick-v1.25.2...copick-v1.25.3) (2026-07-07)
+
+
+### 🐞 Bug Fixes
+
+* Bump chanzuckerberg/github-actions from 6.22.1 to 6.28.0 ([#320](https://github.com/copick/copick/issues/320)) ([317f277](https://github.com/copick/copick/commit/317f27779dd7aeebbe443f37b63289cbcd15e9d1))
+* Bump chanzuckerberg/github-actions from 6.28.0 to 6.29.4 ([#326](https://github.com/copick/copick/issues/326)) ([5752116](https://github.com/copick/copick/commit/57521160706f5bfdb425aa83538deaadba230a52))
+* Bump click from 8.3.3 to 8.4.2 ([#328](https://github.com/copick/copick/issues/328)) ([23288dc](https://github.com/copick/copick/commit/23288dc9c490a2325f7721a4cdb1f3979f58a656))
+* Bump joserfc from 1.6.3 to 1.6.7 ([#315](https://github.com/copick/copick/issues/315)) ([e32914e](https://github.com/copick/copick/commit/e32914e9e6de148853e8cfdcc3272331f33c8e65))
+* Bump joserfc from 1.6.7 to 1.6.8 ([#325](https://github.com/copick/copick/issues/325)) ([836a99d](https://github.com/copick/copick/commit/836a99dc0bdbe5c62ed34f8989965f12d80a7e8a))
+* Bump pre-commit from 4.5.1 to 4.6.0 ([#321](https://github.com/copick/copick/issues/321)) ([171192d](https://github.com/copick/copick/commit/171192d3199791294496a57b4a892a21e1e419f0))
+* Bump pydantic from 2.13.3 to 2.13.4 ([#329](https://github.com/copick/copick/issues/329)) ([fb1b63f](https://github.com/copick/copick/commit/fb1b63f0e5113902e65886ee8fcf1920b8a410e4))
+* Bump pytest from 9.0.3 to 9.1.1 ([#322](https://github.com/copick/copick/issues/322)) ([d92c208](https://github.com/copick/copick/commit/d92c208e7d042cfe74ccfbff2f69db8f79fbddbb))
+* Bump ruff from 0.15.12 to 0.15.20 ([#323](https://github.com/copick/copick/issues/323)) ([c44d719](https://github.com/copick/copick/commit/c44d7199085456e9fcc8d84db8996b7e91599904))
+* Support new annotation object id types and paginate queries. ([#330](https://github.com/copick/copick/issues/330)) ([f9be734](https://github.com/copick/copick/commit/f9be7346a06c1945c0aa96fd98435be68d88670a))
+
 ## [1.25.2](https://github.com/copick/copick/compare/copick-v1.25.1...copick-v1.25.2) (2026-06-29)
 
 
