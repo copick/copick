@@ -32,6 +32,7 @@ def stats(ctx):
 )
 @add_config_option
 @add_run_names_option
+# TODO:remove once deprecation takes effect (drop the decorator, the legacy_run_names param, and pass only run_names to resolve_run_names)
 @add_deprecated_run_alias("--runs")
 @click.option(
     "--user-id",
@@ -120,6 +121,7 @@ def picks(
     root = from_file(config)
 
     # Convert tuples to lists or None
+    # TODO:remove once deprecation takes effect -- drop legacy_run_names arg
     runs_param = resolve_run_names(run_names, legacy_run_names, legacy_flag="--runs", logger=logger)
     user_id_param = list(user_id) if user_id else None
     session_id_param = list(session_id) if session_id else None
@@ -149,6 +151,7 @@ def picks(
 )
 @add_config_option
 @add_run_names_option
+# TODO:remove once deprecation takes effect (drop the decorator, the legacy_run_names param, and pass only run_names to resolve_run_names)
 @add_deprecated_run_alias("--runs")
 @click.option(
     "--user-id",
@@ -237,6 +240,7 @@ def meshes(
     root = from_file(config)
 
     # Convert tuples to lists or None
+    # TODO:remove once deprecation takes effect -- drop legacy_run_names arg
     runs_param = resolve_run_names(run_names, legacy_run_names, legacy_flag="--runs", logger=logger)
     user_id_param = list(user_id) if user_id else None
     session_id_param = list(session_id) if session_id else None
@@ -266,6 +270,7 @@ def meshes(
 )
 @add_config_option
 @add_run_names_option
+# TODO:remove once deprecation takes effect (drop the decorator, the legacy_run_names param, and pass only run_names to resolve_run_names)
 @add_deprecated_run_alias("--runs")
 @click.option(
     "--user-id",
@@ -372,6 +377,7 @@ def segmentations(
     root = from_file(config)
 
     # Convert tuples to lists or None
+    # TODO:remove once deprecation takes effect -- drop legacy_run_names arg
     runs_param = resolve_run_names(run_names, legacy_run_names, legacy_flag="--runs", logger=logger)
     user_id_param = list(user_id) if user_id else None
     session_id_param = list(session_id) if session_id else None
