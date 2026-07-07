@@ -6508,10 +6508,10 @@ sessions, or objects, and printed as a human-readable table or as JSON.</p>
 <td>Path to the configuration file.</td>
 </tr>
 <tr>
-<td><code>--runs</code></td>
+<td><code>--run-names, -r</code></td>
 <td>text · multiple</td>
 <td>—</td>
-<td>Specific run names to analyze. Can be specified multiple times.</td>
+<td>Specific run names to process (default: all runs). Repeatable; pass -r once per run.</td>
 </tr>
 <tr>
 <td><code>--user-id</code></td>
@@ -6562,7 +6562,7 @@ sessions, or objects, and printed as a human-readable table or as JSON.</p>
 </span><span id="__span-1-2"><a id="__codelineno-1-2" name="__codelineno-1-2" href="#__codelineno-1-2"></a>copick<span class="w"> </span>stats<span class="w"> </span>picks<span class="w"> </span>--config<span class="w"> </span>config.json
 </span><span id="__span-1-3"><a id="__codelineno-1-3" name="__codelineno-1-3" href="#__codelineno-1-3"></a>
 </span><span id="__span-1-4"><a id="__codelineno-1-4" name="__codelineno-1-4" href="#__codelineno-1-4"></a><span class="c1"># Restrict the summary to specific runs</span>
-</span><span id="__span-1-5"><a id="__codelineno-1-5" name="__codelineno-1-5" href="#__codelineno-1-5"></a>copick<span class="w"> </span>stats<span class="w"> </span>picks<span class="w"> </span>--config<span class="w"> </span>config.json<span class="w"> </span>--runs<span class="w"> </span>TS_001<span class="w"> </span>--runs<span class="w"> </span>TS_002
+</span><span id="__span-1-5"><a id="__codelineno-1-5" name="__codelineno-1-5" href="#__codelineno-1-5"></a>copick<span class="w"> </span>stats<span class="w"> </span>picks<span class="w"> </span>--config<span class="w"> </span>config.json<span class="w"> </span>-r<span class="w"> </span>TS_001<span class="w"> </span>-r<span class="w"> </span>TS_002
 </span><span id="__span-1-6"><a id="__codelineno-1-6" name="__codelineno-1-6" href="#__codelineno-1-6"></a>
 </span><span id="__span-1-7"><a id="__codelineno-1-7" name="__codelineno-1-7" href="#__codelineno-1-7"></a><span class="c1"># Filter by object and user, then emit JSON using parallel workers</span>
 </span><span id="__span-1-8"><a id="__codelineno-1-8" name="__codelineno-1-8" href="#__codelineno-1-8"></a>copick<span class="w"> </span>stats<span class="w"> </span>picks<span class="w"> </span>--config<span class="w"> </span>config.json<span class="w"> </span>--object-name<span class="w"> </span>ribosome<span class="w"> </span>--user-id<span class="w"> </span>alice<span class="w"> </span><span class="se">\</span>
