@@ -88,6 +88,7 @@ def add_run_names_option(func: click.Command) -> click.Command:
     return func
 
 
+# TODO:remove once deprecation takes effect
 def add_deprecated_run_alias(*flags: str) -> "click.Command":
     """
     Add a hidden, deprecated alias for :func:`add_run_names_option`.
@@ -145,6 +146,7 @@ def resolve_run_names(
     """
     values = list(run_names or ())
 
+    # TODO:remove once deprecation takes effect -- legacy alias merge
     legacy = list(legacy_run_names or ())
     if legacy:
         if logger is not None:
@@ -157,16 +159,80 @@ def resolve_run_names(
     for value in values:
         if value is None:
             continue
+        # TODO:remove once deprecation takes effect -- legacy comma-joined values
         if "," in value:
             saw_comma = True
             expanded.extend(part.strip() for part in value.split(",") if part.strip())
         else:
             expanded.append(value)
 
+    # TODO:remove once deprecation takes effect -- legacy comma-joined values
     if saw_comma and logger is not None:
         logger.warning("Comma-separated run names are deprecated; pass -r/--run-names once per run instead.")
 
     return expanded or None
+
+
+# TODO:remove once deprecation takes effect
+def resolve_deprecated_option(primary, legacy, *, old_flag: str, new_flag: str, logger=None):
+    """
+    Resolve a scalar option that has a hidden, deprecated alias.
+
+    When ``legacy`` was provided (i.e. is not ``None``), emit a deprecation
+    warning and use it (it overrides ``primary``); otherwise return ``primary``.
+    This mirrors :func:`resolve_run_names` for single-valued flags being renamed.
+
+    Args:
+        primary: Value from the current/canonical option (or a value derived from
+            a URI, etc.).
+        legacy: Value from the deprecated alias option; ``None`` means "not given".
+        old_flag: Human-readable name of the deprecated flag (for the warning).
+        new_flag: Human-readable name of the replacement (for the warning).
+        logger: Optional logger for the deprecation warning.
+
+    Returns:
+        The effective value.
+    """
+    if legacy is not None:
+        if logger is not None:
+            logger.warning(f"{old_flag} is deprecated; use {new_flag} instead.")
+        return legacy
+    return primary
+
+
+def resolve_tomogram_uri(uri, tomo_alg, voxel_size, *, default_vs: float = 10.0, logger=None) -> str:
+    """
+    Resolve a tomogram input URI, falling back to deprecated tomo-alg/voxel-size.
+
+    Prefers the standardized ``-i``/``--input`` URI. When it is absent but the
+    deprecated ``--tomo-alg`` is given, warns and reconstructs a
+    ``tomo_type@voxel_spacing`` URI from ``--tomo-alg``/``--voxel-size``.
+
+    Args:
+        uri: Value from ``-i``/``--input`` (``tomo_type@voxel_spacing``), or ``None``.
+        tomo_alg: Deprecated ``--tomo-alg`` value, or ``None``.
+        voxel_size: Deprecated ``--voxel-size`` value, or ``None``.
+        default_vs: Voxel spacing to assume when neither the URI nor
+            ``--voxel-size`` supplies one.
+        logger: Optional logger for the deprecation warning.
+
+    Returns:
+        A ``tomo_type@voxel_spacing`` URI string.
+
+    Raises:
+        click.UsageError: If neither a URI nor ``--tomo-alg`` was provided.
+    """
+    if uri:
+        return uri
+    # TODO:remove once deprecation takes effect -- legacy --tomo-alg/--voxel-size fallback
+    if tomo_alg is not None:
+        if logger is not None:
+            logger.warning(
+                "--tomo-alg/--voxel-size are deprecated; use -i/--input <tomo_type>@<voxel_spacing> instead.",
+            )
+        vs = voxel_size if voxel_size is not None else default_vs
+        return f"{tomo_alg}@{vs}"
+    raise click.UsageError("Provide the input tomogram via -i/--input <tomo_type>@<voxel_spacing>.")
 
 
 def add_create_overwrite_options(func: click.Command) -> click.Command:
