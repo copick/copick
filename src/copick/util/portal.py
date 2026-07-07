@@ -6,6 +6,7 @@ import distinctipy
 from copick.models import PickableObject
 from copick.util.escape import sanitize_name
 from copick.util.log import get_logger
+from copick.util.ontology import parse_identifier
 
 logger = get_logger(__name__)
 
@@ -54,6 +55,14 @@ def objects_from_datasets(dataset_ids: List[int]) -> List[PickableObject]:
         if apubs:
             pdb_ids = [pub for pub in apubs if pub.startswith("PDB")]
             pdb_id = pdb_ids[0] if pdb_ids else None
+
+        # If the object_id itself is a PDB identifier (e.g. "PDB-1BXN"), use it as
+        # the pdb_id (stripped of the "PDB-" prefix). Only fill when not already
+        # derived from the annotation's publications, so those are never clobbered.
+        if pdb_id is None:
+            ref = parse_identifier(anno.object_id)
+            if ref and ref.namespace == "PDB":
+                pdb_id = ref.accession
 
         # Overwrite all values but is_particle if the object is already in the dict
         po = portal_objects.get(anno.object_id, None)

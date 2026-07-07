@@ -822,7 +822,8 @@ def segmentation(
     "--identifier",
     type=str,
     default=None,
-    help="Identifier for the object (e.g. Gene Ontology ID or UniProtKB accession).",
+    help="Ontology/database identifier for the object (namespaces: GO, UniProtKB, CHEBI, "
+    "PDB [dash separator, e.g. PDB-1BXN], UBERON, CL, CDPO).",
 )
 @click.option(
     "--map-threshold",
