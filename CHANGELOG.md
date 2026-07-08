@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.26.1](https://github.com/copick/copick/compare/copick-v1.26.0...copick-v1.26.1) (2026-07-07)
+
+
+### 🐞 Bug Fixes
+
+* Normalize more CLI flags. ([#333](https://github.com/copick/copick/issues/333)) ([b06ddb7](https://github.com/copick/copick/commit/b06ddb7e47c35988e3178cb7ee16c26949f560da))
+
 ## [1.26.0](https://github.com/copick/copick/compare/copick-v1.25.3...copick-v1.26.0) (2026-07-07)
 
 
