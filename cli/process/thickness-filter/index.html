@@ -6636,6 +6636,12 @@ and intersects with the original mask.</p>
 <td>Path to the configuration file.</td>
 </tr>
 <tr>
+<td><code>--run-names, -r</code></td>
+<td>text · multiple</td>
+<td>—</td>
+<td>Specific run names to process (default: all runs). Repeatable; pass -r once per run.</td>
+</tr>
+<tr>
 <td><code>--debug / --no-debug</code></td>
 <td>boolean flag</td>
 <td><code>False</code></td>
@@ -6654,12 +6660,6 @@ and intersects with the original mask.</p>
 </tr>
 </thead>
 <tbody>
-<tr>
-<td><code>--run-names, -r</code></td>
-<td>text · multiple</td>
-<td>—</td>
-<td>Specific run names to process (default: all runs).</td>
-</tr>
 <tr>
 <td><code>--input, -i</code></td>
 <td>COPICK_URI</td>
@@ -6680,9 +6680,9 @@ and intersects with the original mask.</p>
 </thead>
 <tbody>
 <tr>
-<td><code>--min-thickness, -t</code></td>
+<td><code>--min-thickness, -mt</code></td>
 <td>float</td>
-<td><strong>required</strong></td>
+<td>—</td>
 <td>Minimum thickness (diameter) of structures to keep. Unit set by --thickness-unit.</td>
 </tr>
 <tr>

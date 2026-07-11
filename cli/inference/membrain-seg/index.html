@@ -6593,7 +6593,8 @@
 <div class="language-bash highlight"><pre><span></span><code><span id="__span-1-1"><a id="__codelineno-1-1" name="__codelineno-1-1" href="#__codelineno-1-1"></a>copick<span class="w"> </span>inference<span class="w"> </span>membrain-seg<span class="w"> </span><span class="o">[</span>OPTIONS<span class="o">]</span>
 </span></code></pre></div>
 <h2 id="description">Description</h2>
-<p>For every run in the project, queries the tomogram of the given algorithm at the
+<p>For every run in the project (or only the runs given by --run-names/-r), queries
+the tomogram of the given algorithm at the
 requested voxel spacing, runs the MemBrain-seg model with sliding-window inference
 (using test-time augmentation and input normalization), and writes the resulting
 membrane segmentation back into the project. Runs are processed in parallel on a
@@ -6621,6 +6622,12 @@ named <code>membranes</code>.</p>
 <td>path</td>
 <td>—</td>
 <td>Path to the configuration file.</td>
+</tr>
+<tr>
+<td><code>--run-names, -r</code></td>
+<td>text · multiple</td>
+<td>—</td>
+<td>Specific run names to process (default: all runs). Repeatable; pass -r once per run.</td>
 </tr>
 <tr>
 <td><code>--debug / --no-debug</code></td>

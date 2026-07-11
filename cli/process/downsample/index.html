@@ -3434,6 +3434,17 @@
 </li>
         
           <li class="md-nav__item">
+  <a href="#output-options" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Output Options
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
   <a href="#tool-options" class="md-nav__link">
     <span class="md-ellipsis">
       
@@ -6499,6 +6510,17 @@
 </li>
         
           <li class="md-nav__item">
+  <a href="#output-options" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Output Options
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
   <a href="#tool-options" class="md-nav__link">
     <span class="md-ellipsis">
       
@@ -6572,10 +6594,10 @@
 </span></code></pre></div>
 <h2 id="description">Description</h2>
 <p>Downsample tomograms on the GPU with Fourier rescaling.</p>
-<p>For every run in the project, queries the tomogram of the given algorithm at the
-source voxel spacing, Fourier-rescales it to the target voxel spacing on the GPU,
-and writes the downsampled tomogram back into the project. Runs are processed in
-parallel on a GPU pool.</p>
+<p>For every run in the project (or only the runs given by --run-names/-r), queries
+the input tomogram, Fourier-rescales it to the output voxel spacing on the GPU, and
+writes the downsampled tomogram back into the project. The output voxel spacing (and
+optional rename) is taken from -o/--output. Runs are processed in parallel on a GPU pool.</p>
 <h2 id="uri-format">URI Format</h2>
 <div class="language-text highlight"><pre><span></span><code><span id="__span-2-1"><a id="__codelineno-2-1" name="__codelineno-2-1" href="#__codelineno-2-1"></a>Tomograms: tomo_type@voxel_spacing
 </span></code></pre></div>
@@ -6597,6 +6619,12 @@ parallel on a GPU pool.</p>
 <td>Path to the configuration file.</td>
 </tr>
 <tr>
+<td><code>--run-names, -r</code></td>
+<td>text · multiple</td>
+<td>—</td>
+<td>Specific run names to process (default: all runs). Repeatable; pass -r once per run.</td>
+</tr>
+<tr>
 <td><code>--debug / --no-debug</code></td>
 <td>boolean flag</td>
 <td><code>False</code></td>
@@ -6616,16 +6644,29 @@ parallel on a GPU pool.</p>
 </thead>
 <tbody>
 <tr>
-<td><code>--tomo-alg, -ta</code></td>
-<td>text</td>
-<td><strong>required</strong></td>
-<td>Tomogram algorithm/type to query and downsample (e.g. 'wbp').</td>
+<td><code>--input, -i</code></td>
+<td>COPICK_URI</td>
+<td>—</td>
+<td>Input tomogram URI (format: tomo_type@voxel_spacing). Supports glob patterns.</td>
 </tr>
+</tbody>
+</table>
+<h3 id="output-options">Output Options</h3>
+<table>
+<thead>
 <tr>
-<td><code>--voxel-size, -vs</code></td>
-<td>float</td>
-<td><code>10.0</code></td>
-<td>Source voxel spacing to query, in angstroms.</td>
+<th>Option</th>
+<th>Type</th>
+<th>Default</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>--output, -o</code></td>
+<td>COPICK_URI</td>
+<td>—</td>
+<td>Output tomogram URI (format: tomo_type@voxel_spacing). Example: 'wbp@20.0'.</td>
 </tr>
 </tbody>
 </table>
@@ -6641,12 +6682,6 @@ parallel on a GPU pool.</p>
 </thead>
 <tbody>
 <tr>
-<td><code>--target-resolution, -tr</code></td>
-<td>float</td>
-<td><code>10.0</code></td>
-<td>Target voxel spacing to downsample to, in angstroms.</td>
-</tr>
-<tr>
 <td><code>--delete-source / --keep-source</code></td>
 <td>boolean flag</td>
 <td><code>False</code></td>
@@ -6656,12 +6691,10 @@ parallel on a GPU pool.</p>
 </table>
 <h2 id="examples">Examples</h2>
 <div class="language-bash highlight"><pre><span></span><code><span id="__span-3-1"><a id="__codelineno-3-1" name="__codelineno-3-1" href="#__codelineno-3-1"></a><span class="c1"># Downsample wbp tomograms from 10 A to 20 A</span>
-</span><span id="__span-3-2"><a id="__codelineno-3-2" name="__codelineno-3-2" href="#__codelineno-3-2"></a>copick<span class="w"> </span>process<span class="w"> </span>downsample<span class="w"> </span>-c<span class="w"> </span>config.json<span class="w"> </span>--tomo-alg<span class="w"> </span>wbp<span class="w"> </span><span class="se">\</span>
-</span><span id="__span-3-3"><a id="__codelineno-3-3" name="__codelineno-3-3" href="#__codelineno-3-3"></a><span class="w">    </span>--voxel-size<span class="w"> </span><span class="m">10</span>.0<span class="w"> </span>--target-resolution<span class="w"> </span><span class="m">20</span>.0
-</span><span id="__span-3-4"><a id="__codelineno-3-4" name="__codelineno-3-4" href="#__codelineno-3-4"></a>
-</span><span id="__span-3-5"><a id="__codelineno-3-5" name="__codelineno-3-5" href="#__codelineno-3-5"></a><span class="c1"># Downsample, then delete the source tomograms</span>
-</span><span id="__span-3-6"><a id="__codelineno-3-6" name="__codelineno-3-6" href="#__codelineno-3-6"></a>copick<span class="w"> </span>process<span class="w"> </span>downsample<span class="w"> </span>-c<span class="w"> </span>config.json<span class="w"> </span>--tomo-alg<span class="w"> </span>wbp<span class="w"> </span><span class="se">\</span>
-</span><span id="__span-3-7"><a id="__codelineno-3-7" name="__codelineno-3-7" href="#__codelineno-3-7"></a><span class="w">    </span>--voxel-size<span class="w"> </span><span class="m">10</span>.0<span class="w"> </span>--target-resolution<span class="w"> </span><span class="m">20</span>.0<span class="w"> </span>--delete-source
+</span><span id="__span-3-2"><a id="__codelineno-3-2" name="__codelineno-3-2" href="#__codelineno-3-2"></a>copick<span class="w"> </span>process<span class="w"> </span>downsample<span class="w"> </span>-c<span class="w"> </span>config.json<span class="w"> </span>-i<span class="w"> </span>wbp@10.0<span class="w"> </span>-o<span class="w"> </span>wbp@20.0
+</span><span id="__span-3-3"><a id="__codelineno-3-3" name="__codelineno-3-3" href="#__codelineno-3-3"></a>
+</span><span id="__span-3-4"><a id="__codelineno-3-4" name="__codelineno-3-4" href="#__codelineno-3-4"></a><span class="c1"># Downsample and rename the output, then delete the source tomograms</span>
+</span><span id="__span-3-5"><a id="__codelineno-3-5" name="__codelineno-3-5" href="#__codelineno-3-5"></a>copick<span class="w"> </span>process<span class="w"> </span>downsample<span class="w"> </span>-c<span class="w"> </span>config.json<span class="w"> </span>-i<span class="w"> </span>wbp@10.0<span class="w"> </span>-o<span class="w"> </span>wbp-bin2@20.0<span class="w"> </span>--delete-source
 </span></code></pre></div>
 <h2 id="see-also">See also</h2>
 <ul>

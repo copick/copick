@@ -6636,6 +6636,12 @@ voxels are joined into a connected curve before fitting.</p>
 <td>Path to the configuration file.</td>
 </tr>
 <tr>
+<td><code>--run-names, -r</code></td>
+<td>text · multiple</td>
+<td>—</td>
+<td>Specific run names to process (default: all runs). Repeatable; pass -r once per run.</td>
+</tr>
+<tr>
 <td><code>--debug / --no-debug</code></td>
 <td>boolean flag</td>
 <td><code>False</code></td>
@@ -6655,22 +6661,10 @@ voxels are joined into a connected curve before fitting.</p>
 </thead>
 <tbody>
 <tr>
-<td><code>--run-names</code></td>
-<td>text · multiple</td>
-<td>—</td>
-<td>Specific run names to process (default: all runs).</td>
-</tr>
-<tr>
 <td><code>--input, -i</code></td>
 <td>COPICK_URI</td>
 <td><strong>required</strong></td>
 <td>Input segmentation URI (format: name:user_id/session_id@voxel_spacing). Supports glob patterns.</td>
-</tr>
-<tr>
-<td><code>--voxel-spacing, -vs</code></td>
-<td>float</td>
-<td><strong>required</strong></td>
-<td>Voxel spacing for coordinate scaling.</td>
 </tr>
 </tbody>
 </table>
@@ -6755,13 +6749,13 @@ voxels are joined into a connected curve before fitting.</p>
 </tbody>
 </table>
 <h2 id="examples">Examples</h2>
-<div class="language-bash highlight"><pre><span></span><code><span id="__span-3-1"><a id="__codelineno-3-1" name="__codelineno-3-1" href="#__codelineno-3-1"></a><span class="c1"># Fit splines to skeletonized components</span>
+<div class="language-bash highlight"><pre><span></span><code><span id="__span-3-1"><a id="__codelineno-3-1" name="__codelineno-3-1" href="#__codelineno-3-1"></a><span class="c1"># Fit splines to skeletonized components (voxel spacing from the @10.0 in -i)</span>
 </span><span id="__span-3-2"><a id="__codelineno-3-2" name="__codelineno-3-2" href="#__codelineno-3-2"></a>copick<span class="w"> </span>process<span class="w"> </span>fit_spline<span class="w"> </span>-i<span class="w"> </span><span class="s2">&quot;skeleton:skel/inst-.*@10.0&quot;</span><span class="w"> </span><span class="se">\</span>
-</span><span id="__span-3-3"><a id="__codelineno-3-3" name="__codelineno-3-3" href="#__codelineno-3-3"></a><span class="w">    </span>-o<span class="w"> </span><span class="s2">&quot;skeleton:spline/spline-{input_session_id}&quot;</span><span class="w"> </span>--spacing-distance<span class="w"> </span><span class="m">4</span>.4<span class="w"> </span>--voxel-spacing<span class="w"> </span><span class="m">10</span>.0
+</span><span id="__span-3-3"><a id="__codelineno-3-3" name="__codelineno-3-3" href="#__codelineno-3-3"></a><span class="w">    </span>-o<span class="w"> </span><span class="s2">&quot;skeleton:spline/spline-{input_session_id}&quot;</span><span class="w"> </span>--spacing-distance<span class="w"> </span><span class="m">4</span>.4
 </span><span id="__span-3-4"><a id="__codelineno-3-4" name="__codelineno-3-4" href="#__codelineno-3-4"></a>
 </span><span id="__span-3-5"><a id="__codelineno-3-5" name="__codelineno-3-5" href="#__codelineno-3-5"></a><span class="c1"># Process a single skeleton component</span>
 </span><span id="__span-3-6"><a id="__codelineno-3-6" name="__codelineno-3-6" href="#__codelineno-3-6"></a>copick<span class="w"> </span>process<span class="w"> </span>fit_spline<span class="w"> </span>-i<span class="w"> </span><span class="s2">&quot;skeleton:skel/skel-0@10.0&quot;</span><span class="w"> </span><span class="se">\</span>
-</span><span id="__span-3-7"><a id="__codelineno-3-7" name="__codelineno-3-7" href="#__codelineno-3-7"></a><span class="w">    </span>-o<span class="w"> </span><span class="s2">&quot;skeleton:spline/spline-0&quot;</span><span class="w"> </span>--spacing-distance<span class="w"> </span><span class="m">2</span>.0<span class="w"> </span>--voxel-spacing<span class="w"> </span><span class="m">10</span>.0
+</span><span id="__span-3-7"><a id="__codelineno-3-7" name="__codelineno-3-7" href="#__codelineno-3-7"></a><span class="w">    </span>-o<span class="w"> </span><span class="s2">&quot;skeleton:spline/spline-0&quot;</span><span class="w"> </span>--spacing-distance<span class="w"> </span><span class="m">2</span>.0
 </span></code></pre></div>
 <h2 id="see-also">See also</h2>
 <ul>

@@ -3378,6 +3378,17 @@
 </li>
         
           <li class="md-nav__item">
+  <a href="#output-options" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Output Options
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
   <a href="#tool-options" class="md-nav__link">
     <span class="md-ellipsis">
       
@@ -6499,6 +6510,17 @@
 </li>
         
           <li class="md-nav__item">
+  <a href="#output-options" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Output Options
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
   <a href="#tool-options" class="md-nav__link">
     <span class="md-ellipsis">
       
@@ -6571,11 +6593,12 @@
 <div class="language-bash highlight"><pre><span></span><code><span id="__span-1-1"><a id="__codelineno-1-1" name="__codelineno-1-1" href="#__codelineno-1-1"></a>copick<span class="w"> </span>process<span class="w"> </span>bandpass<span class="w"> </span><span class="o">[</span>OPTIONS<span class="o">]</span>
 </span></code></pre></div>
 <h2 id="description">Description</h2>
-<p>For every run in the project (or only the runs given by --run-ids), queries the
-tomogram of the given algorithm at the requested voxel spacing, applies a Gaussian
-band-pass filter on the GPU, and writes the filtered tomogram back into the project
-under a new algorithm name (the source name with -lp<freq>A and/or -hp<freq>A
-suffixes). Runs are processed in parallel on a GPU pool.</p>
+<p>For every run in the project (or only the runs given by --run-names/-r), queries the
+input tomogram, applies a Gaussian band-pass filter on the GPU, and writes the
+filtered tomogram back into the project. The output is named by -o/--output, or (when
+omitted) the source name with -lp<freq>A and/or -hp<freq>A suffixes. Band-pass does
+not resample, so the output voxel spacing matches the input. Runs are processed in
+parallel on a GPU pool.</p>
 <p>Low-pass and high-pass cutoffs are given as resolutions in angstroms; a value of 0
 disables that side of the filter, but both cannot be 0. Cutoffs finer than Nyquist
 (2 * voxel_size) are rejected, and for a true band-pass the high-pass resolution must
@@ -6602,6 +6625,12 @@ profile (filter3d.png).</p>
 <td>Path to the configuration file.</td>
 </tr>
 <tr>
+<td><code>--run-names, -r</code></td>
+<td>text · multiple</td>
+<td>—</td>
+<td>Specific run names to process (default: all runs). Repeatable; pass -r once per run.</td>
+</tr>
+<tr>
 <td><code>--debug / --no-debug</code></td>
 <td>boolean flag</td>
 <td><code>False</code></td>
@@ -6621,22 +6650,29 @@ profile (filter3d.png).</p>
 </thead>
 <tbody>
 <tr>
-<td><code>--run-ids</code></td>
-<td>text</td>
+<td><code>--input, -i</code></td>
+<td>COPICK_URI</td>
 <td>—</td>
-<td>Run ID to process (No Input would process the entire dataset.)</td>
+<td>Input tomogram URI (format: tomo_type@voxel_spacing). Supports glob patterns.</td>
 </tr>
+</tbody>
+</table>
+<h3 id="output-options">Output Options</h3>
+<table>
+<thead>
 <tr>
-<td><code>--tomo-alg</code></td>
-<td>text</td>
-<td><strong>required</strong></td>
-<td>Tomogram Algorithm to use</td>
+<th>Option</th>
+<th>Type</th>
+<th>Default</th>
+<th>Description</th>
 </tr>
+</thead>
+<tbody>
 <tr>
-<td><code>--voxel-size</code></td>
-<td>float</td>
-<td><code>10</code></td>
-<td>Voxel Size to Query the Data</td>
+<td><code>--output, -o</code></td>
+<td>COPICK_URI</td>
+<td>—</td>
+<td>Output tomogram URI (format: tomo_type@voxel_spacing). Example: 'wbp@20.0'.</td>
 </tr>
 </tbody>
 </table>
@@ -6685,16 +6721,15 @@ profile (filter3d.png).</p>
 </table>
 <h2 id="examples">Examples</h2>
 <div class="language-bash highlight"><pre><span></span><code><span id="__span-3-1"><a id="__codelineno-3-1" name="__codelineno-3-1" href="#__codelineno-3-1"></a><span class="c1"># Low-pass filter wbp tomograms at 10 A voxel spacing to 30 A resolution</span>
-</span><span id="__span-3-2"><a id="__codelineno-3-2" name="__codelineno-3-2" href="#__codelineno-3-2"></a>copick<span class="w"> </span>process<span class="w"> </span>bandpass<span class="w"> </span>-c<span class="w"> </span>config.json<span class="w"> </span>--tomo-alg<span class="w"> </span>wbp<span class="w"> </span><span class="se">\</span>
-</span><span id="__span-3-3"><a id="__codelineno-3-3" name="__codelineno-3-3" href="#__codelineno-3-3"></a><span class="w">    </span>--voxel-size<span class="w"> </span><span class="m">10</span>.0<span class="w"> </span>--lp-freq<span class="w"> </span><span class="m">30</span>.0
-</span><span id="__span-3-4"><a id="__codelineno-3-4" name="__codelineno-3-4" href="#__codelineno-3-4"></a>
-</span><span id="__span-3-5"><a id="__codelineno-3-5" name="__codelineno-3-5" href="#__codelineno-3-5"></a><span class="c1"># Band-pass a single run between 100 A (high-pass) and 30 A (low-pass)</span>
-</span><span id="__span-3-6"><a id="__codelineno-3-6" name="__codelineno-3-6" href="#__codelineno-3-6"></a>copick<span class="w"> </span>process<span class="w"> </span>bandpass<span class="w"> </span>-c<span class="w"> </span>config.json<span class="w"> </span>--tomo-alg<span class="w"> </span>wbp<span class="w"> </span><span class="se">\</span>
-</span><span id="__span-3-7"><a id="__codelineno-3-7" name="__codelineno-3-7" href="#__codelineno-3-7"></a><span class="w">    </span>--voxel-size<span class="w"> </span><span class="m">10</span>.0<span class="w"> </span>--run-ids<span class="w"> </span>TS_001<span class="w"> </span>--lp-freq<span class="w"> </span><span class="m">30</span>.0<span class="w"> </span>--hp-freq<span class="w"> </span><span class="m">100</span>.0
-</span><span id="__span-3-8"><a id="__codelineno-3-8" name="__codelineno-3-8" href="#__codelineno-3-8"></a>
-</span><span id="__span-3-9"><a id="__codelineno-3-9" name="__codelineno-3-9" href="#__codelineno-3-9"></a><span class="c1"># High-pass the whole dataset and skip the filter preview PNG</span>
-</span><span id="__span-3-10"><a id="__codelineno-3-10" name="__codelineno-3-10" href="#__codelineno-3-10"></a>copick<span class="w"> </span>process<span class="w"> </span>bandpass<span class="w"> </span>-c<span class="w"> </span>config.json<span class="w"> </span>--tomo-alg<span class="w"> </span>wbp<span class="w"> </span><span class="se">\</span>
-</span><span id="__span-3-11"><a id="__codelineno-3-11" name="__codelineno-3-11" href="#__codelineno-3-11"></a><span class="w">    </span>--voxel-size<span class="w"> </span><span class="m">10</span>.0<span class="w"> </span>--hp-freq<span class="w"> </span><span class="m">150</span>.0<span class="w"> </span>--show-filter<span class="w"> </span><span class="nb">false</span>
+</span><span id="__span-3-2"><a id="__codelineno-3-2" name="__codelineno-3-2" href="#__codelineno-3-2"></a>copick<span class="w"> </span>process<span class="w"> </span>bandpass<span class="w"> </span>-c<span class="w"> </span>config.json<span class="w"> </span>-i<span class="w"> </span>wbp@10.0<span class="w"> </span>--lp-freq<span class="w"> </span><span class="m">30</span>.0
+</span><span id="__span-3-3"><a id="__codelineno-3-3" name="__codelineno-3-3" href="#__codelineno-3-3"></a>
+</span><span id="__span-3-4"><a id="__codelineno-3-4" name="__codelineno-3-4" href="#__codelineno-3-4"></a><span class="c1"># Band-pass a single run between 100 A (high-pass) and 30 A (low-pass)</span>
+</span><span id="__span-3-5"><a id="__codelineno-3-5" name="__codelineno-3-5" href="#__codelineno-3-5"></a>copick<span class="w"> </span>process<span class="w"> </span>bandpass<span class="w"> </span>-c<span class="w"> </span>config.json<span class="w"> </span>-i<span class="w"> </span>wbp@10.0<span class="w"> </span>-r<span class="w"> </span>TS_001<span class="w"> </span><span class="se">\</span>
+</span><span id="__span-3-6"><a id="__codelineno-3-6" name="__codelineno-3-6" href="#__codelineno-3-6"></a><span class="w">    </span>--lp-freq<span class="w"> </span><span class="m">30</span>.0<span class="w"> </span>--hp-freq<span class="w"> </span><span class="m">100</span>.0
+</span><span id="__span-3-7"><a id="__codelineno-3-7" name="__codelineno-3-7" href="#__codelineno-3-7"></a>
+</span><span id="__span-3-8"><a id="__codelineno-3-8" name="__codelineno-3-8" href="#__codelineno-3-8"></a><span class="c1"># High-pass the whole dataset into a named output, skipping the preview PNG</span>
+</span><span id="__span-3-9"><a id="__codelineno-3-9" name="__codelineno-3-9" href="#__codelineno-3-9"></a>copick<span class="w"> </span>process<span class="w"> </span>bandpass<span class="w"> </span>-c<span class="w"> </span>config.json<span class="w"> </span>-i<span class="w"> </span>wbp@10.0<span class="w"> </span>-o<span class="w"> </span>wbp-hp150A@10.0<span class="w"> </span><span class="se">\</span>
+</span><span id="__span-3-10"><a id="__codelineno-3-10" name="__codelineno-3-10" href="#__codelineno-3-10"></a><span class="w">    </span>--hp-freq<span class="w"> </span><span class="m">150</span>.0<span class="w"> </span>--show-filter<span class="w"> </span><span class="nb">false</span>
 </span></code></pre></div>
 <h2 id="see-also">See also</h2>
 <ul>

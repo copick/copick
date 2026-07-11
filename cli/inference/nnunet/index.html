@@ -6493,7 +6493,7 @@
 <div class="language-bash highlight"><pre><span></span><code><span id="__span-1-1"><a id="__codelineno-1-1" name="__codelineno-1-1" href="#__codelineno-1-1"></a>copick<span class="w"> </span>inference<span class="w"> </span>nnunet<span class="w"> </span><span class="o">[</span>OPTIONS<span class="o">]</span>
 </span></code></pre></div>
 <h2 id="description">Description</h2>
-<p>For every run in the project, queries the requested tomogram, runs sliding-window
+<p>For every run in the project (or only the runs given by --run-names/-r), queries the requested tomogram, runs sliding-window
 nnUNet prediction, and writes the resulting segmentation back into the CoPick
 project. All available GPUs are used automatically, with run IDs sharded across
 devices for batch inference.</p>
@@ -6548,10 +6548,10 @@ class is resolved from the checkpoint metadata.</p>
 <td>Enable mirroring TTA.</td>
 </tr>
 <tr>
-<td><code>--run-ids, -runs</code></td>
-<td>text</td>
+<td><code>--run-names, -r</code></td>
+<td>text · multiple</td>
 <td>—</td>
-<td>CoPick run IDs to predict (comma-separated).</td>
+<td>Specific run names to process (default: all runs). Repeatable; pass -r once per run.</td>
 </tr>
 <tr>
 <td><code>-suri, --seg-uri</code></td>
@@ -6573,7 +6573,7 @@ class is resolved from the checkpoint metadata.</p>
 </span><span id="__span-2-9"><a id="__codelineno-2-9" name="__codelineno-2-9" href="#__codelineno-2-9"></a>
 </span><span id="__span-2-10"><a id="__codelineno-2-10" name="__codelineno-2-10" href="#__codelineno-2-10"></a><span class="c1"># Predict only specific runs with mirroring TTA disabled</span>
 </span><span id="__span-2-11"><a id="__codelineno-2-11" name="__codelineno-2-11" href="#__codelineno-2-11"></a>copick<span class="w"> </span>inference<span class="w"> </span>nnunet<span class="w"> </span>-c<span class="w"> </span>config.json<span class="w"> </span>-p<span class="w"> </span>plans.json<span class="w"> </span>-d<span class="w"> </span>dataset.json<span class="w"> </span><span class="se">\</span>
-</span><span id="__span-2-12"><a id="__codelineno-2-12" name="__codelineno-2-12" href="#__codelineno-2-12"></a><span class="w">    </span>-w<span class="w"> </span>fold_0/checkpoint_best.pth<span class="w"> </span>-runs<span class="w"> </span>TS_01,TS_02<span class="w"> </span>--tta<span class="w"> </span>False
+</span><span id="__span-2-12"><a id="__codelineno-2-12" name="__codelineno-2-12" href="#__codelineno-2-12"></a><span class="w">    </span>-w<span class="w"> </span>fold_0/checkpoint_best.pth<span class="w"> </span>-r<span class="w"> </span>TS_01<span class="w"> </span>-r<span class="w"> </span>TS_02<span class="w"> </span>--tta<span class="w"> </span>False
 </span></code></pre></div>
 <h2 id="see-also">See also</h2>
 <ul>
