@@ -1,5 +1,18 @@
 # Changelog
 
+## [1.26.2](https://github.com/copick/copick/compare/copick-v1.26.1...copick-v1.26.2) (2026-07-16)
+
+
+### 🐞 Bug Fixes
+
+* Bump black from 26.3.1 to 26.5.1 ([#342](https://github.com/copick/copick/issues/342)) ([95b6b7b](https://github.com/copick/copick/commit/95b6b7b7348f7b0fa01a0d89b173e530d1ef7633))
+* Bump chanzuckerberg/github-actions from 6.29.4 to 6.30.1 ([#340](https://github.com/copick/copick/issues/340)) ([d078423](https://github.com/copick/copick/commit/d078423639b8131dcc7d4d7c1a330c5f7febd10a))
+* Bump fsspec from 2026.4.0 to 2026.6.0 ([#341](https://github.com/copick/copick/issues/341)) ([95e23da](https://github.com/copick/copick/commit/95e23dab96090ca2c93600387833a077635b5a1a))
+* Bump mistune from 3.2.1 to 3.3.0 ([#338](https://github.com/copick/copick/issues/338)) ([6cb895e](https://github.com/copick/copick/commit/6cb895e77ff0ed97780467f5149afded158c9d3d))
+* Bump soupsieve from 2.8.3 to 2.8.4 ([#337](https://github.com/copick/copick/issues/337)) ([98ab07d](https://github.com/copick/copick/commit/98ab07d3a4746127e21082a39c4aecf911cf8ee3))
+* Bump textual from 8.2.5 to 8.2.8 ([#343](https://github.com/copick/copick/issues/343)) ([43cd26b](https://github.com/copick/copick/commit/43cd26b60219853a95de12b4fbf8698f4de57181))
+* Bump tqdm from 4.67.3 to 4.68.4 ([#344](https://github.com/copick/copick/issues/344)) ([7a921ce](https://github.com/copick/copick/commit/7a921ce06468c118f2799d84b848f70f093c8f2e))
+
 ## [1.26.1](https://github.com/copick/copick/compare/copick-v1.26.0...copick-v1.26.1) (2026-07-07)
 
 
