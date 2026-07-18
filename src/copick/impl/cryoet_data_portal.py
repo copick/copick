@@ -37,7 +37,9 @@ from copick.models import (
     CopickVoxelSpacingMeta,
     PickableObject,
 )
+from copick.util import portal_cache
 from copick.util.log import get_logger
+from copick.util.portal_cache import SHAPE_TYPES
 
 # Don't import Geometry at runtime to keep CLI snappy
 if TYPE_CHECKING:
@@ -182,16 +184,44 @@ _PortalTomogram = _portal_to_model(cdp.Tomogram, "_PortalTomogram")
 class PortalCache:
     """Cache for portal annotation data shared across all runs."""
 
+    runs: List[Any] = field(default_factory=list)  # PortalObject(Run)
     picks_files_by_run: Dict[int, List[Any]] = field(default_factory=dict)  # Point/OrientedPoint
     seg_files_by_run: Dict[int, List[Any]] = field(default_factory=dict)  # SegmentationMask
     annotation_shapes: Dict[int, Any] = field(default_factory=dict)  # id -> shape
     annotations: Dict[int, Any] = field(default_factory=dict)  # id -> annotation
     author_names: Dict[int, List[str]] = field(default_factory=dict)  # annotation_id -> names
     voxel_spacings: Dict[int, Any] = field(default_factory=dict)  # id -> voxel_spacing
+    voxel_spacings_by_run: Dict[int, List[Any]] = field(default_factory=dict)  # run_id -> voxel_spacings
 
     # Tomogram cache
     tomograms_by_vs: Dict[int, List[Any]] = field(default_factory=dict)  # vs_id -> tomograms
     tomogram_authors: Dict[int, List[str]] = field(default_factory=dict)  # tomogram_id -> authors
+
+
+class PortalObject:
+    """Serializable stand-in for a ``cryoet_data_portal`` client object.
+
+    Wraps the scalar-field dict produced by a cdp ``Model.to_dict()`` and exposes those
+    scalars as attributes plus a ``to_dict()`` method. The same wrapper is used for freshly
+    fetched objects and for objects rehydrated from the disk cache, so :class:`PortalCache`
+    construction and every downstream consumer work without knowing the provenance. Full-dict
+    passthrough guarantees all scalar keys are present regardless of the ``_Portal*`` model
+    field sets.
+    """
+
+    __slots__ = ("_data",)
+
+    def __init__(self, data: Dict[str, Any]):
+        object.__setattr__(self, "_data", data)
+
+    def __getattr__(self, name: str) -> Any:
+        try:
+            return self._data[name]
+        except KeyError as e:
+            raise AttributeError(name) from e
+
+    def to_dict(self) -> Dict[str, Any]:
+        return self._data
 
 
 class PortalAnnotationMeta(BaseModel):
@@ -206,7 +236,8 @@ class PortalAnnotationMeta(BaseModel):
     @field_validator("portal_annotation", mode="before")
     @classmethod
     def check_portal_annotation(cls, v: Union[_PortalAnnotation, cdp.Annotation]) -> _PortalAnnotation:
-        if isinstance(v, cdp.Annotation):
+        # Accept raw cdp objects and cache-rehydrated PortalObjects; both expose to_dict().
+        if isinstance(v, (cdp.Annotation, PortalObject)):
             return _PortalAnnotation(**v.to_dict())
         return v
 
@@ -216,14 +247,14 @@ class PortalAnnotationMeta(BaseModel):
         cls,
         v: Union[_PortalAnnotationShape, cdp.AnnotationShape],
     ) -> _PortalAnnotationShape:
-        if isinstance(v, cdp.AnnotationShape):
+        if isinstance(v, (cdp.AnnotationShape, PortalObject)):
             return _PortalAnnotationShape(**v.to_dict())
         return v
 
     @field_validator("portal_annotation_file", mode="before")
     @classmethod
     def check_portal_annotation_file(cls, v: Union[_PortalAnnotationFile, cdp.AnnotationFile]) -> _PortalAnnotationFile:
-        if isinstance(v, cdp.AnnotationFile):
+        if isinstance(v, (cdp.AnnotationFile, PortalObject)):
             return _PortalAnnotationFile(**v.to_dict())
         return v
 
@@ -311,6 +342,13 @@ class CopickConfigCDP(CopickConfig):
     dataset_ids: List[int]
 
     overlay_fs_args: Optional[Dict[str, Any]] = {}
+
+    # Disk cache for portal query results (see copick.util.portal_cache). Each field can be
+    # overridden at runtime by the matching COPICK_PORTAL_CACHE* environment variable.
+    portal_cache: bool = True  # master enable/disable
+    portal_cache_ttl_seconds: int = 86400  # 24h; <= 0 means "never expire"
+    portal_cache_dir: Optional[str] = None  # pin the cache location (else overlay + local fallback)
+    portal_cache_lock_timeout_seconds: int = 60  # bound the cold-start lock wait before direct fetch
 
 
 class CopickPicksFileCDP(CopickPicksFile):
@@ -951,14 +989,11 @@ class CopickRunCDP(CopickRunOverlay):
         if self.portal_run_id is None:
             return []
 
-        client = cdp.Client()
-        portal_vs = _retry_portal_call(
-            cdp.TomogramVoxelSpacing.find,
-            client,
-            [cdp.TomogramVoxelSpacing.run_id == self.portal_run_id],  # noqa
-        )
+        # Served from the shared annotation cache (fetched once at root init / from disk),
+        # rather than a per-run portal query that would fan out to N calls for N runs.
+        cache = self.root._ensure_annotation_cache()
+        portal_vs = cache.voxel_spacings_by_run.get(self.portal_run_id, [])
 
-        # portal_vs = self.portal_run.tomogram_voxel_spacings
         clz, meta_clz = self._voxel_spacing_factory()
 
         return [clz(meta=meta_clz.from_portal(vs), run=self) for vs in portal_vs]
@@ -1374,49 +1409,72 @@ class CopickRootCDP(CopickRoot):
     def go_map(self) -> Dict[str, str]:
         return {po.identifier: po.name for po in self.pickable_objects if po.identifier is not None}
 
-    def _ensure_annotation_cache(self) -> PortalCache:
-        """Fetch (in per-run batches) and cache all portal annotation data for picks, segmentations, and tomograms."""
-        if self._portal_cache is not None:
+    def _ensure_annotation_cache(self, force: bool = False) -> PortalCache:
+        """Return the portal annotation cache, building it from disk or the portal as needed.
+
+        The cache is memoized in-memory (``self._portal_cache``); beneath that sits a
+        time-limited, lock-protected disk cache (see :mod:`copick.util.portal_cache`) so a new
+        process reads the previous run's portal query results instead of re-querying. ``force``
+        bypasses both layers, refetches from the portal, and rewrites the disk cache.
+        """
+        if self._portal_cache is not None and not force:
             return self._portal_cache
 
-        client = cdp.Client()
-        go_map = self.go_map
-        go_keys = list(go_map.keys())
-        shape_types = ["Point", "OrientedPoint", "SegmentationMask"]
+        settings = portal_cache.settings_from_config(self.config)
+        fingerprint = portal_cache.fingerprint_for_config(self.config)
+        data = portal_cache.get_or_fetch(
+            fingerprint=fingerprint,
+            dataset_ids=self.dataset_ids,
+            settings=settings,
+            fetch_fn=self._fetch_portal_data,
+            fs_overlay=self.fs_overlay,
+            root_overlay=self.root_overlay,
+            force=force,
+        )
+        self._portal_cache = self._build_cache(data)
+        return self._portal_cache
 
-        # Fetch the run IDs for the configured datasets up front. Every query below is
-        # batched over these run IDs (via _find_batched) so a large dataset is not pulled
-        # in a single unbounded .find(), which overloads the portal (the Tomogram query
-        # 502s on datasets with many annotations). The batched results are concatenated
-        # and indexed exactly as before, so the resulting cache is identical.
+    def _fetch_portal_data(self) -> Dict[str, List[Dict[str, Any]]]:
+        """Run the batched portal queries and return their raw results as serializable dicts.
+
+        Every query is batched over the configured datasets' run IDs (via ``_find_batched``) so a
+        large dataset is not pulled in a single unbounded ``.find()``, which overloads the portal
+        (the Tomogram query 502s on datasets with many annotations). Results are returned as
+        ``cdp`` ``.to_dict()`` payloads so they can be indexed by :meth:`_build_cache` and persisted
+        to the disk cache unchanged.
+        """
+        client = cdp.Client()
+        go_keys = list(self.go_map.keys())
+
+        # Runs for the configured datasets; every subsequent query is batched over these IDs.
         runs = _retry_portal_call(cdp.Run.find, client, [cdp.Run.dataset_id._in(self.dataset_ids)])
         run_ids = [r.id for r in runs]
 
-        # 1. Fetch annotation files (picks + segmentations)
+        # 1. Annotation files (picks + segmentations)
         all_anno_files = _find_batched(
             cdp.AnnotationFile.find,
             client,
             run_ids,
             lambda b: [
                 cdp.AnnotationFile.annotation_shape.annotation.run.id._in(b),  # noqa
-                cdp.AnnotationFile.annotation_shape.shape_type._in(shape_types),  # noqa
+                cdp.AnnotationFile.annotation_shape.shape_type._in(SHAPE_TYPES),  # noqa
                 cdp.AnnotationFile.annotation_shape.annotation.object_id._in(go_keys),  # noqa
             ],
         )
 
-        # 2. Fetch annotation shapes
+        # 2. Annotation shapes
         all_shapes = _find_batched(
             cdp.AnnotationShape.find,
             client,
             run_ids,
             lambda b: [
                 cdp.AnnotationShape.annotation.run.id._in(b),  # noqa
-                cdp.AnnotationShape.shape_type._in(shape_types),  # noqa
+                cdp.AnnotationShape.shape_type._in(SHAPE_TYPES),  # noqa
                 cdp.AnnotationShape.annotation.object_id._in(go_keys),  # noqa
             ],
         )
 
-        # 3. Fetch annotations
+        # 3. Annotations
         all_annotations = _find_batched(
             cdp.Annotation.find,
             client,
@@ -1427,7 +1485,7 @@ class CopickRootCDP(CopickRoot):
             ],
         )
 
-        # 4. Fetch annotation authors
+        # 4. Annotation authors
         all_authors = _find_batched(
             cdp.AnnotationAuthor.find,
             client,
@@ -1438,7 +1496,7 @@ class CopickRootCDP(CopickRoot):
             ],
         )
 
-        # 5. Fetch voxel spacings
+        # 5. Voxel spacings
         all_voxel_spacings = _find_batched(
             cdp.TomogramVoxelSpacing.find,
             client,
@@ -1448,7 +1506,7 @@ class CopickRootCDP(CopickRoot):
             ],
         )
 
-        # 6. Fetch tomograms
+        # 6. Tomograms
         all_tomograms = _find_batched(
             cdp.Tomogram.find,
             client,
@@ -1458,7 +1516,7 @@ class CopickRootCDP(CopickRoot):
             ],
         )
 
-        # 7. Fetch tomogram authors
+        # 7. Tomogram authors
         all_tomogram_authors = _find_batched(
             cdp.TomogramAuthor.find,
             client,
@@ -1468,13 +1526,45 @@ class CopickRootCDP(CopickRoot):
             ],
         )
 
-        # Build cache
+        return {
+            "runs": [r.to_dict() for r in runs],
+            "annotation_files": [x.to_dict() for x in all_anno_files],
+            "annotation_shapes": [x.to_dict() for x in all_shapes],
+            "annotations": [x.to_dict() for x in all_annotations],
+            "annotation_authors": [x.to_dict() for x in all_authors],
+            "voxel_spacings": [x.to_dict() for x in all_voxel_spacings],
+            "tomograms": [x.to_dict() for x in all_tomograms],
+            "tomogram_authors": [x.to_dict() for x in all_tomogram_authors],
+        }
+
+    def _build_cache(self, data: Dict[str, List[Dict[str, Any]]]) -> PortalCache:
+        """Index raw portal data (from the portal or the disk cache) into a :class:`PortalCache`.
+
+        ``data`` is the serializable payload produced by :meth:`_fetch_portal_data`. Each record is
+        wrapped in a :class:`PortalObject` so the indexing and all downstream consumers are agnostic
+        to whether the data came from a live query or from disk.
+        """
+        runs = [PortalObject(d) for d in data.get("runs", [])]
+        all_anno_files = [PortalObject(d) for d in data.get("annotation_files", [])]
+        all_shapes = [PortalObject(d) for d in data.get("annotation_shapes", [])]
+        all_annotations = [PortalObject(d) for d in data.get("annotations", [])]
+        all_authors = [PortalObject(d) for d in data.get("annotation_authors", [])]
+        all_voxel_spacings = [PortalObject(d) for d in data.get("voxel_spacings", [])]
+        all_tomograms = [PortalObject(d) for d in data.get("tomograms", [])]
+        all_tomogram_authors = [PortalObject(d) for d in data.get("tomogram_authors", [])]
+
         cache = PortalCache()
+        cache.runs = runs
 
         # Index by id
         cache.annotation_shapes = {s.id: s for s in all_shapes}
         cache.annotations = {a.id: a for a in all_annotations}
-        cache.voxel_spacings = {vs.id: vs for vs in all_voxel_spacings}
+
+        # Voxel spacings: keep the id index and also group by run so voxel-spacing lookups are
+        # served from the cache instead of a per-run portal query.
+        for vs in all_voxel_spacings:
+            cache.voxel_spacings[vs.id] = vs
+            cache.voxel_spacings_by_run.setdefault(vs.run_id, []).append(vs)
 
         # Group annotation files by run_id and shape_type
         for af in all_anno_files:
@@ -1483,34 +1573,22 @@ class CopickRootCDP(CopickRoot):
             run_id = annotation.run_id
 
             if shape.shape_type in ["Point", "OrientedPoint"]:
-                if run_id not in cache.picks_files_by_run:
-                    cache.picks_files_by_run[run_id] = []
-                cache.picks_files_by_run[run_id].append(af)
+                cache.picks_files_by_run.setdefault(run_id, []).append(af)
             elif shape.shape_type == "SegmentationMask" and af.format == "zarr":
-                if run_id not in cache.seg_files_by_run:
-                    cache.seg_files_by_run[run_id] = []
-                cache.seg_files_by_run[run_id].append(af)
+                cache.seg_files_by_run.setdefault(run_id, []).append(af)
 
         # Build annotation author names lookup
         for author in all_authors:
-            if author.annotation_id not in cache.author_names:
-                cache.author_names[author.annotation_id] = []
-            cache.author_names[author.annotation_id].append(author.name)
+            cache.author_names.setdefault(author.annotation_id, []).append(author.name)
 
         # Group tomograms by voxel spacing
         for tomo in all_tomograms:
-            vs_id = tomo.tomogram_voxel_spacing_id
-            if vs_id not in cache.tomograms_by_vs:
-                cache.tomograms_by_vs[vs_id] = []
-            cache.tomograms_by_vs[vs_id].append(tomo)
+            cache.tomograms_by_vs.setdefault(tomo.tomogram_voxel_spacing_id, []).append(tomo)
 
         # Build tomogram author lookup
         for author in all_tomogram_authors:
-            if author.tomogram_id not in cache.tomogram_authors:
-                cache.tomogram_authors[author.tomogram_id] = []
-            cache.tomogram_authors[author.tomogram_id].append(author.name)
+            cache.tomogram_authors.setdefault(author.tomogram_id, []).append(author.name)
 
-        self._portal_cache = cache
         return cache
 
     @property
@@ -1543,11 +1621,12 @@ class CopickRootCDP(CopickRoot):
         return CopickObjectCDP, PickableObject
 
     def query(self) -> List[CopickRunCDP]:
-        client = cdp.Client()
-        portal_runs = _retry_portal_call(cdp.Run.find, client, [cdp.Run.dataset_id._in(self.dataset_ids)])  # noqa
+        # Runs come from the shared annotation cache (fetched once at init / from disk) rather
+        # than a fresh cdp.Run.find on every .runs access.
+        cache = self._ensure_annotation_cache()
 
         runs = []
-        for pr in portal_runs:
+        for pr in cache.runs:
             rm = CopickRunMetaCDP.from_portal(pr)
             runs.append(CopickRunCDP(root=self, meta=rm))
 
