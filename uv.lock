@@ -4999,15 +4999,15 @@ wheels = [
 
 [[package]]
 name = "smbprotocol"
-version = "1.16.1"
+version = "1.17.0"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
     { name = "cryptography" },
     { name = "pyspnego" },
 ]
-sdist = { url = "https://files.pythonhosted.org/packages/33/76/c32681e925fc859578d4e41e4bd3ef7e2b9e7d06141f703eec032875b28a/smbprotocol-1.16.1.tar.gz", hash = "sha256:ad7a31662792817c6da3629a3cfb96a51d8213e993ebd0c0a7ee750d2b1f8ec8", size = 186164, upload-time = "2026-04-02T03:01:28.961Z" }
+sdist = { url = "https://files.pythonhosted.org/packages/0e/ff/1a86a76423210bc9558e6ea978c576b13da448644401f16ee2260d4d3316/smbprotocol-1.17.0.tar.gz", hash = "sha256:bcc27edfff7d727a7eb30424138766e1ee216ae2ffc1af03dab0448f29c4731c", size = 190845, upload-time = "2026-07-07T03:23:20.523Z" }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/79/43/8acc58e24f78af82300a8ebdd457face4c6e4b27f7b52885a239724d3e21/smbprotocol-1.16.1-py3-none-any.whl", hash = "sha256:0f9c35b2a0103314da06aecaffa8821f060a9773ad82cc0d7f29130083d598b4", size = 126532, upload-time = "2026-04-02T03:01:27.718Z" },
+    { url = "https://files.pythonhosted.org/packages/76/d3/250e13e7b3473a0f441f4d680d511ad30ce432d0180115dec9840d88fe89/smbprotocol-1.17.0-py3-none-any.whl", hash = "sha256:bd1abff5417f5af83ca516a64ab8e5acece3dbdcf58d4e5e23e47f5165a77349", size = 128208, upload-time = "2026-07-07T03:23:19.178Z" },
 ]
 
 [[package]]
