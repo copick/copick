@@ -3,6 +3,7 @@ import click
 from copick import __version__ as version
 from copick.cli.add import add
 from copick.cli.browse import browse
+from copick.cli.cache import cache
 from copick.cli.config import config
 from copick.cli.cp import cp
 from copick.cli.deposit import deposit
@@ -23,7 +24,7 @@ logger = get_logger(__name__)
 COMMAND_CATEGORIES = {
     "Data Management": ["add", "cp", "export", "mv", "new", "rm", "sync"],
     "Data Processing": ["convert", "inference", "logical", "process", "training", "evaluation"],
-    "Utilities": ["browse", "config", "deposit", "info", "setup", "stats", "download"],
+    "Utilities": ["browse", "cache", "config", "deposit", "info", "setup", "stats", "download"],
 }
 
 
@@ -184,6 +185,7 @@ def add_core_commands(cmd: click.group) -> click.group:
 
     cmd.add_command(add)
     cmd.add_command(browse)
+    cmd.add_command(cache)
     cmd.add_command(config)
     cmd.add_command(cp)
     cmd.add_command(deposit)

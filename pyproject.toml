@@ -17,6 +17,7 @@ dependencies = [
     "dynamotable>=0.2.0",
     "emfile==0.3.0",
     "aiohttp>=3.9.0",
+    "filelock>=3.18.0",
     "fsspec>=2025.5.1",
     "mlcroissant>=1.1.0",
     "mrcfile>=1.5.4",
