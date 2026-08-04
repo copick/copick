@@ -171,6 +171,53 @@ def write_ome_zarr_3d(
     )
 
 
+def get_multiscales(zarr_group: zarr.Group) -> List[Dict[str, Any]]:
+    """Return OME multiscale metadata from either the 0.4 or 0.5 layout.
+
+    OME-Zarr 0.4 stores ``multiscales`` at the root of the group's
+    attributes. OME-Zarr 0.5 nests it below the ``ome`` attribute.
+
+    Args:
+        zarr_group: The Zarr group containing OME-Zarr metadata.
+
+    Returns:
+        The OME multiscale metadata entries.
+
+    Raises:
+        KeyError: If neither supported metadata layout is present.
+    """
+    if "multiscales" in zarr_group.attrs:
+        return zarr_group.attrs["multiscales"]
+
+    ome = zarr_group.attrs.get("ome")
+    if isinstance(ome, dict) and "multiscales" in ome:
+        return ome["multiscales"]
+
+    raise KeyError("OME-Zarr multiscales metadata not found")
+
+
+def get_level_path(zarr_group: zarr.Group, level: int) -> str:
+    """Resolve a bounded pyramid level to its metadata-defined dataset path.
+
+    Args:
+        zarr_group: The Zarr group containing OME-Zarr metadata.
+        level: Zero-based pyramid level.
+
+    Returns:
+        The dataset path declared for ``level``.
+
+    Raises:
+        ValueError: If ``level`` is negative or outside the declared pyramid.
+        KeyError: If required OME-Zarr metadata is absent.
+    """
+    multiscales = get_multiscales(zarr_group)
+    datasets = multiscales[0]["datasets"]
+    if level < 0 or level >= len(datasets):
+        raise ValueError(f"Level {level} not found in Zarr store (max: {len(datasets) - 1})")
+
+    return datasets[level]["path"]
+
+
 def get_voxel_size_from_zarr(zarr_group: zarr.Group) -> float:
     """Extract voxel size from OME-Zarr coordinate transformations.
 
@@ -180,7 +227,7 @@ def get_voxel_size_from_zarr(zarr_group: zarr.Group) -> float:
     Returns:
         The voxel size in Angstrom from the coordinate transformations.
     """
-    multiscales = zarr_group.attrs["multiscales"]
+    multiscales = get_multiscales(zarr_group)
 
     # Get unit from axes (should be consistent across spatial axes)
     axes = multiscales[0]["axes"]
@@ -209,7 +256,7 @@ def get_voxel_size_from_zarr(zarr_group: zarr.Group) -> float:
     raise ValueError("No scale transformation found in coordinate transformations")
 
 
-def fits_in_memory(array: zarr.Group, slices: Tuple[slice, ...]) -> Tuple[bool, int, int]:
+def fits_in_memory(array: zarr.Array, slices: Tuple[slice, ...]) -> Tuple[bool, int, int]:
     """Check if the array fits in memory after slicing.
 
     Args:
@@ -227,7 +274,7 @@ def fits_in_memory(array: zarr.Group, slices: Tuple[slice, ...]) -> Tuple[bool, 
     for dim, sl in zip(array.shape, slices, strict=True):
         num_elem.append(len(range(*sl.indices(dim))))
 
-    requested = np.prod(np.array(num_elem)) * array.itemsize
+    requested = np.prod(np.array(num_elem)) * array.dtype.itemsize
     available = psutil.virtual_memory().available
     fits = requested < available
 

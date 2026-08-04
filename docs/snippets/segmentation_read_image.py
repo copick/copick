@@ -1,8 +1,6 @@
 """Read a segmentation from a CopickSegmentation object."""
 
 import copick
-import numpy as np
-import zarr
 
 # Initialize the root object from a configuration file
 root = copick.from_file("path/to/config.json")
@@ -14,5 +12,4 @@ run = root.runs[0]
 segmentation = run.get_segmentations(name="proteasome", user_id="alice")[0]
 
 # Get the segmentation array from the segmentation
-seg_zarr = zarr.open(segmentation.zarr())["0"]
-seg = np.array(seg_zarr)
+seg = segmentation.numpy()

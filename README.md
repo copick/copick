@@ -108,6 +108,7 @@ To test with the example dataset:
     import zarr
 
     from copick.impl.filesystem import CopickRootFSSpec
+    from copick.util.ome import get_level_path
     root = CopickRootFSSpec.from_file('path/to/filesystem_overlay_only.json')
 
     # Get a run by name
@@ -117,9 +118,8 @@ To test with the example dataset:
     tomogram = run.get_voxel_spacing(10).get_tomogram("wbp")
 
     # Access the data
-    group = zarr.open(tomogram.zarr())
-    arrays = list(group.arrays())
-    _, array = arrays[0]
+    group = zarr.open(tomogram.zarr(), mode="r")
+    array = group[get_level_path(group, 0)]
     ```
 
 ## Contributing
