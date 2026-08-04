@@ -7,7 +7,6 @@ import mrcfile
 import numpy as np
 import pytest
 import zarr
-
 from copick.models import (
     CopickFeatures,
     CopickObject,
