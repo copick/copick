@@ -4,6 +4,7 @@ on:
   push:
     branches:
       - main
+      - v2.0
     tags:
       - "v*" # Push events to matching v*, i.e. v1.0, v20.15.10
     paths-ignore:
@@ -14,6 +15,7 @@ on:
   pull_request:
     branches:
       - main
+      - v2.0
     paths-ignore:
       - "docs/**"
       - "*.md"

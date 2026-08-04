@@ -2,9 +2,22 @@ name: Create Release PRs
 
 on:
   workflow_dispatch:
+    inputs:
+      target_branch:
+        description: Branch to release
+        required: true
+        default: main
+        type: choice
+        options:
+          - main
+          - v2.0
   push:
     branches:
       - main
+      - v2.0
+
+env:
+  RELEASE_TARGET_BRANCH: ${{ github.event_name == 'workflow_dispatch' && inputs.target_branch || github.ref_name }}
 
 permissions:
   contents: write
@@ -13,8 +26,11 @@ permissions:
 
 jobs:
   release-please:
+    # Creating v2.0 from main emits a push event. Wait for the first real commit
+    # so the initial alpha can be bootstrapped deliberately with Release-As.
+    if: github.event_name == 'workflow_dispatch' || github.event.created == false
     concurrency:
-      group: ${{ github.workflow }}-${{ github.ref }}
+      group: ${{ github.workflow }}-${{ github.event_name == 'workflow_dispatch' && inputs.target_branch || github.ref_name }}
       cancel-in-progress: true
 
     runs-on: ubuntu-latest
@@ -24,28 +40,32 @@ jobs:
         id: release
         with:
           manifest-file: ".release-please.manifest.json"
-          config-file: "release-please.config.json"
-          target-branch: "main"
+          config-file: ${{ env.RELEASE_TARGET_BRANCH == 'v2.0' && 'release-please.prerelease.config.json' || 'release-please.config.json' }}
+          target-branch: ${{ env.RELEASE_TARGET_BRANCH }}
           token: ${{ secrets.GITHUB_TOKEN }}
 
     outputs:
       paths_released: ${{ steps.release.outputs.paths_released }}
+      release_created: ${{ steps.release.outputs.release_created }}
+      sha: ${{ steps.release.outputs.sha }}
+      tag_name: ${{ steps.release.outputs.tag_name }}
+      version: ${{ steps.release.outputs.version }}
 
   publish-pypi-package:
     name: Build and publish Python package to PyPI
     runs-on: ubuntu-latest
     needs: release-please
-    if: contains(needs.release-please.outputs.paths_released, '.')
+    if: needs.release-please.outputs.release_created == 'true'
     environment:
       name: pypi
       url: https://pypi.org/p/copick
     permissions:
       id-token: write # IMPORTANT: this permission is mandatory for trusted publishing
     steps:
-      - name: Checkout ref branch
+      - name: Checkout released commit
         uses: actions/checkout@v7
         with:
-          ref: ${{ github.ref }}
+          ref: ${{ needs.release-please.outputs.sha }}
           fetch-depth: 0
 
       - name: Install uv

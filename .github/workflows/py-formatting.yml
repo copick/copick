@@ -3,7 +3,7 @@ name: Python Linting
 on:
   pull_request:
   push:
-    branches: [main]
+    branches: [main, v2.0]
 
 jobs:
   pre_commit_checks:
