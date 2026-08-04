@@ -6,7 +6,7 @@ import numpy as np
 import zarr
 
 from copick.util.handlers import FormatCapabilities
-from copick.util.ome import get_level_path, get_multiscales, get_voxel_size_from_zarr
+from copick.util.ome import get_level_path, get_multiscales, get_voxel_size_from_zarr, write_ome_zarr_3d
 
 
 class ZarrVolumeHandler:
@@ -99,30 +99,7 @@ class ZarrVolumeHandler:
         Returns:
             Path to the written store
         """
-        store = zarr.open(path, mode="w")
-
-        # Create OME-NGFF compliant structure
-        store.create_dataset("0", data=volume, chunks=chunks, dtype=volume.dtype)
-
-        # Add OME-NGFF metadata
-        store.attrs["multiscales"] = [
-            {
-                "version": "0.4",
-                "axes": [
-                    {"name": "z", "type": "space", "unit": "angstrom"},
-                    {"name": "y", "type": "space", "unit": "angstrom"},
-                    {"name": "x", "type": "space", "unit": "angstrom"},
-                ],
-                "datasets": [
-                    {
-                        "path": "0",
-                        "coordinateTransformations": [
-                            {"type": "scale", "scale": [voxel_size, voxel_size, voxel_size]},
-                        ],
-                    },
-                ],
-            },
-        ]
+        write_ome_zarr_3d(path, {voxel_size: volume}, chunk_size=chunks)
         return path
 
 

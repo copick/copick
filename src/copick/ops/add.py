@@ -4,7 +4,6 @@ from typing import Any, Dict, Optional, Tuple, Union
 import mrcfile
 import numpy as np
 import zarr
-from ome_zarr.writer import write_multiscale
 
 from copick.models import (
     CopickFeatures,
@@ -16,7 +15,7 @@ from copick.models import (
     CopickTomogram,
     CopickVoxelSpacing,
 )
-from copick.util.ome import get_level_path, get_voxel_size_from_zarr, ome_metadata, volume_pyramid
+from copick.util.ome import get_level_path, get_voxel_size_from_zarr, volume_pyramid, write_ome_zarr_3d
 
 
 def add_run(
@@ -191,9 +190,6 @@ def add_tomogram(
     # Optional: create multiscale pyramid
     pyramid = volume_pyramid(volume[voxel_spacing], voxel_spacing, pyramid_levels) if create_pyramid else volume
 
-    # Multiscale metadata
-    ome_meta = ome_metadata(pyramid)
-
     # Attempt to get run and voxel spacing
     runobj = get_or_create_run(root, run, create=create)
     vsobj = get_or_create_voxelspacing(runobj, voxel_spacing, create=create)
@@ -203,16 +199,11 @@ def add_tomogram(
 
     # Get the store
     loc = tomogram.zarr()
-    root_group = zarr.group(loc, overwrite=overwrite)
-
-    # Write the pyramid
-    write_multiscale(
-        list(pyramid.values()),
-        group=root_group,
-        axes=ome_meta["axes"],
-        coordinate_transformations=ome_meta["coordinate_transformations"],
-        storage_options=dict(chunks=chunks, overwrite=overwrite),
-        compute=True,
+    write_ome_zarr_3d(
+        loc,
+        pyramid,
+        chunk_size=chunks,
+        overwrite=overwrite,
         metadata=meta,
     )
 
@@ -371,20 +362,13 @@ def add_features(
     # Create the features
     features = tomogram.new_features(feature_type, exist_ok=exist_ok)
 
-    # Multiscale metadata
-    ome_meta = ome_metadata({voxel_spacing: features_vol})
-
     # Get the store
     loc = features.zarr()
-    root_group = zarr.group(loc, overwrite=overwrite)
-
-    write_multiscale(
-        [features_vol],
-        group=root_group,
-        axes=ome_meta["axes"],
-        coordinate_transformations=ome_meta["coordinate_transformations"],
-        storage_options=dict(chunks=chunks, overwrite=overwrite),
-        compute=True,
+    write_ome_zarr_3d(
+        loc,
+        {voxel_spacing: features_vol},
+        chunk_size=chunks,
+        overwrite=overwrite,
         metadata=meta,
     )
 
