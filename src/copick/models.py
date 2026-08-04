@@ -6,13 +6,20 @@ import zarr
 from pydantic import AliasChoices, BaseModel, Field, field_validator
 
 from copick.util.escape import sanitize_name
-from copick.util.ome import fits_in_memory, segmentation_pyramid, volume_pyramid, write_ome_zarr_3d
+from copick.util.ome import fits_in_memory, get_level_path, segmentation_pyramid, volume_pyramid, write_ome_zarr_3d
 from copick.util.relion import picks_to_df_relion, relion_df_to_picks
 
 # Don't import Geometry at runtime to keep CLI snappy
 if TYPE_CHECKING:
     import pandas as pd
     from trimesh.parent import Geometry
+
+
+def _open_zarr_array(loc: MutableMapping, zarr_group: Optional[str], mode: str) -> zarr.Array:
+    """Open an explicitly named array or resolve the first OME pyramid level."""
+    root_group = zarr.open(loc, mode=mode)
+    array_path = zarr_group if zarr_group is not None else get_level_path(root_group, 0)
+    return root_group[array_path]
 
 
 class PickableObject(BaseModel):
@@ -301,7 +308,7 @@ class CopickObject:
 
     def numpy(
         self,
-        zarr_group: str = "0",
+        zarr_group: Optional[str] = None,
         x: slice = slice(None, None),
         y: slice = slice(None, None),
         z: slice = slice(None, None),
@@ -310,7 +317,7 @@ class CopickObject:
         supported.
 
         Args:
-            zarr_group: Zarr group to access.
+            zarr_group: Explicit Zarr array path. By default, resolve level 0 from OME metadata.
             x: Slice for the x-axis.
             y: Slice for the y-axis.
             z: Slice for the z-axis.
@@ -323,7 +330,7 @@ class CopickObject:
         if loc is None:
             return None
 
-        group = zarr.open(loc)[zarr_group]
+        group = _open_zarr_array(loc, zarr_group, mode="r")
 
         fits, req, avail = fits_in_memory(group, (x, y, z))
         if not fits:
@@ -352,7 +359,7 @@ class CopickObject:
     def set_region(
         self,
         data: np.ndarray,
-        zarr_group: str = "0",
+        zarr_group: Optional[str] = None,
         x: slice = slice(None, None),
         y: slice = slice(None, None),
         z: slice = slice(None, None),
@@ -361,13 +368,13 @@ class CopickObject:
 
         Args:
             data: The object's subregion as a numpy array.
-            zarr_group: Zarr group to access.
+            zarr_group: Explicit Zarr array path. By default, resolve level 0 from OME metadata.
             x: Slice for the x-axis.
             y: Slice for the y-axis.
             z: Slice for the z-axis.
         """
         loc = self.zarr()
-        zarr.open(loc)[zarr_group][z, y, x] = data
+        _open_zarr_array(loc, zarr_group, mode="r+")[z, y, x] = data
 
     def delete(self) -> None:
         """Delete the object."""
@@ -1809,7 +1816,7 @@ class CopickTomogram:
 
     def numpy(
         self,
-        zarr_group: str = "0",
+        zarr_group: Optional[str] = None,
         x: slice = slice(None, None),
         y: slice = slice(None, None),
         z: slice = slice(None, None),
@@ -1818,7 +1825,7 @@ class CopickTomogram:
         supported.
 
         Args:
-            zarr_group: Zarr group to access.
+            zarr_group: Explicit Zarr array path. By default, resolve level 0 from OME metadata.
             x: Slice for the x-axis.
             y: Slice for the y-axis.
             z: Slice for the z-axis.
@@ -1828,13 +1835,13 @@ class CopickTomogram:
         """
 
         loc = self.zarr()
-        group = zarr.open(loc)[zarr_group]
+        group = _open_zarr_array(loc, zarr_group, mode="r")
 
         fits, req, avail = fits_in_memory(group, (x, y, z))
         if not fits:
             raise ValueError(f"Requested region does not fit in memory. Requested: {req}, Available: {avail}.")
 
-        return np.array(zarr.open(loc)[zarr_group][z, y, x])
+        return np.array(group[z, y, x])
 
     def from_numpy(
         self,
@@ -1857,7 +1864,7 @@ class CopickTomogram:
     def set_region(
         self,
         data: np.ndarray,
-        zarr_group: str = "0",
+        zarr_group: Optional[str] = None,
         x: slice = slice(None, None),
         y: slice = slice(None, None),
         z: slice = slice(None, None),
@@ -1866,13 +1873,13 @@ class CopickTomogram:
 
         Args:
             data: The tomogram's subregion as a numpy array.
-            zarr_group: Zarr group to access.
+            zarr_group: Explicit Zarr array path. By default, resolve level 0 from OME metadata.
             x: Slice for the x-axis.
             y: Slice for the y-axis.
             z: Slice for the z-axis.
         """
         loc = self.zarr()
-        zarr.open(loc)[zarr_group][z, y, x] = data
+        _open_zarr_array(loc, zarr_group, mode="r+")[z, y, x] = data
 
 
 class CopickFeaturesMeta(BaseModel):
@@ -1937,14 +1944,14 @@ class CopickFeatures:
 
     def numpy(
         self,
-        zarr_group: str = "0",
+        zarr_group: Optional[str] = None,
         slices: Tuple[slice, ...] = None,
     ) -> np.ndarray:
         """Returns the content of the Zarr-File for this feature map as a numpy array. Multiscale group and slices are
         supported.
 
         Args:
-            zarr_group: Zarr group to access.
+            zarr_group: Explicit Zarr array path. By default, resolve level 0 from OME metadata.
             slices: Tuple of slices for the axes.
 
         Returns:
@@ -1952,7 +1959,7 @@ class CopickFeatures:
         """
 
         loc = self.zarr()
-        group = zarr.open(loc)[zarr_group]
+        group = _open_zarr_array(loc, zarr_group, mode="r")
         ndim = len(group.shape)
 
         if slices is None:
@@ -1967,7 +1974,7 @@ class CopickFeatures:
     def set_region(
         self,
         data: np.ndarray,
-        zarr_group: str = "0",
+        zarr_group: Optional[str] = None,
         slices: Tuple[slice, ...] = None,
     ) -> None:
         """Set the content of the Zarr-File for this feature map from a numpy array. Multiscale group and slices are
@@ -1975,11 +1982,11 @@ class CopickFeatures:
 
         Args:
             data: The data to set.
-            zarr_group: Zarr group to access.
+            zarr_group: Explicit Zarr array path. By default, resolve level 0 from OME metadata.
             slices: Tuple of slices for the axes.
         """
         loc = self.zarr()
-        zarr.open(loc)[zarr_group][slices] = data
+        _open_zarr_array(loc, zarr_group, mode="r+")[slices] = data
 
 
 class CopickPicksFile(BaseModel):
@@ -2424,7 +2431,7 @@ class CopickSegmentation:
 
     def numpy(
         self,
-        zarr_group: str = "0",
+        zarr_group: Optional[str] = None,
         x: slice = slice(None, None),
         y: slice = slice(None, None),
         z: slice = slice(None, None),
@@ -2433,7 +2440,7 @@ class CopickSegmentation:
         supported.
 
         Args:
-            zarr_group: Zarr group to access.
+            zarr_group: Explicit Zarr array path. By default, resolve level 0 from OME metadata.
             x: Slice for the x-axis.
             y: Slice for the y-axis.
             z: Slice for the z-axis.
@@ -2443,13 +2450,13 @@ class CopickSegmentation:
         """
 
         loc = self.zarr()
-        group = zarr.open(loc)[zarr_group]
+        group = _open_zarr_array(loc, zarr_group, mode="r")
 
         fits, req, avail = fits_in_memory(group, (x, y, z))
         if not fits:
             raise ValueError(f"Requested region does not fit in memory. Requested: {req}, Available: {avail}.")
 
-        return np.array(zarr.open(loc)[zarr_group][z, y, x])
+        return np.array(group[z, y, x])
 
     def from_numpy(
         self,
@@ -2472,7 +2479,7 @@ class CopickSegmentation:
     def set_region(
         self,
         data: np.ndarray,
-        zarr_group: str = "0",
+        zarr_group: Optional[str] = None,
         x: slice = slice(None, None),
         y: slice = slice(None, None),
         z: slice = slice(None, None),
@@ -2481,13 +2488,13 @@ class CopickSegmentation:
 
         Args:
             data: The segmentation's subregion as a numpy array.
-            zarr_group: Zarr group to access.
+            zarr_group: Explicit Zarr array path. By default, resolve level 0 from OME metadata.
             x: Slice for the x-axis.
             y: Slice for the y-axis.
             z: Slice for the z-axis.
         """
         loc = self.zarr()
-        zarr.open(loc)[zarr_group][z, y, x] = data
+        _open_zarr_array(loc, zarr_group, mode="r+")[z, y, x] = data
 
 
 COPICK_TYPES = (

@@ -3,6 +3,8 @@ from typing import TYPE_CHECKING, Tuple, Union
 import numpy as np
 import zarr
 
+from copick.util.ome import get_level_path
+
 if TYPE_CHECKING:
     import pandas as pd
 
@@ -79,7 +81,8 @@ def get_tomogram_spacing_and_dimensions(
             UserWarning,
             stacklevel=2,
         )
-    tomogram_z, tomogram_y, tomogram_x = zarr.open(tomogram.zarr())["0"].shape
+    zarr_group = zarr.open(tomogram.zarr(), mode="r")
+    tomogram_z, tomogram_y, tomogram_x = zarr_group[get_level_path(zarr_group, 0)].shape
 
     return voxel_spacing.voxel_size, tomogram_x, tomogram_y, tomogram_z
 

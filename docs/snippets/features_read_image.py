@@ -1,8 +1,6 @@
 """Read a feature map from a zarr-store into a numpy array."""
 
 import copick
-import numpy as np
-import zarr
 
 # Initialize the root object from a configuration file
 root = copick.from_file("path/to/config.json")
@@ -20,5 +18,4 @@ tomogram = voxel_spacing.get_tomogram("wbp")
 feature_map = tomogram.get_features("sobel")
 
 # Read the feature map from its zarr-store
-zarr_array = zarr.open(feature_map.zarr())["0"]
-feature_map_data = np.array(zarr_array)
+feature_map_data = feature_map.numpy()

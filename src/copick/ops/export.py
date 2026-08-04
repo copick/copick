@@ -12,6 +12,7 @@ import numpy as np
 import zarr
 
 from copick.util.log import get_logger
+from copick.util.ome import get_level_path
 
 if TYPE_CHECKING:
     from copick.models import (
@@ -448,8 +449,8 @@ def _export_tomogram_mrc(
     import mrcfile
 
     # Get the data
-    zarr_group = zarr.open(tomogram.zarr())
-    volume = np.array(zarr_group[str(level)])
+    zarr_group = zarr.open(tomogram.zarr(), mode="r")
+    volume = np.array(zarr_group[get_level_path(zarr_group, level)])
 
     # Get voxel size (scales with pyramid level)
     voxel_size = tomogram.voxel_spacing.voxel_size * (2**level)
@@ -488,8 +489,8 @@ def _export_tomogram_tiff(
     from copick.util.formats import write_tiff_volume
 
     # Get the data
-    zarr_group = zarr.open(tomogram.zarr())
-    volume = np.array(zarr_group[str(level)])
+    zarr_group = zarr.open(tomogram.zarr(), mode="r")
+    volume = np.array(zarr_group[get_level_path(zarr_group, level)])
 
     # Write TIFF file
     os.makedirs(os.path.dirname(output_path) or ".", exist_ok=True)
@@ -539,7 +540,8 @@ def _export_tomogram_zarr(
         # Copy only level 0
         source_group = zarr.open(source, mode="r")
         dest_group = zarr.open(output_path, mode="w")
-        zarr.copy(source_group["0"], dest_group, name="0")
+        level_path = get_level_path(source_group, 0)
+        zarr.copy(source_group[level_path], dest_group, name=level_path)
         # Copy metadata
         dest_group.attrs.update(source_group.attrs)
 
@@ -611,8 +613,8 @@ def _export_segmentation_mrc(
     import mrcfile
 
     # Get the data
-    zarr_group = zarr.open(segmentation.zarr())
-    volume = np.array(zarr_group[str(level)])
+    zarr_group = zarr.open(segmentation.zarr(), mode="r")
+    volume = np.array(zarr_group[get_level_path(zarr_group, level)])
 
     # Get voxel size (scales with pyramid level)
     voxel_size = segmentation.voxel_size * (2**level)
@@ -655,8 +657,8 @@ def _export_segmentation_tiff(
     from copick.util.formats import write_tiff_volume
 
     # Get the data
-    zarr_group = zarr.open(segmentation.zarr())
-    volume = np.array(zarr_group[str(level)])
+    zarr_group = zarr.open(segmentation.zarr(), mode="r")
+    volume = np.array(zarr_group[get_level_path(zarr_group, level)])
 
     # Write TIFF file
     os.makedirs(os.path.dirname(output_path) or ".", exist_ok=True)
@@ -688,8 +690,8 @@ def _export_segmentation_em(
     from copick.util.formats import write_em_volume
 
     # Get the data
-    zarr_group = zarr.open(segmentation.zarr())
-    volume = np.array(zarr_group[str(level)])
+    zarr_group = zarr.open(segmentation.zarr(), mode="r")
+    volume = np.array(zarr_group[get_level_path(zarr_group, level)])
 
     # Write EM file
     os.makedirs(os.path.dirname(output_path) or ".", exist_ok=True)
@@ -739,7 +741,8 @@ def _export_segmentation_zarr(
         # Copy only level 0
         source_group = zarr.open(source, mode="r")
         dest_group = zarr.open(output_path, mode="w")
-        zarr.copy(source_group["0"], dest_group, name="0")
+        level_path = get_level_path(source_group, 0)
+        zarr.copy(source_group[level_path], dest_group, name=level_path)
         # Copy metadata
         dest_group.attrs.update(source_group.attrs)
 

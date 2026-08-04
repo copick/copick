@@ -83,10 +83,12 @@ def run():
     # Imports
     from typing import List, Sequence
 
-    import copick
     import numpy as np
     import zarr
+
+    import copick
     from copick.models import CopickLocation, CopickPoint
+    from copick.util.ome import get_level_path
 
     # Parse arguments
     args = get_args()
@@ -129,7 +131,8 @@ def run():
         # Get the physical tomogram dimensions
         vs = run.get_voxel_spacing(voxel_spacing)
         tomo = vs.get_tomogram(tomo_type)
-        pixel_max_dim = zarr.open(tomo.zarr())["0"].shape[::-1]
+        zarr_group = zarr.open(tomo.zarr(), mode="r")
+        pixel_max_dim = zarr_group[get_level_path(zarr_group, 0)].shape[::-1]
         max_dim = np.array([d * voxel_spacing for d in pixel_max_dim])
 
         # If picks of the same type already exist, we will get and overwrite them
