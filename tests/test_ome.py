@@ -24,8 +24,8 @@ def _write_named_pyramid(path, metadata_layout="0.4"):
     group = zarr.open(path, mode="w")
     level_zero = np.arange(64, dtype=np.float32).reshape(4, 4, 4)
     level_one = np.full((2, 2, 2), 7, dtype=np.float32)
-    group.create_dataset("s0", data=level_zero, chunks=(2, 2, 2))
-    group.create_dataset("s1", data=level_one, chunks=(2, 2, 2))
+    group.create_dataset("s0", data=level_zero, chunks=(2, 2, 2), dimension_separator="/")
+    group.create_dataset("s1", data=level_one, chunks=(2, 2, 2), dimension_separator="/")
 
     multiscales = [
         {
@@ -74,6 +74,8 @@ def test_multiscales_and_level_paths_support_both_metadata_layouts(tmp_path, met
     assert get_level_path(group, 0) == "s0"
     assert get_level_path(group, 1) == "s1"
     assert get_voxel_size_from_zarr(group) == 10.0
+    assert "s0/0/0/0" in group.store
+    assert "s0/0.0.0" not in group.store
 
 
 def test_level_path_rejects_invalid_levels_before_array_access():
