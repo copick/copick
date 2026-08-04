@@ -2,6 +2,15 @@ version: 2
 updates:
   - package-ecosystem: "uv"
     directory: "/"
+    target-branch: "main"
+    schedule:
+      interval: "weekly"
+    commit-message:
+      prefix: fix
+      prefix-development: chore
+  - package-ecosystem: "uv"
+    directory: "/"
+    target-branch: "v2.0"
     schedule:
       interval: "weekly"
     commit-message:
@@ -9,6 +18,15 @@ updates:
       prefix-development: chore
   - package-ecosystem: "github-actions"
     directory: "/"
+    target-branch: "main"
+    schedule:
+      interval: "weekly"
+    commit-message:
+      prefix: fix
+      prefix-development: chore
+  - package-ecosystem: "github-actions"
+    directory: "/"
+    target-branch: "v2.0"
     schedule:
       interval: "weekly"
     commit-message:
