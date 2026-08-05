@@ -2,7 +2,6 @@ from typing import Any, Dict
 
 import copick
 import pytest
-import zarr
 
 
 @pytest.fixture(params=pytest.common_cases)
@@ -83,7 +82,7 @@ def test_delete_tomogram(test_payload: Dict[str, Any]):
     # Create a new tomogram to delete
     tomo_type = "delete-test"
     tomogram = vs.new_tomogram(tomo_type=tomo_type)
-    zarr.create((5, 5, 5), store=tomogram.zarr())
+    assert ".zgroup" in tomogram.zarr()
     assert tomogram in vs.tomograms, "Tomogram not added to tomograms"
 
     # Check that tomogram exists in filesystem
@@ -119,7 +118,7 @@ def test_delete_features(test_payload: Dict[str, Any]):
     # Create a new feature to delete
     feature_type = "delete-test"
     feature = tomogram.new_features(feature_type=feature_type)
-    zarr.create((5, 5, 5), store=feature.zarr())
+    assert ".zgroup" in feature.zarr()
     assert feature in tomogram.features, "Feature not added to features"
 
     # Check that feature exists in filesystem
@@ -234,7 +233,7 @@ def test_delete_segmentation(test_payload: Dict[str, Any]):
         name=name,
         is_multilabel=is_multilabel,
     )
-    zarr.create((5, 5, 5), store=segmentation.zarr())
+    assert ".zgroup" in segmentation.zarr()
     assert segmentation in copick_run.segmentations, "Segmentation not added to segmentations"
 
     # Check that segmentation exists in filesystem
@@ -305,7 +304,7 @@ def test_exist_ok_tomogram(test_payload: Dict[str, Any]):
     # Create a new tomogram
     tomo_type = "exist-ok-test"
     tomo1 = vs.new_tomogram(tomo_type=tomo_type)
-    zarr.create((5, 5, 5), store=tomo1.zarr())
+    assert ".zgroup" in tomo1.zarr()
 
     # Attempt to create the same tomogram without exist_ok
     with pytest.raises(ValueError):
@@ -328,7 +327,7 @@ def test_exist_ok_features(test_payload: Dict[str, Any]):
     # Create a new feature
     feature_type = "exist-ok-test"
     feature1 = tomogram.new_features(feature_type=feature_type)
-    zarr.create((5, 5, 5), store=feature1.zarr())
+    assert ".zgroup" in feature1.zarr()
 
     # Attempt to create the same feature without exist_ok
     with pytest.raises(ValueError):
@@ -404,7 +403,7 @@ def test_exist_ok_segmentation(test_payload: Dict[str, Any]):
         name=name,
         is_multilabel=is_multilabel,
     )
-    zarr.create((5, 5, 5), store=seg1.zarr())
+    assert ".zgroup" in seg1.zarr()
 
     # Attempt to create the same segmentation without exist_ok
     with pytest.raises(ValueError):
@@ -460,7 +459,7 @@ def test_delete_collections(test_payload: Dict[str, Any]):
         name="ribosome",
         is_multilabel=False,
     )
-    zarr.create((5, 5, 5), store=seg1.zarr())
+    assert ".zgroup" in seg1.zarr()
 
     seg2 = copick_run.new_segmentation(
         voxel_size=10.000,
@@ -469,7 +468,7 @@ def test_delete_collections(test_payload: Dict[str, Any]):
         name="segment2",
         is_multilabel=True,
     )
-    zarr.create((5, 5, 5), store=seg2.zarr())
+    assert ".zgroup" in seg2.zarr()
 
     # Refresh to ensure all entities are tracked
     copick_run.refresh()

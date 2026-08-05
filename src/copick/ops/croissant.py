@@ -822,11 +822,7 @@ def _walk_project(
             continue
         if allowed_objects is not None and obj.name not in allowed_objects:
             continue
-        try:
-            z = obj.zarr()
-        except Exception:
-            z = None
-        if z is None:
+        if not obj.has_density_map():
             continue
         obj_url = _object_url(obj, copick_base_url, is_cdp)
         remapped_obj_name = _remap(obj.name, filters.object_name_map) or obj.name

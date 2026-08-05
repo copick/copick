@@ -38,6 +38,7 @@ from copick.models import (
     PickableObject,
 )
 from copick.util.log import get_logger
+from copick.util.ome import zarr_root_exists
 
 # Don't import Geometry at runtime to keep CLI snappy
 if TYPE_CHECKING:
@@ -1316,8 +1317,8 @@ class CopickObjectCDP(CopickObjectOverlay):
         if not self.is_particle:
             return None
 
-        # Return none if there is no density map
-        if not self.fs.exists(self.path):
+        # Read-only objects have no destination when their map is absent.
+        if self.read_only and not self.has_density_map():
             return None
 
         if self.read_only:
@@ -1335,6 +1336,10 @@ class CopickObjectCDP(CopickObjectOverlay):
             dimension_separator="/",
             create=create,
         )
+
+    def has_density_map(self) -> bool:
+        """Return whether this object's overlay path contains Zarr root metadata."""
+        return self.is_particle and zarr_root_exists(self.fs, self.path)
 
     def _delete_data(self) -> None:
         if self.fs.exists(self.path):

@@ -1059,8 +1059,7 @@ def test_run_new_segmentations(test_payload: Dict[str, Any]):
             is_multilabel=False,
         )
 
-    # Adding the first segmentation inits the _segmentations attribute as list of segmentations
-    # For object stores we actually need to write to the zarr to create the "directory"
+    # Adding the first segmentation initializes and materializes its Zarr v2 group.
     seg4 = copick_run.new_segmentation(
         voxel_size=10.000,
         user_id="test.user",
@@ -1068,12 +1067,11 @@ def test_run_new_segmentations(test_payload: Dict[str, Any]):
         name="ribosome",
         is_multilabel=False,
     )
-    zarr.create((5, 5, 5), store=seg4.zarr())
+    assert ".zgroup" in seg4.zarr()
     assert copick_run._segmentations is not None, "Segmentations should be populated"
     assert seg4 in copick_run.segmentations, "Segmentation not added to segmentations"
 
-    # Adding another segmentation appends to the list after setting user id
-    # For object stores we actually need to write to the zarr to create the "directory"
+    # Adding another segmentation appends to the list after setting user id.
     copick_root.config.user_id = "user.test"
     seg5 = copick_run.new_segmentation(
         voxel_size=10.000,
@@ -1081,7 +1079,7 @@ def test_run_new_segmentations(test_payload: Dict[str, Any]):
         name="location",
         is_multilabel=True,
     )
-    zarr.create((5, 5, 5), store=seg5.zarr())
+    assert ".zgroup" in seg5.zarr()
     assert seg5 in copick_run.segmentations, "Segmentation not added to segmentations"
     assert (
         seg5
@@ -1123,6 +1121,51 @@ def test_run_new_segmentations(test_payload: Dict[str, Any]):
 
         for seg in ov:
             assert overlay_fs.exists(seg_path_overlay + seg), f"{seg} not found in overlay"
+
+
+def test_new_zarr_entities_reopen_and_delete_without_array_write(test_payload: Dict[str, Any]):
+    root = test_payload["root"]
+    run = root.get_run("TS_001")
+    voxel_spacing = run.get_voxel_spacing(10.0)
+
+    segmentation = run.new_segmentation(
+        voxel_size=10.0,
+        user_id="materialization-test",
+        session_id="0",
+        name="materialization-test",
+        is_multilabel=True,
+    )
+    tomogram = voxel_spacing.new_tomogram("materialization-test")
+    features = tomogram.new_features("materialization-test")
+
+    for entity in (segmentation, tomogram, features):
+        assert ".zgroup" in entity.zarr()
+
+    reopened = copick.from_file(test_payload["cfg_file"])
+    reopened_run = reopened.get_run("TS_001")
+    reopened_segmentation = reopened_run.get_segmentations(
+        voxel_size=10.0,
+        user_id="materialization-test",
+        session_id="0",
+        name="materialization-test",
+        is_multilabel=True,
+    )[0]
+    reopened_tomogram = reopened_run.get_voxel_spacing(10.0).get_tomograms("materialization-test")[0]
+    assert reopened_tomogram.get_features("materialization-test") is not None
+
+    reopened_segmentation.delete()
+    reopened_tomogram.delete()
+
+    reopened = copick.from_file(test_payload["cfg_file"])
+    reopened_run = reopened.get_run("TS_001")
+    assert not reopened_run.get_segmentations(
+        voxel_size=10.0,
+        user_id="materialization-test",
+        session_id="0",
+        name="materialization-test",
+        is_multilabel=True,
+    )
+    assert not reopened_run.get_voxel_spacing(10.0).get_tomograms("materialization-test")
 
 
 def test_run_refresh(test_payload: Dict[str, Any]):
@@ -1217,18 +1260,16 @@ def test_vs_new_tomogram(test_payload: Dict[str, Any]):
     with pytest.raises(ValueError):
         vs.new_tomogram(tomo_type="denoised")
 
-    # Adding the first tomogram inits the _tomograms attribute as list of tomograms
-    # For object stores we actually need to write to the zarr to create the "directory"
+    # Adding the first tomogram initializes and materializes its Zarr v2 group.
     tomogram = vs.new_tomogram(tomo_type="isonet")
-    zarr.create((5, 5, 5), store=tomogram.zarr())
+    assert ".zgroup" in tomogram.zarr()
 
     assert vs._tomograms is not None, "Tomograms should be populated"
     assert tomogram in vs.tomograms, "Tomogram not added to tomograms"
 
-    # Adding another tomogram appends to the list
-    # For object stores we actually need to write to the zarr to create the "directory"
+    # Adding another tomogram appends to the list.
     tomogram = vs.new_tomogram(tomo_type="SIRT")
-    zarr.create((5, 5, 5), store=tomogram.zarr())
+    assert ".zgroup" in tomogram.zarr()
 
     assert tomogram in vs.tomograms, "Tomogram not added to tomograms"
     assert tomogram == vs.get_tomogram(tomo_type="SIRT"), "Tomogram not found"
@@ -1349,18 +1390,16 @@ def test_tomogram_new_features(test_payload: Dict[str, Any]):
     with pytest.raises(ValueError):
         tomogram.new_features(feature_type="sobel")
 
-    # Adding the first feature inits the _features attribute as list of features
-    # For object stores we actually need to write to the zarr to create the "directory"
+    # Adding the first feature initializes and materializes its Zarr v2 group.
     feature = tomogram.new_features(feature_type="sift")
-    zarr.create((5, 5, 5), store=feature.zarr())
+    assert ".zgroup" in feature.zarr()
 
     assert tomogram._features is not None, "Features should be populated"
     assert feature in tomogram.features, "Feature not added to features"
 
-    # Adding another feature appends to the list
-    # For object stores we actually need to write to the zarr to create the "directory"
+    # Adding another feature appends to the list.
     feature = tomogram.new_features(feature_type="tomotwin")
-    zarr.create((5, 5, 5), store=feature.zarr())
+    assert ".zgroup" in feature.zarr()
 
     assert feature in tomogram.features, "Feature not added to features"
     assert feature == tomogram.get_features(feature_type="tomotwin"), "Feature not found"
@@ -1429,7 +1468,11 @@ def test_tomogram_zarr(test_payload: Dict[str, Any]):
 
     # Check zarr is writable
     tomo = vs.new_tomogram(tomo_type="test")
-    zarr.array(np.random.rand(64, 64, 64), store=tomo.zarr(), chunks=(32, 32, 32))
+    zarr.open_group(tomo.zarr(), mode="r+").create_dataset(
+        "0",
+        data=np.random.rand(64, 64, 64),
+        chunks=(32, 32, 32),
+    )
 
 
 def test_tomogram_read_numpy(test_payload: Dict[str, Any]):
@@ -1516,7 +1559,11 @@ def test_feature_zarr(test_payload: Dict[str, Any]):
 
     # Check zarr is writable
     feat = tomogram.new_features(feature_type="test")
-    zarr.array(np.random.rand(64, 64, 64), store=feat.zarr(), chunks=(32, 32, 32))
+    zarr.open_group(feat.zarr(), mode="r+").create_dataset(
+        "0",
+        data=np.random.rand(64, 64, 64),
+        chunks=(32, 32, 32),
+    )
 
 
 def test_feature_read_numpy(test_payload: Dict[str, Any]):
