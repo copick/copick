@@ -22,6 +22,7 @@ from copick.ops.add import (
     get_or_create_run,
     get_or_create_voxelspacing,
 )
+from copick.util.ome import get_level_path
 
 
 @pytest.fixture(params=pytest.common_cases)
@@ -155,9 +156,8 @@ class TestAddTomogram:
         assert tomo.tomo_type == "test-tomo-np"
 
         # Verify data is stored
-        zarr_group = zarr.open(tomo.zarr())
-        assert "0" in zarr_group
-        assert zarr_group["0"].shape == (8, 8, 8)
+        zarr_group = zarr.open(tomo.zarr(), mode="r")
+        assert zarr_group[get_level_path(zarr_group, 0)].shape == (8, 8, 8)
 
     def test_add_tomogram_dict_pyramid(self, test_payload):
         """Adding a tomogram from a dict pyramid writes multiple levels."""
@@ -193,16 +193,16 @@ class TestAddTomogram:
             transpose="2,1,0",
             exist_ok=True,
         )
-        zarr_group = zarr.open(tomo.zarr())
-        assert zarr_group["0"].shape == (8, 6, 4)
+        zarr_group = zarr.open(tomo.zarr(), mode="r")
+        assert zarr_group[get_level_path(zarr_group, 0)].shape == (8, 6, 4)
 
     def test_add_tomogram_flip(self, test_payload):
         """Flip reverses specified axis."""
         root = test_payload["root"]
         volume = np.arange(8).reshape(2, 2, 2).astype(np.float32)
         tomo = add_tomogram(root, "TS_001", "test-tomo-flip", volume, voxel_spacing=10.0, flip="0", exist_ok=True)
-        zarr_group = zarr.open(tomo.zarr())
-        stored = np.array(zarr_group["0"])
+        zarr_group = zarr.open(tomo.zarr(), mode="r")
+        stored = np.array(zarr_group[get_level_path(zarr_group, 0)])
         expected = np.flip(volume, axis=0)
         np.testing.assert_array_equal(stored, expected)
 
@@ -220,9 +220,9 @@ class TestAddTomogram:
             pyramid_levels=2,
             exist_ok=True,
         )
-        zarr_group = zarr.open(tomo.zarr())
-        assert "0" in zarr_group
-        assert "1" in zarr_group
+        zarr_group = zarr.open(tomo.zarr(), mode="r")
+        assert get_level_path(zarr_group, 0) in zarr_group
+        assert get_level_path(zarr_group, 1) in zarr_group
 
 
 class TestAddFeatures:
@@ -271,8 +271,8 @@ class TestAddSegmentation:
         assert seg.user_id == "test-user"
 
         # Verify data is stored
-        zarr_group = zarr.open(seg.zarr())
-        assert zarr_group["0"].shape == (8, 8, 8)
+        zarr_group = zarr.open(seg.zarr(), mode="r")
+        assert zarr_group[get_level_path(zarr_group, 0)].shape == (8, 8, 8)
 
     def test_add_segmentation_unsupported_format_raises(self, test_payload, tmp_path):
         """Unsupported file format raises ValueError."""
@@ -301,8 +301,8 @@ class TestAddSegmentation:
                     transpose="2,1,0",
                     exist_ok=True,
                 )
-                zarr_group = zarr.open(seg.zarr())
-                assert zarr_group["0"].shape == (8, 6, 4)
+                zarr_group = zarr.open(seg.zarr(), mode="r")
+                assert zarr_group[get_level_path(zarr_group, 0)].shape == (8, 6, 4)
             finally:
                 with contextlib.suppress(PermissionError, OSError):
                     os.unlink(tmp.name)

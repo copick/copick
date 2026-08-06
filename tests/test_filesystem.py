@@ -5,7 +5,7 @@ import numpy as np
 import pytest
 import zarr
 from copick.models import CopickPicksFile
-from copick.util.ome import write_ome_zarr_3d
+from copick.util.ome import get_level_path, write_ome_zarr_3d
 from scipy.spatial.transform import Rotation
 from trimesh.parent import Geometry
 
@@ -170,8 +170,8 @@ def test_object_zarr(test_payload: Dict[str, Any]):
     copick_object = copick_root.get_object("proteasome")
 
     # Check zarr is readable
-    arrays = list(zarr.open(copick_object.zarr(), "r").arrays())
-    _, array = arrays[0]
+    group = zarr.open(copick_object.zarr(), mode="r")
+    array = group[get_level_path(group, 0)]
     assert array.shape == (42, 36, 36), "Error reading Zarr, (incorrect shape)"
     assert np.sum(array) == pytest.approx(
         1029.2904052734375,
@@ -776,8 +776,8 @@ def test_segmentation_zarr(test_payload: Dict[str, Any]):
     segmentation = copick_run.get_segmentations(name="membrane")[0]
 
     # Check zarr is readable
-    arrays = list(zarr.open(segmentation.zarr(), "r").arrays())
-    _, array = arrays[0]
+    group = zarr.open(segmentation.zarr(), mode="r")
+    array = group[get_level_path(group, 0)]
     assert array.shape == (64, 64, 64), "Error reading Zarr, (incorrect shape)"
     assert np.sum(array) == pytest.approx(
         24576,
@@ -833,8 +833,8 @@ def test_segmentation_write_numpy(test_payload: Dict[str, Any]):
     segmentation.from_numpy(array)
 
     # Check zarr contents
-    arrays = list(zarr.open(segmentation.zarr(), "r").arrays())
-    _, array2 = arrays[0]
+    group = zarr.open(segmentation.zarr(), mode="r")
+    array2 = group[get_level_path(group, 0)]
     assert np.allclose(array, array2), "Error writing numpy array"
 
     # Write subregion
@@ -844,8 +844,8 @@ def test_segmentation_write_numpy(test_payload: Dict[str, Any]):
     segmentation.set_region(sub_array, x=slice(10, 40), y=slice(10, 40), z=slice(10, 40))
 
     # Check zarr contents
-    arrays = list(zarr.open(segmentation.zarr(), "r").arrays())
-    _, array2 = arrays[0]
+    group = zarr.open(segmentation.zarr(), mode="r")
+    array2 = group[get_level_path(group, 0)]
     assert np.allclose(franken_array, array2), "Error writing numpy array subregion"
 
 
@@ -1458,8 +1458,8 @@ def test_tomogram_zarr(test_payload: Dict[str, Any]):
     tomogram = vs.get_tomogram(tomo_type="denoised")
 
     # Check zarr is readable
-    arrays = list(zarr.open(tomogram.zarr(), "r").arrays())
-    _, array = arrays[0]
+    group = zarr.open(tomogram.zarr(), mode="r")
+    array = group[get_level_path(group, 0)]
     assert array.shape == (64, 64, 64), "Error reading Zarr, (incorrect shape)"
     assert np.sum(array) == pytest.approx(
         8192.0,
@@ -1511,8 +1511,8 @@ def test_tomogram_write_numpy(test_payload: Dict[str, Any]):
     tomogram.from_numpy(array)
 
     # Check zarr contents
-    arrays = list(zarr.open(tomogram.zarr(), "r").arrays())
-    _, array2 = arrays[0]
+    group = zarr.open(tomogram.zarr(), mode="r")
+    array2 = group[get_level_path(group, 0)]
     assert np.allclose(array, array2), "Error writing numpy array"
 
     # Write subregion
@@ -1522,8 +1522,8 @@ def test_tomogram_write_numpy(test_payload: Dict[str, Any]):
     tomogram.set_region(sub_array, x=slice(10, 40), y=slice(10, 40), z=slice(10, 40))
 
     # Check zarr contents
-    arrays = list(zarr.open(tomogram.zarr(), "r").arrays())
-    _, array2 = arrays[0]
+    group = zarr.open(tomogram.zarr(), mode="r")
+    array2 = group[get_level_path(group, 0)]
     assert np.allclose(franken_array, array2), "Error writing numpy array subregion"
 
 
@@ -1549,8 +1549,8 @@ def test_feature_zarr(test_payload: Dict[str, Any]):
     feature = tomogram.get_features(feature_type="sobel")
 
     # Check zarr is readable
-    arrays = list(zarr.open(feature.zarr(), "r").arrays())
-    _, array = arrays[0]
+    group = zarr.open(feature.zarr(), mode="r")
+    array = group[get_level_path(group, 0)]
     assert array.shape == (64, 64, 64), "Error reading Zarr, (incorrect shape)"
     assert np.sum(array) == pytest.approx(
         20619.8125,
@@ -1611,8 +1611,8 @@ def test_feature_write_numpy(test_payload: Dict[str, Any]):
     feat.set_region(sub_array, slices=(slice(10, 40), slice(10, 40), slice(10, 40)))
 
     # Check zarr contents
-    arrays = list(zarr.open(feat.zarr(), "r").arrays())
-    _, array2 = arrays[0]
+    group = zarr.open(feat.zarr(), mode="r")
+    array2 = group[get_level_path(group, 0)]
     assert np.allclose(franken_array, array2), "Error writing numpy array subregion"
 
 

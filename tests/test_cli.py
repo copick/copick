@@ -86,7 +86,7 @@ def sample_zarr_file_nanometer():
         volume = np.random.randn(64, 64, 64).astype(np.float32)
 
         # Create OME-Zarr file manually with nanometer units
-        store = zarr.open(str(zarr_path), mode="w")
+        store = zarr.open(str(zarr_path), mode="w", zarr_version=2)
         store.attrs["multiscales"] = [
             {
                 "axes": [
