@@ -1,12 +1,15 @@
 """Tests for OME-Zarr metadata-driven level access."""
 
 import inspect
+import json
 from types import SimpleNamespace
 
 import mrcfile
 import numpy as np
 import pytest
 import zarr
+from click.testing import CliRunner
+from copick.cli.export import export as export_cli
 from copick.models import (
     CopickFeatures,
     CopickObject,
@@ -140,6 +143,54 @@ def test_named_level_works_in_handler_path_helper_and_export(tmp_path):
     single_level_group = zarr.open(single_level_path, mode="r")
     assert get_level_path(single_level_group, 0) == "s0"
     np.testing.assert_array_equal(single_level_group["s0"], level_zero)
+
+
+def test_named_level_works_through_export_cli(tmp_path):
+    project = tmp_path / "project"
+    tomogram_path = project / "ExperimentRuns" / "run_001" / "VoxelSpacing10.000" / "wbp.zarr"
+    _, level_one = _write_named_pyramid(str(tomogram_path))
+
+    config_path = tmp_path / "filesystem.json"
+    config_path.write_text(
+        json.dumps(
+            {
+                "config_type": "filesystem",
+                "pickable_objects": [],
+                "overlay_root": f"local://{project}",
+                "overlay_fs_args": {"auto_mkdir": True},
+            },
+        ),
+        encoding="utf-8",
+    )
+    output_dir = tmp_path / "exported"
+
+    result = CliRunner().invoke(
+        export_cli,
+        [
+            "tomogram",
+            "--config",
+            str(config_path),
+            "--run-names",
+            "run_001",
+            "--tomogram-uri",
+            "wbp@10.0",
+            "--output-dir",
+            str(output_dir),
+            "--output-format",
+            "mrc",
+            "--level",
+            "1",
+            "--max-workers",
+            "1",
+        ],
+    )
+
+    assert result.exit_code == 0, result.output
+    output_path = output_dir / "run_001" / "VoxelSpacing10.000" / "wbp.mrc"
+    assert output_path.exists()
+    with mrcfile.open(output_path) as output:
+        np.testing.assert_array_equal(output.data, level_one)
+        assert output.voxel_size.x == 20.0
 
 
 @pytest.mark.parametrize("level", [-1, 2])
