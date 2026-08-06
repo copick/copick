@@ -239,7 +239,7 @@ def test_repository_obeys_zarr_structural_guards():
     violations = []
     for source_path in _repository_python_files():
         relative_path = source_path.relative_to(PROJECT_ROOT).as_posix()
-        violations.extend(find_violations(source_path.read_text(), relative_path))
+        violations.extend(find_violations(source_path.read_text(encoding="utf-8"), relative_path))
 
     observed_allowlist = {violation.allowlist_key for violation in violations} & ALLOWED_VIOLATIONS
     assert observed_allowlist == ALLOWED_VIOLATIONS, "Structural-guard allow-list contains stale entries"
