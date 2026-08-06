@@ -22,9 +22,14 @@ if TYPE_CHECKING:
     from trimesh.parent import Geometry
 
 
-def _open_zarr_array(loc: MutableMapping, zarr_group: Optional[str], mode: str) -> zarr.Array:
+def _open_zarr_array(loc: MutableMapping, zarr_group: Optional[str], mode: Literal["r", "r+"]) -> zarr.Array:
     """Open an explicitly named array or resolve the first OME pyramid level."""
-    root_group = zarr.open(loc, mode=mode)
+    if mode == "r":
+        root_group = zarr.open(loc, mode="r")
+    elif mode == "r+":
+        root_group = zarr.open(loc, mode="r+")
+    else:
+        raise ValueError(f"Unsupported Zarr array access mode: {mode}")
     array_path = zarr_group if zarr_group is not None else get_level_path(root_group, 0)
     return root_group[array_path]
 

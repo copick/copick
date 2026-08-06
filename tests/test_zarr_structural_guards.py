@@ -18,7 +18,12 @@ ZARR_ENTRY_POINTS = {
     "create_array",
 }
 ZARR_OPEN_ENTRY_POINTS = {"open", "open_group", "open_array"}
-ZARR_CREATION_MODES = {"a", "w", "w-", "x"}
+ZARR_NON_CREATING_MODES = {"r", "r+"}
+ZARR_CALL_ALIASES = {
+    "zarr.convenience.open": "zarr.open",
+    "zarr.hierarchy.open_group": "zarr.open_group",
+}
+REPOSITORY_SCAN_ROOTS = (PROJECT_ROOT / "src" / "copick", PROJECT_ROOT / "tests", PROJECT_ROOT / "docs" / "snippets")
 
 # These tests intentionally assert copick's canonical numeric writer output.
 # Every entry must correspond to a violation observed by the repository scan,
@@ -74,7 +79,6 @@ class ZarrStructuralGuard(ast.NodeVisitor):
         self.scope = ["<module>"]
         self.module_aliases = {}
         self.function_aliases = {}
-        self.zarr_group_names = set()
         self.array_listing_names = set()
         self.violations = []
 
@@ -85,14 +89,10 @@ class ZarrStructuralGuard(ast.NodeVisitor):
         raw_name = _dotted_name(call.func)
         if raw_name is None:
             return None
-        if raw_name in self.function_aliases:
-            return self.function_aliases[raw_name]
-
         head, separator, tail = raw_name.partition(".")
-        if head in self.module_aliases:
-            canonical = self.module_aliases[head]
-            return f"{canonical}.{tail}" if separator else canonical
-        return raw_name
+        canonical = self.function_aliases.get(head, self.module_aliases.get(head, head))
+        resolved = f"{canonical}.{tail}" if separator else canonical
+        return ZARR_CALL_ALIASES.get(resolved, resolved)
 
     @staticmethod
     def _keyword(call, name):
@@ -107,15 +107,10 @@ class ZarrStructuralGuard(ast.NodeVisitor):
     def _has_v2_format(self, call):
         return _is_constant(self._keyword(call, "zarr_version"), 2)
 
-    def _is_zarr_group_expression(self, node):
-        if isinstance(node, ast.Name):
-            return node.id in self.zarr_group_names or node.id == "group" or node.id.endswith("_group")
-        if isinstance(node, ast.Attribute):
-            return node.attr == "group" or node.attr.endswith("_group")
-        if isinstance(node, ast.Call):
-            name = self._canonical_call_name(node)
-            return name in {f"zarr.{entry}" for entry in ZARR_OPEN_ENTRY_POINTS | {"group"}}
-        return False
+    @staticmethod
+    def _is_typing_literal(node):
+        name = _dotted_name(node)
+        return name == "Literal" or name in {"typing.Literal", "typing_extensions.Literal"}
 
     @staticmethod
     def _is_array_listing(node):
@@ -127,7 +122,7 @@ class ZarrStructuralGuard(ast.NodeVisitor):
 
     def visit_Import(self, node):
         for alias in node.names:
-            if alias.name == "zarr" or alias.name == "ome_zarr.writer":
+            if alias.name == "zarr" or alias.name.startswith("zarr.") or alias.name == "ome_zarr.writer":
                 if alias.asname:
                     self.module_aliases[alias.asname] = alias.name
                 else:
@@ -135,7 +130,9 @@ class ZarrStructuralGuard(ast.NodeVisitor):
         self.generic_visit(node)
 
     def visit_ImportFrom(self, node):
-        if node.module in {"zarr", "ome_zarr.writer"}:
+        if node.module and (
+            node.module == "zarr" or node.module.startswith("zarr.") or node.module == "ome_zarr.writer"
+        ):
             for alias in node.names:
                 local_name = alias.asname or alias.name
                 self.function_aliases[local_name] = f"{node.module}.{alias.name}"
@@ -154,12 +151,6 @@ class ZarrStructuralGuard(ast.NodeVisitor):
         self.visit_FunctionDef(node)
 
     def visit_Assign(self, node):
-        if isinstance(node.value, ast.Call):
-            call_name = self._canonical_call_name(node.value)
-            if call_name in {f"zarr.{entry}" for entry in ZARR_OPEN_ENTRY_POINTS | {"group"}}:
-                for target in node.targets:
-                    if isinstance(target, ast.Name):
-                        self.zarr_group_names.add(target.id)
         if self._is_array_listing(node.value):
             for target in node.targets:
                 if isinstance(target, ast.Name):
@@ -177,7 +168,7 @@ class ZarrStructuralGuard(ast.NodeVisitor):
                 if entry_point in ZARR_OPEN_ENTRY_POINTS and mode_node is None:
                     self._add(node, "explicit_open_mode", f"zarr.{entry_point} requires an explicit mode")
 
-                creates = entry_point not in ZARR_OPEN_ENTRY_POINTS or mode_node is None or mode in ZARR_CREATION_MODES
+                creates = entry_point not in ZARR_OPEN_ENTRY_POINTS or mode not in ZARR_NON_CREATING_MODES
                 if creates and not self._has_v2_format(node):
                     self._add(
                         node,
@@ -199,7 +190,7 @@ class ZarrStructuralGuard(ast.NodeVisitor):
             self.generic_visit(node)
             return
 
-        if _is_constant(node.slice, "0") and self._is_zarr_group_expression(node.value):
+        if _is_constant(node.slice, "0") and not self._is_typing_literal(node.value):
             self._add(node, "metadata_level_path", 'read a level through metadata instead of literal path "0"')
 
         if (
@@ -229,15 +220,16 @@ def find_violations(source, path="<fixture>"):
     return guard.violations
 
 
-def _repository_python_files():
-    roots = (PROJECT_ROOT / "src" / "copick", PROJECT_ROOT / "tests", PROJECT_ROOT / "docs" / "snippets")
-    for root in roots:
-        yield from root.rglob("*.py")
-
-
 def test_repository_obeys_zarr_structural_guards():
+    source_paths = []
+    for root in REPOSITORY_SCAN_ROOTS:
+        assert root.is_dir(), f"Structural-guard scan root does not exist: {root}"
+        root_sources = list(root.rglob("*.py"))
+        assert root_sources, f"Structural-guard scan root contains no Python files: {root}"
+        source_paths.extend(root_sources)
+
     violations = []
-    for source_path in _repository_python_files():
+    for source_path in source_paths:
         relative_path = source_path.relative_to(PROJECT_ROOT).as_posix()
         violations.extend(find_violations(source_path.read_text(encoding="utf-8"), relative_path))
 
@@ -263,6 +255,13 @@ def test_guard_rejects_wrong_creation_format():
 
 
 @pytest.mark.parametrize("entry_point", sorted(ZARR_OPEN_ENTRY_POINTS))
+def test_guard_treats_dynamic_open_modes_as_creation_capable(entry_point):
+    violations = find_violations(f"import zarr\nzarr.{entry_point}(store, mode=mode)\n")
+
+    assert "explicit_zarr_format" in {violation.rule for violation in violations}
+
+
+@pytest.mark.parametrize("entry_point", sorted(ZARR_OPEN_ENTRY_POINTS))
 def test_guard_rejects_open_without_explicit_mode(entry_point):
     violations = find_violations(f"import zarr\nzarr.{entry_point}(store, zarr_version=2)\n")
 
@@ -276,16 +275,34 @@ def test_guard_rejects_write_multiscale_without_explicit_format():
 
 
 @pytest.mark.parametrize(
+    "source",
+    [
+        "import zarr.convenience as zc\nzc.open(store, mode='w')\n",
+        "from zarr.convenience import open as zopen\nzopen(store, mode='w')\n",
+        "import zarr.hierarchy as zh\nzh.open_group(store, mode='w')\n",
+        "from zarr.hierarchy import open_group as zopen_group\nzopen_group(store, mode='w')\n",
+        "from zarr import convenience as zc\nzc.open(store, mode='w')\n",
+    ],
+)
+def test_guard_rejects_legacy_zarr_import_paths_without_explicit_v2_format(source):
+    violations = find_violations(source)
+
+    assert "explicit_zarr_format" in {violation.rule for violation in violations}
+
+
+@pytest.mark.parametrize(
     "statement",
     [
-        'array = group["0"]',
+        'array = grp["0"]',
         "array = group[str(level)]",
         "array = list(group.arrays())[0]",
         "arrays = list(group.arrays())\narray = arrays[0]",
     ],
 )
 def test_guard_rejects_level_reads_that_bypass_metadata(statement):
-    violations = find_violations(f"def read(group, level):\n    {statement.replace(chr(10), chr(10) + '    ')}\n")
+    violations = find_violations(
+        f"def read(group, grp, level):\n    {statement.replace(chr(10), chr(10) + '    ')}\n",
+    )
 
     assert "metadata_level_path" in {violation.rule for violation in violations}
 
@@ -305,6 +322,8 @@ zarr.create_group(store, zarr_version=2)
 zarr.create_array(store, zarr_version=2)
 write_multiscale(images, group=group, fmt=fmt)
 array = group[get_level_path(group, level)]
+group.create_dataset("0", data=data)
+assert "0" in group
 """
 
     assert find_violations(source) == []
