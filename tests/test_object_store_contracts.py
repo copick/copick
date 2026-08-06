@@ -1,6 +1,9 @@
 """Contract tests for object density-map stores and registration."""
 
 import json
+from functools import partial
+from http.server import SimpleHTTPRequestHandler, ThreadingHTTPServer
+from threading import Thread
 from types import SimpleNamespace
 
 import fsspec
@@ -85,19 +88,33 @@ def test_absent_read_only_density_map_returns_none(tmp_path):
     assert particle.zarr() is None
 
 
-def test_http_zarr_root_metadata_is_detected(monkeypatch):
-    fs = fsspec.filesystem("http")
-    path = "https://data.example.org/particle.zarr"
-    requested = []
+class _QuietHTTPHandler(SimpleHTTPRequestHandler):
+    def log_message(self, format, *args):
+        pass
 
-    def exists(candidate):
-        requested.append(candidate)
-        return candidate == f"{path}/.zgroup"
 
-    monkeypatch.setattr(fs, "exists", exists)
+def test_http_zarr_root_metadata_is_detected(tmp_path):
+    _metadata(tmp_path / "v2.zarr", ".zgroup")
+    _metadata(tmp_path / "v3.zarr", "zarr.json")
+    (tmp_path / "empty.zarr").mkdir()
 
-    assert zarr_root_exists(fs, path) is True
-    assert requested == [f"{path}/.zgroup"]
+    handler = partial(_QuietHTTPHandler, directory=str(tmp_path))
+    server = ThreadingHTTPServer(("127.0.0.1", 0), handler)
+    thread = Thread(target=server.serve_forever, daemon=True)
+    thread.start()
+
+    try:
+        fs = fsspec.filesystem("http")
+        base_url = f"http://127.0.0.1:{server.server_port}"
+
+        assert fs.exists(f"{base_url}/empty.zarr") is True
+        assert zarr_root_exists(fs, f"{base_url}/empty.zarr") is False
+        assert zarr_root_exists(fs, f"{base_url}/v2.zarr") is True
+        assert zarr_root_exists(fs, f"{base_url}/v3.zarr") is True
+    finally:
+        server.shutdown()
+        server.server_close()
+        thread.join(timeout=5)
 
 
 class _ObjectWithoutStore(CopickObject):
