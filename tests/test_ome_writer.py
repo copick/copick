@@ -113,7 +113,7 @@ def test_shared_helper_is_the_only_write_multiscale_callsite():
     imports = []
 
     for source_path in source_root.rglob("*.py"):
-        tree = ast.parse(source_path.read_text())
+        tree = ast.parse(source_path.read_text(encoding="utf-8"))
         relative_path = source_path.relative_to(source_root)
         for node in ast.walk(tree):
             if isinstance(node, ast.Call) and isinstance(node.func, ast.Name) and node.func.id == "write_multiscale":
