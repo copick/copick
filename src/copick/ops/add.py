@@ -16,7 +16,7 @@ from copick.models import (
     CopickTomogram,
     CopickVoxelSpacing,
 )
-from copick.util.ome import get_voxel_size_from_zarr, ome_metadata, volume_pyramid
+from copick.util.ome import get_level_path, get_voxel_size_from_zarr, ome_metadata, volume_pyramid
 
 
 def add_run(
@@ -308,9 +308,9 @@ def _add_tomogram_zarr(
         flip (str, optional): Flip axes. E.g., '0' to flip Z, '0,2' to flip Z and X. Default: None.
     """
 
-    zarr_group = zarr.open(volume_file)
+    zarr_group = zarr.open(volume_file, mode="r")
     # Get the first level data (level 0)
-    volume = np.array(zarr_group["0"])
+    volume = np.array(zarr_group[get_level_path(zarr_group, 0)])
     voxel_size = get_voxel_size_from_zarr(zarr_group)
 
     if voxel_spacing:

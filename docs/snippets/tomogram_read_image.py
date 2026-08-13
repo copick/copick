@@ -3,6 +3,7 @@
 import copick
 import numpy as np
 import zarr
+from copick.util.ome import get_level_path
 
 # Initialize the root object from a configuration file
 root = copick.from_file("path/to/config.json")
@@ -17,10 +18,11 @@ voxel_spacing = run.get_voxel_spacing(10.000)
 tomogram = voxel_spacing.get_tomogram("wbp")
 
 # Read the tomogram from its zarr-store
-# Scale "0" is the unbinned tomogram
-zarr_array = zarr.open(tomogram.zarr())["0"]
+# Scale 0 is the unbinned tomogram
+zarr_group = zarr.open(tomogram.zarr(), mode="r")
+zarr_array = zarr_group[get_level_path(zarr_group, 0)]
 tomogram_data = np.array(zarr_array)
 
-# Scale "1" is the tomogram binned by 2
-zarr_array_bin2 = zarr.open(tomogram.zarr())["1"]
+# Scale 1 is the tomogram binned by 2
+zarr_array_bin2 = zarr_group[get_level_path(zarr_group, 1)]
 tomogram_data_bin2 = np.array(zarr_array_bin2)

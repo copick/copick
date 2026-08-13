@@ -17,6 +17,7 @@ from typing import TYPE_CHECKING, Dict, List, Optional, Tuple, Union
 import numpy as np
 
 from copick.util.log import get_logger
+from copick.util.ome import get_level_path
 
 if TYPE_CHECKING:
     import pandas as pd
@@ -1229,7 +1230,7 @@ def get_tomogram_centers_from_copick(
 
         zarr_store = tomo.zarr()
         group = zarr.open(zarr_store, mode="r")
-        shape = group["0"].shape  # (z, y, x)
+        shape = group[get_level_path(group, 0)].shape  # (z, y, x)
 
         # Compute center in Angstrom
         center_z = (shape[0] / 2) * voxel_spacing
