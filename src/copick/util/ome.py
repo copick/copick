@@ -1,12 +1,15 @@
-from typing import Any, Dict, List, MutableMapping, Tuple
+from typing import Any, Dict, List, MutableMapping, Tuple, Union
 
 import numpy as np
 import psutil
 import zarr
+from numcodecs import Blosc
 
 from copick.util.log import get_logger
 
 logger = get_logger(__name__)
+
+_DEFAULT_WRITER_METADATA = object()
 
 # Unit conversion factors to Angstrom
 UNITFACTOR = {
@@ -142,32 +145,45 @@ def ome_metadata(pyramid: Dict[float, np.ndarray]) -> Dict[str, Any]:
 
 
 def write_ome_zarr_3d(
-    store: MutableMapping,
+    store: Union[str, MutableMapping],
     pyramid: Dict[float, np.ndarray],
     chunk_size: Tuple[int, ...] = (256, 256, 256),
+    overwrite: bool = True,
+    metadata: Any = _DEFAULT_WRITER_METADATA,
 ) -> None:
-    """Write a 3D pyramid to an OME-Zarr store.
+    """Write a 3D pyramid as OME-Zarr 0.4 / Zarr v2.
 
     Args:
-        store: The store to write to.
+        store: A path string or mutable Zarr store to write to.
         pyramid: The pyramid to write.
         chunk_size: The chunk size to use for the Zarr store. Default is (256, 256, 256).
+        overwrite: Whether to overwrite an existing group and arrays.
+        metadata: Additional OME multiscale metadata. When omitted, preserve the existing empty metadata mapping.
     """
     # This is a super heavy import, so we do it here to avoid loading it before it's needed.
     # Writing is slow anyway.
+    from ome_zarr.format import FormatV04
     from ome_zarr.writer import write_multiscale
 
     ome_meta = ome_metadata(pyramid)
-    root_group = zarr.group(store=store, overwrite=True)
+    root_group = zarr.group(store=store, overwrite=overwrite, zarr_version=2)
+    compressor = Blosc(cname="lz4", clevel=5, shuffle=Blosc.SHUFFLE)
+    writer_metadata = {} if metadata is _DEFAULT_WRITER_METADATA else metadata
 
     write_multiscale(
         list(pyramid.values()),
         group=root_group,
+        fmt=FormatV04(),
         axes=ome_meta["axes"],
         coordinate_transformations=ome_meta["coordinate_transformations"],
-        storage_options=dict(chunks=chunk_size, overwrite=True),
+        storage_options={
+            "chunks": chunk_size,
+            "compressor": compressor,
+            "dimension_separator": "/",
+            "overwrite": overwrite,
+        },
         compute=True,
-        metadata={},
+        metadata=writer_metadata,
     )
 
 
