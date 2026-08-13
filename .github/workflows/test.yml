@@ -36,20 +36,26 @@ jobs:
     strategy:
       matrix:
         python-version: [
-          "3.10",
           "3.11",
           "3.12",
           "3.13",
+          "3.14",
         ]
 
     steps:
       - uses: actions/checkout@v7
 
       - name: Install uv
-        uses: astral-sh/setup-uv@v7
+        uses: astral-sh/setup-uv@ae62891fec2bb8e7d6c99fc78c9fec3a63790f8d # v10.0.0
         with:
-          version: "0.7.13"
+          version: "0.12.4"
           python-version: ${{ matrix.python-version }}
+
+      - name: Report Python version
+        run: python --version
+
+      - name: Check lockfile
+        run: uv lock --check
 
       - name: Install copick
         run: uv sync --locked --extra test --extra dev
@@ -71,20 +77,26 @@ jobs:
     strategy:
       matrix:
         python-version: [
-          "3.10",
           "3.11",
           "3.12",
           "3.13",
+          "3.14",
         ]
 
     steps:
       - uses: actions/checkout@v7
 
       - name: Install uv
-        uses: astral-sh/setup-uv@v7
+        uses: astral-sh/setup-uv@ae62891fec2bb8e7d6c99fc78c9fec3a63790f8d # v10.0.0
         with:
-          version: "0.7.13"
+          version: "0.12.4"
           python-version: ${{ matrix.python-version }}
+
+      - name: Report Python version
+        run: python --version
+
+      - name: Check lockfile
+        run: uv lock --check
 
       - name: Install copick
         run: uv sync --locked --extra test --extra dev
@@ -106,20 +118,26 @@ jobs:
     strategy:
       matrix:
         python-version: [
-          "3.10",
           "3.11",
           "3.12",
           "3.13",
+          "3.14",
         ]
 
     steps:
       - uses: actions/checkout@v7
 
       - name: Install uv
-        uses: astral-sh/setup-uv@v7
+        uses: astral-sh/setup-uv@ae62891fec2bb8e7d6c99fc78c9fec3a63790f8d # v10.0.0
         with:
-          version: "0.7.13"
+          version: "0.12.4"
           python-version: ${{ matrix.python-version }}
+
+      - name: Report Python version
+        run: python --version
+
+      - name: Check lockfile
+        run: uv lock --check
 
       - name: Install copick
         run: uv sync --locked --extra test --extra dev
@@ -141,20 +159,26 @@ jobs:
     strategy:
       matrix:
         python-version: [
-          "3.10",
           "3.11",
           "3.12",
           "3.13",
+          "3.14",
         ]
 
     steps:
       - uses: actions/checkout@v7
 
       - name: Install uv
-        uses: astral-sh/setup-uv@v7
+        uses: astral-sh/setup-uv@ae62891fec2bb8e7d6c99fc78c9fec3a63790f8d # v10.0.0
         with:
-          version: "0.7.13"
+          version: "0.12.4"
           python-version: ${{ matrix.python-version }}
+
+      - name: Report Python version
+        run: python --version
+
+      - name: Check lockfile
+        run: uv lock --check
 
       - name: Install copick
         run: uv sync --locked --extra test --extra dev
@@ -178,20 +202,26 @@ jobs:
           macos-latest,
         ]
         python-version: [
-          "3.10",
           "3.11",
           "3.12",
           "3.13",
+          "3.14",
         ]
 
     steps:
       - uses: actions/checkout@v7
 
       - name: Install uv
-        uses: astral-sh/setup-uv@v7
+        uses: astral-sh/setup-uv@ae62891fec2bb8e7d6c99fc78c9fec3a63790f8d # v10.0.0
         with:
-          version: "0.7.13"
+          version: "0.12.4"
           python-version: ${{ matrix.python-version }}
+
+      - name: Report Python version
+        run: python --version
+
+      - name: Check lockfile
+        run: uv lock --check
 
       - name: Install copick
         run: uv sync --locked --extra test --extra dev
@@ -215,20 +245,26 @@ jobs:
           windows-latest,
         ]
         python-version: [
-          "3.10",
           "3.11",
           "3.12",
           "3.13",
+          "3.14",
         ]
 
     steps:
       - uses: actions/checkout@v7
 
       - name: Install uv
-        uses: astral-sh/setup-uv@v7
+        uses: astral-sh/setup-uv@ae62891fec2bb8e7d6c99fc78c9fec3a63790f8d # v10.0.0
         with:
-          version: "0.7.13"
+          version: "0.12.4"
           python-version: ${{ matrix.python-version }}
+
+      - name: Report Python version
+        run: python --version
+
+      - name: Check lockfile
+        run: uv lock --check
 
       - name: Install copick
         run: uv sync --locked --extra test --extra dev
