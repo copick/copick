@@ -21,14 +21,19 @@ jobs:
           python-version: "3.13"
           activate-environment: true
 
-      - name: Report Python version
-        run: python --version
-
       - name: Check lockfile
         run: uv lock --check
 
       - name: Install copick
         run: uv sync --locked --extra docs
+
+      - name: Verify Python version
+        run: >
+          uv run --no-sync python -c
+          "import sys; v = sys.version_info;
+          assert (v.major, v.minor) == (3, 13), sys.version;
+          assert v.releaselevel == 'final', sys.version;
+          print(sys.version)"
 
       # The unified CLI reference documents plugin commands (convert/process/logical/
       # training/inference/download) contributed by these packages, so they must be

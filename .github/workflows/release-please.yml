@@ -74,11 +74,16 @@ jobs:
           version: "0.12.4"
           python-version: "3.12"
 
-      - name: Report Python version
-        run: python --version
-
       - name: Check lockfile
         run: uv lock --check
+
+      - name: Verify Python version
+        run: >
+          uv run --no-project python -c
+          "import sys; v = sys.version_info;
+          assert (v.major, v.minor) == (3, 12), sys.version;
+          assert v.releaselevel == 'final', sys.version;
+          print(sys.version)"
 
       - name: build
         run: |

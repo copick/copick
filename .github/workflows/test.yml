@@ -51,14 +51,20 @@ jobs:
           version: "0.12.4"
           python-version: ${{ matrix.python-version }}
 
-      - name: Report Python version
-        run: python --version
-
       - name: Check lockfile
         run: uv lock --check
 
       - name: Install copick
         run: uv sync --locked --extra test --extra dev
+
+      - name: Verify Python version
+        run: >
+          uv run --no-sync python -c
+          "import sys; v = sys.version_info;
+          expected = tuple(map(int, '${{ matrix.python-version }}'.split('.')));
+          assert (v.major, v.minor) == expected, sys.version;
+          assert v.releaselevel == 'final', sys.version;
+          print(sys.version)"
 
       - name: Run tests
         run: uv run pytest -vvv -p no:warnings --color=yes --cov --cov-branch --cov-report=xml --cov-report=term-missing -n auto tests
@@ -92,14 +98,20 @@ jobs:
           version: "0.12.4"
           python-version: ${{ matrix.python-version }}
 
-      - name: Report Python version
-        run: python --version
-
       - name: Check lockfile
         run: uv lock --check
 
       - name: Install copick
         run: uv sync --locked --extra test --extra dev
+
+      - name: Verify Python version
+        run: >
+          uv run --no-sync python -c
+          "import sys; v = sys.version_info;
+          expected = tuple(map(int, '${{ matrix.python-version }}'.split('.')));
+          assert (v.major, v.minor) == expected, sys.version;
+          assert v.releaselevel == 'final', sys.version;
+          print(sys.version)"
 
       - name: Run tests
         run: uv run pytest -vvv -p no:warnings --color=yes --cov --cov-branch --cov-report=xml --cov-report=term-missing -n auto tests
@@ -133,14 +145,20 @@ jobs:
           version: "0.12.4"
           python-version: ${{ matrix.python-version }}
 
-      - name: Report Python version
-        run: python --version
-
       - name: Check lockfile
         run: uv lock --check
 
       - name: Install copick
         run: uv sync --locked --extra test --extra dev
+
+      - name: Verify Python version
+        run: >
+          uv run --no-sync python -c
+          "import sys; v = sys.version_info;
+          expected = tuple(map(int, '${{ matrix.python-version }}'.split('.')));
+          assert (v.major, v.minor) == expected, sys.version;
+          assert v.releaselevel == 'final', sys.version;
+          print(sys.version)"
 
       - name: Run tests
         run: uv run pytest -vvv -p no:warnings --color=yes --cov --cov-branch --cov-report=xml --cov-report=term-missing -n auto tests
@@ -174,14 +192,20 @@ jobs:
           version: "0.12.4"
           python-version: ${{ matrix.python-version }}
 
-      - name: Report Python version
-        run: python --version
-
       - name: Check lockfile
         run: uv lock --check
 
       - name: Install copick
         run: uv sync --locked --extra test --extra dev
+
+      - name: Verify Python version
+        run: >
+          uv run --no-sync python -c
+          "import sys; v = sys.version_info;
+          expected = tuple(map(int, '${{ matrix.python-version }}'.split('.')));
+          assert (v.major, v.minor) == expected, sys.version;
+          assert v.releaselevel == 'final', sys.version;
+          print(sys.version)"
 
       - name: Run tests
         run: uv run pytest -vvv -p no:warnings --color=yes --cov --cov-branch --cov-report=xml --cov-report=term-missing -n auto tests
@@ -217,14 +241,20 @@ jobs:
           version: "0.12.4"
           python-version: ${{ matrix.python-version }}
 
-      - name: Report Python version
-        run: python --version
-
       - name: Check lockfile
         run: uv lock --check
 
       - name: Install copick
         run: uv sync --locked --extra test --extra dev
+
+      - name: Verify Python version
+        run: >
+          uv run --no-sync python -c
+          "import sys; v = sys.version_info;
+          expected = tuple(map(int, '${{ matrix.python-version }}'.split('.')));
+          assert (v.major, v.minor) == expected, sys.version;
+          assert v.releaselevel == 'final', sys.version;
+          print(sys.version)"
 
       - name: Run tests
         run: uv run pytest -vvv -p no:warnings --color=yes --cov --cov-branch --cov-report=xml --cov-report=term-missing -n auto tests
@@ -260,14 +290,20 @@ jobs:
           version: "0.12.4"
           python-version: ${{ matrix.python-version }}
 
-      - name: Report Python version
-        run: python --version
-
       - name: Check lockfile
         run: uv lock --check
 
       - name: Install copick
         run: uv sync --locked --extra test --extra dev
+
+      - name: Verify Python version
+        run: >
+          uv run --no-sync python -c
+          "import sys; v = sys.version_info;
+          expected = tuple(map(int, '${{ matrix.python-version }}'.split('.')));
+          assert (v.major, v.minor) == expected, sys.version;
+          assert v.releaselevel == 'final', sys.version;
+          print(sys.version)"
 
       - name: Run tests
         run: uv run pytest -vvv -p no:warnings --color=yes --cov --cov-branch --cov-report=xml --cov-report=term-missing -n auto tests

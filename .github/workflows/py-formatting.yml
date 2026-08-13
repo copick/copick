@@ -14,8 +14,13 @@ jobs:
       - uses: actions/setup-python@v7
         with:
           python-version: "3.12.5"
-      - name: Report Python version
-        run: python --version
+      - name: Verify Python version
+        run: >
+          python -c
+          "import sys; v = sys.version_info;
+          assert (v.major, v.minor) == (3, 12), sys.version;
+          assert v.releaselevel == 'final', sys.version;
+          print(sys.version)"
       - name: Install action-validator with asdf
         uses: asdf-vm/actions/install@v4
         with:
