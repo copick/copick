@@ -66,6 +66,7 @@ from copick.models import (
     PickableObject,
 )
 from copick.util.log import get_logger
+from copick.util.ome import zarr_root_exists
 
 if TYPE_CHECKING:
     from trimesh.parent import Geometry
@@ -2104,7 +2105,7 @@ class CopickObjectMLC(CopickObjectOverlay):
             return None
         if self.read_only:
             sp = self.static_path
-            if sp is None:
+            if sp is None or not self.has_density_map():
                 return None
             fs = self.fs_static
             return zarr.storage.FSStore(
@@ -2126,10 +2127,25 @@ class CopickObjectMLC(CopickObjectOverlay):
             dimension_separator="/",
             create=create,
         )
-        if create and self.root.mode == "A":
+        return store
+
+    def has_density_map(self) -> bool:
+        """Return whether the selected object source contains Zarr root metadata."""
+        if not self.is_particle:
+            return False
+
+        if self.read_only:
+            path = self.static_path
+            fs = self.fs_static
+            return path is not None and fs is not None and zarr_root_exists(fs, path)
+
+        return zarr_root_exists(self.fs_overlay, self.overlay_path)
+
+    def _on_density_map_written(self) -> None:
+        """Register a Mode-A density map only after its write succeeds."""
+        if self.root.mode == "A" and self._find_row() is None and self.has_density_map():
             rel = f"Objects/{self.name}.zarr"
             self._index.add_row("copick/objects", {"name": self.name, "url": rel})
-        return store
 
     def _delete_data(self) -> None:
         fs = self.fs_overlay
@@ -2297,8 +2313,11 @@ class CopickRootMLC(CopickRoot):
                 read_only = False
             else:
                 # Mode B: object is read-only if present in static only.
-                overlay_exists = self.fs_overlay.exists(f"{self.overlay_base_url}/Objects/{obj_meta.name}.zarr")
-                read_only = obj_meta.name in static_names and not overlay_exists
+                overlay_path = f"{self.overlay_base_url}/Objects/{obj_meta.name}.zarr"
+                overlay_exists = zarr_root_exists(self.fs_overlay, overlay_path)
+                static_obj = clz(self, obj_meta, read_only=True)
+                static_exists = obj_meta.name in static_names and static_obj.has_density_map()
+                read_only = static_exists and not overlay_exists
             objects.append(clz(self, obj_meta, read_only=read_only))
         self._objects = objects
 

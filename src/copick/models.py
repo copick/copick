@@ -6,7 +6,14 @@ import zarr
 from pydantic import AliasChoices, BaseModel, Field, field_validator
 
 from copick.util.escape import sanitize_name
-from copick.util.ome import fits_in_memory, get_level_path, segmentation_pyramid, volume_pyramid, write_ome_zarr_3d
+from copick.util.ome import (
+    fits_in_memory,
+    get_level_path,
+    initialize_zarr_v2,
+    segmentation_pyramid,
+    volume_pyramid,
+    write_ome_zarr_3d,
+)
 from copick.util.relion import picks_to_df_relion, relion_df_to_picks
 
 # Don't import Geometry at runtime to keep CLI snappy
@@ -306,6 +313,13 @@ class CopickObject:
 
         raise NotImplementedError("zarr method must be implemented for particle objects.")
 
+    def has_density_map(self) -> bool:
+        """Return whether this object has valid Zarr root metadata."""
+        if not self.is_particle:
+            return False
+
+        raise NotImplementedError("has_density_map must be implemented for particle objects.")
+
     def numpy(
         self,
         zarr_group: Optional[str] = None,
@@ -352,9 +366,17 @@ class CopickObject:
             dtype: Data type of the segmentation. Default is `np.float32`.
         """
         loc = self.zarr()
+        if loc is None:
+            raise ValueError(
+                f"Cannot write a density map for object {self.name!r}: no writable Zarr store is available.",
+            )
 
         pyramid = volume_pyramid(data, voxel_size, 1, dtype=dtype)
         write_ome_zarr_3d(loc, pyramid)
+        self._on_density_map_written()
+
+    def _on_density_map_written(self) -> None:
+        """Hook invoked after a density-map pyramid is written successfully."""
 
     def set_region(
         self,
@@ -374,6 +396,10 @@ class CopickObject:
             z: Slice for the z-axis.
         """
         loc = self.zarr()
+        if loc is None:
+            raise ValueError(
+                f"Cannot write a density map for object {self.name!r}: no writable Zarr store is available.",
+            )
         _open_zarr_array(loc, zarr_group, mode="r+")[z, y, x] = data
 
     def delete(self) -> None:
@@ -1332,8 +1358,8 @@ class CopickRun:
 
             self._segmentations.append(seg)
 
-            # Create the zarr store for this segmentation
-            _ = seg.zarr()
+            # Materialize the new entity as an explicit Zarr v2 group.
+            initialize_zarr_v2(seg.zarr())
 
         return seg
 
@@ -1608,8 +1634,8 @@ class CopickVoxelSpacing:
                 self._tomograms = []
             self._tomograms.append(tomo)
 
-            # Create the zarr store for this tomogram
-            _ = tomo.zarr()
+            # Materialize the new entity as an explicit Zarr v2 group.
+            initialize_zarr_v2(tomo.zarr())
 
         return tomo
 
@@ -1764,8 +1790,8 @@ class CopickTomogram:
 
             self._features.append(feat)
 
-            # Create the zarr store for this feature set
-            _ = feat.zarr()
+            # Materialize the new entity as an explicit Zarr v2 group.
+            initialize_zarr_v2(feat.zarr())
 
         return feat
 

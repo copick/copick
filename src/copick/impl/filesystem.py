@@ -29,6 +29,7 @@ from copick.models import (
     PickableObject,
 )
 from copick.util.log import get_logger
+from copick.util.ome import zarr_root_exists
 
 # Don't import Geometry at runtime to keep CLI snappy
 if TYPE_CHECKING:
@@ -869,6 +870,8 @@ class CopickObjectFSSpec(CopickObjectOverlay):
             return None
 
         if self.read_only:
+            if not self.has_density_map():
+                return None
             # For read-only access, use static filesystem and path
             fs = self.fs_static
             path = self.static_path
@@ -889,6 +892,15 @@ class CopickObjectFSSpec(CopickObjectOverlay):
             dimension_separator="/",
             create=create,
         )
+
+    def has_density_map(self) -> bool:
+        """Return whether the selected object source contains Zarr root metadata."""
+        if not self.is_particle:
+            return False
+
+        fs = self.fs_static if self.read_only else self.fs_overlay
+        path = self.static_path if self.read_only else self.overlay_path
+        return zarr_root_exists(fs, path)
 
 
 class CopickRootFSSpec(CopickRoot):
@@ -1030,8 +1042,8 @@ class CopickRootFSSpec(CopickRoot):
             else:
                 # If object exists in static but not overlay, it's read-only
                 # If object exists in overlay (regardless of static), it's writable
-                static_exists = self.fs_static.exists(static_path)
-                overlay_exists = self.fs_overlay.exists(overlay_path)
+                static_exists = zarr_root_exists(self.fs_static, static_path)
+                overlay_exists = zarr_root_exists(self.fs_overlay, overlay_path)
                 read_only = static_exists and not overlay_exists
 
             obj = clz(self, obj_meta, read_only=read_only)

@@ -42,6 +42,29 @@ UNITFACTOR = {
 }
 
 
+def zarr_root_exists(fs: Any, path: str) -> bool:
+    """Return whether a path contains Zarr v2 or v3 root metadata.
+
+    A store's directory or prefix may exist before it contains a valid Zarr
+    hierarchy, so its presence alone is not sufficient to establish that a
+    density map exists.
+
+    Args:
+        fs: Filesystem containing the store.
+        path: Path to the root of the store.
+
+    Returns:
+        Whether the store contains a v2 ``.zgroup`` or v3 ``zarr.json`` root.
+    """
+    root = path.rstrip("/")
+    return fs.exists(f"{root}/.zgroup") or fs.exists(f"{root}/zarr.json")
+
+
+def initialize_zarr_v2(store: Union[str, MutableMapping]) -> None:
+    """Materialize an empty Zarr v2 group in a new entity store."""
+    zarr.group(store=store, overwrite=False, zarr_version=2)
+
+
 def _ome_zarr_axes() -> List[Dict[str, str]]:
     return [
         {

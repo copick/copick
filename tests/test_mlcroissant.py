@@ -390,17 +390,15 @@ def test_export_filter_nonexistent_run(multi_run_filesystem_project):
 
 
 def test_export_filter_objects(multi_run_filesystem_project):
-    """objects filter restricts only the objects CSV; config pickable_objects stays complete."""
+    """Missing density maps are neither exported nor materialized by an export probe."""
     import copick
     from copick.ops.croissant import export_croissant
 
     proj = multi_run_filesystem_project
     root = copick.from_file(str(proj / "filesystem.json"))
-    # The sample has no actual density-map zarrs under Objects/, so the
-    # objects CSV is expected to be empty whether or not filter is given.
-    # Here we verify the flag plumbing reaches the export and the overall
-    # manifest stays valid — picks for proteasome remain emitted even when
-    # objects=["ribosome"] is passed (filter applies to density maps only).
+    density_map_path = proj / "Objects" / "ribosome.zarr"
+    assert not density_map_path.exists()
+
     metadata_path = export_croissant(
         root,
         project_root=str(proj),
@@ -411,6 +409,9 @@ def test_export_filter_objects(multi_run_filesystem_project):
 
     ds = mlc.Dataset(jsonld=metadata_path)
     assert list(ds.metadata.ctx.issues.errors) == []
+
+    assert _read_csv(proj / "Croissant" / "objects.csv") == []
+    assert not density_map_path.exists()
 
     # Proteasome picks should still appear — --objects doesn't filter picks.
     picks_rows = _read_csv(proj / "Croissant" / "picks.csv")
