@@ -539,7 +539,7 @@ def _export_tomogram_zarr(
     else:
         # Copy only level 0
         source_group = zarr.open(source, mode="r")
-        dest_group = zarr.open(output_path, mode="w")
+        dest_group = zarr.open(output_path, mode="w", zarr_version=2)
         level_path = get_level_path(source_group, 0)
         zarr.copy(source_group[level_path], dest_group, name=level_path)
         # Copy metadata
@@ -740,7 +740,7 @@ def _export_segmentation_zarr(
     else:
         # Copy only level 0
         source_group = zarr.open(source, mode="r")
-        dest_group = zarr.open(output_path, mode="w")
+        dest_group = zarr.open(output_path, mode="w", zarr_version=2)
         level_path = get_level_path(source_group, 0)
         zarr.copy(source_group[level_path], dest_group, name=level_path)
         # Copy metadata

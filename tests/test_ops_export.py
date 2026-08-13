@@ -177,7 +177,7 @@ class TestExportTomogram:
         output_path = str(tmp_path / "tomo.zarr")
         result = export_tomogram(tomo, output_path, "zarr", copy_all_levels=True)
         assert os.path.exists(result)
-        out_group = zarr.open(result)
+        out_group = zarr.open(result, mode="r")
         assert "0" in out_group
 
     def test_export_tomogram_zarr_single_level(self, test_payload, tmp_path):
@@ -189,7 +189,7 @@ class TestExportTomogram:
         output_path = str(tmp_path / "tomo_single.zarr")
         result = export_tomogram(tomo, output_path, "zarr", copy_all_levels=False)
         assert os.path.exists(result)
-        out_group = zarr.open(result)
+        out_group = zarr.open(result, mode="r")
         assert "0" in out_group
 
     def test_export_tomogram_unsupported_format_raises(self, test_payload, tmp_path):
@@ -255,7 +255,7 @@ class TestExportSegmentation:
         output_path = str(tmp_path / "seg_single.zarr")
         result = export_segmentation(seg, output_path, "zarr", copy_all_levels=False)
         assert os.path.exists(result)
-        out_group = zarr.open(result)
+        out_group = zarr.open(result, mode="r")
         assert "0" in out_group
 
     def test_export_segmentation_unsupported_format_raises(self, test_payload, tmp_path):

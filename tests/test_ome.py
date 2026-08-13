@@ -24,7 +24,7 @@ from copick.util.path_util import get_data_from_file
 
 
 def _write_named_pyramid(path, metadata_layout="0.4"):
-    group = zarr.open(path, mode="w")
+    group = zarr.open(path, mode="w", zarr_version=2)
     level_zero = np.arange(64, dtype=np.float32).reshape(4, 4, 4)
     level_one = np.full((2, 2, 2), 7, dtype=np.float32)
     group.create_dataset("s0", data=level_zero, chunks=(2, 2, 2), dimension_separator="/")
