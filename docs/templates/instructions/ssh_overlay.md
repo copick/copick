@@ -2,6 +2,9 @@
 
 This directory will contain all newly created data for your project.
 
+The SSH account must be able to create intermediate directories below `overlay_root`; Zarr v3 entities cannot be
+materialized if only the already-existing root directory is writable.
+
 !!! note "SSH authentication"
     Copick will work best via SSH if you have set up passwordless SSH authentication. Refer to the
     [SSH documentation](https://www.ssh.com/ssh/copy-id) for more information. In general, adding plain text passwords

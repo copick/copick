@@ -3,6 +3,7 @@ import itertools
 import math
 import tempfile
 import warnings
+from collections.abc import Mapping
 from typing import Any, Dict, Iterator, List, Tuple, Union
 
 import numpy as np
@@ -10,13 +11,13 @@ import psutil
 import zarr
 from zarr.abc.store import Store
 from zarr.codecs import Shuffle, ZstdCodec
+from zarr.storage import LocalStore
 
 from copick.util.log import get_logger
-from copick.util.zarr_copy import zarr_store_is_empty
+from copick.util.zarr_copy import prepare_zarr_store_for_write, zarr_store_is_empty
 
 logger = get_logger(__name__)
 
-_DEFAULT_WRITER_METADATA = object()
 DEFAULT_SPATIAL_CHUNKS = (128, 128, 128)
 _SHARD_WARNING_BYTES = 5 * 1000**3
 _SHARD_LIMIT_BYTES = 5 * 1000**4
@@ -70,9 +71,14 @@ def zarr_root_exists(fs: Any, path: str) -> bool:
     return fs.exists(f"{root}/.zgroup") or fs.exists(f"{root}/zarr.json")
 
 
-def initialize_zarr_v2(store: Union[str, Store]) -> None:
-    """Materialize an empty Zarr v2 group in a new entity store."""
-    zarr.group(store=store, overwrite=False, zarr_format=2)
+def initialize_zarr_v3(store: Union[str, Store]) -> None:
+    """Materialize an empty Zarr v3 group in a new entity store."""
+    zarr.group(store=store, overwrite=False, zarr_format=3)
+
+
+def _writer_store(store: Union[str, Store]) -> Store:
+    """Normalize the writer's local-path convenience input to a Zarr store."""
+    return LocalStore(store) if isinstance(store, str) else store
 
 
 def _ome_zarr_axes() -> List[Dict[str, str]]:
@@ -241,7 +247,7 @@ def write_ome_zarr(
     axes: List[Dict[str, str]],
     chunk_size: Tuple[int, ...],
     overwrite: bool = True,
-    metadata: Any = _DEFAULT_WRITER_METADATA,
+    metadata: Union[Mapping[str, Any], None] = None,
     shard_size: Union[Tuple[int, ...], None] = None,
     coordinate_transformations: Union[List[List[Dict[str, Any]]], None] = None,
 ) -> None:
@@ -259,6 +265,9 @@ def write_ome_zarr(
         raise ValueError(f"axes must contain exactly {ndim} entries, got {len(axes)}")
     if coordinate_transformations is not None and len(coordinate_transformations) != len(pyramid):
         raise ValueError("coordinate_transformations must contain one entry per pyramid level")
+    if metadata is not None and not isinstance(metadata, Mapping):
+        raise TypeError("metadata must be a mapping or None")
+    writer_metadata = {} if metadata is None else copy.deepcopy(dict(metadata))
 
     layouts = []
     for array in pyramid.values():
@@ -268,9 +277,9 @@ def write_ome_zarr(
         _preflight_shard_size(shards, array.dtype)
         layouts.append((shards, canonical_v3_compressors(array.dtype)))
 
-    root_group = zarr.group(store=store, overwrite=overwrite, zarr_format=3)
-    writer_metadata = {} if metadata is _DEFAULT_WRITER_METADATA else metadata
-    ome_zarr_metadata = writer_metadata if isinstance(writer_metadata, dict) else {}
+    target_store = _writer_store(store)
+    prepare_zarr_store_for_write(target_store, overwrite)
+    root_group = zarr.group(store=target_store, overwrite=overwrite, zarr_format=3)
 
     datasets = []
     dimension_names = tuple(axis["name"] for axis in axes)
@@ -303,9 +312,9 @@ def write_ome_zarr(
         datasets,
         fmt=FormatV05(),
         axes=axes,
-        metadata=ome_zarr_metadata,
+        metadata=writer_metadata,
     )
-    if metadata is not _DEFAULT_WRITER_METADATA:
+    if metadata is not None:
         ome = copy.deepcopy(root_group.attrs["ome"])
         ome["multiscales"][0]["metadata"] = copy.deepcopy(writer_metadata)
         root_group.attrs["ome"] = ome
@@ -316,7 +325,7 @@ def write_ome_zarr_3d(
     pyramid: Dict[float, np.ndarray],
     chunk_size: Tuple[int, ...] = DEFAULT_SPATIAL_CHUNKS,
     overwrite: bool = True,
-    metadata: Any = _DEFAULT_WRITER_METADATA,
+    metadata: Union[Mapping[str, Any], None] = None,
     shard_size: Union[Tuple[int, ...], None] = None,
 ) -> None:
     """Write a 3D pyramid as OME-Zarr 0.5 / Zarr v3.
@@ -326,7 +335,7 @@ def write_ome_zarr_3d(
         pyramid: The pyramid to write.
         chunk_size: Inner chunk shape. Default is ``(128, 128, 128)``.
         overwrite: Whether to overwrite an existing group and arrays.
-        metadata: Additional OME multiscale metadata. When omitted, preserve the existing empty metadata mapping.
+        metadata: Additional OME multiscale metadata. ``None`` omits the optional metadata field.
         shard_size: Optional explicit shard shape. By default, one padded logical shard is used per level.
     """
     for array in pyramid.values():
@@ -375,6 +384,8 @@ def write_single_level_ome_zarr(source_group: zarr.Group, target_store: Store, l
 
     source_path = get_level_path(source_group, level)
     source_array = source_group[source_path]
+    if source_array.ndim not in (3, 4):
+        raise ValueError(f"Single-level OME-Zarr export supports 3D or 4D arrays, got {source_array.ndim} dimensions")
     if not zarr_store_is_empty(target_store):
         raise FileExistsError("Single-level Zarr export target is not empty")
 
@@ -398,11 +409,12 @@ def write_single_level_ome_zarr(source_group: zarr.Group, target_store: Store, l
         writer_kwargs = {}
         if "metadata" in source_multiscale:
             writer_kwargs["metadata"] = copy.deepcopy(source_multiscale["metadata"])
+        chunk_size = DEFAULT_SPATIAL_CHUNKS if source_array.ndim == 3 else (1, *DEFAULT_SPATIAL_CHUNKS)
         write_ome_zarr(
             target_store,
             {1.0: staging},
             axes,
-            DEFAULT_SPATIAL_CHUNKS,
+            chunk_size,
             coordinate_transformations=[transformations],
             **writer_kwargs,
         )

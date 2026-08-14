@@ -115,6 +115,8 @@ def test_feature_from_numpy_dtype_override_and_region_write():
     features = _MemoryFeatures()
     values = np.arange(2 * 3 * 4 * 5).reshape(2, 3, 4, 5)
     features.from_numpy(values, chunks=(2, 2, 2), dtype=np.float32)
+    _, array = _written_array(features)
+    layout_before = array.metadata.to_dict()
 
     replacement = np.full((1, 2, 2, 2), 99, dtype=np.float32)
     selection = (slice(1, 2), slice(1, 3), slice(1, 3), slice(1, 3))
@@ -123,8 +125,30 @@ def test_feature_from_numpy_dtype_override_and_region_write():
     result = features.numpy()
     assert result.dtype == np.float32
     np.testing.assert_array_equal(result[selection], replacement)
+    _, array = _written_array(features)
+    assert array.metadata.to_dict() == layout_before
+
+
+def test_feature_from_numpy_refuses_or_replaces_existing_data_explicitly():
+    features = _MemoryFeatures()
+    original = np.ones((3, 4, 5), dtype=np.float32)
+    replacement = np.full((3, 4, 5), 2.0, dtype=np.float32)
+    features.from_numpy(original)
+
+    with pytest.raises(FileExistsError, match="not empty"):
+        features.from_numpy(replacement, overwrite=False)
+
+    np.testing.assert_array_equal(features.numpy(), original)
+    features.from_numpy(replacement, overwrite=True)
+    np.testing.assert_array_equal(features.numpy(), replacement)
 
 
 def test_add_features_appends_shards_after_existing_parameters():
     parameters = list(inspect.signature(add_features).parameters)
     assert parameters[-1] == "shards"
+
+
+def test_feature_from_numpy_overwrite_is_keyword_only_and_defaults_to_replace():
+    parameter = inspect.signature(CopickFeatures.from_numpy).parameters["overwrite"]
+    assert parameter.kind is inspect.Parameter.KEYWORD_ONLY
+    assert parameter.default is True

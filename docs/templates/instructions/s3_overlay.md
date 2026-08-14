@@ -2,6 +2,9 @@
 
 This S3 URI will contain all newly created data for your project.
 
+The credentials and bucket policy must allow copick to create all object prefixes below `overlay_root`, and to write and
+delete the Zarr metadata and data keys stored there.
+
 Make sure the intended S3 bucket is writable:
 ```bash
 echo "Hello, World!" > test.txt

@@ -1,5 +1,6 @@
 import ast
 import hashlib
+import runpy
 import zipfile
 from pathlib import Path
 
@@ -85,6 +86,32 @@ def test_v3_twin_builder_does_not_import_copick():
         elif isinstance(node, ast.ImportFrom) and node.module:
             imported.add(node.module.split(".")[0])
     assert "copick" not in imported
+
+
+def test_v3_twin_builder_rewrites_only_exact_root_leaf_components(tmp_path):
+    source_path = TESTS_DIR / "scripts" / "build_v3_twin.py"
+    copy_config = runpy.run_path(str(source_path))["_copy_config"]
+    source = tmp_path / "source.json"
+    target = tmp_path / "target.json"
+    source.write_text(
+        """{
+    "static_root": "local:///parent-sample_project/sample_project/",
+    "overlay_root": "local:///sample_overlay-backup/sample_overlay"
+}
+""",
+        encoding="utf-8",
+    )
+
+    copy_config(source, target)
+
+    assert (
+        target.read_text(encoding="utf-8")
+        == """{
+    "static_root": "local:///parent-sample_project/sample_project_v3/",
+    "overlay_root": "local:///sample_overlay-backup/sample_overlay_v3"
+}
+"""
+    )
 
 
 @pytest.fixture(params=pytest.common_cases)

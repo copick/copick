@@ -34,6 +34,10 @@ The `copick.ops.add` module provides functions for adding data to Copick project
         show_root_heading: true
         show_root_full_path: true
 
+`voxel_spacing` selects the tomogram that owns the feature map; it is not normalized to `1.0`. When a matching feature
+already exists, pass both `exist_ok=True` and `overwrite=True` to replace its array. With `exist_ok=True` and
+`overwrite=False`, `add_features` raises `FileExistsError` and leaves the stored data unchanged.
+
 ## Usage Examples
 
 ### Adding a Run
@@ -82,6 +86,8 @@ features = add_features(
     tomo_type="wbp",
     feature_type="membrane_segmentation",
     features_vol=segmentation_volume,
+    exist_ok=True,
+    overwrite=True,
     log=True
 )
 ```

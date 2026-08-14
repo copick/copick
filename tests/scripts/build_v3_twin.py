@@ -185,14 +185,17 @@ def _copy_config(source: Path, target: Path) -> None:
     config = json.loads(source.read_text(encoding="utf-8"))
     for key in ("static_root", "overlay_root"):
         if isinstance(config.get(key), str):
-            config[key] = (
-                config[key]
-                .replace("sample_project", "sample_project_v3")
-                .replace(
-                    "sample_overlay",
-                    "sample_overlay_v3",
-                )
-            )
+            value = config[key]
+            stripped = value.rstrip("/\\")
+            trailing = value[len(stripped) :]
+            for legacy_name, v3_name in (
+                ("sample_project", "sample_project_v3"),
+                ("sample_overlay", "sample_overlay_v3"),
+            ):
+                if stripped == legacy_name or stripped.endswith((f"/{legacy_name}", f"\\{legacy_name}")):
+                    stripped = f"{stripped[: -len(legacy_name)]}{v3_name}"
+                    break
+            config[key] = f"{stripped}{trailing}"
     target.write_text(json.dumps(config, indent=4) + "\n", encoding="utf-8")
 
 

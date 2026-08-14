@@ -11,7 +11,7 @@ from copick.util.ome import (
     DEFAULT_SPATIAL_CHUNKS,
     fits_in_memory,
     get_level_path,
-    initialize_zarr_v2,
+    initialize_zarr_v3,
     ome_zarr_axes,
     padded_shard_shape,
     segmentation_pyramid,
@@ -1368,8 +1368,8 @@ class CopickRun:
 
             self._segmentations.append(seg)
 
-            # Materialize the new entity as an explicit Zarr v2 group.
-            initialize_zarr_v2(seg.zarr())
+            # Materialize the new entity as an explicit Zarr v3 group.
+            initialize_zarr_v3(seg.zarr())
 
         return seg
 
@@ -1644,8 +1644,8 @@ class CopickVoxelSpacing:
                 self._tomograms = []
             self._tomograms.append(tomo)
 
-            # Materialize the new entity as an explicit Zarr v2 group.
-            initialize_zarr_v2(tomo.zarr())
+            # Materialize the new entity as an explicit Zarr v3 group.
+            initialize_zarr_v3(tomo.zarr())
 
         return tomo
 
@@ -1800,8 +1800,8 @@ class CopickTomogram:
 
             self._features.append(feat)
 
-            # Materialize the new entity as an explicit Zarr v2 group.
-            initialize_zarr_v2(feat.zarr())
+            # Materialize the new entity as an explicit Zarr v3 group.
+            initialize_zarr_v3(feat.zarr())
 
         return feat
 
@@ -2015,6 +2015,7 @@ class CopickFeatures:
         shards: Optional[Tuple[int, ...]] = None,
         dtype: Optional[np.dtype] = None,
         metadata: Optional[Dict[str, Any]] = None,
+        overwrite: bool = True,
     ) -> None:
         """Write a 3D or feature-major 4D feature array.
 
@@ -2024,6 +2025,7 @@ class CopickFeatures:
             shards: Optional dimension-matched shard shape.
             dtype: Optional dtype conversion applied before writing.
             metadata: Optional OME multiscale metadata payload.
+            overwrite: Replace an existing feature array. Defaults to True for backward compatibility.
         """
         array = np.asarray(data, dtype=dtype)
         if array.ndim not in (3, 4):
@@ -2053,6 +2055,7 @@ class CopickFeatures:
             effective_chunks,
             metadata=metadata,
             shard_size=effective_shards,
+            overwrite=overwrite,
         )
 
     def set_region(

@@ -159,6 +159,34 @@ def zarr_store_is_empty(store: Store) -> bool:
     return _zarr_sync(store.is_empty(""))
 
 
+async def _prepare_store_for_write(store: Store, overwrite: bool) -> None:
+    keys = await _list_keys(store)
+    if not keys:
+        return
+
+    if await _is_materialized_empty_group(store, keys):
+        # A bare v3 group is already the desired writable container. A bare
+        # v2 group is the legacy entity-materialization contract; remove only
+        # its root metadata so the v3 writer cannot leave a mixed hierarchy.
+        if ".zgroup" in keys:
+            for key in keys:
+                await store.delete(key)
+        return
+
+    if not overwrite:
+        raise FileExistsError("Zarr write target is not empty")
+
+
+def prepare_zarr_store_for_write(store: Store, overwrite: bool) -> None:
+    """Validate a writer target and clean up a bare legacy v2 group.
+
+    Populated targets are rejected before mutation unless ``overwrite`` is
+    enabled. Bare groups materialized by copick are treated as empty, and a
+    bare v2 group is converted without leaving v2 metadata beside v3 output.
+    """
+    _zarr_sync(_prepare_store_for_write(store, overwrite))
+
+
 def _digest(data: bytes) -> _KeyDigest:
     return _KeyDigest(size=len(data), sha256=hashlib.sha256(data).digest())
 

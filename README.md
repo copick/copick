@@ -43,10 +43,15 @@ pip install "copick[all]"
 > [!NOTE]
 > `copick>=1.2.0` will fail to install with `pip~=25.1.0`. We recommend using `pip>=25.2` or  [`uv pip`](https://docs.astral.sh/uv/pip/) when installing copick.
 
+> [!IMPORTANT]
+> copick 2.0 creates and rebuilds image pyramids as OME-Zarr 0.5 backed by Zarr v3. Existing Zarr v2 projects remain
+> readable, and whole-store copy operations preserve their original format and layout.
+
 
 ## Example dataset
 
-An example dataset can be obtained from [Zenodo](https://doi.org/10.5281/zenodo.21939821).
+An example dataset can be obtained from [Zenodo](https://doi.org/10.5281/zenodo.21939821). The migration-test archive
+contains both the legacy Zarr v2 project and its Zarr v3 twin, so it is larger than the earlier single-format example.
 
 To test with the example dataset:
 

@@ -4,6 +4,7 @@ import ast
 import inspect
 import json
 import math
+import warnings
 from pathlib import Path
 
 import copick.util.ome as ome
@@ -85,13 +86,37 @@ def test_writer_emits_v3_ome_zarr_05_contract(tmp_path, writer_pyramid, target_k
     assert (path / "0" / "0" / "0" / "0").is_file()
 
 
-@pytest.mark.parametrize("metadata", [None, {"source": "golden-test"}])
-def test_writer_preserves_explicit_metadata_value(tmp_path, writer_pyramid, metadata):
+def _file_contents(path):
+    return {item.relative_to(path): item.read_bytes() for item in path.rglob("*") if item.is_file()}
+
+
+def test_writer_treats_none_metadata_as_omitted(tmp_path, writer_pyramid):
     path = str(tmp_path / "metadata.zarr")
+    write_ome_zarr_3d(path, writer_pyramid, metadata=None)
+
+    group = zarr.open_group(path, mode="r")
+    assert "metadata" not in group.attrs["ome"]["multiscales"][0]
+
+
+def test_writer_preserves_explicit_metadata_mapping(tmp_path, writer_pyramid):
+    path = str(tmp_path / "metadata.zarr")
+    metadata = {"source": "golden-test"}
+
     write_ome_zarr_3d(path, writer_pyramid, metadata=metadata)
 
     group = zarr.open_group(path, mode="r")
+    Image.from_zarr(group)
     assert group.attrs["ome"]["multiscales"][0]["metadata"] == metadata
+
+
+@pytest.mark.parametrize("metadata", ["invalid", ["invalid"], 3])
+def test_writer_rejects_non_mapping_metadata_before_materializing_store(tmp_path, writer_pyramid, metadata):
+    path = tmp_path / "invalid-metadata.zarr"
+
+    with pytest.raises(TypeError, match="mapping or None"):
+        write_ome_zarr_3d(str(path), writer_pyramid, metadata=metadata)
+
+    assert not path.exists()
 
 
 def test_writer_preserves_default_chunk_shape(tmp_path, writer_pyramid):
@@ -203,6 +228,89 @@ def test_complete_level_writes_its_remote_shard_once():
     write_ome_zarr_3d(store, {10.0: values}, chunk_size=(2, 3, 4))
 
     assert store.written_keys.count("0/0/0/0") == 1
+
+
+@pytest.mark.parametrize("target_kind", ["path", "store"])
+def test_writer_converts_bare_v2_group_without_mixed_metadata(tmp_path, writer_pyramid, target_kind):
+    path = tmp_path / "legacy-empty.zarr"
+    zarr.group(store=LocalStore(path), zarr_format=2)
+    target = str(path) if target_kind == "path" else LocalStore(path)
+
+    with warnings.catch_warnings(record=True) as caught:
+        warnings.simplefilter("always")
+        write_ome_zarr_3d(target, {10.0: writer_pyramid[10.0]}, chunk_size=(2, 2, 2), overwrite=False)
+        group = zarr.open_group(LocalStore(path), mode="r")
+
+    assert group.metadata.zarr_format == 3
+    assert not any("Both zarr.json" in str(warning.message) for warning in caught)
+    assert not list(path.rglob(".zgroup"))
+    assert not list(path.rglob(".zattrs"))
+
+
+def test_writer_accepts_bare_v3_group_without_overwrite(tmp_path, writer_pyramid):
+    path = tmp_path / "empty-v3.zarr"
+    zarr.group(store=LocalStore(path), zarr_format=3)
+
+    write_ome_zarr_3d(
+        LocalStore(path),
+        {10.0: writer_pyramid[10.0]},
+        chunk_size=(2, 2, 2),
+        overwrite=False,
+    )
+
+    group = zarr.open_group(LocalStore(path), mode="r")
+    np.testing.assert_array_equal(group[get_level_path(group, 0)][:], writer_pyramid[10.0])
+
+
+def test_writer_converts_bare_remote_v2_group_without_mixed_metadata(writer_pyramid):
+    store = MemoryStore()
+    zarr.group(store=store, zarr_format=2)
+
+    write_ome_zarr_3d(
+        store,
+        {10.0: writer_pyramid[10.0]},
+        chunk_size=(2, 2, 2),
+        overwrite=False,
+    )
+
+    assert "zarr.json" in store._store_dict
+    assert ".zgroup" not in store._store_dict
+    assert ".zattrs" not in store._store_dict
+
+
+@pytest.mark.parametrize("zarr_format", [2, 3])
+def test_writer_refuses_populated_target_without_mutation(tmp_path, writer_pyramid, zarr_format):
+    path = tmp_path / f"populated-v{zarr_format}.zarr"
+    group = zarr.group(store=LocalStore(path), zarr_format=zarr_format)
+    group.create_array("0", data=np.ones((2, 2, 2), dtype=np.uint8), chunks=(2, 2, 2))
+    before = _file_contents(path)
+
+    with pytest.raises(FileExistsError, match="not empty"):
+        write_ome_zarr_3d(
+            LocalStore(path),
+            {10.0: writer_pyramid[10.0]},
+            chunk_size=(2, 2, 2),
+            overwrite=False,
+        )
+
+    assert _file_contents(path) == before
+
+
+def test_writer_refuses_mixed_root_metadata_without_mutation(tmp_path, writer_pyramid):
+    path = tmp_path / "mixed.zarr"
+    zarr.group(store=LocalStore(path), zarr_format=2)
+    (path / "zarr.json").write_text('{"zarr_format": 3, "node_type": "group", "attributes": {}}')
+    before = _file_contents(path)
+
+    with pytest.raises(FileExistsError, match="not empty"):
+        write_ome_zarr_3d(
+            LocalStore(path),
+            {10.0: writer_pyramid[10.0]},
+            chunk_size=(2, 2, 2),
+            overwrite=False,
+        )
+
+    assert _file_contents(path) == before
 
 
 @pytest.mark.parametrize(
