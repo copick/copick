@@ -105,7 +105,7 @@ class ZarrStructuralGuard(ast.NodeVisitor):
         return call.args[1] if len(call.args) > 1 else None
 
     def _has_v2_format(self, call):
-        return _is_constant(self._keyword(call, "zarr_version"), 2)
+        return _is_constant(self._keyword(call, "zarr_format"), 2)
 
     @staticmethod
     def _is_typing_literal(node):
@@ -173,7 +173,7 @@ class ZarrStructuralGuard(ast.NodeVisitor):
                     self._add(
                         node,
                         "explicit_zarr_format",
-                        f"creation through zarr.{entry_point} requires zarr_version=2",
+                        f"creation through zarr.{entry_point} requires zarr_format=2",
                     )
 
         if call_name == "ome_zarr.writer.write_multiscale" and self._keyword(node, "fmt") is None:
@@ -249,7 +249,7 @@ def test_guard_rejects_creation_without_explicit_v2_format(entry_point):
 
 
 def test_guard_rejects_wrong_creation_format():
-    violations = find_violations("import zarr\nzarr.group(store, zarr_version=3)\n")
+    violations = find_violations("import zarr\nzarr.group(store, zarr_format=3)\n")
 
     assert "explicit_zarr_format" in {violation.rule for violation in violations}
 
@@ -263,7 +263,7 @@ def test_guard_treats_dynamic_open_modes_as_creation_capable(entry_point):
 
 @pytest.mark.parametrize("entry_point", sorted(ZARR_OPEN_ENTRY_POINTS))
 def test_guard_rejects_open_without_explicit_mode(entry_point):
-    violations = find_violations(f"import zarr\nzarr.{entry_point}(store, zarr_version=2)\n")
+    violations = find_violations(f"import zarr\nzarr.{entry_point}(store, zarr_format=2)\n")
 
     assert "explicit_open_mode" in {violation.rule for violation in violations}
 
@@ -312,14 +312,14 @@ def test_guard_accepts_explicit_v2_creation_and_metadata_level_resolution():
 import zarr
 from ome_zarr.writer import write_multiscale
 
-zarr.open(store, mode="w", zarr_version=2)
-zarr.open_group(store, mode="w", zarr_version=2)
-zarr.open_array(store, mode="w", zarr_version=2)
-zarr.group(store, zarr_version=2)
-zarr.create(shape, zarr_version=2)
-zarr.array(data, zarr_version=2)
-zarr.create_group(store, zarr_version=2)
-zarr.create_array(store, zarr_version=2)
+zarr.open(store, mode="w", zarr_format=2)
+zarr.open_group(store, mode="w", zarr_format=2)
+zarr.open_array(store, mode="w", zarr_format=2)
+zarr.group(store, zarr_format=2)
+zarr.create(shape, zarr_format=2)
+zarr.array(data, zarr_format=2)
+zarr.create_group(store, zarr_format=2)
+zarr.create_array(store, zarr_format=2)
 write_multiscale(images, group=group, fmt=fmt)
 array = group[get_level_path(group, level)]
 group.create_dataset("0", data=data)

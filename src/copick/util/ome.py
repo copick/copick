@@ -1,9 +1,10 @@
-from typing import Any, Dict, List, MutableMapping, Tuple, Union
+from typing import Any, Dict, List, Tuple, Union
 
 import numpy as np
 import psutil
 import zarr
 from numcodecs import Blosc
+from zarr.abc.store import Store
 
 from copick.util.log import get_logger
 
@@ -60,9 +61,9 @@ def zarr_root_exists(fs: Any, path: str) -> bool:
     return fs.exists(f"{root}/.zgroup") or fs.exists(f"{root}/zarr.json")
 
 
-def initialize_zarr_v2(store: Union[str, MutableMapping]) -> None:
+def initialize_zarr_v2(store: Union[str, Store]) -> None:
     """Materialize an empty Zarr v2 group in a new entity store."""
-    zarr.group(store=store, overwrite=False, zarr_version=2)
+    zarr.group(store=store, overwrite=False, zarr_format=2)
 
 
 def _ome_zarr_axes() -> List[Dict[str, str]]:
@@ -168,7 +169,7 @@ def ome_metadata(pyramid: Dict[float, np.ndarray]) -> Dict[str, Any]:
 
 
 def write_ome_zarr_3d(
-    store: Union[str, MutableMapping],
+    store: Union[str, Store],
     pyramid: Dict[float, np.ndarray],
     chunk_size: Tuple[int, ...] = (256, 256, 256),
     overwrite: bool = True,
@@ -189,7 +190,7 @@ def write_ome_zarr_3d(
     from ome_zarr.writer import write_multiscale
 
     ome_meta = ome_metadata(pyramid)
-    root_group = zarr.group(store=store, overwrite=overwrite, zarr_version=2)
+    root_group = zarr.group(store=store, overwrite=overwrite, zarr_format=2)
     compressor = Blosc(cname="lz4", clevel=5, shuffle=Blosc.SHUFFLE)
     writer_metadata = {} if metadata is _DEFAULT_WRITER_METADATA else metadata
 
@@ -202,7 +203,6 @@ def write_ome_zarr_3d(
         storage_options={
             "chunks": chunk_size,
             "compressor": compressor,
-            "dimension_separator": "/",
             "overwrite": overwrite,
         },
         compute=True,

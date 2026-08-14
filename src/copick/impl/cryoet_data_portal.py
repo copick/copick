@@ -9,9 +9,9 @@ from typing import TYPE_CHECKING, Any, Dict, List, Optional, Tuple, Type, Union
 import cryoet_data_portal as cdp
 import numpy as np
 import s3fs
-import zarr
 from fsspec import AbstractFileSystem
 from pydantic import BaseModel, create_model, field_validator
+from zarr.abc.store import Store
 
 from copick.impl.overlay import (
     CopickFeaturesOverlay,
@@ -39,6 +39,7 @@ from copick.models import (
 )
 from copick.util.log import get_logger
 from copick.util.ome import zarr_root_exists
+from copick.util.store import copick_store
 
 # Don't import Geometry at runtime to keep CLI snappy
 if TYPE_CHECKING:
@@ -563,7 +564,7 @@ class CopickSegmentationCDP(CopickSegmentationOverlay):
     def portal_segmentation_id(self) -> int:
         return self.meta.portal_annotation_file_id
 
-    def zarr(self) -> zarr.storage.FSStore:
+    def zarr(self) -> Store:
         if self.read_only:
             mode = "r"
             create = False
@@ -571,14 +572,7 @@ class CopickSegmentationCDP(CopickSegmentationOverlay):
             mode = "w"
             create = not self.fs.exists(self.path)
 
-        return zarr.storage.FSStore(
-            self.path,
-            fs=self.fs,
-            mode=mode,
-            key_separator="/",
-            dimension_separator="/",
-            create=create,
-        )
+        return copick_store(self.fs, self.path, read_only=mode == "r", create=create)
 
     def _delete_data(self) -> None:
         if self.fs.exists(self.path):
@@ -602,7 +596,7 @@ class CopickFeaturesCDP(CopickFeaturesOverlay):
     def fs(self) -> AbstractFileSystem:
         return self.tomogram.fs_overlay
 
-    def zarr(self) -> zarr.storage.FSStore:
+    def zarr(self) -> Store:
         if self.read_only:
             logger.critical("Data portal does not support features (yet).")
             raise NotImplementedError("Data portal does not support features (yet).")
@@ -610,14 +604,7 @@ class CopickFeaturesCDP(CopickFeaturesOverlay):
             mode = "w"
             create = not self.fs.exists(self.path)
 
-        return zarr.storage.FSStore(
-            self.path,
-            fs=self.fs,
-            mode=mode,
-            key_separator="/",
-            dimension_separator="/",
-            create=create,
-        )
+        return copick_store(self.fs, self.path, read_only=mode == "r", create=create)
 
     def _delete_data(self) -> None:
         if self.fs.exists(self.path):
@@ -728,7 +715,7 @@ class CopickTomogramCDP(CopickTomogramOverlay):
             for ft in feature_types
         ]
 
-    def zarr(self) -> zarr.storage.FSStore:
+    def zarr(self) -> Store:
         if self.read_only:
             fs = s3fs.S3FileSystem(anon=True)
             path = self.meta.portal_tomo_path
@@ -740,14 +727,7 @@ class CopickTomogramCDP(CopickTomogramOverlay):
             mode = "w"
             create = not fs.exists(path)
 
-        return zarr.storage.FSStore(
-            path,
-            fs=fs,
-            mode=mode,
-            key_separator="/",
-            dimension_separator="/",
-            create=create,
-        )
+        return copick_store(fs, path, read_only=mode == "r", create=create)
 
     def _delete_data(self) -> None:
         if self.fs_overlay.exists(self.overlay_path):
@@ -1313,7 +1293,7 @@ class CopickObjectCDP(CopickObjectOverlay):
     def fs(self) -> AbstractFileSystem:
         return self.root.fs_overlay
 
-    def zarr(self) -> Union[None, zarr.storage.FSStore]:
+    def zarr(self) -> Optional[Store]:
         if not self.is_particle:
             return None
 
@@ -1328,14 +1308,7 @@ class CopickObjectCDP(CopickObjectOverlay):
             mode = "w"
             create = not self.fs.exists(self.path)
 
-        return zarr.storage.FSStore(
-            self.path,
-            fs=self.fs,
-            mode=mode,
-            key_separator="/",
-            dimension_separator="/",
-            create=create,
-        )
+        return copick_store(self.fs, self.path, read_only=mode == "r", create=create)
 
     def has_density_map(self) -> bool:
         """Return whether this object's overlay path contains Zarr root metadata."""
