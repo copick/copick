@@ -1,6 +1,7 @@
 """Tests for ReconnectingFileSystem and cache invalidation."""
 
 import concurrent.futures
+import os
 import threading
 import uuid
 import weakref
@@ -9,12 +10,12 @@ from unittest.mock import MagicMock, patch
 import numpy as np
 import pytest
 import zarr
-from fsspec import AbstractFileSystem
-from fsspec.implementations.memory import MemoryFileSystem
-
+from copick.util.ome import get_level_path, write_ome_zarr_3d
 from copick.util.reconnecting_fs import ReconnectingFileSystem, _is_connection_error
 from copick.util.store import copick_store
 from copick.util.zarr_copy import copy_zarr_store
+from fsspec import AbstractFileSystem
+from fsspec.implementations.memory import MemoryFileSystem
 
 
 # -- Helper: a fake SFTP exception that mimics asyncssh's SFTPNoConnection --
@@ -257,3 +258,42 @@ def test_raw_store_copy_recovers_through_exact_zarr_adapter():
     copied = zarr.open_group(target, mode="r")["nested/data"]
     np.testing.assert_array_equal(copied[:], np.arange(64).reshape(4, 4, 4))
     np.testing.assert_array_equal(copied[:], np.arange(64).reshape(4, 4, 4))
+
+
+@pytest.mark.timeout(120)
+def test_live_ssh_multichunk_reads_reconnect_and_raw_copy(request):
+    if os.environ.get("BACKEND") != "ssh":
+        pytest.skip("live SSH adapter gate runs only in the SSH backend job")
+
+    import copick
+
+    payload = request.getfixturevalue("ssh_overlay_only")
+    root = copick.from_file(str(payload["cfg_file"]))
+    run = root.new_run("reconnect-test")
+    voxel_spacing = run.new_voxel_spacing(10.0)
+    source = voxel_spacing.new_tomogram("source")
+    values = np.arange(8 * 8 * 8, dtype=np.int32).reshape(8, 8, 8)
+
+    write_ome_zarr_3d(source.zarr(), {10.0: values}, chunk_size=(4, 4, 4))
+    source_group = zarr.open_group(source.zarr(), mode="r")
+    source_array = source_group[get_level_path(source_group, 0)]
+    np.testing.assert_array_equal(source_array[:], values)
+    np.testing.assert_array_equal(source_array[:], values)
+
+    reconnecting_fs = root.fs_overlay
+    with (
+        patch.object(reconnecting_fs, "_create_filesystem", wraps=reconnecting_fs._create_filesystem) as reconnect,
+        patch.object(root, "_invalidate_all_caches", wraps=root._invalidate_all_caches) as invalidate,
+    ):
+        reconnecting_fs._fs.client.abort()
+        np.testing.assert_array_equal(source_array[:], values)
+
+    reconnect.assert_called_once()
+    invalidate.assert_called_once()
+
+    target = voxel_spacing.new_tomogram("target")
+    result = copy_zarr_store(source.zarr(), target.zarr(), if_exists="replace")
+    assert result.copied_keys > 0
+    target_group = zarr.open_group(target.zarr(), mode="r")
+    copied = target_group[get_level_path(target_group, 0)]
+    np.testing.assert_array_equal(copied[:], values)

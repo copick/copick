@@ -195,6 +195,7 @@ def write_ome_zarr_3d(
     root_group = zarr.group(store=store, overwrite=overwrite, zarr_format=2)
     compressor = Blosc(cname="lz4", clevel=5, shuffle=Blosc.SHUFFLE)
     writer_metadata = {} if metadata is _DEFAULT_WRITER_METADATA else metadata
+    ome_zarr_metadata = writer_metadata if isinstance(writer_metadata, dict) else {}
 
     write_multiscale(
         list(pyramid.values()),
@@ -208,8 +209,11 @@ def write_ome_zarr_3d(
             "overwrite": overwrite,
         },
         compute=True,
-        metadata=writer_metadata,
+        metadata=ome_zarr_metadata,
     )
+    multiscales = root_group.attrs["multiscales"]
+    multiscales[0]["metadata"] = copy.deepcopy(writer_metadata)
+    root_group.attrs["multiscales"] = multiscales
 
 
 def iter_chunk_slices(shape: Tuple[int, ...], chunks: Tuple[int, ...]) -> Iterator[Tuple[slice, ...]]:
@@ -217,8 +221,7 @@ def iter_chunk_slices(shape: Tuple[int, ...], chunks: Tuple[int, ...]) -> Iterat
     starts = (range(0, size, chunk) for size, chunk in zip(shape, chunks, strict=True))
     for origin in itertools.product(*starts):
         yield tuple(
-            slice(start, min(start + chunk, size))
-            for start, chunk, size in zip(origin, chunks, shape, strict=True)
+            slice(start, min(start + chunk, size)) for start, chunk, size in zip(origin, chunks, shape, strict=True)
         )
 
 

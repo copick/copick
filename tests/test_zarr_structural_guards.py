@@ -1,6 +1,7 @@
 """AST guards for the Zarr v2 hardening phase."""
 
 import ast
+import re
 from dataclasses import dataclass
 from pathlib import Path
 
@@ -24,6 +25,10 @@ ZARR_CALL_ALIASES = {
     "zarr.hierarchy.open_group": "zarr.open_group",
 }
 REPOSITORY_SCAN_ROOTS = (PROJECT_ROOT / "src" / "copick", PROJECT_ROOT / "tests", PROJECT_ROOT / "docs" / "snippets")
+REMOVED_ZARR_API_PATTERN = re.compile(
+    r"\b(?:FSStore|DirectoryStore|MutableMapping|copy_store)\b|"
+    r"zarr\.(?:convenience|hierarchy)(?:\.|\b)|zarr\.core\.Array\b",
+)
 
 # These tests intentionally assert copick's canonical numeric writer output.
 # Every entry must correspond to a violation observed by the repository scan,
@@ -104,8 +109,11 @@ class ZarrStructuralGuard(ast.NodeVisitor):
             return keyword_mode
         return call.args[1] if len(call.args) > 1 else None
 
-    def _has_v2_format(self, call):
-        return _is_constant(self._keyword(call, "zarr_format"), 2)
+    def _has_required_format(self, call):
+        format_value = self._keyword(call, "zarr_format")
+        if self.path.startswith("tests/"):
+            return format_value is not None
+        return _is_constant(format_value, 2)
 
     @staticmethod
     def _is_typing_literal(node):
@@ -169,11 +177,11 @@ class ZarrStructuralGuard(ast.NodeVisitor):
                     self._add(node, "explicit_open_mode", f"zarr.{entry_point} requires an explicit mode")
 
                 creates = entry_point not in ZARR_OPEN_ENTRY_POINTS or mode not in ZARR_NON_CREATING_MODES
-                if creates and not self._has_v2_format(node):
+                if creates and not self._has_required_format(node):
                     self._add(
                         node,
                         "explicit_zarr_format",
-                        f"creation through zarr.{entry_point} requires zarr_format=2",
+                        f"creation through zarr.{entry_point} requires an explicit supported zarr_format",
                     )
 
         if call_name == "ome_zarr.writer.write_multiscale" and self._keyword(node, "fmt") is None:
@@ -240,6 +248,16 @@ def test_repository_obeys_zarr_structural_guards():
     assert not unexpected, "Unexpected Zarr structural violations:\n" + "\n".join(map(str, unexpected))
 
 
+def test_production_source_has_no_removed_zarr_api_dependencies():
+    violations = []
+    for source_path in (PROJECT_ROOT / "src" / "copick").rglob("*.py"):
+        for line_number, line in enumerate(source_path.read_text(encoding="utf-8").splitlines(), start=1):
+            if REMOVED_ZARR_API_PATTERN.search(line):
+                violations.append(f"{source_path.relative_to(PROJECT_ROOT)}:{line_number}: {line.strip()}")
+
+    assert violations == []
+
+
 @pytest.mark.parametrize("entry_point", sorted(ZARR_ENTRY_POINTS))
 def test_guard_rejects_creation_without_explicit_v2_format(entry_point):
     arguments = "store, mode='w'" if entry_point in ZARR_OPEN_ENTRY_POINTS else "data"
@@ -248,7 +266,7 @@ def test_guard_rejects_creation_without_explicit_v2_format(entry_point):
     assert "explicit_zarr_format" in {violation.rule for violation in violations}
 
 
-def test_guard_rejects_wrong_creation_format():
+def test_guard_rejects_wrong_production_creation_format():
     violations = find_violations("import zarr\nzarr.group(store, zarr_format=3)\n")
 
     assert "explicit_zarr_format" in {violation.rule for violation in violations}

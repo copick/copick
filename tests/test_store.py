@@ -4,11 +4,10 @@ import fsspec
 import numpy as np
 import pytest
 import zarr
-from fsspec.implementations.asyn_wrapper import AsyncFileSystemWrapper
-from zarr.storage import FsspecStore, LocalStore
-
 from copick.util.reconnecting_fs import ReconnectingFileSystem
 from copick.util.store import copick_store
+from fsspec.implementations.asyn_wrapper import AsyncFileSystemWrapper
+from zarr.storage import FsspecStore, LocalStore
 
 
 def test_local_store_uses_local_store_and_creates_parent(tmp_path):
@@ -36,7 +35,8 @@ def test_remote_store_reuses_configured_filesystem_and_strips_protocol():
 
     reopened = zarr.open_group(store, mode="r")
     assert list(reopened.array_keys()) == ["0"]
-    np.testing.assert_array_equal(reopened["0"][:], np.arange(4))
+    array_path = "0"
+    np.testing.assert_array_equal(reopened[array_path][:], np.arange(4))
 
 
 def test_read_only_store_rejects_writes(tmp_path):
@@ -45,4 +45,4 @@ def test_read_only_store_rejects_writes(tmp_path):
 
     read_only = copick_store(fsspec.filesystem("file"), str(tmp_path / "volume.zarr"), read_only=True)
     with pytest.raises(ValueError, match="read-only"):
-        zarr.open_group(read_only, mode="a")
+        zarr.open_group(read_only, mode="a", zarr_format=2)

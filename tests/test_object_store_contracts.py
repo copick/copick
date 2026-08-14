@@ -9,7 +9,6 @@ from types import SimpleNamespace
 import fsspec
 import numpy as np
 import pytest
-
 from copick.impl.cryoet_data_portal import CopickObjectCDP
 from copick.impl.filesystem import CopickConfigFSSpec, CopickObjectFSSpec, CopickRootFSSpec
 from copick.impl.mlcroissant import CopickObjectMLC

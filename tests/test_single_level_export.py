@@ -5,12 +5,11 @@ import math
 import numpy as np
 import pytest
 import zarr
+from copick.util.ome import copy_array_chunkwise, get_level_path, get_multiscales, write_single_level_ome_zarr_v2
 from ome_zarr.format import FormatV04
 from ome_zarr.io import parse_url
 from ome_zarr.reader import Reader
 from zarr.storage import LocalStore
-
-from copick.util.ome import copy_array_chunkwise, get_level_path, get_multiscales, write_single_level_ome_zarr_v2
 
 
 def _source_group(path, zarr_format):
@@ -71,7 +70,7 @@ def test_single_level_export_rebuilds_v2_metadata_and_preserves_array_contract(t
     ]
     assert get_level_path(target, 0) == "0"
 
-    exported = target["0"]
+    exported = target[get_level_path(target, 0)]
     assert exported.dtype == source["s0"].dtype
     assert exported.shape == source["s0"].shape
     assert exported.chunks == source["s0"].chunks

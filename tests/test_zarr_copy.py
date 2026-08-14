@@ -6,10 +6,9 @@ import fsspec
 import numpy as np
 import pytest
 import zarr
-from zarr.storage import LocalStore, MemoryStore
-
 from copick.util.store import copick_store
 from copick.util.zarr_copy import copy_zarr_store
+from zarr.storage import LocalStore, MemoryStore
 
 
 def _create_store(path: Path, zarr_format: int, value: int) -> LocalStore:
@@ -97,7 +96,19 @@ def test_scheme_bearing_remote_source_copies_nonzero_keys():
     result = copy_zarr_store(source, target)
 
     assert result.copied_keys > 0
-    np.testing.assert_array_equal(zarr.open_group(target, mode="r")["0"][:], np.arange(8))
+    target_group = zarr.open_group(target, mode="r")
+    array_path = "0"
+    np.testing.assert_array_equal(target_group[array_path][:], np.arange(8))
+
+
+def test_separately_constructed_remote_stores_reject_same_target():
+    fs = fsspec.filesystem("memory")
+    source = copick_store(fs, "memory://same/store.zarr", create=True)
+    zarr.group(store=source, zarr_format=2)
+    target = copick_store(fs, "memory://same/store.zarr")
+
+    with pytest.raises(ValueError, match="must be different"):
+        copy_zarr_store(source, target, if_exists="replace")
 
 
 def test_failed_local_stage_verification_preserves_target(tmp_path, monkeypatch):

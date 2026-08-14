@@ -147,7 +147,7 @@ class ReconnectingFileSystem(AbstractFileSystem):
             return getattr(filesystem, method_name)(*args, **kwargs)
         return result
 
-    # -- Explicitly overridden methods (used by copick, zarr FSStore, and fsspec FSMap) --
+    # -- Explicitly overridden methods (used by copick, Zarr's fsspec adapter, and fsspec FSMap) --
     # Each delegates to self._fs with automatic retry on connection error.
 
     # Core directory/file info methods

@@ -73,7 +73,9 @@ def _same_store(source: Store, target: Store) -> bool:
     if isinstance(source, LocalStore) and isinstance(target, LocalStore):
         return Path(source.root).resolve() == Path(target.root).resolve()
     if isinstance(source, FsspecStore) and isinstance(target, FsspecStore):
-        return source.fs is target.fs and source.path == target.path
+        source_fs = getattr(source.fs, "sync_fs", source.fs)
+        target_fs = getattr(target.fs, "sync_fs", target.fs)
+        return source_fs is target_fs and source.path == target.path
     return False
 
 
@@ -173,3 +175,12 @@ def copy_zarr_store(source: Store, target: Store, *, if_exists: IfExists = "rais
     if result.copied_keys == 0:
         raise IOError("Zarr store copy unexpectedly copied zero keys")
     return result
+
+
+def verify_zarr_store_copy(source: Store, target: Store) -> None:
+    """Verify that a copied target has exactly the source's raw keys and bytes."""
+    source_keys = _zarr_sync(_list_keys(source))
+    target_keys = _zarr_sync(_list_keys(target))
+    _validate_root_metadata(source, source_keys)
+    _validate_root_metadata(target, target_keys)
+    _zarr_sync(_verify_keys(source, target, source_keys))

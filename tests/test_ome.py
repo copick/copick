@@ -2,6 +2,7 @@
 
 import inspect
 import json
+from pathlib import Path
 from types import SimpleNamespace
 
 import mrcfile
@@ -21,14 +22,25 @@ from copick.ops.export import export_tomogram
 from copick.util.handlers.volume.zarr import ZarrVolumeHandler
 from copick.util.ome import get_level_path, get_multiscales, get_voxel_size_from_zarr
 from copick.util.path_util import get_data_from_file
+from zarr.storage import LocalStore
 
 
 def _write_named_pyramid(path, metadata_layout="0.4"):
-    group = zarr.open(path, mode="w", zarr_version=2)
+    group = zarr.open(path, mode="w", zarr_format=2)
     level_zero = np.arange(64, dtype=np.float32).reshape(4, 4, 4)
     level_one = np.full((2, 2, 2), 7, dtype=np.float32)
-    group.create_dataset("s0", data=level_zero, chunks=(2, 2, 2), dimension_separator="/")
-    group.create_dataset("s1", data=level_one, chunks=(2, 2, 2), dimension_separator="/")
+    group.create_array(
+        "s0",
+        data=level_zero,
+        chunks=(2, 2, 2),
+        chunk_key_encoding={"name": "v2", "separator": "/"},
+    )
+    group.create_array(
+        "s1",
+        data=level_one,
+        chunks=(2, 2, 2),
+        chunk_key_encoding={"name": "v2", "separator": "/"},
+    )
 
     multiscales = [
         {
@@ -61,7 +73,7 @@ def _write_named_pyramid(path, metadata_layout="0.4"):
 class _TomogramWithStore(CopickTomogram):
     def __init__(self, store):
         super().__init__(SimpleNamespace(voxel_size=10.0), CopickTomogramMeta(tomo_type="test"))
-        self._store = store
+        self._store = LocalStore(store) if isinstance(store, str) else store
 
     def zarr(self):
         return self._store
@@ -77,8 +89,8 @@ def test_multiscales_and_level_paths_support_both_metadata_layouts(tmp_path, met
     assert get_level_path(group, 0) == "s0"
     assert get_level_path(group, 1) == "s1"
     assert get_voxel_size_from_zarr(group) == 10.0
-    assert "s0/0/0/0" in group.store
-    assert "s0/0.0.0" not in group.store
+    assert (Path(path) / "s0" / "0" / "0" / "0").is_file()
+    assert not (Path(path) / "s0" / "0.0.0").exists()
 
 
 def test_level_path_rejects_invalid_levels_before_array_access():
@@ -141,8 +153,8 @@ def test_named_level_works_in_handler_path_helper_and_export(tmp_path):
     single_level_path = str(tmp_path / "single-level.zarr")
     export_tomogram(_TomogramWithStore(path), single_level_path, "zarr", copy_all_levels=False)
     single_level_group = zarr.open(single_level_path, mode="r")
-    assert get_level_path(single_level_group, 0) == "s0"
-    np.testing.assert_array_equal(single_level_group["s0"], level_zero)
+    assert get_level_path(single_level_group, 0) == "0"
+    np.testing.assert_array_equal(single_level_group[get_level_path(single_level_group, 0)], level_zero)
 
 
 def test_named_level_works_through_export_cli(tmp_path):

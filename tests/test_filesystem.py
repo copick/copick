@@ -12,6 +12,10 @@ from trimesh.parent import Geometry
 NUMERICAL_PRECISION = 1e-8
 
 
+def _assert_v2_group(store):
+    assert zarr.open_group(store, mode="r").metadata.zarr_format == 2
+
+
 @pytest.fixture(params=pytest.common_cases)
 def test_payload(request) -> Dict[str, Any]:
     payload = request.getfixturevalue(request.param)
@@ -1067,7 +1071,7 @@ def test_run_new_segmentations(test_payload: Dict[str, Any]):
         name="ribosome",
         is_multilabel=False,
     )
-    assert ".zgroup" in seg4.zarr()
+    _assert_v2_group(seg4.zarr())
     assert copick_run._segmentations is not None, "Segmentations should be populated"
     assert seg4 in copick_run.segmentations, "Segmentation not added to segmentations"
 
@@ -1079,7 +1083,7 @@ def test_run_new_segmentations(test_payload: Dict[str, Any]):
         name="location",
         is_multilabel=True,
     )
-    assert ".zgroup" in seg5.zarr()
+    _assert_v2_group(seg5.zarr())
     assert seg5 in copick_run.segmentations, "Segmentation not added to segmentations"
     assert (
         seg5
@@ -1139,7 +1143,7 @@ def test_new_zarr_entities_reopen_and_delete_without_array_write(test_payload: D
     features = tomogram.new_features("materialization-test")
 
     for entity in (segmentation, tomogram, features):
-        assert ".zgroup" in entity.zarr()
+        _assert_v2_group(entity.zarr())
 
     reopened = copick.from_file(test_payload["cfg_file"])
     reopened_run = reopened.get_run("TS_001")
@@ -1262,14 +1266,14 @@ def test_vs_new_tomogram(test_payload: Dict[str, Any]):
 
     # Adding the first tomogram initializes and materializes its Zarr v2 group.
     tomogram = vs.new_tomogram(tomo_type="isonet")
-    assert ".zgroup" in tomogram.zarr()
+    _assert_v2_group(tomogram.zarr())
 
     assert vs._tomograms is not None, "Tomograms should be populated"
     assert tomogram in vs.tomograms, "Tomogram not added to tomograms"
 
     # Adding another tomogram appends to the list.
     tomogram = vs.new_tomogram(tomo_type="SIRT")
-    assert ".zgroup" in tomogram.zarr()
+    _assert_v2_group(tomogram.zarr())
 
     assert tomogram in vs.tomograms, "Tomogram not added to tomograms"
     assert tomogram == vs.get_tomogram(tomo_type="SIRT"), "Tomogram not found"
@@ -1392,14 +1396,14 @@ def test_tomogram_new_features(test_payload: Dict[str, Any]):
 
     # Adding the first feature initializes and materializes its Zarr v2 group.
     feature = tomogram.new_features(feature_type="sift")
-    assert ".zgroup" in feature.zarr()
+    _assert_v2_group(feature.zarr())
 
     assert tomogram._features is not None, "Features should be populated"
     assert feature in tomogram.features, "Feature not added to features"
 
     # Adding another feature appends to the list.
     feature = tomogram.new_features(feature_type="tomotwin")
-    assert ".zgroup" in feature.zarr()
+    _assert_v2_group(feature.zarr())
 
     assert feature in tomogram.features, "Feature not added to features"
     assert feature == tomogram.get_features(feature_type="tomotwin"), "Feature not found"
@@ -1468,7 +1472,7 @@ def test_tomogram_zarr(test_payload: Dict[str, Any]):
 
     # Check zarr is writable
     tomo = vs.new_tomogram(tomo_type="test")
-    zarr.open_group(tomo.zarr(), mode="r+").create_dataset(
+    zarr.open_group(tomo.zarr(), mode="r+").create_array(
         "0",
         data=np.random.rand(64, 64, 64),
         chunks=(32, 32, 32),
@@ -1559,7 +1563,7 @@ def test_feature_zarr(test_payload: Dict[str, Any]):
 
     # Check zarr is writable
     feat = tomogram.new_features(feature_type="test")
-    zarr.open_group(feat.zarr(), mode="r+").create_dataset(
+    zarr.open_group(feat.zarr(), mode="r+").create_array(
         "0",
         data=np.random.rand(64, 64, 64),
         chunks=(32, 32, 32),

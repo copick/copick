@@ -14,6 +14,8 @@ from click.testing import CliRunner
 from copick.cli.add import add
 from copick.cli.config import config
 from copick.cli.new import new
+from copick.util.zarr_copy import copy_zarr_store
+from zarr.storage import MemoryStore
 
 
 @pytest.fixture(params=pytest.common_cases)
@@ -86,7 +88,7 @@ def sample_zarr_file_nanometer():
         volume = np.random.randn(64, 64, 64).astype(np.float32)
 
         # Create OME-Zarr file manually with nanometer units
-        store = zarr.open(str(zarr_path), mode="w", zarr_version=2)
+        store = zarr.open(str(zarr_path), mode="w", zarr_format=2)
         store.attrs["multiscales"] = [
             {
                 "axes": [
@@ -110,7 +112,7 @@ def sample_zarr_file_nanometer():
                 "version": "0.4",
             },
         ]
-        store.create_dataset("0", data=volume, chunks=(32, 32, 32))
+        store.create_array("0", data=volume, chunks=(32, 32, 32))
 
         yield str(zarr_path)
 
@@ -793,23 +795,19 @@ class TestCLIConfig:
     """Test cases for the CLI config module."""
 
     def test_config_dataportal(self, runner):
-        """Test creating config from data portal datasets."""
+        """Create a portal config and open scheme-bearing Zarr entity URLs."""
         with tempfile.TemporaryDirectory() as tmpdir:
             overlay_path = Path(tmpdir) / "overlay"
             overlay_path.mkdir()
 
             config_path = Path(tmpdir) / "test_config.json"
 
-            # Note: This test will fail with actual API calls to data portal
-            # We're testing the CLI interface structure, not the actual API
             result = runner.invoke(
                 config,
                 [
                     "dataportal",
                     "--dataset-id",
-                    "10001",
-                    "--dataset-id",
-                    "10002",
+                    "10301",
                     "--overlay",
                     str(overlay_path),
                     "--output",
@@ -822,6 +820,23 @@ class TestCLIConfig:
 
             # Verify the config file was created
             assert config_path.exists(), "Configuration file should be created"
+
+            root = copick.from_file(str(config_path))
+            run = root.get_run("14077")
+            assert run is not None
+            tomogram = next(tomo for spacing in run.voxel_spacings for tomo in spacing.tomograms)
+            segmentation = run.segmentations[0]
+
+            tomogram_group = zarr.open_group(tomogram.zarr(), mode="r")
+            segmentation_group = zarr.open_group(segmentation.zarr(), mode="r")
+            assert list(tomogram_group.array_keys())
+            assert list(segmentation_group.array_keys())
+
+            copied_store = MemoryStore()
+            copy_result = copy_zarr_store(segmentation.zarr(), copied_store)
+            assert copy_result.copied_keys > 0
+            assert copy_result.copied_bytes > 0
+            assert list(zarr.open_group(copied_store, mode="r").array_keys())
 
     def test_config_filesystem(self, runner):
         """Test filesystem config command implementation."""

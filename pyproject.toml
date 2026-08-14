@@ -80,6 +80,7 @@ test = [
     "pooch>=1.8.2",
     "pytest>=8.4.1",
     "pytest-cov>=6.2.1",
+    "pytest-timeout>=2.4.0",
     "pytest-xdist>=3.5.0",
     "smbprotocol>=1.15.0",
 ]
