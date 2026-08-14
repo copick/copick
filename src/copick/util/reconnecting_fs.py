@@ -5,9 +5,10 @@ transparently retries operations when the underlying connection (e.g. SSH tunnel
 """
 
 import logging
+import threading
 import weakref
 from functools import wraps
-from typing import Any, Dict, Optional
+from typing import Any, Dict, Mapping, Optional
 
 import fsspec
 from fsspec import AbstractFileSystem
@@ -37,23 +38,14 @@ def _is_connection_error(exc: BaseException) -> bool:
         if cls.__name__ in _CONNECTION_ERROR_NAMES:
             return True
     # OSError with errno for broken pipe (32) or connection reset (104)
-    if isinstance(exc, OSError) and exc.errno in (32, 104):
-        return True
-    return False
+    return isinstance(exc, OSError) and exc.errno in (32, 104)
 
 
 def _make_retry_method(method_name: str):
     """Create a method that delegates to the wrapped filesystem with retry on connection error."""
 
     def method(self, *args, **kwargs):
-        try:
-            return getattr(self._fs, method_name)(*args, **kwargs)
-        except Exception as exc:
-            if _is_connection_error(exc):
-                logger.warning("Connection error during %s, reconnecting: %s", method_name, exc)
-                self._reconnect()
-                return getattr(self._fs, method_name)(*args, **kwargs)
-            raise
+        return self._call_with_retry(method_name, *args, **kwargs)
 
     method.__name__ = method_name
     method.__qualname__ = f"ReconnectingFileSystem.{method_name}"
@@ -76,33 +68,84 @@ class ReconnectingFileSystem(AbstractFileSystem):
     """
 
     protocol = "reconnecting"
+    cachable = False
 
     def __init__(self, url: str, fs_args: Optional[Dict[str, Any]] = None, **kwargs):
         super().__init__(skip_instance_cache=True, **kwargs)
         self._url = url
         self._fs_args = fs_args or {}
+        self._reconnect_lock = threading.Lock()
+        self._generation = 0
         self._fs: AbstractFileSystem = fsspec.core.url_to_fs(url, **self._fs_args)[0]
+        self.protocol = self._fs.protocol
         self._root_ref: Optional[weakref.ref] = None
 
-    @property
-    def protocol(self):
-        """Expose the wrapped filesystem's protocol for downstream compatibility."""
-        return self._fs.protocol
+    def _snapshot(self) -> tuple[AbstractFileSystem, int]:
+        """Capture the current filesystem and connection generation."""
+        with self._reconnect_lock:
+            return self._fs, self._generation
 
-    def _reconnect(self) -> None:
+    def _create_filesystem(self) -> AbstractFileSystem:
+        return fsspec.core.url_to_fs(self._url, **self._fs_args)[0]
+
+    def _invalidate_root_caches(self) -> None:
+        if self._root_ref is not None:
+            root = self._root_ref()
+            if root is not None:
+                root._invalidate_all_caches()
+
+    def _reconnect(self, expected_generation: Optional[int] = None) -> AbstractFileSystem:
         """Recreate the underlying filesystem from stored configuration.
 
         Clears fsspec's instance cache for the wrapped filesystem class, creates a fresh
         filesystem instance, and invalidates all copick data caches (if a root reference
         is set) so stale objects are re-queried on next access.
+
+        When ``expected_generation`` is supplied, another caller's newer connection is
+        reused instead of being replaced again.  Calls without it are explicit user
+        reconnect requests and always replace the filesystem.
         """
-        logger.info("Reconnecting filesystem for %s", self._url)
-        type(self._fs).clear_instance_cache()
-        self._fs = fsspec.core.url_to_fs(self._url, **self._fs_args)[0]
-        if self._root_ref is not None:
-            root = self._root_ref()
-            if root is not None:
-                root._invalidate_all_caches()
+        with self._reconnect_lock:
+            if expected_generation is not None and self._generation != expected_generation:
+                return self._fs
+
+            logger.info("Reconnecting filesystem for %s", self._url)
+            type(self._fs).clear_instance_cache()
+            replacement = self._create_filesystem()
+            self._fs = replacement
+            self.protocol = replacement.protocol
+            self._generation += 1
+            self._invalidate_root_caches()
+            return replacement
+
+    @staticmethod
+    def _result_has_connection_error(result: Any) -> bool:
+        return isinstance(result, Mapping) and any(
+            isinstance(value, BaseException) and _is_connection_error(value) for value in result.values()
+        )
+
+    def _call_with_retry(self, method_name: str, *args, **kwargs):
+        filesystem, generation = self._snapshot()
+        try:
+            result = getattr(filesystem, method_name)(*args, **kwargs)
+        except Exception as original_exc:
+            if not _is_connection_error(original_exc):
+                raise
+            logger.warning("Connection error during %s, reconnecting: %s", method_name, original_exc)
+            try:
+                filesystem = self._reconnect(expected_generation=generation)
+            except Exception:
+                raise original_exc from None
+            return getattr(filesystem, method_name)(*args, **kwargs)
+
+        if self._result_has_connection_error(result):
+            logger.warning("Connection error in batched %s result, reconnecting", method_name)
+            try:
+                filesystem = self._reconnect(expected_generation=generation)
+            except Exception:
+                return result
+            return getattr(filesystem, method_name)(*args, **kwargs)
+        return result
 
     # -- Explicitly overridden methods (used by copick, zarr FSStore, and fsspec FSMap) --
     # Each delegates to self._fs with automatic retry on connection error.
@@ -140,11 +183,13 @@ class ReconnectingFileSystem(AbstractFileSystem):
 
     # Cache management — delegate without retry (not I/O)
     def invalidate_cache(self, path=None):
-        return self._fs.invalidate_cache(path)
+        filesystem, _ = self._snapshot()
+        return filesystem.invalidate_cache(path)
 
     # Protocol/path utilities — delegate to the wrapped filesystem class
     def _strip_protocol(self, path):
-        return self._fs._strip_protocol(path)
+        filesystem, _ = self._snapshot()
+        return filesystem._strip_protocol(path)
 
     @staticmethod
     def _parent(path):
@@ -155,19 +200,13 @@ class ReconnectingFileSystem(AbstractFileSystem):
 
     def __getattr__(self, name):
         """Delegate attribute access to the wrapped filesystem with retry for callables."""
-        attr = getattr(self._fs, name)
+        filesystem, _ = self._snapshot()
+        attr = getattr(filesystem, name)
         if not callable(attr):
             return attr
 
         @wraps(attr)
         def wrapper(*args, **kwargs):
-            try:
-                return attr(*args, **kwargs)
-            except Exception as exc:
-                if _is_connection_error(exc):
-                    logger.warning("Connection error during %s, reconnecting: %s", name, exc)
-                    self._reconnect()
-                    return getattr(self._fs, name)(*args, **kwargs)
-                raise
+            return self._call_with_retry(name, *args, **kwargs)
 
         return wrapper
