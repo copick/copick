@@ -31,7 +31,7 @@ multiscale pyramid is computed by default.
 | `--tomo-type` | text | `wbp` | The name of the tomogram (e.g. wbp). |
 | `--file-type` | choice (mrc \| zarr \| tiff \| em) | — | The file type of the tomogram. Will guess type based on extension if omitted. |
 | `--voxel-size` | float | — | Voxel size in Angstrom. Overrides voxel size in the tomogram header. |
-| `--chunk-size` | text | `256,256,256` | Chunk size for the output Zarr file. |
+| `--chunk-size` | text | `128,128,128` | Chunk size for the output Zarr file. |
 | `--pyramid-levels` | integer | `3` | Number of pyramid levels (each level corresponds to downscaling by factor two). |
 | `--create-pyramid / --no-create-pyramid` | boolean flag | `True` | Compute the multiscale pyramid. |
 | `--max-workers` | integer | `4` | Maximum number of worker threads. |

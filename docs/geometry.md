@@ -190,6 +190,22 @@ For a voxel at index $\mathbf{i}$ in level $n$, the corresponding index in level
 
 $$\mathbf{i}_0 \approx 2^n \cdot \mathbf{i}_n$$
 
+### 3.5 Canonical write layout
+
+Copick-created and semantically rewritten 3D arrays follow the performance guidance in the
+[Dynamic Cell Atlas Array Standard v0.2](https://chanzuckerberg.github.io/dynamic-cell-atlas-specs/v0.2/array-standard.html#performance).
+They default to `(128, 128, 128)` inner chunks, Zarr v2-style `/` shard keys, and one logical shard per pyramid level.
+For an array shape `shape` and chunk shape `chunks`, each shard dimension is padded to
+`chunks[i] * ceil(shape[i] / chunks[i])`. Explicit chunk overrides retain the same one-shard rule.
+
+Integer and boolean arrays use standalone Zstandard level 3. Floating-point arrays use dtype-sized byte shuffle followed
+by standalone Zstandard level 3. Padded uncompressed shards above 5 GB produce a warning and shards at or above 5 TB are
+rejected. A region update can therefore rewrite a volume-sized shard; choose explicit chunks carefully for write-heavy
+workloads.
+
+This is a **writer policy**, not a reader requirement. Copick continues to read supported legacy and noncanonical Zarr
+layouts from their metadata without requiring these chunks, shards, keys, or codecs.
+
 ---
 
 ## 4. Mesh Geometry
