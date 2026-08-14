@@ -95,6 +95,15 @@ def _ome_zarr_axes() -> List[Dict[str, str]]:
     ]
 
 
+def ome_zarr_axes(ndim: int = 3) -> List[Dict[str, str]]:
+    """Return copick's supported OME-Zarr axes for 3D or feature-major 4D arrays."""
+    if ndim == 3:
+        return _ome_zarr_axes()
+    if ndim == 4:
+        return [{"name": "feature"}, *_ome_zarr_axes()]
+    raise ValueError(f"OME-Zarr feature arrays must be 3D or 4D, got {ndim} dimensions")
+
+
 def _ome_zarr_transforms(voxel_size: float) -> Dict[str, Any]:
     return {
         "scale": [voxel_size, voxel_size, voxel_size],
@@ -226,6 +235,79 @@ def canonical_v3_compressors(dtype: np.dtype) -> Tuple[Any, ...]:
     raise TypeError(f"Canonical OME-Zarr output does not support dtype {dtype}")
 
 
+def write_ome_zarr(
+    store: Union[str, Store],
+    pyramid: Dict[float, np.ndarray],
+    axes: List[Dict[str, str]],
+    chunk_size: Tuple[int, ...],
+    overwrite: bool = True,
+    metadata: Any = _DEFAULT_WRITER_METADATA,
+    shard_size: Union[Tuple[int, ...], None] = None,
+) -> None:
+    """Write an OME-Zarr 0.5 / Zarr v3 pyramid with the canonical layout."""
+    # These imports are intentionally lazy because importing ome-zarr is
+    # expensive and writes are already non-trivial operations.
+    from ome_zarr.format import FormatV05
+    from ome_zarr.writer import write_multiscales_metadata
+
+    if not pyramid:
+        raise ValueError("pyramid must contain at least one level")
+    ndim = next(iter(pyramid.values())).ndim
+    chunks = _shape_tuple(chunk_size, ndim, "chunk_size")
+    if len(axes) != ndim:
+        raise ValueError(f"axes must contain exactly {ndim} entries, got {len(axes)}")
+
+    layouts = []
+    for array in pyramid.values():
+        if array.ndim != ndim:
+            raise ValueError("all pyramid levels must have the same dimensionality")
+        shards = padded_shard_shape(array.shape, chunks) if shard_size is None else _validate_shards(shard_size, chunks)
+        _preflight_shard_size(shards, array.dtype)
+        layouts.append((shards, canonical_v3_compressors(array.dtype)))
+
+    root_group = zarr.group(store=store, overwrite=overwrite, zarr_format=3)
+    writer_metadata = {} if metadata is _DEFAULT_WRITER_METADATA else metadata
+    ome_zarr_metadata = writer_metadata if isinstance(writer_metadata, dict) else {}
+
+    datasets = []
+    dimension_names = tuple(axis["name"] for axis in axes)
+    for level, ((voxel_size, array), (shards, compressors)) in enumerate(zip(pyramid.items(), layouts, strict=True)):
+        path = str(level)
+        root_group.create_array(
+            path,
+            data=array,
+            chunks=chunks,
+            shards=shards,
+            compressors=compressors,
+            chunk_key_encoding={"name": "v2", "separator": "/"},
+            dimension_names=dimension_names,
+            overwrite=overwrite,
+        )
+        datasets.append(
+            {
+                "path": path,
+                "coordinateTransformations": [
+                    {
+                        "scale": [1.0] * (ndim - 3) + [voxel_size, voxel_size, voxel_size],
+                        "type": "scale",
+                    },
+                ],
+            },
+        )
+
+    write_multiscales_metadata(
+        root_group,
+        datasets,
+        fmt=FormatV05(),
+        axes=axes,
+        metadata=ome_zarr_metadata,
+    )
+    if metadata is not _DEFAULT_WRITER_METADATA:
+        ome = copy.deepcopy(root_group.attrs["ome"])
+        ome["multiscales"][0]["metadata"] = copy.deepcopy(writer_metadata)
+        root_group.attrs["ome"] = ome
+
+
 def write_ome_zarr_3d(
     store: Union[str, Store],
     pyramid: Dict[float, np.ndarray],
@@ -244,59 +326,18 @@ def write_ome_zarr_3d(
         metadata: Additional OME multiscale metadata. When omitted, preserve the existing empty metadata mapping.
         shard_size: Optional explicit shard shape. By default, one padded logical shard is used per level.
     """
-    # This is a super heavy import, so we do it here to avoid loading it before it's needed.
-    # Writing is slow anyway.
-    from ome_zarr.format import FormatV05
-    from ome_zarr.writer import write_multiscales_metadata
-
-    chunks = _shape_tuple(chunk_size, 3, "chunk_size")
-    if not pyramid:
-        raise ValueError("pyramid must contain at least one level")
-    layouts = []
     for array in pyramid.values():
         if array.ndim != 3:
             raise ValueError(f"write_ome_zarr_3d expects 3D arrays, got shape {array.shape!r}")
-        shards = padded_shard_shape(array.shape, chunks) if shard_size is None else _validate_shards(shard_size, chunks)
-        _preflight_shard_size(shards, array.dtype)
-        layouts.append((shards, canonical_v3_compressors(array.dtype)))
-
-    ome_meta = ome_metadata(pyramid)
-    root_group = zarr.group(store=store, overwrite=overwrite, zarr_format=3)
-    writer_metadata = {} if metadata is _DEFAULT_WRITER_METADATA else metadata
-    ome_zarr_metadata = writer_metadata if isinstance(writer_metadata, dict) else {}
-
-    datasets = []
-    dimension_names = tuple(axis["name"] for axis in ome_meta["axes"])
-    for level, ((voxel_size, array), (shards, compressors)) in enumerate(zip(pyramid.items(), layouts, strict=True)):
-        path = str(level)
-        root_group.create_array(
-            path,
-            data=array,
-            chunks=chunks,
-            shards=shards,
-            compressors=compressors,
-            chunk_key_encoding={"name": "v2", "separator": "/"},
-            dimension_names=dimension_names,
-            overwrite=overwrite,
-        )
-        datasets.append(
-            {
-                "path": path,
-                "coordinateTransformations": [_ome_zarr_transforms(voxel_size)],
-            },
-        )
-
-    write_multiscales_metadata(
-        root_group,
-        datasets,
-        fmt=FormatV05(),
-        axes=ome_meta["axes"],
-        metadata=ome_zarr_metadata,
+    write_ome_zarr(
+        store,
+        pyramid,
+        ome_zarr_axes(),
+        chunk_size,
+        overwrite=overwrite,
+        metadata=metadata,
+        shard_size=shard_size,
     )
-    if metadata is not _DEFAULT_WRITER_METADATA:
-        ome = copy.deepcopy(root_group.attrs["ome"])
-        ome["multiscales"][0]["metadata"] = copy.deepcopy(writer_metadata)
-        root_group.attrs["ome"] = ome
 
 
 def iter_chunk_slices(shape: Tuple[int, ...], chunks: Tuple[int, ...]) -> Iterator[Tuple[slice, ...]]:
