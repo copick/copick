@@ -9,6 +9,7 @@ from numcodecs import Blosc
 from zarr.abc.store import Store
 
 from copick.util.log import get_logger
+from copick.util.zarr_copy import zarr_store_is_empty
 
 logger = get_logger(__name__)
 
@@ -249,6 +250,8 @@ def write_single_level_ome_zarr_v2(source_group: zarr.Group, target_store: Store
     source_path = get_level_path(source_group, level)
     source_array = source_group[source_path]
     target_path = "0"
+    if not zarr_store_is_empty(target_store):
+        raise FileExistsError("Single-level Zarr export target is not empty")
     target_group = zarr.group(store=target_store, overwrite=True, zarr_format=2)
     target_array = target_group.create_array(
         target_path,

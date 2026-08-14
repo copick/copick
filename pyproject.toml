@@ -154,6 +154,10 @@ docstring-quotes = "double"
 [tool.pytest.ini_options]
 minversion = "6.0"
 testpaths = ["tests"]
+addopts = "-m 'not portal'"
+markers = [
+    "portal: live CryoET Data Portal integration tests",
+]
 
 [tool.coverage.report]
 exclude_lines = [

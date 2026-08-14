@@ -14,7 +14,7 @@ from zarr.storage import LocalStore
 
 from copick.util.log import get_logger
 from copick.util.ome import get_level_path, write_single_level_ome_zarr_v2
-from copick.util.zarr_copy import copy_zarr_store
+from copick.util.zarr_copy import copy_zarr_store, zarr_store_is_empty
 
 if TYPE_CHECKING:
     from copick.models import (
@@ -527,11 +527,15 @@ def _export_tomogram_zarr(
     # Copy the zarr store
     os.makedirs(os.path.dirname(output_path) or ".", exist_ok=True)
 
+    target = LocalStore(output_path)
+    if not zarr_store_is_empty(target):
+        raise FileExistsError(f"Zarr export target is not empty: {output_path}")
+
     if copy_all_levels:
-        copy_zarr_store(source, LocalStore(output_path), if_exists="raise")
+        copy_zarr_store(source, target, if_exists="raise")
     else:
         source_group = zarr.open(source, mode="r")
-        write_single_level_ome_zarr_v2(source_group, LocalStore(output_path))
+        write_single_level_ome_zarr_v2(source_group, target)
 
     if log:
         logging.info(f"Exported tomogram to Zarr: {output_path}")
@@ -714,11 +718,15 @@ def _export_segmentation_zarr(
     # Copy the zarr store
     os.makedirs(os.path.dirname(output_path) or ".", exist_ok=True)
 
+    target = LocalStore(output_path)
+    if not zarr_store_is_empty(target):
+        raise FileExistsError(f"Zarr export target is not empty: {output_path}")
+
     if copy_all_levels:
-        copy_zarr_store(source, LocalStore(output_path), if_exists="raise")
+        copy_zarr_store(source, target, if_exists="raise")
     else:
         source_group = zarr.open(source, mode="r")
-        write_single_level_ome_zarr_v2(source_group, LocalStore(output_path))
+        write_single_level_ome_zarr_v2(source_group, target)
 
     if log:
         logging.info(f"Exported segmentation to Zarr: {output_path}")

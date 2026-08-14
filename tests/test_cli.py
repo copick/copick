@@ -794,6 +794,7 @@ TS_relion_test 1.0 10.0 {sample_mrc_file} {sample_mrc_file}
 class TestCLIConfig:
     """Test cases for the CLI config module."""
 
+    @pytest.mark.portal
     def test_config_dataportal(self, runner):
         """Create a portal config and open scheme-bearing Zarr entity URLs."""
         with tempfile.TemporaryDirectory() as tmpdir:
@@ -824,8 +825,15 @@ class TestCLIConfig:
             root = copick.from_file(str(config_path))
             run = root.get_run("14077")
             assert run is not None
-            tomogram = next(tomo for spacing in run.voxel_spacings for tomo in spacing.tomograms)
-            segmentation = run.segmentations[0]
+            voxel_spacing = run.get_voxel_spacing(7.84)
+            assert voxel_spacing is not None
+            [tomogram] = voxel_spacing.get_tomograms("wbp-denoised-ctfdeconv")
+            [segmentation] = run.get_segmentations(
+                name="cytoplasm",
+                user_id="data-portal",
+                session_id="76313",
+                voxel_size=7.84,
+            )
 
             tomogram_group = zarr.open_group(tomogram.zarr(), mode="r")
             segmentation_group = zarr.open_group(segmentation.zarr(), mode="r")

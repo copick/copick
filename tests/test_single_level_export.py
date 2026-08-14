@@ -1,6 +1,7 @@
 """Contracts for bounded single-level OME-Zarr export."""
 
 import math
+import tracemalloc
 
 import numpy as np
 import pytest
@@ -117,3 +118,39 @@ def test_chunkwise_copy_bounds_every_read_to_one_inner_chunk():
         extents = tuple(axis.stop - axis.start for axis in selection)
         assert all(0 < extent <= chunk for extent, chunk in zip(extents, source.chunks, strict=True))
         assert math.prod(extents) <= math.prod(source.chunks)
+
+
+def test_single_level_export_keeps_peak_python_memory_below_volume_size(tmp_path):
+    source_path = tmp_path / "large-source.zarr"
+    source = zarr.group(store=LocalStore(source_path), zarr_format=2)
+    shape = (512, 512, 512)
+    chunks = (64, 64, 64)
+    source.create_array("s0", shape=shape, chunks=chunks, dtype="u1", fill_value=0)
+    source.attrs["multiscales"] = [
+        {
+            "version": "0.4",
+            "axes": [
+                {"name": "z", "type": "space"},
+                {"name": "y", "type": "space"},
+                {"name": "x", "type": "space"},
+            ],
+            "datasets": [{"path": "s0"}],
+        },
+    ]
+
+    tracemalloc.start()
+    try:
+        write_single_level_ome_zarr_v2(source, LocalStore(tmp_path / "large-target.zarr"))
+        _, peak_bytes = tracemalloc.get_traced_memory()
+    finally:
+        tracemalloc.stop()
+
+    logical_volume_bytes = math.prod(shape)
+    assert peak_bytes < 32 * 1024 * 1024
+    assert peak_bytes < logical_volume_bytes // 4
+
+    target = zarr.open_group(LocalStore(tmp_path / "large-target.zarr"), mode="r")
+    target_array = target[get_level_path(target, 0)]
+    assert target_array.shape == shape
+    assert target_array.chunks == chunks
+    assert target_array[0, 0, 0] == 0

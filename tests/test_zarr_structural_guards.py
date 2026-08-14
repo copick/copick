@@ -1,7 +1,6 @@
 """AST guards for the Zarr v2 hardening phase."""
 
 import ast
-import re
 from dataclasses import dataclass
 from pathlib import Path
 
@@ -25,10 +24,14 @@ ZARR_CALL_ALIASES = {
     "zarr.hierarchy.open_group": "zarr.open_group",
 }
 REPOSITORY_SCAN_ROOTS = (PROJECT_ROOT / "src" / "copick", PROJECT_ROOT / "tests", PROJECT_ROOT / "docs" / "snippets")
-REMOVED_ZARR_API_PATTERN = re.compile(
-    r"\b(?:FSStore|DirectoryStore|MutableMapping|copy_store)\b|"
-    r"zarr\.(?:convenience|hierarchy)(?:\.|\b)|zarr\.core\.Array\b",
-)
+REMOVED_ZARR_MODULE_PREFIXES = ("zarr.convenience", "zarr.hierarchy")
+REMOVED_ZARR_SYMBOLS = {
+    "zarr.copy_store",
+    "zarr.core.Array",
+    "zarr.storage.DirectoryStore",
+    "zarr.storage.FSStore",
+}
+STORE_ARGUMENT_NAMES = {"loc", "source", "source_store", "store", "target", "target_store", "zarr_store"}
 
 # These tests intentionally assert copick's canonical numeric writer output.
 # Every entry must correspond to a violation observed by the repository scan,
@@ -99,6 +102,29 @@ class ZarrStructuralGuard(ast.NodeVisitor):
         resolved = f"{canonical}.{tail}" if separator else canonical
         return ZARR_CALL_ALIASES.get(resolved, resolved)
 
+    def _canonical_name(self, node):
+        raw_name = _dotted_name(node)
+        if raw_name is None:
+            return None
+        head, separator, tail = raw_name.partition(".")
+        canonical = self.function_aliases.get(head, self.module_aliases.get(head, head))
+        return f"{canonical}.{tail}" if separator else canonical
+
+    @staticmethod
+    def _is_removed_zarr_name(name):
+        return name in REMOVED_ZARR_SYMBOLS or any(
+            name == prefix or name.startswith(f"{prefix}.") for prefix in REMOVED_ZARR_MODULE_PREFIXES
+        )
+
+    @staticmethod
+    def _uses_mutable_mapping(annotation):
+        if annotation is None:
+            return False
+        return any(
+            _dotted_name(child) in {"MutableMapping", "collections.abc.MutableMapping", "typing.MutableMapping"}
+            for child in ast.walk(annotation)
+        )
+
     @staticmethod
     def _keyword(call, name):
         return next((keyword.value for keyword in call.keywords if keyword.arg == name), None)
@@ -130,6 +156,8 @@ class ZarrStructuralGuard(ast.NodeVisitor):
 
     def visit_Import(self, node):
         for alias in node.names:
+            if self._is_removed_zarr_name(alias.name):
+                self._add(node, "removed_zarr_api", f"removed Zarr API imported: {alias.name}")
             if alias.name == "zarr" or alias.name.startswith("zarr.") or alias.name == "ome_zarr.writer":
                 if alias.asname:
                     self.module_aliases[alias.asname] = alias.name
@@ -142,8 +170,11 @@ class ZarrStructuralGuard(ast.NodeVisitor):
             node.module == "zarr" or node.module.startswith("zarr.") or node.module == "ome_zarr.writer"
         ):
             for alias in node.names:
+                imported_name = f"{node.module}.{alias.name}"
+                if self._is_removed_zarr_name(imported_name):
+                    self._add(node, "removed_zarr_api", f"removed Zarr API imported: {imported_name}")
                 local_name = alias.asname or alias.name
-                self.function_aliases[local_name] = f"{node.module}.{alias.name}"
+                self.function_aliases[local_name] = imported_name
         elif node.module == "ome_zarr":
             for alias in node.names:
                 if alias.name == "writer":
@@ -152,6 +183,20 @@ class ZarrStructuralGuard(ast.NodeVisitor):
 
     def visit_FunctionDef(self, node):
         self.scope.append(node.name)
+        if node.name == "zarr" and self._uses_mutable_mapping(node.returns):
+            self._add(node, "removed_zarr_api", "zarr() must return zarr.abc.store.Store, not MutableMapping")
+        arguments = [*node.args.posonlyargs, *node.args.args, *node.args.kwonlyargs]
+        if node.args.vararg:
+            arguments.append(node.args.vararg)
+        if node.args.kwarg:
+            arguments.append(node.args.kwarg)
+        for argument in arguments:
+            if argument.arg in STORE_ARGUMENT_NAMES and self._uses_mutable_mapping(argument.annotation):
+                self._add(
+                    argument,
+                    "removed_zarr_api",
+                    f"store argument {argument.arg!r} must use zarr.abc.store.Store, not MutableMapping",
+                )
         self.generic_visit(node)
         self.scope.pop()
 
@@ -163,6 +208,12 @@ class ZarrStructuralGuard(ast.NodeVisitor):
             for target in node.targets:
                 if isinstance(target, ast.Name):
                     self.array_listing_names.add(target.id)
+        self.generic_visit(node)
+
+    def visit_Attribute(self, node):
+        name = self._canonical_name(node)
+        if name and self._is_removed_zarr_name(name):
+            self._add(node, "removed_zarr_api", f"removed Zarr API referenced: {name}")
         self.generic_visit(node)
 
     def visit_Call(self, node):
@@ -246,16 +297,6 @@ def test_repository_obeys_zarr_structural_guards():
 
     unexpected = [violation for violation in violations if violation.allowlist_key not in ALLOWED_VIOLATIONS]
     assert not unexpected, "Unexpected Zarr structural violations:\n" + "\n".join(map(str, unexpected))
-
-
-def test_production_source_has_no_removed_zarr_api_dependencies():
-    violations = []
-    for source_path in (PROJECT_ROOT / "src" / "copick").rglob("*.py"):
-        for line_number, line in enumerate(source_path.read_text(encoding="utf-8").splitlines(), start=1):
-            if REMOVED_ZARR_API_PATTERN.search(line):
-                violations.append(f"{source_path.relative_to(PROJECT_ROOT)}:{line_number}: {line.strip()}")
-
-    assert violations == []
 
 
 @pytest.mark.parametrize("entry_point", sorted(ZARR_ENTRY_POINTS))
@@ -369,3 +410,42 @@ def test_guard_resolves_dotted_writer_import():
     source = "import ome_zarr.writer\nome_zarr.writer.write_multiscale(images, group=group)\n"
 
     assert "explicit_write_multiscale_format" in {violation.rule for violation in find_violations(source)}
+
+
+@pytest.mark.parametrize(
+    "source",
+    [
+        "from zarr.storage import FSStore\n",
+        "from zarr.storage import DirectoryStore as Store\n",
+        "from zarr import copy_store\n",
+        "import zarr.convenience\n",
+        "import zarr.hierarchy as hierarchy\n",
+        "import zarr\narray_type = zarr.core.Array\n",
+    ],
+)
+def test_guard_rejects_removed_zarr_apis(source):
+    assert "removed_zarr_api" in {violation.rule for violation in find_violations(source)}
+
+
+@pytest.mark.parametrize(
+    "source",
+    [
+        "from collections.abc import MutableMapping\n",
+        "# FSStore and zarr.copy_store are historical names\n",
+        "notes = 'DirectoryStore and zarr.convenience are not executable APIs'\n",
+        "def describe() -> MutableMapping:\n    return metadata\n",
+    ],
+)
+def test_guard_ignores_removed_api_names_outside_store_contracts(source):
+    assert "removed_zarr_api" not in {violation.rule for violation in find_violations(source)}
+
+
+@pytest.mark.parametrize(
+    "source",
+    [
+        "def zarr(self) -> MutableMapping[str, bytes]:\n    return self.store\n",
+        "def open_store(store: collections.abc.MutableMapping):\n    return store\n",
+    ],
+)
+def test_guard_rejects_mutable_mapping_store_contracts(source):
+    assert "removed_zarr_api" in {violation.rule for violation in find_violations(source)}
