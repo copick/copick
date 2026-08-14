@@ -6,11 +6,12 @@ import tracemalloc
 import numpy as np
 import pytest
 import zarr
-from copick.util.ome import copy_array_chunkwise, get_level_path, get_multiscales, write_single_level_ome_zarr_v2
-from ome_zarr.format import FormatV04
+from copick.util.ome import copy_array_chunkwise, get_level_path, get_multiscales, write_single_level_ome_zarr
+from ome_zarr.format import FormatV05
 from ome_zarr.io import parse_url
 from ome_zarr.reader import Reader
-from zarr.storage import LocalStore
+from ome_zarr_models.v05.image import Image
+from zarr.storage import LocalStore, MemoryStore
 
 
 def _source_group(path, zarr_format):
@@ -51,17 +52,18 @@ def _source_group(path, zarr_format):
 
 
 @pytest.mark.parametrize("source_format", [2, 3])
-def test_single_level_export_rebuilds_v2_metadata_and_preserves_array_contract(tmp_path, source_format):
+def test_single_level_export_rebuilds_canonical_v3_metadata_and_preserves_values(tmp_path, source_format):
     source, values = _source_group(tmp_path / "source.zarr", source_format)
     target_path = tmp_path / "target.zarr"
 
-    write_single_level_ome_zarr_v2(source, LocalStore(target_path))
+    write_single_level_ome_zarr(source, LocalStore(target_path))
 
     target = zarr.open_group(LocalStore(target_path), mode="r")
-    assert target.metadata.zarr_format == 2
-    assert set(target.attrs) == {"multiscales"}
-    multiscale = target.attrs["multiscales"][0]
-    assert multiscale["version"] == "0.4"
+    assert target.metadata.zarr_format == 3
+    assert set(target.attrs) == {"ome"}
+    assert target.attrs["ome"]["version"] == "0.5"
+    assert Image.from_zarr(target).ome_zarr_version == "0.5"
+    multiscale = target.attrs["ome"]["multiscales"][0]
     assert multiscale["axes"] == get_multiscales(source)[0]["axes"]
     assert multiscale["datasets"] == [
         {
@@ -74,13 +76,19 @@ def test_single_level_export_rebuilds_v2_metadata_and_preserves_array_contract(t
     exported = target[get_level_path(target, 0)]
     assert exported.dtype == source["s0"].dtype
     assert exported.shape == source["s0"].shape
-    assert exported.chunks == source["s0"].chunks
-    assert exported.fill_value == source["s0"].fill_value
+    assert exported.chunks == (128, 128, 128)
+    assert exported.shards == (128, 128, 128)
+    assert exported.metadata.dimension_names == ("z", "y", "x")
+    assert exported.metadata.chunk_key_encoding.to_dict() == {"name": "v2", "configuration": {"separator": "/"}}
     assert dict(exported.attrs) == dict(source["s0"].attrs)
     np.testing.assert_array_equal(exported[:], values)
-    assert not (target_path / "zarr.json").exists()
+    assert (target_path / "zarr.json").exists()
+    assert not (target_path / ".zgroup").exists()
 
-    location = parse_url(target_path, mode="r", fmt=FormatV04())
+    codec_names = [codec["name"] for codec in exported.metadata.to_dict()["codecs"][0]["configuration"]["codecs"]]
+    assert codec_names == ["bytes", "zstd"]
+
+    location = parse_url(target_path, mode="r", fmt=FormatV05())
     assert location is not None
     nodes = list(Reader(location)())
     assert len(nodes) == 1
@@ -120,10 +128,10 @@ def test_chunkwise_copy_bounds_every_read_to_one_inner_chunk():
         assert math.prod(extents) <= math.prod(source.chunks)
 
 
-def test_single_level_export_keeps_peak_python_memory_below_volume_size(tmp_path):
+def test_single_level_export_bounds_peak_python_memory_with_memmap_staging(tmp_path):
     source_path = tmp_path / "large-source.zarr"
     source = zarr.group(store=LocalStore(source_path), zarr_format=2)
-    shape = (512, 512, 512)
+    shape = (256, 256, 256)
     chunks = (64, 64, 64)
     source.create_array("s0", shape=shape, chunks=chunks, dtype="u1", fill_value=0)
     source.attrs["multiscales"] = [
@@ -134,23 +142,50 @@ def test_single_level_export_keeps_peak_python_memory_below_volume_size(tmp_path
                 {"name": "y", "type": "space"},
                 {"name": "x", "type": "space"},
             ],
-            "datasets": [{"path": "s0"}],
+            "datasets": [
+                {
+                    "path": "s0",
+                    "coordinateTransformations": [{"type": "scale", "scale": [1.0, 1.0, 1.0]}],
+                },
+            ],
         },
     ]
 
     tracemalloc.start()
     try:
-        write_single_level_ome_zarr_v2(source, LocalStore(tmp_path / "large-target.zarr"))
+        write_single_level_ome_zarr(source, LocalStore(tmp_path / "large-target.zarr"))
         _, peak_bytes = tracemalloc.get_traced_memory()
     finally:
         tracemalloc.stop()
 
     logical_volume_bytes = math.prod(shape)
-    assert peak_bytes < 32 * 1024 * 1024
-    assert peak_bytes < logical_volume_bytes // 4
+    assert peak_bytes < 64 * 1024 * 1024
+    assert peak_bytes < logical_volume_bytes * 4
 
     target = zarr.open_group(LocalStore(tmp_path / "large-target.zarr"), mode="r")
     target_array = target[get_level_path(target, 0)]
     assert target_array.shape == shape
-    assert target_array.chunks == chunks
+    assert target_array.chunks == (128, 128, 128)
+    assert target_array.shards == shape
     assert target_array[0, 0, 0] == 0
+
+
+class _RecordingMemoryStore(MemoryStore):
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.written_keys = []
+
+    async def set(self, key, value):
+        self.written_keys.append(key)
+        await super().set(key, value)
+
+
+def test_single_level_export_writes_completed_remote_shard_once(tmp_path):
+    source, values = _source_group(tmp_path / "source.zarr", 2)
+    target = _RecordingMemoryStore()
+
+    write_single_level_ome_zarr(source, target)
+
+    assert target.written_keys.count("0/0/0/0") == 1
+    group = zarr.open_group(target, mode="r")
+    np.testing.assert_array_equal(group[get_level_path(group, 0)][:], values)

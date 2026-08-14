@@ -13,7 +13,7 @@ import zarr
 from zarr.storage import LocalStore
 
 from copick.util.log import get_logger
-from copick.util.ome import get_level_path, write_single_level_ome_zarr_v2
+from copick.util.ome import get_level_path, write_single_level_ome_zarr
 from copick.util.zarr_copy import copy_zarr_store, zarr_store_is_empty
 
 if TYPE_CHECKING:
@@ -535,7 +535,7 @@ def _export_tomogram_zarr(
         copy_zarr_store(source, target, if_exists="raise")
     else:
         source_group = zarr.open(source, mode="r")
-        write_single_level_ome_zarr_v2(source_group, target)
+        write_single_level_ome_zarr(source_group, target)
 
     if log:
         logging.info(f"Exported tomogram to Zarr: {output_path}")
@@ -726,7 +726,7 @@ def _export_segmentation_zarr(
         copy_zarr_store(source, target, if_exists="raise")
     else:
         source_group = zarr.open(source, mode="r")
-        write_single_level_ome_zarr_v2(source_group, target)
+        write_single_level_ome_zarr(source_group, target)
 
     if log:
         logging.info(f"Exported segmentation to Zarr: {output_path}")
