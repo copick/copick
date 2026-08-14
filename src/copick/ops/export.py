@@ -10,9 +10,11 @@ from typing import TYPE_CHECKING, Dict, List, Optional, Tuple
 
 import numpy as np
 import zarr
+from zarr.storage import LocalStore
 
 from copick.util.log import get_logger
-from copick.util.ome import get_level_path
+from copick.util.ome import get_level_path, write_single_level_ome_zarr_v2
+from copick.util.zarr_copy import copy_zarr_store
 
 if TYPE_CHECKING:
     from copick.models import (
@@ -519,8 +521,6 @@ def _export_tomogram_zarr(
     Returns:
         Path to the created output directory.
     """
-    import shutil
-
     # Get source zarr
     source = tomogram.zarr()
 
@@ -528,22 +528,10 @@ def _export_tomogram_zarr(
     os.makedirs(os.path.dirname(output_path) or ".", exist_ok=True)
 
     if copy_all_levels:
-        # Copy entire zarr store
-        if isinstance(source, str):
-            shutil.copytree(source, output_path)
-        else:
-            # For fsspec stores, copy into a fresh DirectoryStore
-            source_group = zarr.open(source, mode="r")
-            dest_store = zarr.DirectoryStore(output_path)
-            zarr.copy_store(source_group.store, dest_store)
+        copy_zarr_store(source, LocalStore(output_path), if_exists="raise")
     else:
-        # Copy only level 0
         source_group = zarr.open(source, mode="r")
-        dest_group = zarr.open(output_path, mode="w", zarr_version=2)
-        level_path = get_level_path(source_group, 0)
-        zarr.copy(source_group[level_path], dest_group, name=level_path)
-        # Copy metadata
-        dest_group.attrs.update(source_group.attrs)
+        write_single_level_ome_zarr_v2(source_group, LocalStore(output_path))
 
     if log:
         logging.info(f"Exported tomogram to Zarr: {output_path}")
@@ -720,8 +708,6 @@ def _export_segmentation_zarr(
     Returns:
         Path to the created output directory.
     """
-    import shutil
-
     # Get source zarr
     source = segmentation.zarr()
 
@@ -729,22 +715,10 @@ def _export_segmentation_zarr(
     os.makedirs(os.path.dirname(output_path) or ".", exist_ok=True)
 
     if copy_all_levels:
-        # Copy entire zarr store
-        if isinstance(source, str):
-            shutil.copytree(source, output_path)
-        else:
-            # For fsspec stores, copy into a fresh DirectoryStore
-            source_group = zarr.open(source, mode="r")
-            dest_store = zarr.DirectoryStore(output_path)
-            zarr.copy_store(source_group.store, dest_store)
+        copy_zarr_store(source, LocalStore(output_path), if_exists="raise")
     else:
-        # Copy only level 0
         source_group = zarr.open(source, mode="r")
-        dest_group = zarr.open(output_path, mode="w", zarr_version=2)
-        level_path = get_level_path(source_group, 0)
-        zarr.copy(source_group[level_path], dest_group, name=level_path)
-        # Copy metadata
-        dest_group.attrs.update(source_group.attrs)
+        write_single_level_ome_zarr_v2(source_group, LocalStore(output_path))
 
     if log:
         logging.info(f"Exported segmentation to Zarr: {output_path}")
