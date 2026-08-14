@@ -27,9 +27,45 @@ concurrency:
   group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
   cancel-in-progress: true
 
+env:
+  COPICK_TEST_DATA_CACHE: ${{ github.workspace }}/.test-data-cache
+
 jobs:
+  prepare-test-corpus:
+    name: prepare shared test corpus
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v7
+
+      - name: Install uv
+        uses: astral-sh/setup-uv@ae62891fec2bb8e7d6c99fc78c9fec3a63790f8d # v10.0.0
+        with:
+          version: "0.12.4"
+          python-version: "3.13"
+
+      - name: Restore verified corpus cache
+        uses: actions/cache@v5
+        with:
+          path: ${{ env.COPICK_TEST_DATA_CACHE }}/sample_project.zip
+          key: copick-test-corpus-${{ hashFiles('tests/corpus_registry.py') }}
+
+      - name: Fetch and verify test corpus once
+        run: >
+          uv run --no-project --with pooch python
+          tests/scripts/fetch_test_corpus.py --cache "$COPICK_TEST_DATA_CACHE"
+
+      - name: Share test corpus with matrix jobs
+        uses: actions/upload-artifact@v7
+        with:
+          name: copick-test-corpus
+          path: ${{ env.COPICK_TEST_DATA_CACHE }}/sample_project.zip
+          if-no-files-found: error
+          retention-days: 1
+
   test-ubuntu-local:
     name: ubuntu local py${{ matrix.python-version }}
+    needs: prepare-test-corpus
     runs-on: ubuntu-latest
     env:
       BACKEND: local
@@ -44,6 +80,12 @@ jobs:
 
     steps:
       - uses: actions/checkout@v7
+
+      - name: Download shared test corpus
+        uses: actions/download-artifact@v7
+        with:
+          name: copick-test-corpus
+          path: ${{ env.COPICK_TEST_DATA_CACHE }}
 
       - name: Install uv
         uses: astral-sh/setup-uv@ae62891fec2bb8e7d6c99fc78c9fec3a63790f8d # v10.0.0
@@ -76,12 +118,19 @@ jobs:
 
   test-minimum-zarr:
     name: ubuntu local py3.11 zarr3.1.6
+    needs: prepare-test-corpus
     runs-on: ubuntu-latest
     env:
       BACKEND: local
 
     steps:
       - uses: actions/checkout@v7
+
+      - name: Download shared test corpus
+        uses: actions/download-artifact@v7
+        with:
+          name: copick-test-corpus
+          path: ${{ env.COPICK_TEST_DATA_CACHE }}
 
       - name: Install uv
         uses: astral-sh/setup-uv@ae62891fec2bb8e7d6c99fc78c9fec3a63790f8d # v10.0.0
@@ -110,14 +159,80 @@ jobs:
       - name: Run tests
         run: uv run --no-sync pytest -vvv -p no:warnings --color=yes -n auto tests
 
+  test-v3-corpus-parity:
+    name: ubuntu ${{ matrix.backend }} v3 corpus py3.13
+    needs: prepare-test-corpus
+    runs-on: ubuntu-latest
+    env:
+      BACKEND: ${{ matrix.backend }}
+      COPICK_TEST_ZARR_FORMAT: v3
+      RUN_ALL: 1
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - backend: local
+            marker: corpus_parity
+            workers: auto
+          - backend: s3
+            marker: remote_corpus_parity
+            workers: 0
+          - backend: ssh
+            marker: remote_corpus_parity
+            workers: 0
+          - backend: mlcroissant
+            marker: remote_corpus_parity
+            workers: 0
+
+    steps:
+      - uses: actions/checkout@v7
+
+      - name: Download shared test corpus
+        uses: actions/download-artifact@v7
+        with:
+          name: copick-test-corpus
+          path: ${{ env.COPICK_TEST_DATA_CACHE }}
+
+      - name: Install uv
+        uses: astral-sh/setup-uv@ae62891fec2bb8e7d6c99fc78c9fec3a63790f8d # v10.0.0
+        with:
+          version: "0.12.4"
+          python-version: "3.13"
+
+      - name: Check lockfile
+        run: uv lock --check
+
+      - name: Install copick
+        run: uv sync --locked --extra test --extra dev
+
+      - name: Verify Python version
+        run: >
+          uv run --no-sync python -c
+          "import sys; v = sys.version_info;
+          assert (v.major, v.minor) == (3, 13), sys.version;
+          assert v.releaselevel == 'final', sys.version;
+          print(sys.version)"
+
+      - name: Run selected-corpus parity tests
+        run: >
+          uv run --no-sync pytest -vvv -p no:warnings --color=yes
+          -m ${{ matrix.marker }} -n ${{ matrix.workers }} tests
+
   test-portal:
     name: ubuntu live portal py3.13
+    needs: prepare-test-corpus
     runs-on: ubuntu-latest
     env:
       BACKEND: local
 
     steps:
       - uses: actions/checkout@v7
+
+      - name: Download shared test corpus
+        uses: actions/download-artifact@v7
+        with:
+          name: copick-test-corpus
+          path: ${{ env.COPICK_TEST_DATA_CACHE }}
 
       - name: Install uv
         uses: astral-sh/setup-uv@ae62891fec2bb8e7d6c99fc78c9fec3a63790f8d # v10.0.0
@@ -144,6 +259,7 @@ jobs:
 
   test-ubuntu-s3:
     name: ubuntu s3 py${{ matrix.python-version }}
+    needs: prepare-test-corpus
     runs-on: ubuntu-latest
     env:
       BACKEND: s3
@@ -159,6 +275,12 @@ jobs:
 
     steps:
       - uses: actions/checkout@v7
+
+      - name: Download shared test corpus
+        uses: actions/download-artifact@v7
+        with:
+          name: copick-test-corpus
+          path: ${{ env.COPICK_TEST_DATA_CACHE }}
 
       - name: Install uv
         uses: astral-sh/setup-uv@ae62891fec2bb8e7d6c99fc78c9fec3a63790f8d # v10.0.0
@@ -191,6 +313,7 @@ jobs:
 
   test-ubuntu-ssh:
     name: ubuntu ssh py${{ matrix.python-version }}
+    needs: prepare-test-corpus
     runs-on: ubuntu-latest
     env:
       BACKEND: ssh
@@ -206,6 +329,12 @@ jobs:
 
     steps:
       - uses: actions/checkout@v7
+
+      - name: Download shared test corpus
+        uses: actions/download-artifact@v7
+        with:
+          name: copick-test-corpus
+          path: ${{ env.COPICK_TEST_DATA_CACHE }}
 
       - name: Install uv
         uses: astral-sh/setup-uv@ae62891fec2bb8e7d6c99fc78c9fec3a63790f8d # v10.0.0
@@ -238,6 +367,7 @@ jobs:
 
   test-ubuntu-mlcroissant:
     name: ubuntu mlcroissant py${{ matrix.python-version }}
+    needs: prepare-test-corpus
     runs-on: ubuntu-latest
     env:
       BACKEND: mlcroissant
@@ -253,6 +383,12 @@ jobs:
 
     steps:
       - uses: actions/checkout@v7
+
+      - name: Download shared test corpus
+        uses: actions/download-artifact@v7
+        with:
+          name: copick-test-corpus
+          path: ${{ env.COPICK_TEST_DATA_CACHE }}
 
       - name: Install uv
         uses: astral-sh/setup-uv@ae62891fec2bb8e7d6c99fc78c9fec3a63790f8d # v10.0.0
@@ -285,6 +421,7 @@ jobs:
 
   test-macos:
     name: ${{ matrix.platform }} py${{ matrix.python-version }}
+    needs: prepare-test-corpus
     runs-on: ${{ matrix.platform }}
     env:
       RUN_ALL: 0
@@ -302,6 +439,12 @@ jobs:
 
     steps:
       - uses: actions/checkout@v7
+
+      - name: Download shared test corpus
+        uses: actions/download-artifact@v7
+        with:
+          name: copick-test-corpus
+          path: ${{ env.COPICK_TEST_DATA_CACHE }}
 
       - name: Install uv
         uses: astral-sh/setup-uv@ae62891fec2bb8e7d6c99fc78c9fec3a63790f8d # v10.0.0
@@ -334,6 +477,7 @@ jobs:
 
   test-windows:
     name: ${{ matrix.platform }} py${{ matrix.python-version }}
+    needs: prepare-test-corpus
     runs-on: ${{ matrix.platform }}
     env:
       RUN_ALL: 0
@@ -351,6 +495,12 @@ jobs:
 
     steps:
       - uses: actions/checkout@v7
+
+      - name: Download shared test corpus
+        uses: actions/download-artifact@v7
+        with:
+          name: copick-test-corpus
+          path: ${{ env.COPICK_TEST_DATA_CACHE }}
 
       - name: Install uv
         uses: astral-sh/setup-uv@ae62891fec2bb8e7d6c99fc78c9fec3a63790f8d # v10.0.0

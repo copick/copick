@@ -37,6 +37,12 @@ STORE_ARGUMENT_NAMES = {"loc", "source", "source_store", "store", "target", "tar
 # Every entry must correspond to a violation observed by the repository scan,
 # which prevents stale or overly broad exemptions.
 ALLOWED_VIOLATIONS = {
+    ("tests/scripts/build_v3_twin.py", "_convert_store", "metadata_level_path"),
+    (
+        "tests/test_corpus_parity.py",
+        "test_v3_corpus_matches_every_legacy_store_and_array",
+        "metadata_level_path",
+    ),
     ("tests/test_ome_writer.py", "test_writer_emits_v3_ome_zarr_05_contract", "metadata_level_path"),
     ("tests/test_ome_writer.py", "test_writer_preserves_default_chunk_shape", "metadata_level_path"),
     ("tests/test_ome_writer.py", "test_zarr_handler_uses_canonical_writer_contract", "metadata_level_path"),

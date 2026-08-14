@@ -10,19 +10,32 @@ from pathlib import Path, PurePath
 import fsspec
 import pooch
 import pytest
+from corpus_registry import ARCHIVE_NAME, CORPUS_DIGEST, CORPUS_DOI
 
 # Directory containing this conftest.py file - used for resolving relative paths
 TESTS_DIR = Path(__file__).parent
 DOCKER_COMPOSE_FILE = TESTS_DIR / "docker-compose.yml"
 
-OZ = pooch.os_cache("test_data")  # Path("/Users/utz.ermel/Documents/copick/testproject")  # pooch.os_cache("test_data")
+OZ = Path(os.environ.get("COPICK_TEST_DATA_CACHE", pooch.os_cache("test_data")))
 TOTO = pooch.create(
     path=OZ,
-    base_url="doi:10.5281/zenodo.19686100",
+    base_url=f"doi:{CORPUS_DOI}",
     registry={
-        "sample_project.zip": "md5:8b8941350af1f621effd4903e75255c0",
+        "sample_project.zip": CORPUS_DIGEST,
     },
 )
+TEST_ZARR_FORMAT = os.environ.get("COPICK_TEST_ZARR_FORMAT", "v2").lower()
+if TEST_ZARR_FORMAT not in {"v2", "v3"}:
+    raise ValueError("COPICK_TEST_ZARR_FORMAT must be either 'v2' or 'v3'")
+CORPUS_SUFFIX = "_v3" if TEST_ZARR_FORMAT == "v3" else ""
+CORPUS_FIXTURE_NAMES = {
+    "base_config",
+    "base_config_overlay_only",
+    "base_overlay_directory",
+    "base_project_directory",
+    "local_path",
+    "test_payload",
+}
 
 # Determine if all tests should be run
 RUN_ALL = bool(int(os.environ.get("RUN_ALL", 1)))
@@ -30,6 +43,52 @@ RUN_ALL = bool(int(os.environ.get("RUN_ALL", 1)))
 BACKEND = os.environ.get("BACKEND", "all")
 
 CLEANUP = True
+
+
+def ensure_test_data(corpus=TOTO, *, zarr_format: str = TEST_ZARR_FORMAT) -> Path:
+    """Fetch and extract the corpus selected by its registry digest.
+
+    Fetching on every session lets pooch validate the cached archive. The
+    extraction sentinel prevents a valid archive from being paired with a
+    stale, previously extracted directory.
+    """
+    if zarr_format not in {"v2", "v3"}:
+        raise ValueError("zarr_format must be either 'v2' or 'v3'")
+
+    cache_path = Path(corpus.path)
+    archive_path = Path(corpus.fetch(ARCHIVE_NAME))
+    registry_digest = corpus.registry[ARCHIVE_NAME]
+    extract_path = cache_path / "sample_project"
+    suffix = "_v3" if zarr_format == "v3" else ""
+    required = (
+        extract_path / f"sample_project{suffix}",
+        extract_path / f"sample_overlay{suffix}",
+        extract_path / f"filesystem{suffix}.json",
+        extract_path / f"filesystem_overlay_only{suffix}.json",
+    )
+    sentinel = extract_path / ".archive-digest"
+    if (
+        sentinel.is_file()
+        and sentinel.read_text(encoding="utf-8").strip() == registry_digest
+        and all(path.exists() for path in required)
+    ):
+        return extract_path
+
+    staging_path = Path(tempfile.mkdtemp(prefix=".sample_project-stage-", dir=cache_path))
+    try:
+        pooch.Unzip(extract_dir=staging_path.name)(str(archive_path), "update", corpus)
+        staged_required = tuple(staging_path / path.relative_to(extract_path) for path in required)
+        missing = [str(path.relative_to(staging_path)) for path in staged_required if not path.exists()]
+        if missing:
+            raise FileNotFoundError(f"Corpus archive is missing required {zarr_format} paths: {missing}")
+        (staging_path / ".archive-digest").write_text(f"{registry_digest}\n", encoding="utf-8")
+        if extract_path.exists():
+            shutil.rmtree(extract_path)
+        staging_path.replace(extract_path)
+    finally:
+        if staging_path.exists():
+            shutil.rmtree(staging_path)
+    return extract_path
 
 
 def _copytree_world_writable(src: Path, dst: Path):
@@ -51,22 +110,22 @@ def local_path() -> Path:
 
 @pytest.fixture(scope="session")
 def base_project_directory(local_path) -> Path:
-    return local_path / "sample_project"
+    return local_path / f"sample_project{CORPUS_SUFFIX}"
 
 
 @pytest.fixture(scope="session")
 def base_overlay_directory(local_path) -> Path:
-    return local_path / "sample_overlay"
+    return local_path / f"sample_overlay{CORPUS_SUFFIX}"
 
 
 @pytest.fixture(scope="session")
 def base_config_overlay_only(local_path) -> Path:
-    return local_path / "filesystem_overlay_only.json"
+    return local_path / f"filesystem_overlay_only{CORPUS_SUFFIX}.json"
 
 
 @pytest.fixture(scope="session")
 def base_config(local_path) -> Path:
-    return local_path / "filesystem.json"
+    return local_path / f"filesystem{CORPUS_SUFFIX}.json"
 
 
 COMMON_CASES = []
@@ -681,11 +740,17 @@ if BACKEND in ("all", "smb") and importlib_util.find_spec("smbclient") and RUN_A
 def pytest_configure(config):
     # Pre-extract test data in the controller process before xdist workers spawn.
     # This avoids race conditions where multiple workers try to unzip simultaneously.
-    extract_path = OZ / "sample_project"
-    if not (extract_path / "sample_project").exists():
-        # Remove partial extractions if any
-        if extract_path.exists():
-            shutil.rmtree(extract_path)
-        TOTO.fetch("sample_project.zip", processor=pooch.Unzip(extract_dir="sample_project"))
+    ensure_test_data()
 
     pytest.common_cases = COMMON_CASES
+
+
+def pytest_collection_modifyitems(items):
+    """Tag only tests that consume the selected corpus for parity CI."""
+    for item in items:
+        callspec = getattr(item, "callspec", None)
+        uses_backend_case = callspec is not None and any(
+            value in COMMON_CASES for value in callspec.params.values() if isinstance(value, str)
+        )
+        if CORPUS_FIXTURE_NAMES.intersection(item.fixturenames) or uses_backend_case:
+            item.add_marker("corpus_parity")
