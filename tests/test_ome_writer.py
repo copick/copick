@@ -10,6 +10,7 @@ import pytest
 import zarr
 from copick.util.handlers.volume.zarr import ZarrVolumeHandler
 from copick.util.ome import write_ome_zarr_3d
+from zarr.storage import LocalStore
 
 
 @pytest.fixture
@@ -23,13 +24,13 @@ def writer_pyramid():
 @pytest.mark.parametrize("target_kind", ["path", "store"])
 def test_writer_preserves_v2_golden_contract(tmp_path, writer_pyramid, target_kind):
     path = tmp_path / f"{target_kind}.zarr"
-    target = str(path) if target_kind == "path" else zarr.DirectoryStore(str(path))
+    target = str(path) if target_kind == "path" else LocalStore(path)
 
     write_ome_zarr_3d(target, writer_pyramid, chunk_size=(2, 2, 2))
 
-    store = zarr.DirectoryStore(str(path))
+    store = LocalStore(path)
     group = zarr.open_group(store, mode="r")
-    assert json.loads(store[".zgroup"])["zarr_format"] == 2
+    assert json.loads((path / ".zgroup").read_text())["zarr_format"] == 2
 
     multiscale = group.attrs["multiscales"][0]
     assert multiscale == {
@@ -64,12 +65,12 @@ def test_writer_preserves_v2_golden_contract(tmp_path, writer_pyramid, target_ki
             "shuffle": 1,
             "blocksize": 0,
         }
-        assert json.loads(store[f"{level}/.zarray"])["dimension_separator"] == "/"
+        assert json.loads((path / str(level) / ".zarray").read_text())["dimension_separator"] == "/"
         np.testing.assert_array_equal(array[:], expected)
 
-    assert "0/0/0/0" in store
-    assert "0/0.0.0" not in store
-    assert hashlib.sha256(store["0/0/0/0"]).hexdigest() == (
+    assert (path / "0" / "0" / "0" / "0").is_file()
+    assert not (path / "0" / "0.0.0").exists()
+    assert hashlib.sha256((path / "0" / "0" / "0" / "0").read_bytes()).hexdigest() == (
         "c7a26c789036035c6e7ab41ca5f84ead654aca7654df2321229d3b9a688e8a16"
     )
 
@@ -99,11 +100,11 @@ def test_zarr_handler_uses_canonical_writer_contract(tmp_path, writer_pyramid):
 
     ZarrVolumeHandler().write(path, volume, 10.0, chunks=(2, 2, 2))
 
-    store = zarr.DirectoryStore(path)
+    store = LocalStore(path)
     group = zarr.open_group(store, mode="r")
     assert group.attrs["multiscales"][0]["version"] == "0.4"
     assert group.attrs["multiscales"][0]["datasets"][0]["path"] == "0"
-    assert "0/0/0/0" in store
+    assert (Path(path) / "0" / "0" / "0" / "0").is_file()
     np.testing.assert_array_equal(group["0"][:], volume)
 
 

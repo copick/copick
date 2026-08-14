@@ -26,9 +26,9 @@ dependencies = [
     "fsspec>=2025.5.1",
     "mlcroissant>=1.1.0",
     "mrcfile>=1.5.4",
-    "numcodecs<0.16.0",
+    "numcodecs>=0.16.4",
     "numpy>=2.0.2",
-    "ome-zarr>=0.10.2",
+    "ome-zarr>=0.12.2,<0.14",
     "pandas>=2.0.0",
     "psutil>=7.0.0",
     "pydantic>=2",
@@ -39,7 +39,7 @@ dependencies = [
     "tifffile>=2024.1.0",
     "tqdm>=4.67.1",
     "trimesh>=4.6.12",
-    "zarr<3",
+    "zarr>=3.1.6,<4",
     "sshfs>=2025.2.0",
     "rich>=14.0.0",
 ]
@@ -80,6 +80,7 @@ test = [
     "pooch>=1.8.2",
     "pytest>=8.4.1",
     "pytest-cov>=6.2.1",
+    "pytest-timeout>=2.4.0",
     "pytest-xdist>=3.5.0",
     "smbprotocol>=1.15.0",
 ]
@@ -153,6 +154,10 @@ docstring-quotes = "double"
 [tool.pytest.ini_options]
 minversion = "6.0"
 testpaths = ["tests"]
+addopts = "-m 'not portal'"
+markers = [
+    "portal: live CryoET Data Portal integration tests",
+]
 
 [tool.coverage.report]
 exclude_lines = [

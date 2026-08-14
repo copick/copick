@@ -1,9 +1,9 @@
 import concurrent.futures
 import json
-from typing import TYPE_CHECKING, Any, Dict, List, Optional, Tuple, Type, Union
+from typing import TYPE_CHECKING, Any, Dict, List, Optional, Tuple, Type
 
-import zarr
 from fsspec import AbstractFileSystem
+from zarr.abc.store import Store
 
 from copick.impl.overlay import (
     CopickFeaturesOverlay,
@@ -30,6 +30,7 @@ from copick.models import (
 )
 from copick.util.log import get_logger
 from copick.util.ome import zarr_root_exists
+from copick.util.store import copick_store
 
 # Don't import Geometry at runtime to keep CLI snappy
 if TYPE_CHECKING:
@@ -194,11 +195,11 @@ class CopickSegmentationFSSpec(CopickSegmentationOverlay):
     def fs(self) -> AbstractFileSystem:
         return self.run.fs_static if self.read_only else self.run.fs_overlay
 
-    def zarr(self) -> zarr.storage.FSStore:
+    def zarr(self) -> Store:
         """Get the zarr store for the segmentation object.
 
         Returns:
-            zarr.storage.FSStore: The zarr store for the segmentation object.
+            Store: The zarr store for the segmentation object.
         """
         if self.read_only:
             mode = "r"
@@ -207,14 +208,7 @@ class CopickSegmentationFSSpec(CopickSegmentationOverlay):
             mode = "w"
             create = not self.fs.exists(self.path)
 
-        return zarr.storage.FSStore(
-            self.path,
-            fs=self.fs,
-            mode=mode,
-            key_separator="/",
-            dimension_separator="/",
-            create=create,
-        )
+        return copick_store(self.fs, self.path, read_only=mode == "r", create=create)
 
     def _delete_data(self) -> None:
         # Remove the segmentation folder
@@ -245,11 +239,11 @@ class CopickFeaturesFSSpec(CopickFeaturesOverlay):
     def fs(self) -> AbstractFileSystem:
         return self.tomogram.fs_static if self.read_only else self.tomogram.fs_overlay
 
-    def zarr(self) -> zarr.storage.FSStore:
+    def zarr(self) -> Store:
         """Get the zarr store for the features object.
 
         Returns:
-            zarr.storage.FSStore: The zarr store for the features object.
+            Store: The zarr store for the features object.
         """
         if self.read_only:
             mode = "r"
@@ -258,14 +252,7 @@ class CopickFeaturesFSSpec(CopickFeaturesOverlay):
             mode = "w"
             create = not self.fs.exists(self.path)
 
-        return zarr.storage.FSStore(
-            self.path,
-            fs=self.fs,
-            mode=mode,
-            key_separator="/",
-            dimension_separator="/",
-            create=create,
-        )
+        return copick_store(self.fs, self.path, read_only=mode == "r", create=create)
 
     def _delete_data(self) -> None:
         # Remove the features folder
@@ -368,11 +355,11 @@ class CopickTomogramFSSpec(CopickTomogramOverlay):
             for ft in feature_types
         ]
 
-    def zarr(self) -> zarr.storage.FSStore:
+    def zarr(self) -> Store:
         """Get the zarr store for the tomogram object.
 
         Returns:
-            zarr.storage.FSStore: The zarr store for the tomogram object.
+            Store: The zarr store for the tomogram object.
         """
         if self.read_only:
             fs = self.fs_static
@@ -385,14 +372,7 @@ class CopickTomogramFSSpec(CopickTomogramOverlay):
             mode = "w"
             create = not fs.exists(path)
 
-        return zarr.storage.FSStore(
-            path,
-            fs=fs,
-            mode=mode,
-            key_separator="/",
-            dimension_separator="/",
-            create=create,
-        )
+        return copick_store(fs, path, read_only=mode == "r", create=create)
 
     def _delete_data(self) -> None:
         # Remove the tomogram folder
@@ -860,11 +840,11 @@ class CopickObjectFSSpec(CopickObjectOverlay):
     def static_is_overlay(self) -> bool:
         return self.fs_static == self.fs_overlay and self.static_path == self.overlay_path
 
-    def zarr(self) -> Union[None, zarr.storage.FSStore]:
+    def zarr(self) -> Optional[Store]:
         """Get the zarr store for the object.
 
         Returns:
-            Union[None, zarr.storage.FSStore]: The zarr store for the object, or None if the object is not a particle.
+            Optional[Store]: The zarr store for the object, or None if the object is not a particle.
         """
         if not self.is_particle:
             return None
@@ -884,14 +864,7 @@ class CopickObjectFSSpec(CopickObjectOverlay):
             mode = "w"
             create = not fs.exists(path)
 
-        return zarr.storage.FSStore(
-            path,
-            fs=fs,
-            mode=mode,
-            key_separator="/",
-            dimension_separator="/",
-            create=create,
-        )
+        return copick_store(fs, path, read_only=mode == "r", create=create)
 
     def has_density_map(self) -> bool:
         """Return whether the selected object source contains Zarr root metadata."""

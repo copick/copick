@@ -4,6 +4,7 @@ import json
 import tempfile
 from pathlib import Path
 from typing import Any, Dict
+from unittest.mock import patch
 
 import copick
 import fsspec
@@ -11,6 +12,7 @@ import numpy as np
 import pytest
 import trimesh
 from copick.ops.sync import sync_meshes, sync_picks, sync_segmentations, sync_tomograms
+from copick.util.zarr_copy import copy_zarr_store
 
 
 @pytest.fixture(params=pytest.common_cases)
@@ -500,11 +502,16 @@ class TestSyncSegmentations:
         segmentation.from_numpy(test_data)
 
         # Perform synchronization
-        sync_segmentations(
-            source_root=source_root,
-            target_root=target_root,
-            log=True,
-        )
+        with patch("copick.ops.sync.copy_zarr_store", wraps=copy_zarr_store) as raw_copy:
+            sync_segmentations(
+                source_root=source_root,
+                target_root=target_root,
+                source_runs=[source_run.name],
+                source_names=["test-segmentation"],
+                log=True,
+            )
+
+        assert raw_copy.call_args.kwargs == {"if_exists": "raise", "verify": True}
 
         # Verify segmentation was synchronized
         target_run = target_root.get_run(source_run.name)
@@ -517,6 +524,20 @@ class TestSyncSegmentations:
             voxel_size=10.0,
         )
         assert len(target_segmentations) > 0, "Target segmentation should be created"
+
+        replacement = np.full_like(test_data, 9)
+        segmentation.from_numpy(replacement)
+        with patch("copick.ops.sync.copy_zarr_store", wraps=copy_zarr_store) as raw_copy:
+            sync_segmentations(
+                source_root=source_root,
+                target_root=target_root,
+                source_runs=[source_run.name],
+                source_names=["test-segmentation"],
+                exist_ok=True,
+            )
+
+        assert raw_copy.call_args.kwargs == {"if_exists": "replace", "verify": True}
+        np.testing.assert_array_equal(target_segmentations[0].numpy(), replacement)
 
     def test_sync_segmentations_with_voxel_filtering(self, source_target_configs):
         """Test segmentations synchronization with voxel spacing filtering."""
@@ -638,13 +659,22 @@ class TestSyncTomograms:
         tomograms = source_vs.tomograms
         if not tomograms:
             pytest.skip("No tomograms available for testing")
+        source_tomo_type = tomograms[0].tomo_type
+        target_tomo_type = f"{source_tomo_type}-sync-policy"
 
         # Perform synchronization
-        sync_tomograms(
-            source_root=source_root,
-            target_root=target_root,
-            log=True,
-        )
+        with patch("copick.ops.sync.copy_zarr_store", wraps=copy_zarr_store) as raw_copy:
+            sync_tomograms(
+                source_root=source_root,
+                target_root=target_root,
+                source_runs=[source_run.name],
+                source_tomo_types=[source_tomo_type],
+                target_tomo_types={source_tomo_type: target_tomo_type},
+                log=True,
+            )
+
+        assert raw_copy.call_args_list
+        assert all(call.kwargs == {"if_exists": "raise", "verify": True} for call in raw_copy.call_args_list)
 
         # Verify tomogram was synchronized
         target_run = target_root.get_run(source_run.name)
@@ -653,7 +683,7 @@ class TestSyncTomograms:
         target_vs = target_run.get_voxel_spacing(source_vs.voxel_size)
         assert target_vs is not None, "Target voxel spacing should be created"
 
-        source_tomo_types = [tomo.tomo_type for tomo in tomograms]
+        source_tomo_types = [target_tomo_type]
         target_tomos = []
         for tomo_type in source_tomo_types:
             tomos = target_vs.get_tomograms(tomo_type)

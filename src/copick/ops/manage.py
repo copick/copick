@@ -2,11 +2,28 @@
 
 from typing import Any, Dict, List, Optional, Union
 
+import zarr
+
 from copick.models import CopickMesh, CopickPicks, CopickRoot, CopickRun, CopickSegmentation
 from copick.util.log import get_logger
 from copick.util.uri import parse_copick_uri, resolve_copick_objects, serialize_copick_uri
+from copick.util.zarr_copy import copy_zarr_store
 
 logger = get_logger(__name__)
+
+
+def _copy_segmentation_store(
+    source: CopickSegmentation,
+    target: CopickSegmentation,
+    *,
+    verify_before_delete: bool,
+) -> None:
+    """Raw-copy a segmentation and optionally verify/reopen it for a move."""
+    source_store = source.zarr()
+    target_store = target.zarr()
+    copy_zarr_store(source_store, target_store, if_exists="replace", verify=verify_before_delete)
+    if verify_before_delete:
+        zarr.open_group(target_store, mode="r")
 
 
 def _validate_target_template(
@@ -247,9 +264,7 @@ def move_copick_objects(
                 target_obj.mesh = source_obj.mesh
                 target_obj.store()
             elif object_type == "segmentation":
-                # For segmentations, copy the volume data
-                data = source_obj.numpy()
-                target_obj.from_numpy(data)
+                _copy_segmentation_store(source_obj, target_obj, verify_before_delete=True)
 
             # Delete source object
             source_obj.delete()
@@ -364,9 +379,7 @@ def copy_copick_objects(
                 target_obj.mesh = source_obj.mesh
                 target_obj.store()
             elif object_type == "segmentation":
-                # For segmentations, copy the volume data
-                data = source_obj.numpy()
-                target_obj.from_numpy(data)
+                _copy_segmentation_store(source_obj, target_obj, verify_before_delete=False)
 
             mappings.append((source_obj_uri, concrete_target_uri))
             if log:
@@ -570,8 +583,7 @@ def move_copick_objects_per_run(
                     target_obj.mesh = source_obj.mesh
                     target_obj.store()
                 elif object_type == "segmentation":
-                    data = source_obj.numpy()
-                    target_obj.from_numpy(data)
+                    _copy_segmentation_store(source_obj, target_obj, verify_before_delete=True)
 
                 # Delete source object
                 source_obj.delete()
@@ -725,8 +737,7 @@ def copy_copick_objects_per_run(
                     target_obj.mesh = source_obj.mesh
                     target_obj.store()
                 elif object_type == "segmentation":
-                    data = source_obj.numpy()
-                    target_obj.from_numpy(data)
+                    _copy_segmentation_store(source_obj, target_obj, verify_before_delete=False)
 
                 mappings.append((source_obj_uri, concrete_target_uri))
 

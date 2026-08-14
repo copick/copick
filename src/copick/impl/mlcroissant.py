@@ -31,14 +31,14 @@ import re
 import threading
 import weakref
 from dataclasses import dataclass, field
-from typing import TYPE_CHECKING, Any, Dict, List, Optional, Set, Tuple, Type, Union
+from typing import TYPE_CHECKING, Any, Dict, List, Optional, Set, Tuple, Type
 from urllib.parse import urlparse
 
 import fsspec
 import numpy as np
-import zarr
 from fsspec import AbstractFileSystem
 from fsspec.implementations.local import LocalFileSystem
+from zarr.abc.store import Store
 
 from copick.impl.overlay import (
     CopickFeaturesOverlay,
@@ -67,6 +67,7 @@ from copick.models import (
 )
 from copick.util.log import get_logger
 from copick.util.ome import zarr_root_exists
+from copick.util.store import copick_store
 
 if TYPE_CHECKING:
     from trimesh.parent import Geometry
@@ -1261,28 +1262,14 @@ class CopickSegmentationMLC(CopickSegmentationOverlay):
             return fs
         return self.run.fs_overlay
 
-    def zarr(self) -> zarr.storage.FSStore:
+    def zarr(self) -> Store:
         if self.read_only:
             fs, abs_path = self._index.resolve_url(self._find_row()["url"])
-            return zarr.storage.FSStore(
-                abs_path,
-                fs=fs,
-                mode="r",
-                key_separator="/",
-                dimension_separator="/",
-                create=False,
-            )
+            return copick_store(fs, abs_path, read_only=True)
         fs = self.fs
         path = self.path
         create = not fs.exists(path)
-        store = zarr.storage.FSStore(
-            path,
-            fs=fs,
-            mode="w",
-            key_separator="/",
-            dimension_separator="/",
-            create=create,
-        )
+        store = copick_store(fs, path, create=create)
         # Live-sync row (only on creation; subsequent writes reuse the row)
         if create and self.run.root.mode == "A":
             rel = self._relative_url()
@@ -1359,28 +1346,14 @@ class CopickFeaturesMLC(CopickFeaturesOverlay):
             return fs
         return self.tomogram.fs_overlay
 
-    def zarr(self) -> zarr.storage.FSStore:
+    def zarr(self) -> Store:
         if self.read_only:
             fs, abs_path = self._index.resolve_url(self._find_row()["url"])
-            return zarr.storage.FSStore(
-                abs_path,
-                fs=fs,
-                mode="r",
-                key_separator="/",
-                dimension_separator="/",
-                create=False,
-            )
+            return copick_store(fs, abs_path, read_only=True)
         fs = self.fs
         path = self.path
         create = not fs.exists(path)
-        store = zarr.storage.FSStore(
-            path,
-            fs=fs,
-            mode="w",
-            key_separator="/",
-            dimension_separator="/",
-            create=create,
-        )
+        store = copick_store(fs, path, create=create)
         if create and self.tomogram.voxel_spacing.run.root.mode == "A":
             rel = self._relative_url()
             row = {
@@ -1535,28 +1508,14 @@ class CopickTomogramMLC(CopickTomogramOverlay):
             for ft in feature_types
         ]
 
-    def zarr(self) -> zarr.storage.FSStore:
+    def zarr(self) -> Store:
         if self.read_only:
             fs, abs_path = self._index.resolve_url(self._find_row()["url"])
-            return zarr.storage.FSStore(
-                abs_path,
-                fs=fs,
-                mode="r",
-                key_separator="/",
-                dimension_separator="/",
-                create=False,
-            )
+            return copick_store(fs, abs_path, read_only=True)
         fs = self.fs_overlay
         path = self.overlay_path
         create = not fs.exists(path)
-        store = zarr.storage.FSStore(
-            path,
-            fs=fs,
-            mode="w",
-            key_separator="/",
-            dimension_separator="/",
-            create=create,
-        )
+        store = copick_store(fs, path, create=create)
         if create and self.voxel_spacing.run.root.mode == "A":
             rel = self._relative_url()
             row = {
@@ -2100,7 +2059,7 @@ class CopickObjectMLC(CopickObjectOverlay):
     def fs_overlay(self) -> AbstractFileSystem:
         return self.root.fs_overlay
 
-    def zarr(self) -> Union[None, zarr.storage.FSStore]:
+    def zarr(self) -> Optional[Store]:
         if not self.is_particle:
             return None
         if self.read_only:
@@ -2108,25 +2067,11 @@ class CopickObjectMLC(CopickObjectOverlay):
             if sp is None or not self.has_density_map():
                 return None
             fs = self.fs_static
-            return zarr.storage.FSStore(
-                sp,
-                fs=fs,
-                mode="r",
-                key_separator="/",
-                dimension_separator="/",
-                create=False,
-            )
+            return copick_store(fs, sp, read_only=True)
         fs = self.fs_overlay
         path = self.overlay_path
         create = not fs.exists(path)
-        store = zarr.storage.FSStore(
-            path,
-            fs=fs,
-            mode="w",
-            key_separator="/",
-            dimension_separator="/",
-            create=create,
-        )
+        store = copick_store(fs, path, create=create)
         return store
 
     def has_density_map(self) -> bool:

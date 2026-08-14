@@ -94,17 +94,23 @@ The project is now set up, you can now add objects, add tomograms or store annot
     Specifying `profile` is one possible way of setting up AWS credentials. Refer to the [S3FS documentation](https://s3fs.readthedocs.io/en/latest/api.html#s3fs.core.S3FileSystem)
     for detailed information.
 
-    For local [MinIO](https://min.io/) buckets, the following config may be appropriate:
+    Some non-AWS S3 endpoints do not support the request-checksum behavior enabled by recent AWS SDK releases. In that
+    case, set `config_kwargs.request_checksum_calculation` to `"when_required"`; pinning `botocore` is not necessary.
+    For a local [MinIO](https://min.io/) bucket, the following config may be appropriate:
 
     ```json
     {
-        "overlay_fs_args": {
-            "key":"bucketkey",
-            "secret":"bucketsecret",
-            "endpoint_url":"http://10.30.121.49:7070",
-            "client_kwargs":{
-                "region_name":"us-east-1"
-            }
+      "overlay_fs_args": {
+        "key": "bucketkey",
+        "secret": "bucketsecret",
+        "endpoint_url": "http://10.30.121.49:7070",
+        "client_kwargs": {
+          "region_name": "us-east-1"
+        },
+        "config_kwargs": {
+          "request_checksum_calculation": "when_required"
+        }
+      }
     }
     ```
 

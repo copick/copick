@@ -2,7 +2,6 @@ import atexit
 import logging
 import os
 import sys
-import termios
 from typing import List, Union
 
 from rich.highlighter import ReprHighlighter
@@ -446,6 +445,8 @@ def launch_app(
 
     def reset_terminal():
         if os.name == "posix":
+            import termios
+
             sys.stdout.write("\x1b[?1003l\x1b[?1006l\x1b[?1015l")
             sys.stdout.flush()
             fd = sys.stdin.fileno()

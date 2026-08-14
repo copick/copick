@@ -192,6 +192,21 @@ class TestExportTomogram:
         out_group = zarr.open(result, mode="r")
         assert "0" in out_group
 
+    @pytest.mark.parametrize("copy_all_levels", [False, True])
+    def test_export_tomogram_zarr_refuses_existing_output(self, test_payload, tmp_path, copy_all_levels):
+        tomo, _ = _get_tomogram(test_payload)
+        if tomo is None:
+            pytest.skip("No tomograms in sample project")
+
+        output_path = str(tmp_path / "existing-tomo.zarr")
+        existing = zarr.open_group(output_path, mode="w", zarr_format=2)
+        existing.create_array("keep", shape=(3,), dtype="u1")
+
+        with pytest.raises(FileExistsError, match="not empty"):
+            export_tomogram(tomo, output_path, "zarr", copy_all_levels=copy_all_levels)
+
+        assert list(zarr.open_group(output_path, mode="r").array_keys()) == ["keep"]
+
     def test_export_tomogram_unsupported_format_raises(self, test_payload, tmp_path):
         """Unsupported format raises ValueError."""
         tomo, _ = _get_tomogram(test_payload)
@@ -257,6 +272,21 @@ class TestExportSegmentation:
         assert os.path.exists(result)
         out_group = zarr.open(result, mode="r")
         assert "0" in out_group
+
+    @pytest.mark.parametrize("copy_all_levels", [False, True])
+    def test_export_segmentation_zarr_refuses_existing_output(self, test_payload, tmp_path, copy_all_levels):
+        seg, _ = _get_segmentation(test_payload)
+        if seg is None:
+            pytest.skip("No segmentations in sample project")
+
+        output_path = str(tmp_path / "existing-seg.zarr")
+        existing = zarr.open_group(output_path, mode="w", zarr_format=2)
+        existing.create_array("keep", shape=(3,), dtype="u1")
+
+        with pytest.raises(FileExistsError, match="not empty"):
+            export_segmentation(seg, output_path, "zarr", copy_all_levels=copy_all_levels)
+
+        assert list(zarr.open_group(output_path, mode="r").array_keys()) == ["keep"]
 
     def test_export_segmentation_unsupported_format_raises(self, test_payload, tmp_path):
         """Unsupported format raises ValueError."""

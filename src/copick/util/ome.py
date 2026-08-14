@@ -1,11 +1,15 @@
-from typing import Any, Dict, List, MutableMapping, Tuple, Union
+import copy
+import itertools
+from typing import Any, Dict, Iterator, List, Tuple, Union
 
 import numpy as np
 import psutil
 import zarr
 from numcodecs import Blosc
+from zarr.abc.store import Store
 
 from copick.util.log import get_logger
+from copick.util.zarr_copy import zarr_store_is_empty
 
 logger = get_logger(__name__)
 
@@ -60,9 +64,9 @@ def zarr_root_exists(fs: Any, path: str) -> bool:
     return fs.exists(f"{root}/.zgroup") or fs.exists(f"{root}/zarr.json")
 
 
-def initialize_zarr_v2(store: Union[str, MutableMapping]) -> None:
+def initialize_zarr_v2(store: Union[str, Store]) -> None:
     """Materialize an empty Zarr v2 group in a new entity store."""
-    zarr.group(store=store, overwrite=False, zarr_version=2)
+    zarr.group(store=store, overwrite=False, zarr_format=2)
 
 
 def _ome_zarr_axes() -> List[Dict[str, str]]:
@@ -168,7 +172,7 @@ def ome_metadata(pyramid: Dict[float, np.ndarray]) -> Dict[str, Any]:
 
 
 def write_ome_zarr_3d(
-    store: Union[str, MutableMapping],
+    store: Union[str, Store],
     pyramid: Dict[float, np.ndarray],
     chunk_size: Tuple[int, ...] = (256, 256, 256),
     overwrite: bool = True,
@@ -189,9 +193,10 @@ def write_ome_zarr_3d(
     from ome_zarr.writer import write_multiscale
 
     ome_meta = ome_metadata(pyramid)
-    root_group = zarr.group(store=store, overwrite=overwrite, zarr_version=2)
+    root_group = zarr.group(store=store, overwrite=overwrite, zarr_format=2)
     compressor = Blosc(cname="lz4", clevel=5, shuffle=Blosc.SHUFFLE)
     writer_metadata = {} if metadata is _DEFAULT_WRITER_METADATA else metadata
+    ome_zarr_metadata = writer_metadata if isinstance(writer_metadata, dict) else {}
 
     write_multiscale(
         list(pyramid.values()),
@@ -202,12 +207,74 @@ def write_ome_zarr_3d(
         storage_options={
             "chunks": chunk_size,
             "compressor": compressor,
-            "dimension_separator": "/",
             "overwrite": overwrite,
         },
         compute=True,
-        metadata=writer_metadata,
+        metadata=ome_zarr_metadata,
     )
+    multiscales = root_group.attrs["multiscales"]
+    multiscales[0]["metadata"] = copy.deepcopy(writer_metadata)
+    root_group.attrs["multiscales"] = multiscales
+
+
+def iter_chunk_slices(shape: Tuple[int, ...], chunks: Tuple[int, ...]) -> Iterator[Tuple[slice, ...]]:
+    """Yield bounded selections covering an array one inner chunk at a time."""
+    starts = (range(0, size, chunk) for size, chunk in zip(shape, chunks, strict=True))
+    for origin in itertools.product(*starts):
+        yield tuple(
+            slice(start, min(start + chunk, size)) for start, chunk, size in zip(origin, chunks, shape, strict=True)
+        )
+
+
+def copy_array_chunkwise(source: zarr.Array, target: zarr.Array) -> None:
+    """Copy decoded array values without materializing the complete volume."""
+    for selection in iter_chunk_slices(source.shape, source.chunks):
+        target[selection] = source[selection]
+
+
+def write_single_level_ome_zarr_v2(source_group: zarr.Group, target_store: Store, level: int = 0) -> None:
+    """Semantically export one OME level as OME-Zarr 0.4 / Zarr v2.
+
+    The destination is rebuilt instead of copying group attributes across a
+    format boundary.  Source values are decoded one inner chunk at a time, so
+    a sharded v3 source intentionally becomes an unsharded v2 array.
+    """
+    multiscales = get_multiscales(source_group)
+    if not multiscales:
+        raise ValueError("OME-Zarr metadata contains no multiscale entries")
+    source_multiscale = multiscales[0]
+    datasets = source_multiscale.get("datasets", [])
+    if level < 0 or level >= len(datasets):
+        raise ValueError(f"Level {level} not found in Zarr store (max: {len(datasets) - 1})")
+
+    source_path = get_level_path(source_group, level)
+    source_array = source_group[source_path]
+    target_path = "0"
+    if not zarr_store_is_empty(target_store):
+        raise FileExistsError("Single-level Zarr export target is not empty")
+    target_group = zarr.group(store=target_store, overwrite=True, zarr_format=2)
+    target_array = target_group.create_array(
+        target_path,
+        shape=source_array.shape,
+        dtype=source_array.dtype,
+        chunks=source_array.chunks,
+        fill_value=source_array.fill_value,
+        compressor=Blosc(cname="lz4", clevel=5, shuffle=Blosc.SHUFFLE),
+        chunk_key_encoding={"name": "v2", "separator": "/"},
+        attributes=dict(source_array.attrs),
+    )
+    copy_array_chunkwise(source_array, target_array)
+
+    dataset = copy.deepcopy(datasets[level])
+    dataset["path"] = target_path
+    rebuilt = {
+        key: copy.deepcopy(value)
+        for key, value in source_multiscale.items()
+        if key in {"axes", "metadata", "name", "type"}
+    }
+    rebuilt["version"] = "0.4"
+    rebuilt["datasets"] = [dataset]
+    target_group.attrs["multiscales"] = [rebuilt]
 
 
 def get_multiscales(zarr_group: zarr.Group) -> List[Dict[str, Any]]:

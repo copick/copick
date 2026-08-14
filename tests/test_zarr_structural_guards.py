@@ -24,6 +24,14 @@ ZARR_CALL_ALIASES = {
     "zarr.hierarchy.open_group": "zarr.open_group",
 }
 REPOSITORY_SCAN_ROOTS = (PROJECT_ROOT / "src" / "copick", PROJECT_ROOT / "tests", PROJECT_ROOT / "docs" / "snippets")
+REMOVED_ZARR_MODULE_PREFIXES = ("zarr.convenience", "zarr.hierarchy")
+REMOVED_ZARR_SYMBOLS = {
+    "zarr.copy_store",
+    "zarr.core.Array",
+    "zarr.storage.DirectoryStore",
+    "zarr.storage.FSStore",
+}
+STORE_ARGUMENT_NAMES = {"loc", "source", "source_store", "store", "target", "target_store", "zarr_store"}
 
 # These tests intentionally assert copick's canonical numeric writer output.
 # Every entry must correspond to a violation observed by the repository scan,
@@ -94,6 +102,29 @@ class ZarrStructuralGuard(ast.NodeVisitor):
         resolved = f"{canonical}.{tail}" if separator else canonical
         return ZARR_CALL_ALIASES.get(resolved, resolved)
 
+    def _canonical_name(self, node):
+        raw_name = _dotted_name(node)
+        if raw_name is None:
+            return None
+        head, separator, tail = raw_name.partition(".")
+        canonical = self.function_aliases.get(head, self.module_aliases.get(head, head))
+        return f"{canonical}.{tail}" if separator else canonical
+
+    @staticmethod
+    def _is_removed_zarr_name(name):
+        return name in REMOVED_ZARR_SYMBOLS or any(
+            name == prefix or name.startswith(f"{prefix}.") for prefix in REMOVED_ZARR_MODULE_PREFIXES
+        )
+
+    @staticmethod
+    def _uses_mutable_mapping(annotation):
+        if annotation is None:
+            return False
+        return any(
+            _dotted_name(child) in {"MutableMapping", "collections.abc.MutableMapping", "typing.MutableMapping"}
+            for child in ast.walk(annotation)
+        )
+
     @staticmethod
     def _keyword(call, name):
         return next((keyword.value for keyword in call.keywords if keyword.arg == name), None)
@@ -104,8 +135,11 @@ class ZarrStructuralGuard(ast.NodeVisitor):
             return keyword_mode
         return call.args[1] if len(call.args) > 1 else None
 
-    def _has_v2_format(self, call):
-        return _is_constant(self._keyword(call, "zarr_version"), 2)
+    def _has_required_format(self, call):
+        format_value = self._keyword(call, "zarr_format")
+        if self.path.startswith("tests/"):
+            return format_value is not None
+        return _is_constant(format_value, 2)
 
     @staticmethod
     def _is_typing_literal(node):
@@ -122,6 +156,8 @@ class ZarrStructuralGuard(ast.NodeVisitor):
 
     def visit_Import(self, node):
         for alias in node.names:
+            if self._is_removed_zarr_name(alias.name):
+                self._add(node, "removed_zarr_api", f"removed Zarr API imported: {alias.name}")
             if alias.name == "zarr" or alias.name.startswith("zarr.") or alias.name == "ome_zarr.writer":
                 if alias.asname:
                     self.module_aliases[alias.asname] = alias.name
@@ -134,8 +170,11 @@ class ZarrStructuralGuard(ast.NodeVisitor):
             node.module == "zarr" or node.module.startswith("zarr.") or node.module == "ome_zarr.writer"
         ):
             for alias in node.names:
+                imported_name = f"{node.module}.{alias.name}"
+                if self._is_removed_zarr_name(imported_name):
+                    self._add(node, "removed_zarr_api", f"removed Zarr API imported: {imported_name}")
                 local_name = alias.asname or alias.name
-                self.function_aliases[local_name] = f"{node.module}.{alias.name}"
+                self.function_aliases[local_name] = imported_name
         elif node.module == "ome_zarr":
             for alias in node.names:
                 if alias.name == "writer":
@@ -144,6 +183,20 @@ class ZarrStructuralGuard(ast.NodeVisitor):
 
     def visit_FunctionDef(self, node):
         self.scope.append(node.name)
+        if node.name == "zarr" and self._uses_mutable_mapping(node.returns):
+            self._add(node, "removed_zarr_api", "zarr() must return zarr.abc.store.Store, not MutableMapping")
+        arguments = [*node.args.posonlyargs, *node.args.args, *node.args.kwonlyargs]
+        if node.args.vararg:
+            arguments.append(node.args.vararg)
+        if node.args.kwarg:
+            arguments.append(node.args.kwarg)
+        for argument in arguments:
+            if argument.arg in STORE_ARGUMENT_NAMES and self._uses_mutable_mapping(argument.annotation):
+                self._add(
+                    argument,
+                    "removed_zarr_api",
+                    f"store argument {argument.arg!r} must use zarr.abc.store.Store, not MutableMapping",
+                )
         self.generic_visit(node)
         self.scope.pop()
 
@@ -155,6 +208,12 @@ class ZarrStructuralGuard(ast.NodeVisitor):
             for target in node.targets:
                 if isinstance(target, ast.Name):
                     self.array_listing_names.add(target.id)
+        self.generic_visit(node)
+
+    def visit_Attribute(self, node):
+        name = self._canonical_name(node)
+        if name and self._is_removed_zarr_name(name):
+            self._add(node, "removed_zarr_api", f"removed Zarr API referenced: {name}")
         self.generic_visit(node)
 
     def visit_Call(self, node):
@@ -169,11 +228,11 @@ class ZarrStructuralGuard(ast.NodeVisitor):
                     self._add(node, "explicit_open_mode", f"zarr.{entry_point} requires an explicit mode")
 
                 creates = entry_point not in ZARR_OPEN_ENTRY_POINTS or mode not in ZARR_NON_CREATING_MODES
-                if creates and not self._has_v2_format(node):
+                if creates and not self._has_required_format(node):
                     self._add(
                         node,
                         "explicit_zarr_format",
-                        f"creation through zarr.{entry_point} requires zarr_version=2",
+                        f"creation through zarr.{entry_point} requires an explicit supported zarr_format",
                     )
 
         if call_name == "ome_zarr.writer.write_multiscale" and self._keyword(node, "fmt") is None:
@@ -248,8 +307,8 @@ def test_guard_rejects_creation_without_explicit_v2_format(entry_point):
     assert "explicit_zarr_format" in {violation.rule for violation in violations}
 
 
-def test_guard_rejects_wrong_creation_format():
-    violations = find_violations("import zarr\nzarr.group(store, zarr_version=3)\n")
+def test_guard_rejects_wrong_production_creation_format():
+    violations = find_violations("import zarr\nzarr.group(store, zarr_format=3)\n")
 
     assert "explicit_zarr_format" in {violation.rule for violation in violations}
 
@@ -263,7 +322,7 @@ def test_guard_treats_dynamic_open_modes_as_creation_capable(entry_point):
 
 @pytest.mark.parametrize("entry_point", sorted(ZARR_OPEN_ENTRY_POINTS))
 def test_guard_rejects_open_without_explicit_mode(entry_point):
-    violations = find_violations(f"import zarr\nzarr.{entry_point}(store, zarr_version=2)\n")
+    violations = find_violations(f"import zarr\nzarr.{entry_point}(store, zarr_format=2)\n")
 
     assert "explicit_open_mode" in {violation.rule for violation in violations}
 
@@ -312,14 +371,14 @@ def test_guard_accepts_explicit_v2_creation_and_metadata_level_resolution():
 import zarr
 from ome_zarr.writer import write_multiscale
 
-zarr.open(store, mode="w", zarr_version=2)
-zarr.open_group(store, mode="w", zarr_version=2)
-zarr.open_array(store, mode="w", zarr_version=2)
-zarr.group(store, zarr_version=2)
-zarr.create(shape, zarr_version=2)
-zarr.array(data, zarr_version=2)
-zarr.create_group(store, zarr_version=2)
-zarr.create_array(store, zarr_version=2)
+zarr.open(store, mode="w", zarr_format=2)
+zarr.open_group(store, mode="w", zarr_format=2)
+zarr.open_array(store, mode="w", zarr_format=2)
+zarr.group(store, zarr_format=2)
+zarr.create(shape, zarr_format=2)
+zarr.array(data, zarr_format=2)
+zarr.create_group(store, zarr_format=2)
+zarr.create_array(store, zarr_format=2)
 write_multiscale(images, group=group, fmt=fmt)
 array = group[get_level_path(group, level)]
 group.create_dataset("0", data=data)
@@ -351,3 +410,42 @@ def test_guard_resolves_dotted_writer_import():
     source = "import ome_zarr.writer\nome_zarr.writer.write_multiscale(images, group=group)\n"
 
     assert "explicit_write_multiscale_format" in {violation.rule for violation in find_violations(source)}
+
+
+@pytest.mark.parametrize(
+    "source",
+    [
+        "from zarr.storage import FSStore\n",
+        "from zarr.storage import DirectoryStore as Store\n",
+        "from zarr import copy_store\n",
+        "import zarr.convenience\n",
+        "import zarr.hierarchy as hierarchy\n",
+        "import zarr\narray_type = zarr.core.Array\n",
+    ],
+)
+def test_guard_rejects_removed_zarr_apis(source):
+    assert "removed_zarr_api" in {violation.rule for violation in find_violations(source)}
+
+
+@pytest.mark.parametrize(
+    "source",
+    [
+        "from collections.abc import MutableMapping\n",
+        "# FSStore and zarr.copy_store are historical names\n",
+        "notes = 'DirectoryStore and zarr.convenience are not executable APIs'\n",
+        "def describe() -> MutableMapping:\n    return metadata\n",
+    ],
+)
+def test_guard_ignores_removed_api_names_outside_store_contracts(source):
+    assert "removed_zarr_api" not in {violation.rule for violation in find_violations(source)}
+
+
+@pytest.mark.parametrize(
+    "source",
+    [
+        "def zarr(self) -> MutableMapping[str, bytes]:\n    return self.store\n",
+        "def open_store(store: collections.abc.MutableMapping):\n    return store\n",
+    ],
+)
+def test_guard_rejects_mutable_mapping_store_contracts(source):
+    assert "removed_zarr_api" in {violation.rule for violation in find_violations(source)}

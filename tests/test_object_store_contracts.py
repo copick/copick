@@ -49,7 +49,8 @@ def test_empty_store_directory_is_not_a_density_map(tmp_path):
     assert particle.has_density_map() is False
     assert particle.zarr() is not None
     assert particle.has_density_map() is False
-    assert (overlay / "Objects" / "particle.zarr").is_dir()
+    assert (overlay / "Objects").is_dir()
+    assert not (overlay / "Objects" / "particle.zarr").exists()
 
     surface = root.get_object("surface")
     assert surface.has_density_map() is False

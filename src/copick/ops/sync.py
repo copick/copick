@@ -1,10 +1,9 @@
 from typing import Any, Dict, List, Optional
 
-from zarr.convenience import copy_store
-
 from copick.models import CopickRoot, CopickRun
 from copick.ops.run import map_runs
 from copick.util.log import get_logger
+from copick.util.zarr_copy import copy_zarr_store
 
 logger = get_logger(__name__)
 
@@ -228,10 +227,14 @@ def _sync_segmentations_worker(
                 )
 
                 # Copy segmentation data
-                if_exists = "replace" if exist_ok else "raise"
                 src = segmentation.zarr()
                 trg = target_seg.zarr()
-                copy_store(src, trg, if_exists=if_exists)
+                copy_zarr_store(
+                    src,
+                    trg,
+                    if_exists="replace" if exist_ok else "raise",
+                    verify=True,
+                )
 
                 result["processed"] += 1
 
@@ -316,10 +319,14 @@ def _sync_tomograms_worker(
                         )
 
                         # Copy tomogram data
-                        if_exists = "replace" if exist_ok else "raise"
                         src = source_tomogram.zarr()
                         trg = target_tomogram.zarr()
-                        copy_store(src, trg, if_exists=if_exists)
+                        copy_zarr_store(
+                            src,
+                            trg,
+                            if_exists="replace" if exist_ok else "raise",
+                            verify=True,
+                        )
 
                         result["processed"] += 1
 

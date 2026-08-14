@@ -1,9 +1,19 @@
 """Tests for ReconnectingFileSystem and cache invalidation."""
 
+import concurrent.futures
+import os
+import threading
+import uuid
+import weakref
 from unittest.mock import MagicMock, patch
 
+import numpy as np
 import pytest
+import zarr
+from copick.util.ome import get_level_path, write_ome_zarr_3d
 from copick.util.reconnecting_fs import ReconnectingFileSystem, _is_connection_error
+from copick.util.store import copick_store
+from copick.util.zarr_copy import copy_zarr_store
 from fsspec import AbstractFileSystem
 from fsspec.implementations.memory import MemoryFileSystem
 
@@ -119,3 +129,171 @@ def test_getattr_fallback_delegates():
     # _strip_protocol is explicitly overridden, but created/modified are not
     # Just verify that accessing an attribute on the wrapped fs works
     assert fs.storage_options is not None or fs.storage_options is None  # no AttributeError
+
+
+def test_read_recovers_once_on_replacement_filesystem():
+    fs = ReconnectingFileSystem("memory://test")
+    old_fs = fs._fs
+    new_fs = MemoryFileSystem(skip_instance_cache=True)
+    new_fs.pipe_file("/test/value", b"recovered")
+    original_error = SFTPNoConnection("connection dropped")
+
+    def fail_read(*args, **kwargs):
+        raise original_error
+
+    old_fs.cat_file = fail_read
+    fs._create_filesystem = MagicMock(return_value=new_fs)
+
+    assert fs.cat_file("/test/value") == b"recovered"
+    fs._create_filesystem.assert_called_once()
+    assert fs._generation == 1
+
+
+def test_write_recovers_once_on_replacement_filesystem():
+    fs = ReconnectingFileSystem("memory://test")
+    old_fs = fs._fs
+    new_fs = MemoryFileSystem(skip_instance_cache=True)
+
+    def fail_write(*args, **kwargs):
+        raise SFTPNoConnection("connection dropped")
+
+    old_fs.pipe_file = fail_write
+    fs._create_filesystem = MagicMock(return_value=new_fs)
+
+    fs.pipe_file("/test/value", b"recovered")
+
+    assert new_fs.cat_file("/test/value") == b"recovered"
+    fs._create_filesystem.assert_called_once()
+
+
+def test_reconnect_failure_preserves_original_exception():
+    fs = ReconnectingFileSystem("memory://test")
+    original_error = SFTPNoConnection("connection dropped")
+    fs._fs.exists = MagicMock(side_effect=original_error)
+    fs._create_filesystem = MagicMock(side_effect=RuntimeError("reconnect failed"))
+
+    with pytest.raises(SFTPNoConnection) as exc_info:
+        fs.exists("/test/value")
+
+    assert exc_info.value is original_error
+    assert fs._generation == 0
+
+
+def test_retry_failure_is_returned_to_caller():
+    fs = ReconnectingFileSystem("memory://test")
+    fs._fs.exists = MagicMock(side_effect=SFTPNoConnection("connection dropped"))
+    new_fs = MemoryFileSystem(skip_instance_cache=True)
+    new_fs.exists = MagicMock(side_effect=ValueError("retry failed"))
+    fs._create_filesystem = MagicMock(return_value=new_fs)
+
+    with pytest.raises(ValueError, match="retry failed"):
+        fs.exists("/test/value")
+
+
+def test_batched_per_key_connection_error_retries_complete_batch():
+    fs = ReconnectingFileSystem("memory://test")
+    fs._fs.cat = MagicMock(return_value={"/test/value": SFTPNoConnection("connection dropped")})
+    new_fs = MemoryFileSystem(skip_instance_cache=True)
+    new_fs.cat = MagicMock(return_value={"/test/value": b"recovered"})
+    fs._create_filesystem = MagicMock(return_value=new_fs)
+
+    assert fs.cat(["/test/value"], on_error="return") == {"/test/value": b"recovered"}
+    fs._create_filesystem.assert_called_once()
+
+
+def test_concurrent_failures_share_one_reconnect_and_cache_invalidation():
+    workers = 8
+    barrier = threading.Barrier(workers)
+    fs = ReconnectingFileSystem("memory://test")
+    old_fs = fs._fs
+    new_fs = MemoryFileSystem(skip_instance_cache=True)
+    root = MagicMock()
+    fs._root_ref = weakref.ref(root)
+
+    def fail_together(path):
+        barrier.wait(timeout=5)
+        raise SFTPNoConnection("connection dropped")
+
+    old_fs.exists = fail_together
+    fs._create_filesystem = MagicMock(return_value=new_fs)
+
+    with concurrent.futures.ThreadPoolExecutor(max_workers=workers) as executor:
+        results = list(executor.map(fs.exists, [f"/missing-{index}" for index in range(workers)]))
+
+    assert results == [False] * workers
+    fs._create_filesystem.assert_called_once()
+    root._invalidate_all_caches.assert_called_once()
+    assert fs._generation == 1
+
+
+def test_raw_store_copy_recovers_through_exact_zarr_adapter():
+    base = f"memory://{uuid.uuid4()}"
+    fs = ReconnectingFileSystem(base)
+    source = copick_store(fs, f"{base}/source.zarr", create=True)
+    target = copick_store(fs, f"{base}/target.zarr", create=True)
+    group = zarr.group(store=source, zarr_format=2)
+    group.create_array("nested/data", data=np.arange(64).reshape(4, 4, 4), chunks=(2, 2, 2))
+
+    old_fs = fs._fs
+    original_cat_file = old_fs.cat_file
+    calls = 0
+
+    def fail_once(*args, **kwargs):
+        nonlocal calls
+        calls += 1
+        if calls == 1:
+            raise SFTPNoConnection("connection dropped")
+        return original_cat_file(*args, **kwargs)
+
+    old_fs.cat_file = fail_once
+    root = MagicMock()
+    fs._root_ref = weakref.ref(root)
+
+    with patch.object(fs, "_create_filesystem", wraps=fs._create_filesystem) as create_filesystem:
+        result = copy_zarr_store(source, target)
+
+    assert result.copied_keys > 0
+    create_filesystem.assert_called_once()
+    root._invalidate_all_caches.assert_called_once()
+    copied = zarr.open_group(target, mode="r")["nested/data"]
+    np.testing.assert_array_equal(copied[:], np.arange(64).reshape(4, 4, 4))
+    np.testing.assert_array_equal(copied[:], np.arange(64).reshape(4, 4, 4))
+
+
+@pytest.mark.timeout(120)
+def test_live_ssh_multichunk_reads_reconnect_and_raw_copy(request):
+    if os.environ.get("BACKEND") != "ssh":
+        pytest.skip("live SSH adapter gate runs only in the SSH backend job")
+
+    import copick
+
+    payload = request.getfixturevalue("ssh_overlay_only")
+    root = copick.from_file(str(payload["cfg_file"]))
+    run = root.new_run("reconnect-test")
+    voxel_spacing = run.new_voxel_spacing(10.0)
+    source = voxel_spacing.new_tomogram("source")
+    values = np.arange(8 * 8 * 8, dtype=np.int32).reshape(8, 8, 8)
+
+    write_ome_zarr_3d(source.zarr(), {10.0: values}, chunk_size=(4, 4, 4))
+    source_group = zarr.open_group(source.zarr(), mode="r")
+    source_array = source_group[get_level_path(source_group, 0)]
+    np.testing.assert_array_equal(source_array[:], values)
+    np.testing.assert_array_equal(source_array[:], values)
+
+    reconnecting_fs = root.fs_overlay
+    with (
+        patch.object(reconnecting_fs, "_create_filesystem", wraps=reconnecting_fs._create_filesystem) as reconnect,
+        patch.object(root, "_invalidate_all_caches", wraps=root._invalidate_all_caches) as invalidate,
+    ):
+        reconnecting_fs._fs.client.abort()
+        np.testing.assert_array_equal(source_array[:], values)
+
+    reconnect.assert_called_once()
+    invalidate.assert_called_once()
+
+    target = voxel_spacing.new_tomogram("target")
+    result = copy_zarr_store(source.zarr(), target.zarr(), if_exists="replace")
+    assert result.copied_keys > 0
+    target_group = zarr.open_group(target.zarr(), mode="r")
+    copied = target_group[get_level_path(target_group, 0)]
+    np.testing.assert_array_equal(copied[:], values)
