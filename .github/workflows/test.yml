@@ -36,23 +36,35 @@ jobs:
     strategy:
       matrix:
         python-version: [
-          "3.10",
           "3.11",
           "3.12",
           "3.13",
+          "3.14",
         ]
 
     steps:
       - uses: actions/checkout@v7
 
       - name: Install uv
-        uses: astral-sh/setup-uv@v7
+        uses: astral-sh/setup-uv@ae62891fec2bb8e7d6c99fc78c9fec3a63790f8d # v10.0.0
         with:
-          version: "0.7.13"
+          version: "0.12.4"
           python-version: ${{ matrix.python-version }}
+
+      - name: Check lockfile
+        run: uv lock --check
 
       - name: Install copick
         run: uv sync --locked --extra test --extra dev
+
+      - name: Verify Python version
+        run: >
+          uv run --no-sync python -c
+          "import sys; v = sys.version_info;
+          expected = tuple(map(int, '${{ matrix.python-version }}'.split('.')));
+          assert (v.major, v.minor) == expected, sys.version;
+          assert v.releaselevel == 'final', sys.version;
+          print(sys.version)"
 
       - name: Run tests
         run: uv run pytest -vvv -p no:warnings --color=yes --cov --cov-branch --cov-report=xml --cov-report=term-missing -n auto tests
@@ -71,23 +83,35 @@ jobs:
     strategy:
       matrix:
         python-version: [
-          "3.10",
           "3.11",
           "3.12",
           "3.13",
+          "3.14",
         ]
 
     steps:
       - uses: actions/checkout@v7
 
       - name: Install uv
-        uses: astral-sh/setup-uv@v7
+        uses: astral-sh/setup-uv@ae62891fec2bb8e7d6c99fc78c9fec3a63790f8d # v10.0.0
         with:
-          version: "0.7.13"
+          version: "0.12.4"
           python-version: ${{ matrix.python-version }}
+
+      - name: Check lockfile
+        run: uv lock --check
 
       - name: Install copick
         run: uv sync --locked --extra test --extra dev
+
+      - name: Verify Python version
+        run: >
+          uv run --no-sync python -c
+          "import sys; v = sys.version_info;
+          expected = tuple(map(int, '${{ matrix.python-version }}'.split('.')));
+          assert (v.major, v.minor) == expected, sys.version;
+          assert v.releaselevel == 'final', sys.version;
+          print(sys.version)"
 
       - name: Run tests
         run: uv run pytest -vvv -p no:warnings --color=yes --cov --cov-branch --cov-report=xml --cov-report=term-missing -n auto tests
@@ -106,23 +130,35 @@ jobs:
     strategy:
       matrix:
         python-version: [
-          "3.10",
           "3.11",
           "3.12",
           "3.13",
+          "3.14",
         ]
 
     steps:
       - uses: actions/checkout@v7
 
       - name: Install uv
-        uses: astral-sh/setup-uv@v7
+        uses: astral-sh/setup-uv@ae62891fec2bb8e7d6c99fc78c9fec3a63790f8d # v10.0.0
         with:
-          version: "0.7.13"
+          version: "0.12.4"
           python-version: ${{ matrix.python-version }}
+
+      - name: Check lockfile
+        run: uv lock --check
 
       - name: Install copick
         run: uv sync --locked --extra test --extra dev
+
+      - name: Verify Python version
+        run: >
+          uv run --no-sync python -c
+          "import sys; v = sys.version_info;
+          expected = tuple(map(int, '${{ matrix.python-version }}'.split('.')));
+          assert (v.major, v.minor) == expected, sys.version;
+          assert v.releaselevel == 'final', sys.version;
+          print(sys.version)"
 
       - name: Run tests
         run: uv run pytest -vvv -p no:warnings --color=yes --cov --cov-branch --cov-report=xml --cov-report=term-missing -n auto tests
@@ -141,23 +177,35 @@ jobs:
     strategy:
       matrix:
         python-version: [
-          "3.10",
           "3.11",
           "3.12",
           "3.13",
+          "3.14",
         ]
 
     steps:
       - uses: actions/checkout@v7
 
       - name: Install uv
-        uses: astral-sh/setup-uv@v7
+        uses: astral-sh/setup-uv@ae62891fec2bb8e7d6c99fc78c9fec3a63790f8d # v10.0.0
         with:
-          version: "0.7.13"
+          version: "0.12.4"
           python-version: ${{ matrix.python-version }}
+
+      - name: Check lockfile
+        run: uv lock --check
 
       - name: Install copick
         run: uv sync --locked --extra test --extra dev
+
+      - name: Verify Python version
+        run: >
+          uv run --no-sync python -c
+          "import sys; v = sys.version_info;
+          expected = tuple(map(int, '${{ matrix.python-version }}'.split('.')));
+          assert (v.major, v.minor) == expected, sys.version;
+          assert v.releaselevel == 'final', sys.version;
+          print(sys.version)"
 
       - name: Run tests
         run: uv run pytest -vvv -p no:warnings --color=yes --cov --cov-branch --cov-report=xml --cov-report=term-missing -n auto tests
@@ -178,23 +226,35 @@ jobs:
           macos-latest,
         ]
         python-version: [
-          "3.10",
           "3.11",
           "3.12",
           "3.13",
+          "3.14",
         ]
 
     steps:
       - uses: actions/checkout@v7
 
       - name: Install uv
-        uses: astral-sh/setup-uv@v7
+        uses: astral-sh/setup-uv@ae62891fec2bb8e7d6c99fc78c9fec3a63790f8d # v10.0.0
         with:
-          version: "0.7.13"
+          version: "0.12.4"
           python-version: ${{ matrix.python-version }}
+
+      - name: Check lockfile
+        run: uv lock --check
 
       - name: Install copick
         run: uv sync --locked --extra test --extra dev
+
+      - name: Verify Python version
+        run: >
+          uv run --no-sync python -c
+          "import sys; v = sys.version_info;
+          expected = tuple(map(int, '${{ matrix.python-version }}'.split('.')));
+          assert (v.major, v.minor) == expected, sys.version;
+          assert v.releaselevel == 'final', sys.version;
+          print(sys.version)"
 
       - name: Run tests
         run: uv run pytest -vvv -p no:warnings --color=yes --cov --cov-branch --cov-report=xml --cov-report=term-missing -n auto tests
@@ -215,23 +275,35 @@ jobs:
           windows-latest,
         ]
         python-version: [
-          "3.10",
           "3.11",
           "3.12",
           "3.13",
+          "3.14",
         ]
 
     steps:
       - uses: actions/checkout@v7
 
       - name: Install uv
-        uses: astral-sh/setup-uv@v7
+        uses: astral-sh/setup-uv@ae62891fec2bb8e7d6c99fc78c9fec3a63790f8d # v10.0.0
         with:
-          version: "0.7.13"
+          version: "0.12.4"
           python-version: ${{ matrix.python-version }}
+
+      - name: Check lockfile
+        run: uv lock --check
 
       - name: Install copick
         run: uv sync --locked --extra test --extra dev
+
+      - name: Verify Python version
+        run: >
+          uv run --no-sync python -c
+          "import sys; v = sys.version_info;
+          expected = tuple(map(int, '${{ matrix.python-version }}'.split('.')));
+          assert (v.major, v.minor) == expected, sys.version;
+          assert v.releaselevel == 'final', sys.version;
+          print(sys.version)"
 
       - name: Run tests
         run: uv run pytest -vvv -p no:warnings --color=yes --cov --cov-branch --cov-report=xml --cov-report=term-missing -n auto tests

@@ -4,7 +4,7 @@ Get copick installed, open your first project, and see what you can do with it â
 
 ## Install
 
-copick runs on Python 3.10+ on Linux, macOS, and Windows. Install it with pip. The `all` extra pulls in the fsspec
+copick runs on Python 3.11+ on Linux, macOS, and Windows. Install it with pip. The `all` extra pulls in the fsspec
 backends copick is tested against (`local`, `s3`, `smb`, `ssh`); a separate `smb` extra is also available.
 
 ```shell

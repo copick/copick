@@ -4,10 +4,16 @@ build-backend = "hatchling.build"
 
 [project]
 name = "copick"
-requires-python = ">=3.10"
+requires-python = ">=3.11"
 classifiers = [
     "Development Status :: 3 - Alpha",
     "License :: OSI Approved :: MIT License",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3 :: Only",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Programming Language :: Python :: 3.13",
+    "Programming Language :: Python :: 3.14",
 ]
 dynamic = ["version"]
 dependencies = [
@@ -70,7 +76,7 @@ fledgeling = [
     "smbprotocol>=1.15.0",
 ]
 test = [
-    "moto[server,s3]>=5.0.0",
+    "moto[server,s3]>=5.1.0",
     "pooch>=1.8.2",
     "pytest>=8.4.1",
     "pytest-cov>=6.2.1",
