@@ -8,6 +8,9 @@ import pytest
 import zarr
 from copick.util.store import copick_store
 from copick.util.zarr_copy import copy_zarr_store
+from numcodecs import Blosc, Delta
+from zarr.codecs import ZstdCodec
+from zarr.core.buffer import default_buffer_prototype
 from zarr.storage import LocalStore, MemoryStore
 
 
@@ -17,6 +20,10 @@ def _create_store(path: Path, zarr_format: int, value: int) -> LocalStore:
     kwargs = {"chunks": (2, 2)}
     if zarr_format == 3:
         kwargs["shards"] = (4, 4)
+        kwargs["compressors"] = [ZstdCodec(level=7, checksum=True)]
+    else:
+        kwargs["filters"] = [Delta(dtype=np.dtype("<i2"))]
+        kwargs["compressor"] = Blosc(cname="zstd", clevel=2, shuffle=Blosc.BITSHUFFLE)
     group.create_array("nested/data", data=np.full((5, 5), value, dtype=np.int16), **kwargs)
     (path / "custom" / "non-zarr-key").parent.mkdir(parents=True, exist_ok=True)
     (path / "custom" / "non-zarr-key").write_bytes(b"copick-raw-payload")
@@ -25,6 +32,10 @@ def _create_store(path: Path, zarr_format: int, value: int) -> LocalStore:
 
 def _snapshot(path: Path) -> dict[str, bytes]:
     return {file.relative_to(path).as_posix(): file.read_bytes() for file in path.rglob("*") if file.is_file()}
+
+
+def _snapshot_memory_store(store: MemoryStore) -> dict[str, bytes]:
+    return {key: value.to_bytes() for key, value in store._store_dict.items()}
 
 
 @pytest.mark.parametrize(("source_format", "target_format"), [(2, 3), (3, 2)])
@@ -102,12 +113,31 @@ def test_scheme_bearing_remote_source_copies_nonzero_keys():
 
 
 def test_separately_constructed_remote_stores_reject_same_target():
-    fs = fsspec.filesystem("memory")
-    source = copick_store(fs, "memory://same/store.zarr", create=True)
+    source_fs = fsspec.filesystem("memory", skip_instance_cache=True)
+    target_fs = fsspec.filesystem("memory", skip_instance_cache=True)
+    source = copick_store(source_fs, "memory://same/store.zarr", create=True)
     zarr.group(store=source, zarr_format=2)
-    target = copick_store(fs, "memory://same/store.zarr")
+    target = copick_store(target_fs, "memory://same/store.zarr")
 
-    with pytest.raises(ValueError, match="must be different"):
+    with pytest.raises(ValueError, match="non-overlapping"):
+        copy_zarr_store(source, target, if_exists="replace")
+
+
+@pytest.mark.parametrize(
+    ("source_path", "target_path"),
+    [
+        ("memory://nested/source.zarr", "memory://nested/source.zarr/child.zarr"),
+        ("memory://nested/parent.zarr/child.zarr", "memory://nested/parent.zarr"),
+    ],
+)
+def test_remote_store_containment_is_rejected_before_mutation(source_path, target_path):
+    source_fs = fsspec.filesystem("memory", skip_instance_cache=True)
+    target_fs = fsspec.filesystem("memory", skip_instance_cache=True)
+    source = copick_store(source_fs, source_path, create=True)
+    zarr.group(store=source, zarr_format=2)
+    target = copick_store(target_fs, target_path)
+
+    with pytest.raises(ValueError, match="non-overlapping"):
         copy_zarr_store(source, target, if_exists="replace")
 
 
@@ -119,10 +149,10 @@ def test_failed_local_stage_verification_preserves_target(tmp_path, monkeypatch)
     target = _create_store(target_path, 2, 3)
     before = _snapshot(target_path)
 
-    async def fail_verification(source, target, keys):
+    async def fail_verification(target, keys, manifest):
         raise IOError("verification failed")
 
-    monkeypatch.setattr(zarr_copy, "_verify_keys", fail_verification)
+    monkeypatch.setattr(zarr_copy, "_verify_manifest", fail_verification)
     with pytest.raises(IOError, match="verification failed"):
         copy_zarr_store(source, target, if_exists="replace")
 
@@ -133,10 +163,29 @@ class _CountingMemoryStore(MemoryStore):
     def __init__(self, store_dict=None, read_only=False):
         super().__init__(store_dict=store_dict, read_only=read_only)
         self.delete_calls = 0
+        self.get_calls = {}
 
     async def delete_dir(self, prefix: str) -> None:
         self.delete_calls += 1
         await super().delete_dir(prefix)
+
+    async def get(self, key, prototype, byte_range=None):
+        self.get_calls[key] = self.get_calls.get(key, 0) + 1
+        return await super().get(key, prototype, byte_range)
+
+
+class _CorruptingMemoryStore(_CountingMemoryStore):
+    def __init__(self, store_dict=None, read_only=False):
+        super().__init__(store_dict=store_dict, read_only=read_only)
+        self.corrupted = False
+
+    async def set(self, key, value):
+        if not self.corrupted and key not in {".zgroup", ".zattrs", "zarr.json"}:
+            payload = bytearray(value.to_bytes())
+            payload[-1] ^= 1
+            value = default_buffer_prototype().buffer.from_bytes(payload)
+            self.corrupted = True
+        await super().set(key, value)
 
 
 def test_remote_replacement_clears_target_once():
@@ -149,3 +198,69 @@ def test_remote_replacement_clears_target_once():
 
     assert target.delete_calls == 1
     assert list(zarr.open_group(target, mode="r").array_keys()) == ["new"]
+
+
+@pytest.mark.parametrize("target_format", [2, 3])
+def test_materialized_empty_group_is_available_to_raise_policy(target_format):
+    source = MemoryStore()
+    target = MemoryStore()
+    zarr.group(store=source, zarr_format=2).create_array("data", data=np.arange(4))
+    zarr.group(store=target, zarr_format=target_format)
+
+    result = copy_zarr_store(source, target, if_exists="raise", verify=True)
+
+    assert result.copied_keys > 0
+    np.testing.assert_array_equal(zarr.open_group(target, mode="r")["data"][:], np.arange(4))
+
+
+def test_nonempty_materialized_group_still_honors_raise_and_skip():
+    source = MemoryStore()
+    target = MemoryStore()
+    zarr.group(store=source, zarr_format=2).create_array("data", data=np.arange(4))
+    target_group = zarr.group(store=target, zarr_format=2)
+    target_group.attrs["owner"] = "existing"
+
+    with pytest.raises(FileExistsError, match="not empty"):
+        copy_zarr_store(source, target, if_exists="raise")
+    result = copy_zarr_store(source, target, if_exists="skip")
+
+    assert result.copied_keys == 0
+    assert zarr.open_group(target, mode="r").attrs["owner"] == "existing"
+
+
+def test_remote_verification_reads_each_target_key_once():
+    source = MemoryStore()
+    target = _CountingMemoryStore()
+    zarr.group(store=source, zarr_format=2).create_array("data", data=np.arange(8), chunks=(2,))
+    expected_keys = sorted(_snapshot_memory_store(source))
+
+    copy_zarr_store(source, target, verify=True)
+
+    assert target.get_calls == {key: 1 for key in expected_keys}
+
+
+def test_remote_verification_failure_clears_partial_replacement():
+    source = MemoryStore()
+    target = _CorruptingMemoryStore()
+    zarr.group(store=source, zarr_format=2).create_array("new", data=np.arange(8), chunks=(2,))
+    zarr.group(store=target, zarr_format=3).create_array("old", data=np.arange(2))
+    target.corrupted = False
+
+    with pytest.raises(IOError, match="does not match"):
+        copy_zarr_store(source, target, if_exists="replace", verify=True)
+
+    assert target.delete_calls == 2
+    assert _snapshot_memory_store(target) == {}
+
+
+def test_remote_failure_restores_new_entity_materialization():
+    source = MemoryStore()
+    target = _CorruptingMemoryStore()
+    zarr.group(store=source, zarr_format=2).create_array("new", data=np.arange(8), chunks=(2,))
+    zarr.group(store=target, zarr_format=2)
+    materialized = _snapshot_memory_store(target)
+
+    with pytest.raises(IOError, match="does not match"):
+        copy_zarr_store(source, target, if_exists="raise", verify=True)
+
+    assert _snapshot_memory_store(target) == materialized

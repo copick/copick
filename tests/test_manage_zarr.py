@@ -1,5 +1,7 @@
 """Zarr format-preservation contracts for manage copy and move operations."""
 
+from unittest.mock import patch
+
 import numpy as np
 import zarr
 from copick.impl.filesystem import CopickConfigFSSpec, CopickRootFSSpec
@@ -24,22 +26,26 @@ def _project(tmp_path):
 
 
 def test_manage_copy_preserves_legacy_store_without_numpy_round_trip(tmp_path, monkeypatch):
+    from copick.ops import manage
+
     root, run, source = _project(tmp_path)
 
     def reject_numpy(*args, **kwargs):
         raise AssertionError("manage copy must not decode the complete segmentation")
 
     monkeypatch.setattr(source, "numpy", reject_numpy)
-    result = copy_copick_objects(
-        root,
-        "segmentation",
-        "source:alice/1@10.0?multilabel=true",
-        "copied:bob/2@10.0?multilabel=true",
-        run_name="run",
-    )
+    with patch.object(manage, "copy_zarr_store", wraps=manage.copy_zarr_store) as raw_copy:
+        result = copy_copick_objects(
+            root,
+            "segmentation",
+            "source:alice/1@10.0?multilabel=true",
+            "copied:bob/2@10.0?multilabel=true",
+            run_name="run",
+        )
 
     assert result["errors"] == []
     assert result["copied"] == 1
+    assert raw_copy.call_args.kwargs["verify"] is False
     copied = run.get_segmentations(name="copied", user_id="bob", session_id="2", voxel_size=10.0)[0]
     verify_zarr_store_copy(source.zarr(), copied.zarr())
     assert zarr.open_group(copied.zarr(), mode="r").metadata.zarr_format == 2
@@ -53,9 +59,10 @@ def test_manage_move_deletes_source_only_after_target_verification(tmp_path, mon
     source_path = source.path
 
     def reject_verification(*args, **kwargs):
+        assert kwargs["verify"] is True
         raise IOError("verification failed")
 
-    monkeypatch.setattr(manage, "verify_zarr_store_copy", reject_verification)
+    monkeypatch.setattr(manage, "copy_zarr_store", reject_verification)
     result = move_copick_objects(
         root,
         "segmentation",
@@ -71,19 +78,23 @@ def test_manage_move_deletes_source_only_after_target_verification(tmp_path, mon
 
 
 def test_manage_move_preserves_store_and_removes_verified_source(tmp_path):
+    from copick.util import zarr_copy
+
     root, run, source = _project(tmp_path)
     source_path = source.path
 
-    result = move_copick_objects(
-        root,
-        "segmentation",
-        "source:alice/1@10.0?multilabel=true",
-        "moved:bob/2@10.0?multilabel=true",
-        run_name="run",
-    )
+    with patch.object(zarr_copy, "_verify_manifest", wraps=zarr_copy._verify_manifest) as verification:
+        result = move_copick_objects(
+            root,
+            "segmentation",
+            "source:alice/1@10.0?multilabel=true",
+            "moved:bob/2@10.0?multilabel=true",
+            run_name="run",
+        )
 
     assert result["errors"] == []
     assert result["moved"] == 1
+    assert verification.call_count == 1
     assert not run.fs_overlay.exists(source_path)
     moved = run.get_segmentations(name="moved", user_id="bob", session_id="2", voxel_size=10.0)[0]
     assert zarr.open_group(moved.zarr(), mode="r").metadata.zarr_format == 2

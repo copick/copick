@@ -229,7 +229,12 @@ def _sync_segmentations_worker(
                 # Copy segmentation data
                 src = segmentation.zarr()
                 trg = target_seg.zarr()
-                copy_zarr_store(src, trg, if_exists="replace")
+                copy_zarr_store(
+                    src,
+                    trg,
+                    if_exists="replace" if exist_ok else "raise",
+                    verify=True,
+                )
 
                 result["processed"] += 1
 
@@ -316,7 +321,12 @@ def _sync_tomograms_worker(
                         # Copy tomogram data
                         src = source_tomogram.zarr()
                         trg = target_tomogram.zarr()
-                        copy_zarr_store(src, trg, if_exists="replace")
+                        copy_zarr_store(
+                            src,
+                            trg,
+                            if_exists="replace" if exist_ok else "raise",
+                            verify=True,
+                        )
 
                         result["processed"] += 1
 
