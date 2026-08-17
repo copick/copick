@@ -54,8 +54,8 @@ input. A claim that a real migrated portal store was verified is prohibited.
 
 ## Optional SMB evidence
 
-The named `ubuntu smb v3 corpus py3.13 (optional)` job runs the same selected
-corpus tests through the repository's Samba container. The job is marked
-`continue-on-error`; its result may support a dated best-effort compatibility
-statement, but cannot block the migration release or be reported as one of the
-four verified required backends.
+SMB is not scheduled in the release-gating CI matrix. It can be exercised
+manually against the repository's Samba container by selecting `BACKEND=smb`,
+`RUN_ALL=1`, `COPICK_TEST_ZARR_FORMAT=v3`, and the `remote_corpus_parity`
+marker. A successful manual run may support a dated best-effort compatibility
+statement, but cannot replace one of the four verified required backends.

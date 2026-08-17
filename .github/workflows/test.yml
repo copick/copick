@@ -311,43 +311,6 @@ jobs:
       - name: Run live portal smoke test
         run: uv run --no-sync pytest -vvv -p no:warnings --color=yes -m portal tests/test_cli.py
 
-  test-optional-smb:
-    name: ubuntu smb v3 corpus py3.13 (optional)
-    needs: prepare-test-corpus
-    runs-on: ubuntu-latest
-    continue-on-error: true
-    env:
-      BACKEND: smb
-      COPICK_TEST_ZARR_FORMAT: v3
-      RUN_ALL: 1
-
-    steps:
-      - uses: actions/checkout@v7
-
-      - name: Download shared test corpus
-        uses: actions/download-artifact@v7
-        with:
-          name: copick-test-corpus
-          path: ${{ env.COPICK_TEST_DATA_CACHE }}
-
-      - name: Install uv
-        uses: astral-sh/setup-uv@ae62891fec2bb8e7d6c99fc78c9fec3a63790f8d # v10.0.0
-        with:
-          version: "0.12.4"
-          python-version: "3.13"
-
-      - name: Install copick with SMB support
-        run: uv sync --locked --extra test --extra dev --extra smb
-
-      - name: Run optional SMB corpus parity
-        run: >
-          uv run --no-sync pytest -vvv -p no:warnings --color=yes
-          -m remote_corpus_parity -n 0 tests
-
-      - name: Stop SMB service
-        if: always()
-        run: docker compose -f tests/docker-compose.yml --profile smb down
-
   test-ubuntu-s3:
     name: ubuntu s3 py${{ matrix.python-version }}
     needs: prepare-test-corpus
