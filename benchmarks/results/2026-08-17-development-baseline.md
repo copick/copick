@@ -1,10 +1,12 @@
 # Development benchmark baseline: 2026-08-17
 
-This pre-PR baseline exercises the default representative cases with one read
+This development baseline exercises the default representative cases with one read
 sample per operation. The local and Moto-S3 runs used the same Apple Silicon
 host, Python 3.13.3, Zarr 3.3.0, NumPy 2.4.2, `(128, 128, 128)` inner chunks,
 and the deterministic benchmark input. Moto listened on loopback, so these
 timings validate the code path rather than approximate production S3 latency.
+Both runs observed `get` and `get_ranges`; ranged-read bytes therefore include
+the complete fetched span when Zarr supplied explicit coalesced ranges.
 
 ## Local filesystem
 
