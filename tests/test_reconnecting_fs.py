@@ -27,6 +27,13 @@ class SFTPError(OSError):
     pass
 
 
+class SSHFileSystem(MemoryFileSystem):
+    """Model sshfs's async cat_file implementation, which ignores ranges."""
+
+    def cat_file(self, path, start=None, end=None, **kwargs):
+        return super().cat_file(path, **kwargs)
+
+
 # -- Tests for _is_connection_error --
 
 
@@ -147,6 +154,19 @@ def test_read_recovers_once_on_replacement_filesystem():
     assert fs.cat_file("/test/value") == b"recovered"
     fs._create_filesystem.assert_called_once()
     assert fs._generation == 1
+
+
+def test_ssh_cat_file_fallback_preserves_positive_and_suffix_ranges():
+    fs = ReconnectingFileSystem("memory://test")
+    ssh = SSHFileSystem(skip_instance_cache=True)
+    payload = b"0123456789"
+    ssh.pipe_file("/test/value", payload)
+    fs._fs = ssh
+
+    assert fs.cat_file("/test/value") == payload
+    assert fs.cat_file("/test/value", start=2, end=6) == b"2345"
+    assert fs.cat_file("/test/value", start=-4) == b"6789"
+    assert fs.cat_file("/test/value", end=-2) == b"01234567"
 
 
 def test_write_recovers_once_on_replacement_filesystem():
