@@ -31,6 +31,21 @@ def test_run_case_measures_one_shard_io_and_preserves_values(tmp_path):
     assert region["summary"]["io_amplification_median"] > 1
 
 
+def test_run_benchmark_records_zarr_concurrency(tmp_path):
+    with benchmark.zarr.config.set({"async.concurrency": 1}):
+        report = benchmark.run_benchmark(
+            backend="local",
+            root=f"local://{tmp_path}",
+            storage_options={},
+            cases={"unit": (12, 14, 16)},
+            chunks=(8, 8, 8),
+            repeats=1,
+            keep=False,
+        )
+
+    assert report["runtime"]["zarr_async_concurrency"] == 1
+
+
 def test_cli_writes_machine_and_human_readable_reports(tmp_path, monkeypatch):
     json_path = tmp_path / "nested" / "result.json"
     markdown_path = tmp_path / "nested" / "result.md"

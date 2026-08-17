@@ -26,12 +26,11 @@ from typing import Any
 import numpy as np
 import psutil
 import zarr
-from zarr.abc.store import Store
-from zarr.storage import WrapperStore
-
 from copick.util.ome import get_level_path, write_ome_zarr_3d
 from copick.util.reconnecting_fs import ReconnectingFileSystem
 from copick.util.store import copick_store
+from zarr.abc.store import Store
+from zarr.storage import WrapperStore
 
 DEFAULT_CASES = {
     "small": (96, 112, 120),
@@ -534,6 +533,7 @@ def run_benchmark(
             "platform": platform.platform(),
             "zarr": zarr.__version__,
             "numpy": np.__version__,
+            "zarr_async_concurrency": zarr.config.get("async.concurrency"),
         },
         "cases": results,
     }
