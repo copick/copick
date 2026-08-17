@@ -17,6 +17,7 @@ nav = [
     {"Get Started" = [
         {"Overview" = "get-started/index.md"},
         {"Quick Start" = "quickstart.md"},
+        {"Upgrading to 2.0" = "upgrade_2_0.md"},
         {"Setup" = [
             {"Local Project" = "examples/setup/local.md"},
             {"Shared Project" = "examples/setup/shared.md"},

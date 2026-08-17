@@ -177,14 +177,16 @@ where the vectors follow the ZYX ordering convention.
 
 ### 3.4 Multiscale Pyramids
 
-Tomograms and segmentations are stored as multiscale pyramids with successive 2× downsampling. The available resolution
-levels are typically:
+Tomograms and segmentations are stored as multiscale pyramids with successive 2× downsampling. Dataset paths are
+defined by OME metadata and are not required to be numeric. Copick-created output currently uses numeric paths, but
+readers must resolve the path for a level with `copick.util.ome.get_level_path` instead of indexing `"0"` directly or
+depending on `Group.arrays()` iteration order. For example:
 
-| Level | Scale Factor | Voxel Spacing |
-|-------|--------------|---------------|
-| `"0"` | 1× | $s$ |
-| `"1"` | 2× | $2s$ |
-| `"2"` | 4× | $4s$ |
+| Level index | Copick-created path | Scale factor | Voxel spacing |
+|-------------|---------------------|--------------|---------------|
+| 0 | `"0"` | 1× | $s$ |
+| 1 | `"1"` | 2× | $2s$ |
+| 2 | `"2"` | 4× | $4s$ |
 
 For a voxel at index $\mathbf{i}$ in level $n$, the corresponding index in level $0$ is approximately:
 

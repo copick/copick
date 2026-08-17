@@ -7,17 +7,18 @@ channels:
   - conda-forge
   - defaults
 dependencies:
-  - python=3.11
+  - python>=3.11
   - pip
-  - zarr
-  - ome-zarr
-  - numpy<2
+  - zarr>=3.1.6,<4
+  - ome-zarr>=0.12.2
+  - numcodecs>=0.16.4
+  - numpy>=2.0.2
   - scipy
   - scikit-image
   - trimesh
   - pip:
     - album
-    - "copick[all]>=0.5.2"
+    - "copick[all]>=2.0.0,<3"
 """
 
 args = [

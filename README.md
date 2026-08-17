@@ -124,6 +124,12 @@ To test with the example dataset:
 
     # Access the data
     group = zarr.open(tomogram.zarr(), mode="r")
+
+    # Inspect every stored array without assuming numeric names or iteration order
+    for path, candidate in group.arrays():
+        print(path, candidate.shape)
+
+    # Select OME pyramid levels from metadata
     array = group[get_level_path(group, 0)]
     ```
 
