@@ -1,0 +1,58 @@
+name: Zarr v3 direct-reader fixture
+
+on:
+  pull_request:
+    paths:
+      - ".github/workflows/zarr-v3-interop-fixture.yml"
+      - "tests/scripts/build_v3_interop_fixture.py"
+      - "tests/test_v3_interop_fixture.py"
+      - "src/copick/util/ome.py"
+      - "uv.lock"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  fixture:
+    name: exact canonical artifact
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v7
+
+      - name: Install uv
+        uses: astral-sh/setup-uv@ae62891fec2bb8e7d6c99fc78c9fec3a63790f8d # v10.0.0
+        with:
+          version: "0.12.4"
+          python-version: "3.13"
+
+      - name: Install locked validation environment
+        run: uv sync --locked --extra test --extra dev
+
+      - name: Build and prove deterministic canonical fixture
+        run: |
+          mkdir -p direct-reader-artifacts
+          uv run --no-sync python tests/scripts/build_v3_interop_fixture.py \
+            --output direct-reader-artifacts/copick-v3-direct-reader-fixture.zip
+          uv run --no-sync python tests/scripts/build_v3_interop_fixture.py \
+            --output direct-reader-artifacts/repeated.zip
+          cmp direct-reader-artifacts/copick-v3-direct-reader-fixture.zip \
+            direct-reader-artifacts/repeated.zip
+          rm direct-reader-artifacts/repeated.zip
+
+      - name: Record archive checksum
+        working-directory: direct-reader-artifacts
+        run: sha256sum copick-v3-direct-reader-fixture.zip > copick-v3-direct-reader-fixture.zip.sha256
+
+      - name: Upload exact reader fixture
+        uses: actions/upload-artifact@v7
+        with:
+          name: copick-v3-direct-reader-fixture
+          path: direct-reader-artifacts/
+          if-no-files-found: error
+          retention-days: 30
