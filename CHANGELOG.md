@@ -1,42 +1,5 @@
 # Changelog
 
-## 2.0.0 (unreleased)
-
-### ⚠ BREAKING CHANGES
-
-* Drop Python 3.10; copick now requires Python 3.11 or newer.
-* Move the image runtime to `zarr>=3.1.6,<4` and `ome-zarr>=0.12.2`. Public `.zarr()` methods now return a
-  `zarr.abc.store.Store`, not a `MutableMapping` or Zarr 2 `FSStore`.
-* Create and semantically rebuild image pyramids as OME-Zarr 0.5 backed by Zarr v3. This changes the output format for
-  new tomograms, segmentations, object maps, and feature arrays.
-
-### ✨ OME-Zarr 0.5 / Zarr v3 migration
-
-* Continue reading existing Zarr v2 projects and supported noncanonical Zarr v3 layouts. An upgrade does not rewrite
-  legacy stores in place.
-* Resolve multiscale datasets from OME metadata. Copick-created output uses numeric level paths, but readers no longer
-  assume `"0"` or depend on `Group.arrays()` order and accept metadata-defined labels such as `"s0"`.
-* Make whole-store copy paths format-preserving: segmentation copy/move, project sync, and Zarr export with
-  `--copy-all-levels` preserve raw keys, Zarr version, metadata, chunk/shard layout, codecs, and non-Zarr keys.
-  Single-level Zarr export is a semantic rewrite that emits a new OME-Zarr 0.5 / Zarr v3 hierarchy at output path
-  `"0"` with rebuilt one-level metadata.
-* Apply a writer-only `(128, 128, 128)` inner-chunk default and one padded shard per 3D level. Each shard dimension is
-  `chunks[i] * ceil(shape[i] / chunks[i])`; explicit chunk and shard overrides remain available. Padded uncompressed
-  shards above 5 GB warn and shards at or above 5 TB are rejected. Region updates can rewrite a volume-sized shard.
-* Write boolean and integer arrays with standalone Zstandard level 3. Write floating arrays with dtype-sized
-  `numcodecs.shuffle` followed by standalone Zstandard level 3; direct readers must support that extension for exact
-  compatibility with copick-authored floating output.
-* Preserve 3D feature volumes and add feature-major 4D `(feature, z, y, x)` arrays with one feature per default inner
-  chunk and one padded spatial shard per feature volume.
-
-### Operational notes
-
-* After another process changes a project, call `root.refresh()` or the relevant entity `refresh()` method before
-  querying cached children. Use `root.reconnect()` after a dropped remote connection to recreate the filesystem and
-  invalidate cached entities.
-* Local filesystems, S3, SSH, and MLCroissant are release-gating backends. SMB is best-effort and explicitly
-  non-gating; validate it against the intended server before claiming deployment-specific compatibility.
-
 ## [1.26.1](https://github.com/copick/copick/compare/copick-v1.26.0...copick-v1.26.1) (2026-07-07)
 
 

@@ -20,7 +20,7 @@ In the config file, the location should be passed to the `static_root`-field. An
 
 
 ??? note "More about `static_fs_args` ..."
-    The `auto_mkdir`-flag is necessary to create copick-directories if they do not yet exist. The `tmpath`-flag is not
+    The `auto_mkdir`-flag is necessary to create copick-directories if they do not yet exist. The `temppath`-flag is not
     strictly necessary, this depends on your SMB setup (e.g. if only a specific directory is shared).
 
     ```json
