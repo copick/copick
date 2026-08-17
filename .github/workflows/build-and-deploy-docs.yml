@@ -65,6 +65,12 @@ jobs:
       - name: Install copick-easymode for CLI introspection
         run: uv pip install --no-deps "copick-easymode @ git+https://github.com/copick/copick-easymode.git"
 
+      # Plugin dependency resolution can replace the checkout with the latest
+      # released copick wheel. Restore the branch under test without removing
+      # the separately installed plugins.
+      - name: Restore copick from the checkout
+        run: uv pip install --no-deps --editable .
+
       # Regenerate the per-command CLI reference pages and the CLI-Reference nav node
       # from the live --help/docstrings before building.
       - name: Generate CLI reference
