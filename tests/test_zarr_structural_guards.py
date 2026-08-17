@@ -37,7 +37,7 @@ STORE_ARGUMENT_NAMES = {"loc", "source", "source_store", "store", "target", "tar
 # Every entry must correspond to a violation observed by the repository scan,
 # which prevents stale or overly broad exemptions.
 ALLOWED_VIOLATIONS = {
-    ("tests/test_ome_writer.py", "test_writer_preserves_v2_golden_contract", "metadata_level_path"),
+    ("tests/test_ome_writer.py", "test_writer_emits_v3_ome_zarr_05_contract", "metadata_level_path"),
     ("tests/test_ome_writer.py", "test_writer_preserves_default_chunk_shape", "metadata_level_path"),
     ("tests/test_ome_writer.py", "test_zarr_handler_uses_canonical_writer_contract", "metadata_level_path"),
 }
@@ -139,7 +139,7 @@ class ZarrStructuralGuard(ast.NodeVisitor):
         format_value = self._keyword(call, "zarr_format")
         if self.path.startswith("tests/"):
             return format_value is not None
-        return _is_constant(format_value, 2)
+        return _is_constant(format_value, 2) or _is_constant(format_value, 3)
 
     @staticmethod
     def _is_typing_literal(node):
@@ -235,11 +235,11 @@ class ZarrStructuralGuard(ast.NodeVisitor):
                         f"creation through zarr.{entry_point} requires an explicit supported zarr_format",
                     )
 
-        if call_name == "ome_zarr.writer.write_multiscale" and self._keyword(node, "fmt") is None:
+        if call_name == "ome_zarr.writer.write_multiscale":
             self._add(
                 node,
-                "explicit_write_multiscale_format",
-                "write_multiscale requires an explicit fmt keyword",
+                "removed_write_multiscale",
+                "write_multiscale is not permitted after the canonical numeric-path writer cutover",
             )
 
         self.generic_visit(node)
@@ -307,10 +307,9 @@ def test_guard_rejects_creation_without_explicit_v2_format(entry_point):
     assert "explicit_zarr_format" in {violation.rule for violation in violations}
 
 
-def test_guard_rejects_wrong_production_creation_format():
-    violations = find_violations("import zarr\nzarr.group(store, zarr_format=3)\n")
-
-    assert "explicit_zarr_format" in {violation.rule for violation in violations}
+def test_guard_accepts_both_explicit_supported_production_formats():
+    assert find_violations("import zarr\nzarr.group(store, zarr_format=2)\n") == []
+    assert find_violations("import zarr\nzarr.group(store, zarr_format=3)\n") == []
 
 
 @pytest.mark.parametrize("entry_point", sorted(ZARR_OPEN_ENTRY_POINTS))
@@ -327,10 +326,11 @@ def test_guard_rejects_open_without_explicit_mode(entry_point):
     assert "explicit_open_mode" in {violation.rule for violation in violations}
 
 
-def test_guard_rejects_write_multiscale_without_explicit_format():
-    source = "from ome_zarr.writer import write_multiscale\nwrite_multiscale(images, group=group)\n"
+@pytest.mark.parametrize("fmt", ["", ", fmt=fmt"])
+def test_guard_rejects_write_multiscale(fmt):
+    source = f"from ome_zarr.writer import write_multiscale\nwrite_multiscale(images, group=group{fmt})\n"
 
-    assert "explicit_write_multiscale_format" in {violation.rule for violation in find_violations(source)}
+    assert "removed_write_multiscale" in {violation.rule for violation in find_violations(source)}
 
 
 @pytest.mark.parametrize(
@@ -369,8 +369,6 @@ def test_guard_rejects_level_reads_that_bypass_metadata(statement):
 def test_guard_accepts_explicit_v2_creation_and_metadata_level_resolution():
     source = """
 import zarr
-from ome_zarr.writer import write_multiscale
-
 zarr.open(store, mode="w", zarr_format=2)
 zarr.open_group(store, mode="w", zarr_format=2)
 zarr.open_array(store, mode="w", zarr_format=2)
@@ -379,7 +377,6 @@ zarr.create(shape, zarr_format=2)
 zarr.array(data, zarr_format=2)
 zarr.create_group(store, zarr_format=2)
 zarr.create_array(store, zarr_format=2)
-write_multiscale(images, group=group, fmt=fmt)
 array = group[get_level_path(group, level)]
 group.create_dataset("0", data=data)
 assert "0" in group
@@ -401,7 +398,7 @@ write(images, group=group)
 
     assert {violation.rule for violation in find_violations(source)} == {
         "explicit_open_mode",
-        "explicit_write_multiscale_format",
+        "removed_write_multiscale",
         "explicit_zarr_format",
     }
 
@@ -409,7 +406,7 @@ write(images, group=group)
 def test_guard_resolves_dotted_writer_import():
     source = "import ome_zarr.writer\nome_zarr.writer.write_multiscale(images, group=group)\n"
 
-    assert "explicit_write_multiscale_format" in {violation.rule for violation in find_violations(source)}
+    assert "removed_write_multiscale" in {violation.rule for violation in find_violations(source)}
 
 
 @pytest.mark.parametrize(

@@ -1,7 +1,6 @@
-"""Golden contracts for the centralized OME-Zarr 0.4 / Zarr v2 writer."""
+"""Golden contracts for the centralized OME-Zarr 0.5 / Zarr v3 writer."""
 
 import ast
-import hashlib
 import json
 from pathlib import Path
 
@@ -10,6 +9,7 @@ import pytest
 import zarr
 from copick.util.handlers.volume.zarr import ZarrVolumeHandler
 from copick.util.ome import write_ome_zarr_3d
+from ome_zarr_models.v05.image import Image
 from zarr.storage import LocalStore
 
 
@@ -22,7 +22,7 @@ def writer_pyramid():
 
 
 @pytest.mark.parametrize("target_kind", ["path", "store"])
-def test_writer_preserves_v2_golden_contract(tmp_path, writer_pyramid, target_kind):
+def test_writer_emits_v3_ome_zarr_05_contract(tmp_path, writer_pyramid, target_kind):
     path = tmp_path / f"{target_kind}.zarr"
     target = str(path) if target_kind == "path" else LocalStore(path)
 
@@ -30,11 +30,13 @@ def test_writer_preserves_v2_golden_contract(tmp_path, writer_pyramid, target_ki
 
     store = LocalStore(path)
     group = zarr.open_group(store, mode="r")
-    assert json.loads((path / ".zgroup").read_text())["zarr_format"] == 2
+    assert json.loads((path / "zarr.json").read_text())["zarr_format"] == 3
+    assert not (path / ".zgroup").exists()
 
-    multiscale = group.attrs["multiscales"][0]
+    assert Image.from_zarr(group).ome_zarr_version == "0.5"
+    assert group.attrs["ome"]["version"] == "0.5"
+    multiscale = group.attrs["ome"]["multiscales"][0]
     assert multiscale == {
-        "version": "0.4",
         "datasets": [
             {
                 "path": "0",
@@ -46,7 +48,6 @@ def test_writer_preserves_v2_golden_contract(tmp_path, writer_pyramid, target_ki
             },
         ],
         "name": "/",
-        "metadata": {},
         "axes": [
             {"name": "z", "type": "space", "unit": "angstrom"},
             {"name": "y", "type": "space", "unit": "angstrom"},
@@ -58,21 +59,9 @@ def test_writer_preserves_v2_golden_contract(tmp_path, writer_pyramid, target_ki
     for level, expected in enumerate(writer_pyramid.values()):
         array = group[str(level)]
         assert array.chunks == (2, 2, 2)
-        assert array.compressor.get_config() == {
-            "id": "blosc",
-            "cname": "lz4",
-            "clevel": 5,
-            "shuffle": 1,
-            "blocksize": 0,
-        }
-        assert json.loads((path / str(level) / ".zarray").read_text())["dimension_separator"] == "/"
+        assert array.metadata.zarr_format == 3
+        assert array.metadata.dimension_names == ("z", "y", "x")
         np.testing.assert_array_equal(array[:], expected)
-
-    assert (path / "0" / "0" / "0" / "0").is_file()
-    assert not (path / "0" / "0.0.0").exists()
-    assert hashlib.sha256((path / "0" / "0" / "0" / "0").read_bytes()).hexdigest() == (
-        "c7a26c789036035c6e7ab41ca5f84ead654aca7654df2321229d3b9a688e8a16"
-    )
 
 
 @pytest.mark.parametrize("metadata", [None, {"source": "golden-test"}])
@@ -81,7 +70,7 @@ def test_writer_preserves_explicit_metadata_value(tmp_path, writer_pyramid, meta
     write_ome_zarr_3d(path, writer_pyramid, metadata=metadata)
 
     group = zarr.open_group(path, mode="r")
-    assert group.attrs["multiscales"][0]["metadata"] == metadata
+    assert group.attrs["ome"]["multiscales"][0]["metadata"] == metadata
 
 
 def test_writer_preserves_default_chunk_shape(tmp_path, writer_pyramid):
@@ -102,13 +91,34 @@ def test_zarr_handler_uses_canonical_writer_contract(tmp_path, writer_pyramid):
 
     store = LocalStore(path)
     group = zarr.open_group(store, mode="r")
-    assert group.attrs["multiscales"][0]["version"] == "0.4"
-    assert group.attrs["multiscales"][0]["datasets"][0]["path"] == "0"
-    assert (Path(path) / "0" / "0" / "0" / "0").is_file()
+    assert group.metadata.zarr_format == 3
+    assert group.attrs["ome"]["version"] == "0.5"
+    assert group.attrs["ome"]["multiscales"][0]["datasets"][0]["path"] == "0"
+    assert group["0"].metadata.dimension_names == ("z", "y", "x")
     np.testing.assert_array_equal(group["0"][:], volume)
 
 
-def test_shared_helper_is_the_only_write_multiscale_callsite():
+def test_writer_replaces_deeper_v2_pyramid_without_orphaned_metadata(tmp_path, writer_pyramid):
+    path = tmp_path / "legacy.zarr"
+    legacy = zarr.group(store=LocalStore(path), zarr_format=2)
+    legacy.create_array("0", data=np.ones((2, 2, 2)), chunks=(2, 2, 2))
+    legacy.create_array("1", data=np.ones((1, 1, 1)), chunks=(1, 1, 1))
+    legacy.create_array("2", data=np.ones((1, 1, 1)), chunks=(1, 1, 1))
+    legacy.attrs["multiscales"] = [{"version": "0.4", "datasets": [{"path": str(i)} for i in range(3)]}]
+
+    write_ome_zarr_3d(LocalStore(path), {10.0: writer_pyramid[10.0]}, chunk_size=(2, 2, 2))
+
+    group = zarr.open_group(LocalStore(path), mode="r")
+    assert group.metadata.zarr_format == 3
+    assert set(group.array_keys()) == {"0"}
+    assert set(group.attrs) == {"ome"}
+    assert not list(path.rglob(".zgroup"))
+    assert not list(path.rglob(".zarray"))
+    assert not list(path.rglob(".zattrs"))
+    assert not list(path.rglob(".zmetadata"))
+
+
+def test_shared_helper_is_the_only_multiscales_metadata_writer_callsite():
     source_root = Path(__file__).parents[1] / "src" / "copick"
     callsites = []
     imports = []
@@ -117,12 +127,16 @@ def test_shared_helper_is_the_only_write_multiscale_callsite():
         tree = ast.parse(source_path.read_text(encoding="utf-8"))
         relative_path = source_path.relative_to(source_root)
         for node in ast.walk(tree):
-            if isinstance(node, ast.Call) and isinstance(node.func, ast.Name) and node.func.id == "write_multiscale":
+            if (
+                isinstance(node, ast.Call)
+                and isinstance(node.func, ast.Name)
+                and node.func.id == "write_multiscales_metadata"
+            ):
                 callsites.append(relative_path)
             if (
                 isinstance(node, ast.ImportFrom)
                 and node.module == "ome_zarr.writer"
-                and any(alias.name == "write_multiscale" for alias in node.names)
+                and any(alias.name == "write_multiscales_metadata" for alias in node.names)
             ):
                 imports.append(relative_path)
 

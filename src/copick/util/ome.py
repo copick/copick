@@ -178,10 +178,10 @@ def write_ome_zarr_3d(
     overwrite: bool = True,
     metadata: Any = _DEFAULT_WRITER_METADATA,
 ) -> None:
-    """Write a 3D pyramid as OME-Zarr 0.4 / Zarr v2.
+    """Write a 3D pyramid as OME-Zarr 0.5 / Zarr v3.
 
     Args:
-        store: A path string or mutable Zarr store to write to.
+        store: A path string or Zarr store to write to.
         pyramid: The pyramid to write.
         chunk_size: The chunk size to use for the Zarr store. Default is (256, 256, 256).
         overwrite: Whether to overwrite an existing group and arrays.
@@ -189,32 +189,43 @@ def write_ome_zarr_3d(
     """
     # This is a super heavy import, so we do it here to avoid loading it before it's needed.
     # Writing is slow anyway.
-    from ome_zarr.format import FormatV04
-    from ome_zarr.writer import write_multiscale
+    from ome_zarr.format import FormatV05
+    from ome_zarr.writer import write_multiscales_metadata
 
     ome_meta = ome_metadata(pyramid)
-    root_group = zarr.group(store=store, overwrite=overwrite, zarr_format=2)
-    compressor = Blosc(cname="lz4", clevel=5, shuffle=Blosc.SHUFFLE)
+    root_group = zarr.group(store=store, overwrite=overwrite, zarr_format=3)
     writer_metadata = {} if metadata is _DEFAULT_WRITER_METADATA else metadata
     ome_zarr_metadata = writer_metadata if isinstance(writer_metadata, dict) else {}
 
-    write_multiscale(
-        list(pyramid.values()),
-        group=root_group,
-        fmt=FormatV04(),
+    datasets = []
+    dimension_names = tuple(axis["name"] for axis in ome_meta["axes"])
+    for level, (voxel_size, array) in enumerate(pyramid.items()):
+        path = str(level)
+        root_group.create_array(
+            path,
+            data=array,
+            chunks=chunk_size,
+            dimension_names=dimension_names,
+            overwrite=overwrite,
+        )
+        datasets.append(
+            {
+                "path": path,
+                "coordinateTransformations": [_ome_zarr_transforms(voxel_size)],
+            },
+        )
+
+    write_multiscales_metadata(
+        root_group,
+        datasets,
+        fmt=FormatV05(),
         axes=ome_meta["axes"],
-        coordinate_transformations=ome_meta["coordinate_transformations"],
-        storage_options={
-            "chunks": chunk_size,
-            "compressor": compressor,
-            "overwrite": overwrite,
-        },
-        compute=True,
         metadata=ome_zarr_metadata,
     )
-    multiscales = root_group.attrs["multiscales"]
-    multiscales[0]["metadata"] = copy.deepcopy(writer_metadata)
-    root_group.attrs["multiscales"] = multiscales
+    if metadata is not _DEFAULT_WRITER_METADATA:
+        ome = copy.deepcopy(root_group.attrs["ome"])
+        ome["multiscales"][0]["metadata"] = copy.deepcopy(writer_metadata)
+        root_group.attrs["ome"] = ome
 
 
 def iter_chunk_slices(shape: Tuple[int, ...], chunks: Tuple[int, ...]) -> Iterator[Tuple[slice, ...]]:
