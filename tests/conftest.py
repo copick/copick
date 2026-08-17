@@ -500,7 +500,11 @@ if BACKEND in ("all", "ssh") and importlib_util.find_spec("sshfs") and RUN_ALL:
 
         subprocess.run(
             ["docker", "compose", "-f", str(DOCKER_COMPOSE_FILE), "--profile", "sshfs", "up", "-d"],
-            check=True,
+            # xdist workers can race while starting the shared container. One
+            # compose process may report a name conflict even though the other
+            # successfully started the service; the authenticated probe below
+            # is the authoritative readiness check.
+            check=False,
         )
 
         # An open TCP port is not sufficient: linuxserver starts accepting
