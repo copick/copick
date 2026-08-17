@@ -38,6 +38,12 @@ DEFAULT_CASES = {
 }
 DEFAULT_CHUNKS = (128, 128, 128)
 _SENSITIVE_OPTION_PARTS = ("credential", "key", "password", "secret", "token")
+READ_BYTE_SEMANTICS = {
+    "get": "returned_payload",
+    "get_partial_values": "returned_payload",
+    "_get_many": "returned_payload",
+    "get_ranges": "coalesced_span_for_explicit_ranges_else_returned_payload",
+}
 
 
 def _is_data_key(key: str) -> bool:
@@ -57,6 +63,7 @@ class IOStats:
     data_read_bytes: int = 0
     data_write_requests: int = 0
     data_write_bytes: int = 0
+    read_methods: dict[str, int] = field(default_factory=dict)
     reads_by_key: dict[str, dict[str, int]] = field(default_factory=dict)
     writes_by_key: dict[str, dict[str, int]] = field(default_factory=dict)
 
@@ -74,11 +81,13 @@ class RecordingStore(WrapperStore):
         self._stats_lock = threading.Lock()
         self._reads: dict[str, list[int]] = defaultdict(lambda: [0, 0])
         self._writes: dict[str, list[int]] = defaultdict(lambda: [0, 0])
+        self._read_methods: dict[str, int] = defaultdict(int)
 
-    def _record_read(self, key: str, size: int) -> None:
+    def _record_read(self, key: str, size: int, method: str) -> None:
         with self._stats_lock:
             self._reads[key][0] += 1
             self._reads[key][1] += size
+            self._read_methods[method] += 1
 
     def _record_write(self, key: str, size: int) -> None:
         with self._stats_lock:
@@ -89,6 +98,7 @@ class RecordingStore(WrapperStore):
         with self._stats_lock:
             reads = {key: {"requests": value[0], "bytes": value[1]} for key, value in self._reads.items()}
             writes = {key: {"requests": value[0], "bytes": value[1]} for key, value in self._writes.items()}
+            read_methods = dict(sorted(self._read_methods.items()))
         return IOStats(
             read_requests=sum(value["requests"] for value in reads.values()),
             read_bytes=sum(value["bytes"] for value in reads.values()),
@@ -98,6 +108,7 @@ class RecordingStore(WrapperStore):
             data_read_bytes=sum(value["bytes"] for key, value in reads.items() if _is_data_key(key)),
             data_write_requests=sum(value["requests"] for key, value in writes.items() if _is_data_key(key)),
             data_write_bytes=sum(value["bytes"] for key, value in writes.items() if _is_data_key(key)),
+            read_methods=read_methods,
             reads_by_key=reads,
             writes_by_key=writes,
         )
@@ -129,20 +140,25 @@ class RecordingStore(WrapperStore):
         values = {name: getattr(after, name) - getattr(before, name) for name in scalar_fields}
         return IOStats(
             **values,
+            read_methods={
+                method: count - before.read_methods.get(method, 0)
+                for method, count in after.read_methods.items()
+                if count - before.read_methods.get(method, 0)
+            },
             reads_by_key=mapping_delta(after.reads_by_key, before.reads_by_key),
             writes_by_key=mapping_delta(after.writes_by_key, before.writes_by_key),
         )
 
     async def get(self, key, prototype, byte_range=None):
         value = await self._store.get(key, prototype, byte_range)
-        self._record_read(key, 0 if value is None else len(value))
+        self._record_read(key, 0 if value is None else len(value), "get")
         return value
 
     async def get_partial_values(self, prototype, key_ranges):
         ranges = list(key_ranges)
         values = await self._store.get_partial_values(prototype, ranges)
         for (key, _byte_range), value in zip(ranges, values, strict=True):
-            self._record_read(key, 0 if value is None else len(value))
+            self._record_read(key, 0 if value is None else len(value), "get_partial_values")
         return values
 
     async def get_ranges(self, key, byte_ranges, **kwargs):
@@ -154,13 +170,13 @@ class RecordingStore(WrapperStore):
                 size = max(item.end for item in explicit) - min(item.start for item in explicit)
             else:
                 size = sum(0 if value is None else len(value) for _index, value in group)
-            self._record_read(key, size)
+            self._record_read(key, size, "get_ranges")
             yield group
 
     async def _get_many(self, requests):
         request_list = list(requests)
         async for key, value in self._store._get_many(request_list):
-            self._record_read(key, 0 if value is None else len(value))
+            self._record_read(key, 0 if value is None else len(value), "_get_many")
             yield key, value
 
     async def set(self, key, value):
@@ -460,7 +476,7 @@ def _markdown(report: Mapping[str, Any]) -> str:
         f"- Zarr: `{report['runtime']['zarr']}`",
         f"- Repeats per read: `{report['repeats']}`",
         "",
-        "| Case | Operation | Median elapsed (s) | Data reads | Read bytes | Data writes | Write bytes | Peak RSS | I/O / logical bytes |",
+        "| Case | Operation | Median elapsed (s) | Data reads | Read bytes | Data writes | Write bytes | Peak RSS increase | I/O / logical bytes |",
         "| --- | --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: |",
     ]
     for case in report["cases"]:
@@ -478,7 +494,7 @@ def _markdown(report: Mapping[str, Any]) -> str:
                     read_bytes=int(summary["data_read_bytes_median"]),
                     writes=sample["io"]["data_write_requests"],
                     write_bytes=int(summary["data_write_bytes_median"]),
-                    rss=summary["peak_rss_max_bytes"],
+                    rss=summary["peak_rss_delta_max_bytes"],
                     amplification=amplification,
                 ),
             )
@@ -521,7 +537,7 @@ def run_benchmark(
                     filesystem.rm(stripped, recursive=True)
 
     return {
-        "schema_version": 1,
+        "schema_version": 2,
         "recorded_at": datetime.now(timezone.utc).isoformat(),
         "backend": backend,
         "root": root,
@@ -534,6 +550,18 @@ def run_benchmark(
             "zarr": zarr.__version__,
             "numpy": np.__version__,
             "zarr_async_concurrency": zarr.config.get("async.concurrency"),
+        },
+        "measurement": {
+            "read_methods_observed": sorted(
+                {
+                    method
+                    for case in results
+                    for operation in case["operations"]
+                    for sample in operation["samples"]
+                    for method in sample["io"]["read_methods"]
+                },
+            ),
+            "read_byte_semantics": READ_BYTE_SEMANTICS,
         },
         "cases": results,
     }
