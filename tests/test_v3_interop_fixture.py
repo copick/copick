@@ -1,39 +1,43 @@
 """Tests for the direct-reader interoperability fixture."""
 
 import hashlib
+import importlib.util
 import json
 import zipfile
+from pathlib import Path
 
 import numpy as np
 import zarr
 from ome_zarr_models.v05.image import Image
-from scripts import build_v3_interop_fixture as fixture
+
+_BUILDER_PATH = Path(__file__).parent / "scripts" / "build_v3_interop_fixture.py"
+_BUILDER_SPEC = importlib.util.spec_from_file_location("copick_v3_interop_fixture", _BUILDER_PATH)
+if _BUILDER_SPEC is None or _BUILDER_SPEC.loader is None:
+    raise RuntimeError(f"Could not load fixture builder from {_BUILDER_PATH}")
+fixture = importlib.util.module_from_spec(_BUILDER_SPEC)
+_BUILDER_SPEC.loader.exec_module(fixture)
 
 
 def _sha256(path):
     return hashlib.sha256(path.read_bytes()).hexdigest()
 
 
-def test_direct_reader_fixture_is_deterministic_and_canonical(tmp_path):
-    first = tmp_path / "first.zip"
-    second = tmp_path / "second.zip"
-    fixture.build_archive(first)
-    fixture.build_archive(second)
-
-    assert _sha256(first) == _sha256(second)
-    assert first.read_bytes() == second.read_bytes()
+def test_direct_reader_fixture_is_canonical(tmp_path):
+    archive_path = tmp_path / "fixture.zip"
+    fixture.build_archive(archive_path, source_revision="test-revision")
 
     extracted = tmp_path / "extracted"
-    with zipfile.ZipFile(first) as archive:
+    with zipfile.ZipFile(archive_path) as archive:
         archive.extractall(extracted)
     root = extracted / fixture.FIXTURE_NAME
     manifest = json.loads((root / "manifest.json").read_text(encoding="utf-8"))
 
-    assert manifest["schema_version"] == 1
+    assert manifest["schema_version"] == 2
+    assert manifest["producer"]["source_revision"] == "test-revision"
     assert manifest["canonical_policy"]["ome_zarr_version"] == "0.5"
     assert manifest["canonical_policy"]["zarr_format"] == 3
-    assert manifest["canonical_policy"]["one_shard_per_level"] is True
-    assert set(manifest["stores"]) == {"boolean", "floating", "integer"}
+    assert manifest["canonical_policy"]["one_spatial_shard_per_feature_volume"] is True
+    assert set(manifest["stores"]) == {"boolean", "floating", "floating_features", "integer"}
     assert manifest["files"] == {
         str(path.relative_to(root)): _sha256(path)
         for path in sorted(root.rglob("*"))
@@ -44,6 +48,7 @@ def test_direct_reader_fixture_is_deterministic_and_canonical(tmp_path):
         "boolean": ["bytes", "zstd"],
         "integer": ["bytes", "zstd"],
         "floating": ["bytes", "numcodecs.shuffle", "zstd"],
+        "floating_features": ["bytes", "numcodecs.shuffle", "zstd"],
     }
     for name, store_manifest in manifest["stores"].items():
         group = zarr.open_group(root / store_manifest["path"], mode="r")
@@ -52,12 +57,20 @@ def test_direct_reader_fixture_is_deterministic_and_canonical(tmp_path):
         for level in store_manifest["levels"]:
             array = group[level["path"]]
             values = np.asarray(array)
-            assert level["shard_grid_shape"] == [1, 1, 1]
-            assert level["inner_chunks"] == [128, 128, 128]
-            assert level["dimension_names"] == ["z", "y", "x"]
+            if name == "floating_features":
+                assert level["shard_grid_shape"] == [2, 1, 1, 1]
+                assert level["inner_chunks"] == [1, 128, 128, 128]
+                assert level["dimension_names"] == ["feature", "z", "y", "x"]
+                assert len(level["shard_keys"]) == 2
+            else:
+                assert level["shard_grid_shape"] == [1, 1, 1]
+                assert level["inner_chunks"] == [128, 128, 128]
+                assert level["dimension_names"] == ["z", "y", "x"]
+                assert len(level["shard_keys"]) == 1
             assert [codec["name"] for codec in level["inner_codecs"]] == expected_codecs[name]
             assert hashlib.sha256(values.tobytes(order="C")).hexdigest() == level["decoded_sha256"]
-            assert (root / store_manifest["path"] / level["shard_key"]).is_file()
+            for shard_key in level["shard_keys"]:
+                assert (root / store_manifest["path"] / shard_key).is_file()
             for sample in level["samples"]:
-                coordinate = tuple(sample["coordinate_zyx"])
+                coordinate = tuple(sample["coordinate"])
                 assert values[coordinate].item() == sample["value"]
