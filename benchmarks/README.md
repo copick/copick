@@ -18,10 +18,18 @@ the update.
 
 The request and byte measurements are taken at the Zarr store boundary. A
 coalesced ranged read counts as one request and includes the complete fetched
-span. `io_amplification_median` is total data bytes read plus written divided
-by the logical bytes requested or updated. Compression can make a one-way
-read or write ratio less than one; the region-update total is the relevant
-tradeoff because updating a compressed shard reads and rewrites that shard.
+span. `logical_uncompressed_bytes` is the uncompressed size of the array
+selection the caller requested or updated. `io_amplification_median` is the
+total data payload bytes read plus written divided by that logical baseline:
+
+```text
+I/O amplification = (data read bytes + data write bytes) / logical uncompressed selection bytes
+```
+
+It is not a comparison with Zarr v2 and does not include metadata or protocol
+overhead. Compression can make a one-way read or write ratio less than one;
+the region-update total is the relevant tradeoff because updating a compressed
+shard reads and rewrites that shard.
 
 ## Reproduce locally
 

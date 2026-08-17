@@ -218,7 +218,7 @@ class OperationSample:
     baseline_rss_bytes: int
     peak_rss_bytes: int
     peak_rss_delta_bytes: int
-    logical_bytes: int
+    logical_uncompressed_bytes: int
     checksum: float | None
     io: IOStats
 
@@ -235,7 +235,7 @@ class OperationResult:
         rss = [sample.peak_rss_delta_bytes for sample in self.samples]
         reads = [sample.io.data_read_bytes for sample in self.samples]
         writes = [sample.io.data_write_bytes for sample in self.samples]
-        logical = self.samples[0].logical_bytes
+        logical = self.samples[0].logical_uncompressed_bytes
         return {
             "elapsed_median_seconds": statistics.median(elapsed),
             "elapsed_mean_seconds": statistics.mean(elapsed),
@@ -243,7 +243,7 @@ class OperationResult:
             "peak_rss_delta_max_bytes": max(rss),
             "data_read_bytes_median": statistics.median(reads),
             "data_write_bytes_median": statistics.median(writes),
-            "logical_bytes": logical,
+            "logical_uncompressed_bytes": logical,
             "read_amplification_median": statistics.median(reads) / logical if logical else 0.0,
             "write_amplification_median": statistics.median(writes) / logical if logical else 0.0,
             "io_amplification_median": statistics.median(
@@ -256,7 +256,7 @@ def _measure(
     recorder: RecordingStore,
     operation: Callable[[], np.ndarray | None],
     *,
-    logical_bytes: int,
+    logical_uncompressed_bytes: int,
 ) -> OperationSample:
     before = recorder.snapshot()
     with PeakRSS() as memory:
@@ -270,7 +270,7 @@ def _measure(
         baseline_rss_bytes=memory.baseline_bytes,
         peak_rss_bytes=memory.peak_bytes,
         peak_rss_delta_bytes=memory.delta_bytes,
-        logical_bytes=logical_bytes,
+        logical_uncompressed_bytes=logical_uncompressed_bytes,
         checksum=checksum,
         io=recorder.delta(after, before),
     )
@@ -319,7 +319,7 @@ def run_case(store: Store, name: str, shape: tuple[int, ...], chunks: tuple[int,
     write_sample = _measure(
         recorder,
         lambda: (write_ome_zarr_3d(recorder, {10.0: values}, chunk_size=chunks), None)[1],
-        logical_bytes=values.nbytes,
+        logical_uncompressed_bytes=values.nbytes,
     )
     if write_sample.io.data_write_requests != 1:
         raise AssertionError(
@@ -351,7 +351,7 @@ def run_case(store: Store, name: str, shape: tuple[int, ...], chunks: tuple[int,
             _measure(
                 recorder,
                 lambda selection=selection: np.asarray(array[selection]),
-                logical_bytes=_logical_bytes(selection, array.dtype),
+                logical_uncompressed_bytes=_logical_bytes(selection, array.dtype),
             )
             for _index in range(repeats)
         ]
@@ -361,7 +361,7 @@ def run_case(store: Store, name: str, shape: tuple[int, ...], chunks: tuple[int,
     update_sample = _measure(
         recorder,
         lambda: (array.__setitem__(small, update), None)[1],
-        logical_bytes=update.nbytes,
+        logical_uncompressed_bytes=update.nbytes,
     )
     operations.append(OperationResult("write_small_region", _selection_json(small), [update_sample]))
     values[small] = update
@@ -461,7 +461,7 @@ def _markdown(report: Mapping[str, Any]) -> str:
         f"- Zarr: `{report['runtime']['zarr']}`",
         f"- Repeats per read: `{report['repeats']}`",
         "",
-        "| Case | Operation | Median elapsed (s) | Data reads | Read bytes | Data writes | Write bytes | Peak RSS | Amplification |",
+        "| Case | Operation | Median elapsed (s) | Data reads | Read bytes | Data writes | Write bytes | Peak RSS | I/O / logical bytes |",
         "| --- | --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: |",
     ]
     for case in report["cases"]:

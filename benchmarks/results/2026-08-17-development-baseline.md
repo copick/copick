@@ -8,7 +8,7 @@ timings validate the code path rather than approximate production S3 latency.
 
 ## Local filesystem
 
-| Case | Operation | Elapsed (s) | Data reads | Read bytes | Data writes | Write bytes | Peak RSS | Total I/O amplification |
+| Case | Operation | Elapsed (s) | Data reads | Read bytes | Data writes | Write bytes | Peak RSS | I/O / logical bytes |
 | --- | --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: |
 | small | write full level | 0.226830 | 1 | 0 | 1 | 4468500 | 140754944 | 0.87× |
 | small | read full volume | 0.004914 | 1 | 4468500 | 0 | 0 | 149307392 | 0.87× |
@@ -25,7 +25,7 @@ timings validate the code path rather than approximate production S3 latency.
 
 ## Moto S3
 
-| Case | Operation | Elapsed (s) | Data reads | Read bytes | Data writes | Write bytes | Peak RSS | Total I/O amplification |
+| Case | Operation | Elapsed (s) | Data reads | Read bytes | Data writes | Write bytes | Peak RSS | I/O / logical bytes |
 | --- | --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: |
 | small | write full level | 0.286433 | 1 | 0 | 1 | 4468500 | 177700864 | 0.87× |
 | small | read full volume | 0.008749 | 1 | 4468500 | 0 | 0 | 188760064 | 0.87× |
@@ -44,6 +44,10 @@ Both backends wrote exactly one data object for each full level, retained a
 one-element shard grid after the region update, and reproduced every expected
 value. The identical payload counts show that the store access plan is stable
 across local and S3; elapsed time remains topology-specific.
+
+The amplification baseline is the uncompressed byte size of the requested or
+updated array selection. For the `8 × 8 × 8` float32 region, that is 2,048
+logical bytes; metadata and transport-protocol overhead are not included.
 
 The pull-request workflow produces fresh local, Moto-S3, and container-SSH
 JSON/Markdown artifacts on a common Ubuntu runner. Those artifacts, rather
