@@ -99,4 +99,3 @@ creation. For non-AWS S3 endpoints that reject newer request checksums, set
 SMB remains best-effort and is not a copick 2.0 release gate. Validate it
 against the intended server before making a deployment-specific compatibility
 claim.
-

@@ -52,4 +52,3 @@ with current `main`, rerun the release gates, merge `v2.0` to `main` with
 `Release-As: 2.0.0`, review the complete stable changelog, and merge the normal
 Release Please pull request. Only that final `main` release is the stable
 copick 2.0 migration release.
-
