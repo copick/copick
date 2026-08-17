@@ -366,18 +366,15 @@ def add_features(
             logging.exception(e)
         raise e
 
-    existing_features = tomogram.get_features(feature_type)
-
     # Create the features
     features = tomogram.new_features(feature_type, exist_ok=exist_ok)
-    if existing_features is not None and not overwrite:
-        return features
 
     features.from_numpy(
         features_vol,
         chunks=chunks,
         shards=shards,
         metadata=meta,
+        overwrite=overwrite,
     )
 
     # Log

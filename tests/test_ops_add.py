@@ -3,6 +3,7 @@
 import contextlib
 import os
 import tempfile
+import warnings
 from typing import Any, Dict
 
 import copick
@@ -157,8 +158,12 @@ class TestAddTomogram:
         assert tomo.tomo_type == "test-tomo-np"
 
         # Verify data is stored
-        zarr_group = zarr.open(tomo.zarr(), mode="r")
+        with warnings.catch_warnings(record=True) as caught:
+            warnings.simplefilter("always")
+            zarr_group = zarr.open(tomo.zarr(), mode="r")
         assert zarr_group[get_level_path(zarr_group, 0)].shape == (8, 8, 8)
+        assert zarr_group.metadata.zarr_format == 3
+        assert not any("Both zarr.json" in str(warning.message) for warning in caught)
 
     def test_add_tomogram_dict_pyramid(self, test_payload):
         """Adding a tomogram from a dict pyramid writes multiple levels."""
@@ -233,14 +238,13 @@ class TestAddFeatures:
         """Adding features to an existing tomogram succeeds."""
         root = test_payload["root"]
 
-        # add_features hardcodes voxel_spacing=1.0 for get_or_create_voxelspacing
-        # We need a tomogram at voxel_spacing 1.0, so add one first
         volume = np.random.randn(8, 8, 8).astype(np.float32)
-        add_tomogram(root, "TS_001", "feat-test-tomo", volume, voxel_spacing=1.0, exist_ok=True)
+        add_tomogram(root, "TS_001", "feat-test-tomo", volume, voxel_spacing=10.0, exist_ok=True)
 
         features_vol = np.random.randn(8, 8, 8).astype(np.float32)
-        feat = add_features(root, "TS_001", 1.0, "feat-test-tomo", "sobel-test", features_vol, exist_ok=True)
+        feat = add_features(root, "TS_001", 10.0, "feat-test-tomo", "sobel-test", features_vol, exist_ok=True)
         assert feat.feature_type == "sobel-test"
+        assert feat.tomogram.voxel_spacing.voxel_size == 10.0
         np.testing.assert_array_equal(feat.numpy(), features_vol)
 
     def test_add_features_delegates_feature_major_write(self, test_payload, monkeypatch):
@@ -278,10 +282,57 @@ class TestAddFeatures:
         assert calls == [
             (
                 values.shape,
-                {"chunks": (2, 3, 4), "shards": (1, 4, 6, 8), "metadata": None},
+                {"chunks": (2, 3, 4), "shards": (1, 4, 6, 8), "metadata": None, "overwrite": False},
             ),
         ]
         np.testing.assert_array_equal(features.numpy(), values)
+
+    def test_add_features_refuses_silent_replacement_and_honors_overwrite(self, test_payload):
+        root = test_payload["root"]
+        add_tomogram(
+            root,
+            "TS_001",
+            "feat-overwrite-tomo",
+            np.zeros((4, 5, 6), dtype=np.float32),
+            voxel_spacing=10.0,
+            exist_ok=True,
+        )
+        original = np.ones((4, 5, 6), dtype=np.float32)
+        replacement = np.full((4, 5, 6), 2.0, dtype=np.float32)
+        features = add_features(
+            root,
+            "TS_001",
+            10.0,
+            "feat-overwrite-tomo",
+            "replace-test",
+            original,
+            exist_ok=True,
+        )
+
+        with pytest.raises(FileExistsError, match="not empty"):
+            add_features(
+                root,
+                "TS_001",
+                10.0,
+                "feat-overwrite-tomo",
+                "replace-test",
+                replacement,
+                exist_ok=True,
+                overwrite=False,
+            )
+
+        np.testing.assert_array_equal(features.numpy(), original)
+        replaced = add_features(
+            root,
+            "TS_001",
+            10.0,
+            "feat-overwrite-tomo",
+            "replace-test",
+            replacement,
+            exist_ok=True,
+            overwrite=True,
+        )
+        np.testing.assert_array_equal(replaced.numpy(), replacement)
 
     def test_add_features_missing_tomogram_raises(self, test_payload):
         """Missing tomogram raises ValueError."""

@@ -24,8 +24,8 @@ import tempfile
 import zipfile
 from pathlib import Path
 
-CURRENT_DOI = "doi:10.5281/zenodo.19686100"
-CURRENT_MD5 = "md5:8b8941350af1f621effd4903e75255c0"
+CURRENT_DOI = "doi:10.5281/zenodo.21939821"
+CURRENT_MD5 = "md5:05b1582e675719d3f1bb23349c20b86c"
 ARCHIVE_NAME = "sample_project.zip"
 
 

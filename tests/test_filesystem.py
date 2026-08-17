@@ -12,8 +12,8 @@ from trimesh.parent import Geometry
 NUMERICAL_PRECISION = 1e-8
 
 
-def _assert_v2_group(store):
-    assert zarr.open_group(store, mode="r").metadata.zarr_format == 2
+def _assert_v3_group(store):
+    assert zarr.open_group(store, mode="r").metadata.zarr_format == 3
 
 
 @pytest.fixture(params=pytest.common_cases)
@@ -1063,7 +1063,7 @@ def test_run_new_segmentations(test_payload: Dict[str, Any]):
             is_multilabel=False,
         )
 
-    # Adding the first segmentation initializes and materializes its Zarr v2 group.
+    # Adding the first segmentation initializes and materializes its Zarr v3 group.
     seg4 = copick_run.new_segmentation(
         voxel_size=10.000,
         user_id="test.user",
@@ -1071,7 +1071,7 @@ def test_run_new_segmentations(test_payload: Dict[str, Any]):
         name="ribosome",
         is_multilabel=False,
     )
-    _assert_v2_group(seg4.zarr())
+    _assert_v3_group(seg4.zarr())
     assert copick_run._segmentations is not None, "Segmentations should be populated"
     assert seg4 in copick_run.segmentations, "Segmentation not added to segmentations"
 
@@ -1083,7 +1083,7 @@ def test_run_new_segmentations(test_payload: Dict[str, Any]):
         name="location",
         is_multilabel=True,
     )
-    _assert_v2_group(seg5.zarr())
+    _assert_v3_group(seg5.zarr())
     assert seg5 in copick_run.segmentations, "Segmentation not added to segmentations"
     assert (
         seg5
@@ -1143,7 +1143,7 @@ def test_new_zarr_entities_reopen_and_delete_without_array_write(test_payload: D
     features = tomogram.new_features("materialization-test")
 
     for entity in (segmentation, tomogram, features):
-        _assert_v2_group(entity.zarr())
+        _assert_v3_group(entity.zarr())
 
     reopened = copick.from_file(test_payload["cfg_file"])
     reopened_run = reopened.get_run("TS_001")
@@ -1264,16 +1264,16 @@ def test_vs_new_tomogram(test_payload: Dict[str, Any]):
     with pytest.raises(ValueError):
         vs.new_tomogram(tomo_type="denoised")
 
-    # Adding the first tomogram initializes and materializes its Zarr v2 group.
+    # Adding the first tomogram initializes and materializes its Zarr v3 group.
     tomogram = vs.new_tomogram(tomo_type="isonet")
-    _assert_v2_group(tomogram.zarr())
+    _assert_v3_group(tomogram.zarr())
 
     assert vs._tomograms is not None, "Tomograms should be populated"
     assert tomogram in vs.tomograms, "Tomogram not added to tomograms"
 
     # Adding another tomogram appends to the list.
     tomogram = vs.new_tomogram(tomo_type="SIRT")
-    _assert_v2_group(tomogram.zarr())
+    _assert_v3_group(tomogram.zarr())
 
     assert tomogram in vs.tomograms, "Tomogram not added to tomograms"
     assert tomogram == vs.get_tomogram(tomo_type="SIRT"), "Tomogram not found"
@@ -1394,16 +1394,16 @@ def test_tomogram_new_features(test_payload: Dict[str, Any]):
     with pytest.raises(ValueError):
         tomogram.new_features(feature_type="sobel")
 
-    # Adding the first feature initializes and materializes its Zarr v2 group.
+    # Adding the first feature initializes and materializes its Zarr v3 group.
     feature = tomogram.new_features(feature_type="sift")
-    _assert_v2_group(feature.zarr())
+    _assert_v3_group(feature.zarr())
 
     assert tomogram._features is not None, "Features should be populated"
     assert feature in tomogram.features, "Feature not added to features"
 
     # Adding another feature appends to the list.
     feature = tomogram.new_features(feature_type="tomotwin")
-    _assert_v2_group(feature.zarr())
+    _assert_v3_group(feature.zarr())
 
     assert feature in tomogram.features, "Feature not added to features"
     assert feature == tomogram.get_features(feature_type="tomotwin"), "Feature not found"

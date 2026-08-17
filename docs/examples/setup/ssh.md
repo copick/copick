@@ -6,6 +6,10 @@
 
 In copick, a project has an overlay and (optionally) a static part. The overlay is where all user-created entities are stored and is writable. The static part is read-only and contains the input data. There are four ways of setting up SSH-based **copick** projects:
 
+Writable SSH overlays must permit creation of intermediate directories below `overlay_root`. Copick materializes Zarr
+v3 groups and arrays there, so write access to an existing root directory alone is insufficient when parent-directory
+creation is disabled.
+
 <div class="grid cards" markdown>
 
 -   :fontawesome-solid-hard-drive:{ .lg .middle }   __Option 1__: SSH overlay-only

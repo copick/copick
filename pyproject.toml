@@ -157,7 +157,9 @@ minversion = "6.0"
 testpaths = ["tests"]
 addopts = "-m 'not portal'"
 markers = [
+    "corpus_parity: tests whose behavior depends on the selected v2/v3 test corpus",
     "portal: live CryoET Data Portal integration tests",
+    "remote_corpus_parity: focused selected-corpus tests for remote backend parity",
 ]
 
 [tool.coverage.report]

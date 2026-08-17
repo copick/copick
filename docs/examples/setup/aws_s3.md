@@ -6,6 +6,10 @@
 
 In copick, a project has an overlay and (optionally) a static part. The overlay is where all user-created entities are stored and is writable. The static part is read-only and contains the input data. There are four ways of setting up local **copick** projects via AWS or local S3 buckets (e.g. MinIO):
 
+Writable S3 overlays must allow creation of every object prefix needed below `overlay_root`. Copick materializes Zarr v3
+groups and arrays directly in that prefix, so credentials and endpoint policies must permit creating parent prefixes as
+well as writing and deleting object keys.
+
 <div class="grid cards" markdown>
 
 -   :fontawesome-solid-hard-drive:{ .lg .middle }   __Option 1__: S3 overlay-only

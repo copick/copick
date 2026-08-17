@@ -131,7 +131,7 @@ def test_chunkwise_copy_bounds_every_read_to_one_inner_chunk():
 def test_single_level_export_bounds_peak_python_memory_with_memmap_staging(tmp_path):
     source_path = tmp_path / "large-source.zarr"
     source = zarr.group(store=LocalStore(source_path), zarr_format=2)
-    shape = (256, 256, 256)
+    shape = (384, 384, 384)
     chunks = (64, 64, 64)
     source.create_array("s0", shape=shape, chunks=chunks, dtype="u1", fill_value=0)
     source.attrs["multiscales"] = [
@@ -160,7 +160,7 @@ def test_single_level_export_bounds_peak_python_memory_with_memmap_staging(tmp_p
 
     logical_volume_bytes = math.prod(shape)
     assert peak_bytes < 64 * 1024 * 1024
-    assert peak_bytes < logical_volume_bytes * 4
+    assert peak_bytes < logical_volume_bytes * 3 // 4
 
     target = zarr.open_group(LocalStore(tmp_path / "large-target.zarr"), mode="r")
     target_array = target[get_level_path(target, 0)]
@@ -168,6 +168,70 @@ def test_single_level_export_bounds_peak_python_memory_with_memmap_staging(tmp_p
     assert target_array.chunks == (128, 128, 128)
     assert target_array.shards == shape
     assert target_array[0, 0, 0] == 0
+
+
+def test_single_level_export_supports_feature_major_4d_sources(tmp_path):
+    source = zarr.group(store=MemoryStore(), zarr_format=3)
+    values = np.arange(2 * 3 * 4 * 5, dtype=np.float32).reshape(2, 3, 4, 5)
+    source.create_array("features", data=values, chunks=(1, 2, 3, 4))
+    source.attrs["ome"] = {
+        "version": "0.5",
+        "multiscales": [
+            {
+                "version": "0.5",
+                "axes": [
+                    {"name": "feature"},
+                    {"name": "z", "type": "space"},
+                    {"name": "y", "type": "space"},
+                    {"name": "x", "type": "space"},
+                ],
+                "datasets": [
+                    {
+                        "path": "features",
+                        "coordinateTransformations": [
+                            {"type": "scale", "scale": [1.0, 10.0, 10.0, 10.0]},
+                        ],
+                    },
+                ],
+            },
+        ],
+    }
+    target_store = LocalStore(tmp_path / "feature-target.zarr")
+
+    write_single_level_ome_zarr(source, target_store)
+
+    target = zarr.open_group(target_store, mode="r")
+    target_array = target[get_level_path(target, 0)]
+    assert target_array.chunks == (1, *([128] * 3))
+    assert target_array.metadata.dimension_names == ("feature", "z", "y", "x")
+    assert get_multiscales(target)[0]["axes"] == source.attrs["ome"]["multiscales"][0]["axes"]
+    np.testing.assert_array_equal(target_array[:], values)
+
+
+def test_single_level_export_rejects_unsupported_dimensions_before_writing(tmp_path):
+    source = zarr.group(store=MemoryStore(), zarr_format=3)
+    source.create_array("image", data=np.ones((3, 4), dtype=np.uint8), chunks=(2, 2))
+    source.attrs["ome"] = {
+        "version": "0.5",
+        "multiscales": [
+            {
+                "version": "0.5",
+                "axes": [{"name": "y", "type": "space"}, {"name": "x", "type": "space"}],
+                "datasets": [
+                    {
+                        "path": "image",
+                        "coordinateTransformations": [{"type": "scale", "scale": [1.0, 1.0]}],
+                    },
+                ],
+            },
+        ],
+    }
+    target = MemoryStore()
+
+    with pytest.raises(ValueError, match="supports 3D or 4D"):
+        write_single_level_ome_zarr(source, target)
+
+    assert not target._store_dict
 
 
 class _RecordingMemoryStore(MemoryStore):
