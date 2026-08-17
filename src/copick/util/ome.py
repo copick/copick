@@ -1,13 +1,13 @@
 import copy
 import itertools
 import math
+import tempfile
 import warnings
 from typing import Any, Dict, Iterator, List, Tuple, Union
 
 import numpy as np
 import psutil
 import zarr
-from numcodecs import Blosc
 from zarr.abc.store import Store
 from zarr.codecs import Shuffle, ZstdCodec
 
@@ -243,6 +243,7 @@ def write_ome_zarr(
     overwrite: bool = True,
     metadata: Any = _DEFAULT_WRITER_METADATA,
     shard_size: Union[Tuple[int, ...], None] = None,
+    coordinate_transformations: Union[List[List[Dict[str, Any]]], None] = None,
 ) -> None:
     """Write an OME-Zarr 0.5 / Zarr v3 pyramid with the canonical layout."""
     # These imports are intentionally lazy because importing ome-zarr is
@@ -256,6 +257,8 @@ def write_ome_zarr(
     chunks = _shape_tuple(chunk_size, ndim, "chunk_size")
     if len(axes) != ndim:
         raise ValueError(f"axes must contain exactly {ndim} entries, got {len(axes)}")
+    if coordinate_transformations is not None and len(coordinate_transformations) != len(pyramid):
+        raise ValueError("coordinate_transformations must contain one entry per pyramid level")
 
     layouts = []
     for array in pyramid.values():
@@ -283,17 +286,17 @@ def write_ome_zarr(
             dimension_names=dimension_names,
             overwrite=overwrite,
         )
-        datasets.append(
-            {
-                "path": path,
-                "coordinateTransformations": [
-                    {
-                        "scale": [1.0] * (ndim - 3) + [voxel_size, voxel_size, voxel_size],
-                        "type": "scale",
-                    },
-                ],
-            },
+        transformations = (
+            coordinate_transformations[level]
+            if coordinate_transformations is not None
+            else [
+                {
+                    "scale": [1.0] * (ndim - 3) + [voxel_size, voxel_size, voxel_size],
+                    "type": "scale",
+                },
+            ]
         )
+        datasets.append({"path": path, "coordinateTransformations": copy.deepcopy(transformations)})
 
     write_multiscales_metadata(
         root_group,
@@ -355,12 +358,12 @@ def copy_array_chunkwise(source: zarr.Array, target: zarr.Array) -> None:
         target[selection] = source[selection]
 
 
-def write_single_level_ome_zarr_v2(source_group: zarr.Group, target_store: Store, level: int = 0) -> None:
-    """Semantically export one OME level as OME-Zarr 0.4 / Zarr v2.
+def write_single_level_ome_zarr(source_group: zarr.Group, target_store: Store, level: int = 0) -> None:
+    """Semantically export one OME level as canonical OME-Zarr 0.5 / Zarr v3.
 
-    The destination is rebuilt instead of copying group attributes across a
-    format boundary.  Source values are decoded one inner chunk at a time, so
-    a sharded v3 source intentionally becomes an unsharded v2 array.
+    Source values are decoded one inner chunk at a time into a local memory map.
+    The completed level is then handed to the canonical writer once, avoiding
+    repeated remote rewrites of its volume-sized shard.
     """
     multiscales = get_multiscales(source_group)
     if not multiscales:
@@ -372,32 +375,49 @@ def write_single_level_ome_zarr_v2(source_group: zarr.Group, target_store: Store
 
     source_path = get_level_path(source_group, level)
     source_array = source_group[source_path]
-    target_path = "0"
     if not zarr_store_is_empty(target_store):
         raise FileExistsError("Single-level Zarr export target is not empty")
-    target_group = zarr.group(store=target_store, overwrite=True, zarr_format=2)
-    target_array = target_group.create_array(
-        target_path,
-        shape=source_array.shape,
-        dtype=source_array.dtype,
-        chunks=source_array.chunks,
-        fill_value=source_array.fill_value,
-        compressor=Blosc(cname="lz4", clevel=5, shuffle=Blosc.SHUFFLE),
-        chunk_key_encoding={"name": "v2", "separator": "/"},
-        attributes=dict(source_array.attrs),
-    )
-    copy_array_chunkwise(source_array, target_array)
 
-    dataset = copy.deepcopy(datasets[level])
-    dataset["path"] = target_path
-    rebuilt = {
-        key: copy.deepcopy(value)
-        for key, value in source_multiscale.items()
-        if key in {"axes", "metadata", "name", "type"}
+    axes = copy.deepcopy(source_multiscale.get("axes"))
+    if not isinstance(axes, list) or len(axes) != source_array.ndim:
+        raise ValueError("Source OME-Zarr axes do not match the exported array")
+    transformations = copy.deepcopy(datasets[level].get("coordinateTransformations"))
+    if not isinstance(transformations, list):
+        raise ValueError("Source OME-Zarr dataset has no coordinate transformations")
+
+    with tempfile.TemporaryDirectory(prefix="copick-zarr-export-") as directory:
+        staging = np.memmap(
+            f"{directory}/level.dat",
+            dtype=source_array.dtype,
+            mode="w+",
+            shape=source_array.shape,
+        )
+        copy_array_chunkwise(source_array, staging)
+        staging.flush()
+
+        writer_kwargs = {}
+        if "metadata" in source_multiscale:
+            writer_kwargs["metadata"] = copy.deepcopy(source_multiscale["metadata"])
+        write_ome_zarr(
+            target_store,
+            {1.0: staging},
+            axes,
+            DEFAULT_SPATIAL_CHUNKS,
+            coordinate_transformations=[transformations],
+            **writer_kwargs,
+        )
+        del staging
+
+    target_group = zarr.open_group(target_store, mode="r+")
+    target_array = target_group[get_level_path(target_group, 0)]
+    target_array.attrs.update(dict(source_array.attrs))
+    preserved_fields = {
+        key: copy.deepcopy(source_multiscale[key]) for key in ("name", "type") if key in source_multiscale
     }
-    rebuilt["version"] = "0.4"
-    rebuilt["datasets"] = [dataset]
-    target_group.attrs["multiscales"] = [rebuilt]
+    if preserved_fields:
+        ome = copy.deepcopy(target_group.attrs["ome"])
+        ome["multiscales"][0].update(preserved_fields)
+        target_group.attrs["ome"] = ome
 
 
 def get_multiscales(zarr_group: zarr.Group) -> List[Dict[str, Any]]:

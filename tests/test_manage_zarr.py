@@ -21,7 +21,21 @@ def _project(tmp_path):
         name="source",
         is_multilabel=True,
     )
-    source.from_numpy(np.arange(64, dtype=np.int16).reshape(4, 4, 4))
+    values = np.arange(64, dtype=np.int16).reshape(4, 4, 4)
+    group = zarr.group(store=source.zarr(), overwrite=True, zarr_format=2)
+    group.create_array("0", data=values, chunks=(2, 2, 2), chunk_key_encoding={"name": "v2", "separator": "/"})
+    group.attrs["multiscales"] = [
+        {
+            "version": "0.4",
+            "axes": [{"name": axis, "type": "space", "unit": "angstrom"} for axis in ("z", "y", "x")],
+            "datasets": [
+                {
+                    "path": "0",
+                    "coordinateTransformations": [{"type": "scale", "scale": [10.0, 10.0, 10.0]}],
+                },
+            ],
+        },
+    ]
     return root, run, source
 
 

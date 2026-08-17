@@ -7,12 +7,11 @@ from types import SimpleNamespace
 import numpy as np
 import pytest
 import zarr
-from ome_zarr_models.v05.image import Image
-from zarr.storage import MemoryStore
-
 from copick.models import CopickFeatures, CopickFeaturesMeta
 from copick.ops.add import add_features
 from copick.util.ome import DEFAULT_SPATIAL_CHUNKS, get_level_path, get_multiscales
+from ome_zarr_models.v05.image import Image
+from zarr.storage import MemoryStore
 
 
 class _MemoryFeatures(CopickFeatures):
