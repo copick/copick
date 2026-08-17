@@ -1,5 +1,7 @@
 import copy
 import itertools
+import math
+import warnings
 from typing import Any, Dict, Iterator, List, Tuple, Union
 
 import numpy as np
@@ -7,6 +9,7 @@ import psutil
 import zarr
 from numcodecs import Blosc
 from zarr.abc.store import Store
+from zarr.codecs import Shuffle, ZstdCodec
 
 from copick.util.log import get_logger
 from copick.util.zarr_copy import zarr_store_is_empty
@@ -14,6 +17,9 @@ from copick.util.zarr_copy import zarr_store_is_empty
 logger = get_logger(__name__)
 
 _DEFAULT_WRITER_METADATA = object()
+DEFAULT_SPATIAL_CHUNKS = (128, 128, 128)
+_SHARD_WARNING_BYTES = 5 * 1000**3
+_SHARD_LIMIT_BYTES = 5 * 1000**4
 
 # Unit conversion factors to Angstrom
 UNITFACTOR = {
@@ -171,26 +177,88 @@ def ome_metadata(pyramid: Dict[float, np.ndarray]) -> Dict[str, Any]:
     }
 
 
+def _shape_tuple(value: Tuple[int, ...], ndim: int, name: str) -> Tuple[int, ...]:
+    """Validate and normalize a chunk or shard shape."""
+    if len(value) != ndim:
+        raise ValueError(f"{name} must contain exactly {ndim} dimensions, got {len(value)}")
+    if any(isinstance(item, bool) or not isinstance(item, (int, np.integer)) or item <= 0 for item in value):
+        raise ValueError(f"{name} dimensions must be positive integers, got {value!r}")
+    return tuple(int(item) for item in value)
+
+
+def padded_shard_shape(shape: Tuple[int, ...], chunks: Tuple[int, ...]) -> Tuple[int, ...]:
+    """Return the smallest chunk-aligned shard containing an entire array."""
+    normalized_shape = _shape_tuple(shape, len(shape), "shape")
+    normalized_chunks = _shape_tuple(chunks, len(shape), "chunks")
+    return tuple(
+        chunk * math.ceil(size / chunk) for size, chunk in zip(normalized_shape, normalized_chunks, strict=True)
+    )
+
+
+def _validate_shards(shards: Tuple[int, ...], chunks: Tuple[int, ...]) -> Tuple[int, ...]:
+    normalized = _shape_tuple(shards, len(chunks), "shards")
+    if any(shard % chunk for shard, chunk in zip(normalized, chunks, strict=True)):
+        raise ValueError(f"shards must be evenly divisible by chunks, got shards={normalized!r}, chunks={chunks!r}")
+    return normalized
+
+
+def _preflight_shard_size(shards: Tuple[int, ...], dtype: np.dtype) -> None:
+    shard_bytes = math.prod(shards) * dtype.itemsize
+    if shard_bytes >= _SHARD_LIMIT_BYTES:
+        raise ValueError(
+            f"Padded uncompressed shard size is {shard_bytes} bytes; shards must remain below 5 TB",
+        )
+    if shard_bytes > _SHARD_WARNING_BYTES:
+        warnings.warn(
+            f"Padded uncompressed shard size is {shard_bytes} bytes, above the recommended 5 GB ceiling",
+            UserWarning,
+            stacklevel=3,
+        )
+
+
+def canonical_v3_compressors(dtype: np.dtype) -> Tuple[Any, ...]:
+    """Return the canonical dtype-specific Zarr v3 compressor pipeline."""
+    dtype = np.dtype(dtype)
+    if np.issubdtype(dtype, np.bool_) or np.issubdtype(dtype, np.integer):
+        return (ZstdCodec(level=3),)
+    if np.issubdtype(dtype, np.floating):
+        return (Shuffle(elementsize=dtype.itemsize), ZstdCodec(level=3))
+    raise TypeError(f"Canonical OME-Zarr output does not support dtype {dtype}")
+
+
 def write_ome_zarr_3d(
     store: Union[str, Store],
     pyramid: Dict[float, np.ndarray],
-    chunk_size: Tuple[int, ...] = (256, 256, 256),
+    chunk_size: Tuple[int, ...] = DEFAULT_SPATIAL_CHUNKS,
     overwrite: bool = True,
     metadata: Any = _DEFAULT_WRITER_METADATA,
+    shard_size: Union[Tuple[int, ...], None] = None,
 ) -> None:
     """Write a 3D pyramid as OME-Zarr 0.5 / Zarr v3.
 
     Args:
         store: A path string or Zarr store to write to.
         pyramid: The pyramid to write.
-        chunk_size: The chunk size to use for the Zarr store. Default is (256, 256, 256).
+        chunk_size: Inner chunk shape. Default is ``(128, 128, 128)``.
         overwrite: Whether to overwrite an existing group and arrays.
         metadata: Additional OME multiscale metadata. When omitted, preserve the existing empty metadata mapping.
+        shard_size: Optional explicit shard shape. By default, one padded logical shard is used per level.
     """
     # This is a super heavy import, so we do it here to avoid loading it before it's needed.
     # Writing is slow anyway.
     from ome_zarr.format import FormatV05
     from ome_zarr.writer import write_multiscales_metadata
+
+    chunks = _shape_tuple(chunk_size, 3, "chunk_size")
+    if not pyramid:
+        raise ValueError("pyramid must contain at least one level")
+    layouts = []
+    for array in pyramid.values():
+        if array.ndim != 3:
+            raise ValueError(f"write_ome_zarr_3d expects 3D arrays, got shape {array.shape!r}")
+        shards = padded_shard_shape(array.shape, chunks) if shard_size is None else _validate_shards(shard_size, chunks)
+        _preflight_shard_size(shards, array.dtype)
+        layouts.append((shards, canonical_v3_compressors(array.dtype)))
 
     ome_meta = ome_metadata(pyramid)
     root_group = zarr.group(store=store, overwrite=overwrite, zarr_format=3)
@@ -199,12 +267,15 @@ def write_ome_zarr_3d(
 
     datasets = []
     dimension_names = tuple(axis["name"] for axis in ome_meta["axes"])
-    for level, (voxel_size, array) in enumerate(pyramid.items()):
+    for level, ((voxel_size, array), (shards, compressors)) in enumerate(zip(pyramid.items(), layouts, strict=True)):
         path = str(level)
         root_group.create_array(
             path,
             data=array,
-            chunks=chunk_size,
+            chunks=chunks,
+            shards=shards,
+            compressors=compressors,
+            chunk_key_encoding={"name": "v2", "separator": "/"},
             dimension_names=dimension_names,
             overwrite=overwrite,
         )

@@ -1,16 +1,28 @@
 """Golden contracts for the centralized OME-Zarr 0.5 / Zarr v3 writer."""
 
 import ast
+import inspect
 import json
+import math
 from pathlib import Path
 
+import copick.util.ome as ome
 import numpy as np
 import pytest
 import zarr
+from copick.ops.add import (
+    _add_tomogram_em,
+    _add_tomogram_tiff,
+    _add_tomogram_zarr,
+    add_features,
+    add_tomogram,
+    add_tomogram_from_file,
+    z_add_tomogram_mrc,
+)
 from copick.util.handlers.volume.zarr import ZarrVolumeHandler
-from copick.util.ome import write_ome_zarr_3d
+from copick.util.ome import DEFAULT_SPATIAL_CHUNKS, get_level_path, padded_shard_shape, write_ome_zarr_3d
 from ome_zarr_models.v05.image import Image
-from zarr.storage import LocalStore
+from zarr.storage import LocalStore, MemoryStore
 
 
 @pytest.fixture
@@ -59,9 +71,18 @@ def test_writer_emits_v3_ome_zarr_05_contract(tmp_path, writer_pyramid, target_k
     for level, expected in enumerate(writer_pyramid.values()):
         array = group[str(level)]
         assert array.chunks == (2, 2, 2)
+        assert array.shards == expected.shape
+        assert tuple(math.ceil(size / shard) for size, shard in zip(array.shape, array.shards, strict=True)) == (
+            1,
+            1,
+            1,
+        )
         assert array.metadata.zarr_format == 3
         assert array.metadata.dimension_names == ("z", "y", "x")
+        assert array.metadata.chunk_key_encoding.to_dict() == {"name": "v2", "configuration": {"separator": "/"}}
         np.testing.assert_array_equal(array[:], expected)
+
+    assert (path / "0" / "0" / "0" / "0").is_file()
 
 
 @pytest.mark.parametrize("metadata", [None, {"source": "golden-test"}])
@@ -79,8 +100,125 @@ def test_writer_preserves_default_chunk_shape(tmp_path, writer_pyramid):
     write_ome_zarr_3d(path, writer_pyramid)
 
     group = zarr.open_group(path, mode="r")
-    assert group["0"].chunks == (256, 256, 256)
-    assert group["1"].chunks == (256, 256, 256)
+    assert group["0"].chunks == DEFAULT_SPATIAL_CHUNKS
+    assert group["1"].chunks == DEFAULT_SPATIAL_CHUNKS
+    assert group["0"].shards == DEFAULT_SPATIAL_CHUNKS
+    assert group["1"].shards == DEFAULT_SPATIAL_CHUNKS
+
+
+@pytest.mark.parametrize(
+    ("dtype", "codec_names"),
+    [
+        (np.dtype("bool"), ["bytes", "zstd"]),
+        (np.dtype("int16"), ["bytes", "zstd"]),
+        (np.dtype("float32"), ["bytes", "numcodecs.shuffle", "zstd"]),
+        (np.dtype("float64"), ["bytes", "numcodecs.shuffle", "zstd"]),
+    ],
+)
+def test_writer_uses_exact_dtype_specific_codec_pipeline(tmp_path, dtype, codec_names):
+    values = np.arange(60).reshape(3, 4, 5).astype(dtype)
+    write_ome_zarr_3d(str(tmp_path / "codecs.zarr"), {10.0: values}, chunk_size=(2, 3, 4))
+
+    group = zarr.open_group(tmp_path / "codecs.zarr", mode="r")
+    array = group[get_level_path(group, 0)]
+    metadata = array.metadata.to_dict()
+    sharding = metadata["codecs"][0]
+    inner_codecs = sharding["configuration"]["codecs"]
+    assert sharding["name"] == "sharding_indexed"
+    assert [codec["name"] for codec in inner_codecs] == codec_names
+    assert inner_codecs[-1]["configuration"]["level"] == 3
+    assert "blosc" not in json.dumps(metadata).lower()
+    if np.issubdtype(dtype, np.floating):
+        assert inner_codecs[1]["configuration"] == {"elementsize": dtype.itemsize}
+    np.testing.assert_array_equal(array[:], values)
+
+
+@pytest.mark.parametrize(
+    ("shape", "chunks", "expected_shards"),
+    [
+        ((3, 4, 5), (8, 8, 8), (8, 8, 8)),
+        ((5, 7, 9), (2, 3, 4), (6, 9, 12)),
+        ((4, 6, 8), (2, 3, 4), (4, 6, 8)),
+    ],
+)
+@pytest.mark.parametrize("all_fill", [False, True])
+def test_writer_round_trips_one_padded_shard(shape, chunks, expected_shards, all_fill, tmp_path):
+    values = np.zeros(shape, dtype=np.uint16)
+    if not all_fill:
+        values.flat[-1] = 7
+    write_ome_zarr_3d(str(tmp_path / "padded.zarr"), {10.0: values}, chunk_size=chunks)
+
+    group = zarr.open_group(tmp_path / "padded.zarr", mode="r")
+    array = group[get_level_path(group, 0)]
+    assert array.chunks == chunks
+    assert array.shards == expected_shards
+    assert tuple(math.ceil(size / shard) for size, shard in zip(array.shape, array.shards, strict=True)) == (1, 1, 1)
+    np.testing.assert_array_equal(array[:], values)
+
+
+@pytest.mark.parametrize("chunks", [(0, 2, 2), (2, -1, 2), (2, 2), (2, 2, 2, 2), (True, 2, 2)])
+def test_writer_rejects_invalid_chunks(tmp_path, chunks):
+    with pytest.raises(ValueError, match="chunk_size"):
+        write_ome_zarr_3d(str(tmp_path / "invalid.zarr"), {10.0: np.ones((2, 2, 2))}, chunk_size=chunks)
+
+
+@pytest.mark.parametrize("dtype", ["complex64", "datetime64[D]", "S1"])
+def test_writer_rejects_unsupported_dtypes_before_materializing_store(tmp_path, dtype):
+    path = tmp_path / "unsupported.zarr"
+    with pytest.raises(TypeError, match="does not support dtype"):
+        write_ome_zarr_3d(str(path), {10.0: np.zeros((2, 2, 2), dtype=dtype)})
+    assert not path.exists()
+
+
+def test_padded_shard_shape_uses_chunk_aligned_ceiling():
+    assert padded_shard_shape((100, 200, 300), (128, 128, 128)) == (128, 256, 384)
+
+
+def test_writer_warns_above_recommended_shard_size(monkeypatch, tmp_path):
+    monkeypatch.setattr(ome, "_SHARD_WARNING_BYTES", 1)
+    with pytest.warns(UserWarning, match="recommended 5 GB"):
+        write_ome_zarr_3d(str(tmp_path / "warning.zarr"), {10.0: np.ones((2, 2, 2), dtype=np.uint8)})
+
+
+def test_writer_rejects_shards_at_array_standard_limit(monkeypatch, tmp_path):
+    monkeypatch.setattr(ome, "_SHARD_LIMIT_BYTES", 1)
+    with pytest.raises(ValueError, match="below 5 TB"):
+        write_ome_zarr_3d(str(tmp_path / "too-large.zarr"), {10.0: np.ones((2, 2, 2), dtype=np.uint8)})
+
+
+class _RecordingMemoryStore(MemoryStore):
+    def __init__(self):
+        super().__init__()
+        self.written_keys = []
+
+    async def set(self, key, value):
+        self.written_keys.append(key)
+        await super().set(key, value)
+
+
+def test_complete_level_writes_its_remote_shard_once():
+    store = _RecordingMemoryStore()
+    values = np.arange(4 * 5 * 6, dtype=np.uint16).reshape(4, 5, 6)
+
+    write_ome_zarr_3d(store, {10.0: values}, chunk_size=(2, 3, 4))
+
+    assert store.written_keys.count("0/0/0/0") == 1
+
+
+@pytest.mark.parametrize(
+    "writer",
+    [
+        add_tomogram,
+        z_add_tomogram_mrc,
+        _add_tomogram_zarr,
+        add_features,
+        _add_tomogram_tiff,
+        _add_tomogram_em,
+        add_tomogram_from_file,
+    ],
+)
+def test_public_add_writer_defaults_use_128_cube_chunks(writer):
+    assert inspect.signature(writer).parameters["chunks"].default == DEFAULT_SPATIAL_CHUNKS
 
 
 def test_zarr_handler_uses_canonical_writer_contract(tmp_path, writer_pyramid):

@@ -85,7 +85,7 @@ class ZarrVolumeHandler:
         path: str,
         volume: np.ndarray,
         voxel_size: float,
-        chunks: Tuple[int, int, int] = (256, 256, 256),
+        chunks: Tuple[int, int, int] = (128, 128, 128),
         **kwargs,
     ) -> str:
         """Write volume data to a Zarr store.

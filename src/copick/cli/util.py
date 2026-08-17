@@ -442,7 +442,7 @@ def add_pyramid_create_options(func: click.Command) -> click.Command:
             "--chunk-size",
             required=False,
             type=str,
-            default="256,256,256",
+            default="128,128,128",
             show_default=True,
             help="Chunk size for the output Zarr file.",
         ),
