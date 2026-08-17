@@ -143,7 +143,9 @@ def build_fixture(directory: Path) -> dict[str, Any]:
         levels_manifest = [
             _level_manifest(group[level_path], level_path, voxel_size, expected)
             for level_path, (voxel_size, expected) in zip(
-                level_paths, zip(VOXEL_SIZES, levels, strict=True), strict=True,
+                level_paths,
+                zip(VOXEL_SIZES, levels, strict=True),
+                strict=True,
             )
         ]
         for level in levels_manifest:
