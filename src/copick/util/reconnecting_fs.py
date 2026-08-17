@@ -31,6 +31,12 @@ _CONNECTION_ERROR_NAMES = frozenset(
     },
 )
 
+# sshfs exposes an async ``_cat_file`` method which accepts arbitrary keyword
+# arguments but ignores fsspec's ``start``/``end`` byte-range contract. fsspec
+# mirrors that method over its correct synchronous implementation, so Zarr's
+# suffix reads receive the complete shard and fail the shard-index checksum.
+_RANGE_IGNORING_CAT_FILE_NAMES = frozenset({"SSHFileSystem"})
+
 
 def _is_connection_error(exc: BaseException) -> bool:
     """Check if an exception indicates a broken or stale connection."""
@@ -147,6 +153,48 @@ class ReconnectingFileSystem(AbstractFileSystem):
             return getattr(filesystem, method_name)(*args, **kwargs)
         return result
 
+    @staticmethod
+    def _requires_cat_file_range_fallback(filesystem: AbstractFileSystem) -> bool:
+        return any(cls.__name__ in _RANGE_IGNORING_CAT_FILE_NAMES for cls in type(filesystem).__mro__)
+
+    @staticmethod
+    def _cat_file_by_seek(filesystem: AbstractFileSystem, path, start=None, end=None, **kwargs):
+        """Honor fsspec byte ranges using a seekable file object."""
+        if (start is not None and start < 0) or (end is not None and end < 0):
+            size = filesystem.info(path)["size"]
+            if start is not None and start < 0:
+                start = max(0, size + start)
+            if end is not None and end < 0:
+                end = max(0, size + end)
+
+        with filesystem.open(path, "rb", **kwargs) as stream:
+            if start is not None:
+                stream.seek(start)
+            if end is None:
+                return stream.read()
+            return stream.read(max(0, end - stream.tell()))
+
+    def cat_file(self, path, start=None, end=None, **kwargs):
+        """Read a complete file or byte range, reconnecting once on failure."""
+
+        def read(filesystem):
+            if (start is not None or end is not None) and self._requires_cat_file_range_fallback(filesystem):
+                return self._cat_file_by_seek(filesystem, path, start=start, end=end, **kwargs)
+            return filesystem.cat_file(path, start=start, end=end, **kwargs)
+
+        filesystem, generation = self._snapshot()
+        try:
+            return read(filesystem)
+        except Exception as original_exc:
+            if not _is_connection_error(original_exc):
+                raise
+            logger.warning("Connection error during cat_file, reconnecting: %s", original_exc)
+            try:
+                filesystem = self._reconnect(expected_generation=generation)
+            except Exception:
+                raise original_exc from None
+            return read(filesystem)
+
     # -- Explicitly overridden methods (used by copick, Zarr's fsspec adapter, and fsspec FSMap) --
     # Each delegates to self._fs with automatic retry on connection error.
 
@@ -162,7 +210,6 @@ class ReconnectingFileSystem(AbstractFileSystem):
 
     # File read/write methods
     cat = _make_retry_method("cat")
-    cat_file = _make_retry_method("cat_file")
     pipe = _make_retry_method("pipe")
     pipe_file = _make_retry_method("pipe_file")
     open = _make_retry_method("open")
