@@ -57,7 +57,7 @@ jobs:
           UV_TORCH_BACKEND: cpu
         # Pin minimum versions to the releases that ship the normalized command docstrings, so the
         # rendered CLI reference can't regress to an older (pre-normalization) plugin.
-        run: uv pip install "copick>=1.24.1" "copick-utils>=1.7.1" "copick-torch>=1.1.1" "copick-mcp>=0.6.0"
+        run: uv pip install "copick-utils>=1.7.1" "copick-torch>=1.1.1" "copick-mcp>=0.6.0"
 
       # copick-easymode is git-only (not on PyPI) and its CLI module defers all heavy imports
       # (easymode/TensorFlow), so a --no-deps install is enough for make_cli_docs to introspect
@@ -65,11 +65,11 @@ jobs:
       - name: Install copick-easymode for CLI introspection
         run: uv pip install --no-deps "copick-easymode @ git+https://github.com/copick/copick-easymode.git"
 
-      # Plugin dependency resolution can replace the checkout with the latest
-      # released copick wheel. Restore the branch under test without removing
-      # the separately installed plugins.
-      - name: Restore copick from the checkout
-        run: uv pip install --no-deps --editable .
+      # Plugin dependency resolution can replace the checkout and its locked
+      # Zarr 3 runtime with released dependencies. Restore the branch under
+      # test while retaining the separately installed plugins.
+      - name: Restore the locked checkout runtime
+        run: uv sync --locked --extra docs --inexact
 
       # Regenerate the per-command CLI reference pages and the CLI-Reference nav node
       # from the live --help/docstrings before building.
