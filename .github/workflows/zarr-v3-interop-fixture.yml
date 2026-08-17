@@ -1,6 +1,10 @@
 name: Zarr v3 direct-reader fixture
 
 on:
+  push:
+    branches:
+      - main
+      - v2.0
   pull_request:
     paths:
       - ".github/workflows/zarr-v3-interop-fixture.yml"
@@ -38,8 +42,10 @@ jobs:
         run: |
           mkdir -p direct-reader-artifacts
           uv run --no-sync python tests/scripts/build_v3_interop_fixture.py \
+            --source-revision "${GITHUB_SHA}" \
             --output direct-reader-artifacts/copick-v3-direct-reader-fixture.zip
           uv run --no-sync python tests/scripts/build_v3_interop_fixture.py \
+            --source-revision "${GITHUB_SHA}" \
             --output direct-reader-artifacts/repeated.zip
           cmp direct-reader-artifacts/copick-v3-direct-reader-fixture.zip \
             direct-reader-artifacts/repeated.zip

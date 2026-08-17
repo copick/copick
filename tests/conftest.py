@@ -766,8 +766,8 @@ if BACKEND in ("all", "smb") and importlib_util.find_spec("smbclient") and RUN_A
             shutil.rmtree(TESTS_DIR / "bin" / "smb" / project_directory_stripped)
             shutil.rmtree(TESTS_DIR / "bin" / "smb" / overlay_directory_stripped)
 
-    # SMB remains an explicit, optional matrix. BACKEND=all must not make it a
-    # release gate accidentally.
+    # SMB remains an explicit, optional matrix. BACKEND=all must not enable it
+    # accidentally.
     if BACKEND == "smb":
         COMMON_CASES.extend(["smb_overlay_only", "smb"])
 
