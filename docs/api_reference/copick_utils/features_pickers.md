@@ -58,3 +58,9 @@ features = compute_skimage_features(
     texture=True,
 )
 ```
+
+`compute_skimage_features` returns feature-major data shaped `(feature, z, y, x)`. Copick stores that output through
+the same centralized OME-Zarr writer used by `CopickFeatures.from_numpy()` and `copick.ops.add_features()`. Existing 3D
+feature volumes remain `(z, y, x)`. By default, 4D arrays use one feature per inner chunk and one padded spatial shard
+per feature volume; pass a spatial 3-tuple or an explicit 4D tuple through `chunks`, and an explicit dimension-matched
+tuple through `shards`, to override the layout.

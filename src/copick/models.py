@@ -8,11 +8,15 @@ from zarr.abc.store import Store
 
 from copick.util.escape import sanitize_name
 from copick.util.ome import (
+    DEFAULT_SPATIAL_CHUNKS,
     fits_in_memory,
     get_level_path,
     initialize_zarr_v2,
+    ome_zarr_axes,
+    padded_shard_shape,
     segmentation_pyramid,
     volume_pyramid,
+    write_ome_zarr,
     write_ome_zarr_3d,
 )
 from copick.util.relion import picks_to_df_relion, relion_df_to_picks
@@ -2003,6 +2007,54 @@ class CopickFeatures:
 
         return np.array(group[slices])
 
+    def from_numpy(
+        self,
+        data: np.ndarray,
+        *,
+        chunks: Optional[Tuple[int, ...]] = None,
+        shards: Optional[Tuple[int, ...]] = None,
+        dtype: Optional[np.dtype] = None,
+        metadata: Optional[Dict[str, Any]] = None,
+    ) -> None:
+        """Write a 3D or feature-major 4D feature array.
+
+        Args:
+            data: Feature data shaped ``(z, y, x)`` or ``(feature, z, y, x)``.
+            chunks: Optional inner chunk shape. A 3-tuple for 4D data is expanded with a leading extent of one.
+            shards: Optional dimension-matched shard shape.
+            dtype: Optional dtype conversion applied before writing.
+            metadata: Optional OME multiscale metadata payload.
+        """
+        array = np.asarray(data, dtype=dtype)
+        if array.ndim not in (3, 4):
+            raise ValueError(f"Feature data must be 3D (z, y, x) or 4D (feature, z, y, x), got shape {array.shape!r}")
+
+        spatial_chunks = DEFAULT_SPATIAL_CHUNKS if chunks is None else chunks
+        if array.ndim == 3:
+            effective_chunks = spatial_chunks
+            effective_shards = shards
+        else:
+            if len(spatial_chunks) == 3:
+                effective_chunks = (1, *spatial_chunks)
+            elif len(spatial_chunks) == 4:
+                effective_chunks = spatial_chunks
+            else:
+                raise ValueError(
+                    f"chunks must contain 3 spatial dimensions or all 4 dimensions, got {spatial_chunks!r}",
+                )
+            effective_shards = shards
+            if effective_shards is None:
+                effective_shards = (1, *padded_shard_shape(array.shape[1:], effective_chunks[1:]))
+
+        write_ome_zarr(
+            self.zarr(),
+            {self.tomogram.voxel_spacing.voxel_size: array},
+            ome_zarr_axes(array.ndim),
+            effective_chunks,
+            metadata=metadata,
+            shard_size=effective_shards,
+        )
+
     def set_region(
         self,
         data: np.ndarray,
@@ -2018,6 +2070,11 @@ class CopickFeatures:
             slices: Tuple of slices for the axes.
         """
         loc = self.zarr()
+        if slices is None:
+            array = _open_zarr_array(loc, zarr_group, mode="r+")
+            slices = tuple(slice(None) for _ in array.shape)
+            array[slices] = data
+            return
         _open_zarr_array(loc, zarr_group, mode="r+")[slices] = data
 
 

@@ -338,19 +338,26 @@ def add_features(
     chunks: Tuple[int, int, int] = (128, 128, 128),
     meta: Dict[str, Any] = None,
     log: bool = False,
+    shards: Optional[Tuple[int, ...]] = None,
 ) -> CopickFeatures:
     """Add features to a copick run.
 
     Args:
         root (CopickRoot): The copick root object.
-        features (Dict[str, Any]): The features to add.
+        features_vol: A 3D ``(z, y, x)`` volume or 4D ``(feature, z, y, x)`` array.
         run (str): The run the features are part of.
+        voxel_spacing: Voxel spacing of the associated tomogram and spatial feature axes.
+        tomo_type: Type of the associated tomogram.
+        feature_type: Name of the feature map.
         exist_ok (bool, optional): If True, do not raise an error if the features already exist. Defaults to False.
         overwrite (bool, optional): Overwrite the object if it exists. Defaults to False.
+        chunks: Inner chunks. A spatial 3-tuple is expanded with a leading one for 4D data.
+        meta: Optional OME multiscale metadata.
         log (bool, optional): Log the operation. Defaults to False.
+        shards: Optional dimension-matched shard shape.
     """
     runobj = get_or_create_run(root, run, create=False)
-    vsobj = get_or_create_voxelspacing(runobj, 1.0, create=False)
+    vsobj = get_or_create_voxelspacing(runobj, voxel_spacing, create=False)
     tomogram = vsobj.get_tomogram(tomo_type)
 
     if tomogram is None:
@@ -359,16 +366,17 @@ def add_features(
             logging.exception(e)
         raise e
 
+    existing_features = tomogram.get_features(feature_type)
+
     # Create the features
     features = tomogram.new_features(feature_type, exist_ok=exist_ok)
+    if existing_features is not None and not overwrite:
+        return features
 
-    # Get the store
-    loc = features.zarr()
-    write_ome_zarr_3d(
-        loc,
-        {voxel_spacing: features_vol},
-        chunk_size=chunks,
-        overwrite=overwrite,
+    features.from_numpy(
+        features_vol,
+        chunks=chunks,
+        shards=shards,
         metadata=meta,
     )
 

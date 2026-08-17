@@ -10,6 +10,7 @@ import mrcfile
 import numpy as np
 import pytest
 import zarr
+from copick.models import CopickFeatures
 from copick.ops.add import (
     add_features,
     add_object,
@@ -240,6 +241,47 @@ class TestAddFeatures:
         features_vol = np.random.randn(8, 8, 8).astype(np.float32)
         feat = add_features(root, "TS_001", 1.0, "feat-test-tomo", "sobel-test", features_vol, exist_ok=True)
         assert feat.feature_type == "sobel-test"
+        np.testing.assert_array_equal(feat.numpy(), features_vol)
+
+    def test_add_features_delegates_feature_major_write(self, test_payload, monkeypatch):
+        """The ops API preserves 4D feature-major data and delegates to the model API."""
+        root = test_payload["root"]
+        add_tomogram(
+            root,
+            "TS_001",
+            "feat-4d-tomo",
+            np.zeros((4, 5, 6), dtype=np.float32),
+            voxel_spacing=1.0,
+            exist_ok=True,
+        )
+        values = np.arange(2 * 4 * 5 * 6, dtype=np.float32).reshape(2, 4, 5, 6)
+        calls = []
+        original = CopickFeatures.from_numpy
+
+        def recording_from_numpy(self, data, **kwargs):
+            calls.append((data.shape, kwargs))
+            return original(self, data, **kwargs)
+
+        monkeypatch.setattr(CopickFeatures, "from_numpy", recording_from_numpy)
+        features = add_features(
+            root,
+            "TS_001",
+            1.0,
+            "feat-4d-tomo",
+            "multi",
+            values,
+            exist_ok=True,
+            chunks=(2, 3, 4),
+            shards=(1, 4, 6, 8),
+        )
+
+        assert calls == [
+            (
+                values.shape,
+                {"chunks": (2, 3, 4), "shards": (1, 4, 6, 8), "metadata": None},
+            ),
+        ]
+        np.testing.assert_array_equal(features.numpy(), values)
 
     def test_add_features_missing_tomogram_raises(self, test_payload):
         """Missing tomogram raises ValueError."""
