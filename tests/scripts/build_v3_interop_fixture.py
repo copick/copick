@@ -21,9 +21,8 @@ from typing import Any
 
 import numpy as np
 import zarr
-from ome_zarr_models.v05.image import Image
-
 from copick.util.ome import DEFAULT_SPATIAL_CHUNKS, write_ome_zarr_3d
+from ome_zarr_models.v05.image import Image
 
 FIXTURE_NAME = "copick-v3-direct-reader-fixture"
 FIXTURE_SCHEMA_VERSION = 1
@@ -70,7 +69,7 @@ def _json_scalar(value: np.generic) -> bool | int | float:
     return value.item()
 
 
-def _level_manifest(array: zarr.Array, level: int, voxel_size: float, expected: np.ndarray) -> dict[str, Any]:
+def _level_manifest(array: zarr.Array, level_path: str, voxel_size: float, expected: np.ndarray) -> dict[str, Any]:
     metadata = array.metadata.to_dict()
     sharding = metadata["codecs"][0]
     inner_codecs = sharding["configuration"]["codecs"]
@@ -94,7 +93,7 @@ def _level_manifest(array: zarr.Array, level: int, voxel_size: float, expected: 
     np.testing.assert_array_equal(actual, expected)
     coordinates = _sample_coordinates(array.shape)
     return {
-        "path": str(level),
+        "path": level_path,
         "voxel_size_angstrom": voxel_size,
         "shape": list(array.shape),
         "dtype": str(array.dtype),
@@ -102,7 +101,7 @@ def _level_manifest(array: zarr.Array, level: int, voxel_size: float, expected: 
         "inner_chunks": list(array.chunks),
         "shards": list(array.shards),
         "shard_grid_shape": shard_grid,
-        "shard_key": f"{level}/0/0/0",
+        "shard_key": f"{level_path}/0/0/0",
         "chunk_key_encoding": metadata["chunk_key_encoding"],
         "sharding_index_location": sharding["configuration"]["index_location"],
         "inner_codecs": inner_codecs,
@@ -138,9 +137,14 @@ def build_fixture(directory: Path) -> dict[str, Any]:
         if validated.ome_zarr_version != "0.5":
             raise AssertionError(f"Expected OME-Zarr 0.5, got {validated.ome_zarr_version!r}")
         multiscale = group.attrs["ome"]["multiscales"][0]
+        level_paths = [dataset["path"] for dataset in multiscale["datasets"]]
+        if len(level_paths) != len(levels):
+            raise AssertionError(f"Expected {len(levels)} levels, got paths {level_paths!r}")
         levels_manifest = [
-            _level_manifest(group[str(level)], level, voxel_size, expected)
-            for level, (voxel_size, expected) in enumerate(zip(VOXEL_SIZES, levels, strict=True))
+            _level_manifest(group[level_path], level_path, voxel_size, expected)
+            for level_path, (voxel_size, expected) in zip(
+                level_paths, zip(VOXEL_SIZES, levels, strict=True), strict=True,
+            )
         ]
         for level in levels_manifest:
             if not (store_path / level["shard_key"]).is_file():
