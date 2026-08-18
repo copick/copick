@@ -1,5 +1,83 @@
 # Changelog
 
+## [2.0.0-alpha.1](https://github.com/copick/copick/compare/copick-v1.26.1...copick-v2.0.0-alpha.1) (2026-08-18)
+
+
+### ⚠ BREAKING CHANGES
+
+* Newly created tomogram, segmentation, and feature stores are materialized as Zarr v3 groups, and `add_features` now raises instead of silently retaining existing data when `overwrite=False`.
+* `add_features` now resolves the voxel spacing supplied by the caller instead of always using 1.0, so non-1.0 calls write beneath their requested tomogram.
+* Newly written and rebuilt pyramids use OME-Zarr 0.5 metadata and Zarr v3 with numeric level paths; existing Zarr v2 stores remain readable.
+* copick now requires Zarr 3; public .zarr() methods return zarr.abc.store.Store instead of FSStore/MutableMapping, and the removed Zarr 2 copy/store APIs are no longer supported.
+
+### ✨ Features
+
+* adopt Zarr 3 runtime while preserving v2 output ([#413](https://github.com/copick/copick/issues/413)) ([f0aaa39](https://github.com/copick/copick/commit/f0aaa39eac0fd37f609e181ac14f9c3081f00ab4))
+* apply canonical Zarr v3 writer layout ([#415](https://github.com/copick/copick/issues/415)) ([cf28148](https://github.com/copick/copick/commit/cf28148854ef85e868874b57fcdf32e8948c04e2)), closes [#372](https://github.com/copick/copick/issues/372)
+* canonicalize single-level Zarr exports ([#417](https://github.com/copick/copick/issues/417)) ([384f132](https://github.com/copick/copick/commit/384f132d9e85a4635b35b45498ef133f574335a6)), closes [#373](https://github.com/copick/copick/issues/373)
+* centralize OME-Zarr v2 pyramid writer ([#399](https://github.com/copick/copick/issues/399)) ([cf3d8bf](https://github.com/copick/copick/commit/cf3d8bf9e6be6f7226f972064b53d82880ec092b))
+* drop Python 3.10 support and refresh CI ([#412](https://github.com/copick/copick/issues/412)) ([fc2c1ef](https://github.com/copick/copick/commit/fc2c1ef416491cc765b676ee8c51785113ebecd1))
+* resolve OME-Zarr levels from metadata ([#397](https://github.com/copick/copick/issues/397)) ([acc276e](https://github.com/copick/copick/commit/acc276ef6f3b43643d9e6dc295912379241b315d))
+* support configurable feature array layouts ([#416](https://github.com/copick/copick/issues/416)) ([67ecab2](https://github.com/copick/copick/commit/67ecab2ef790006742e847d6bf5e5e4ca58b379f))
+* write OME-Zarr 0.5 / Zarr v3 pyramids ([#414](https://github.com/copick/copick/issues/414)) ([2c56cdb](https://github.com/copick/copick/commit/2c56cdbd75453f027eb03eaf7442a6bc68e506ee))
+
+
+### 🐞 Bug Fixes
+
+* Bump actions/setup-python from 6 to 7 ([#346](https://github.com/copick/copick/issues/346)) ([4414023](https://github.com/copick/copick/commit/441402317f004152d58f87d9e86128164da49721))
+* Bump aiohttp from 3.14.1 to 3.14.2 ([#349](https://github.com/copick/copick/issues/349)) ([13d5daa](https://github.com/copick/copick/commit/13d5daa803122403d0653d030bf3b03842d2c27f))
+* Bump aiohttp from 3.14.2 to 3.14.3 ([#396](https://github.com/copick/copick/issues/396)) ([c8be04f](https://github.com/copick/copick/commit/c8be04fac4b713350eadaf16e5f5323f664c0d04))
+* Bump black from 26.3.1 to 26.5.1 ([#342](https://github.com/copick/copick/issues/342)) ([95b6b7b](https://github.com/copick/copick/commit/95b6b7b7348f7b0fa01a0d89b173e530d1ef7633))
+* Bump chanzuckerberg/github-actions from 6.29.4 to 6.30.1 ([#340](https://github.com/copick/copick/issues/340)) ([d078423](https://github.com/copick/copick/commit/d078423639b8131dcc7d4d7c1a330c5f7febd10a))
+* Bump chanzuckerberg/github-actions from 6.30.1 to 6.32.0 ([#355](https://github.com/copick/copick/issues/355)) ([e085be8](https://github.com/copick/copick/commit/e085be865a1f86b273e7c20883eaed1c7359d407))
+* Bump chanzuckerberg/github-actions from 6.32.0 to 6.34.0 ([#404](https://github.com/copick/copick/issues/404)) ([1f403b9](https://github.com/copick/copick/commit/1f403b9f8f3da9ee9b47a527c173f3813d336fe2))
+* Bump chanzuckerberg/github-actions from 6.34.0 to 6.36.1 ([#422](https://github.com/copick/copick/issues/422)) ([aa25ff3](https://github.com/copick/copick/commit/aa25ff3915537782707dc8729afd25b84269b12b))
+* Bump fsspec from 2026.4.0 to 2026.6.0 ([#341](https://github.com/copick/copick/issues/341)) ([95e23da](https://github.com/copick/copick/commit/95e23dab96090ca2c93600387833a077635b5a1a))
+* Bump mistune from 3.2.1 to 3.3.0 ([#338](https://github.com/copick/copick/issues/338)) ([6cb895e](https://github.com/copick/copick/commit/6cb895e77ff0ed97780467f5149afded158c9d3d))
+* Bump numpy from 2.4.2 to 2.4.6 ([#423](https://github.com/copick/copick/issues/423)) ([2d832fd](https://github.com/copick/copick/commit/2d832fd64093330f1172fdaa71fc9bf43c92e524))
+* Bump pandas from 2.3.3 to 3.0.5 ([#427](https://github.com/copick/copick/issues/427)) ([b9d650f](https://github.com/copick/copick/commit/b9d650fea6e4b70e297259042f2e74c0339662bb))
+* Bump pre-commit from 4.6.0 to 4.6.1 ([#394](https://github.com/copick/copick/issues/394)) ([28c92eb](https://github.com/copick/copick/commit/28c92ebc0f9e2f3ed598663a915c05d8eb15e1a8))
+* Bump pre-commit from 4.6.1 to 4.6.2 ([#429](https://github.com/copick/copick/issues/429)) ([2d26653](https://github.com/copick/copick/commit/2d266536c53c74b9f467fe07dc52d7d2d1cb141c))
+* Bump pygments from 2.19.2 to 2.20.0 ([#407](https://github.com/copick/copick/issues/407)) ([3f79dc9](https://github.com/copick/copick/commit/3f79dc99fd70e11040f24afa5846e40333ea0ee5))
+* Bump pymdown-extensions from 10.21.3 to 11.0 ([#354](https://github.com/copick/copick/issues/354)) ([b3ad3cc](https://github.com/copick/copick/commit/b3ad3cc780936bbd234c51303776110d0aeaf3eb))
+* Bump ruff from 0.15.20 to 0.15.22 ([#350](https://github.com/copick/copick/issues/350)) ([864e5f6](https://github.com/copick/copick/commit/864e5f61d13302ffb6a6ba46cba305eef06a266d))
+* Bump ruff from 0.15.22 to 0.16.1 ([#405](https://github.com/copick/copick/issues/405)) ([dafade9](https://github.com/copick/copick/commit/dafade9558b9202c8654383f249a622d787a776f))
+* Bump s3fs from 2026.6.0 to 2026.7.0 ([#390](https://github.com/copick/copick/issues/390)) ([b0ac9cd](https://github.com/copick/copick/commit/b0ac9cd7a57bcc2ef48eccff7be3e8d185f02519))
+* Bump setuptools from 82.0.0 to 83.0.0 ([#352](https://github.com/copick/copick/issues/352)) ([3eae80b](https://github.com/copick/copick/commit/3eae80b655296457da571b3519c91e402ecb6626))
+* Bump smbprotocol from 1.16.1 to 1.17.0 ([#347](https://github.com/copick/copick/issues/347)) ([b3fca95](https://github.com/copick/copick/commit/b3fca95547afc15bfc9a143f3ce502d61e4f5717))
+* Bump soupsieve from 2.8.3 to 2.8.4 ([#337](https://github.com/copick/copick/issues/337)) ([98ab07d](https://github.com/copick/copick/commit/98ab07d3a4746127e21082a39c4aecf911cf8ee3))
+* Bump sshfs from 2025.11.0 to 2026.8.0 ([#425](https://github.com/copick/copick/issues/425)) ([82376f0](https://github.com/copick/copick/commit/82376f0c0802e6894f2d73205608125bb7fc87bd))
+* Bump textual from 8.2.5 to 8.2.8 ([#343](https://github.com/copick/copick/issues/343)) ([43cd26b](https://github.com/copick/copick/commit/43cd26b60219853a95de12b4fbf8698f4de57181))
+* Bump tqdm from 4.67.3 to 4.68.4 ([#344](https://github.com/copick/copick/issues/344)) ([7a921ce](https://github.com/copick/copick/commit/7a921ce06468c118f2799d84b848f70f093c8f2e))
+* Bump tqdm from 4.68.4 to 4.69.0 ([#348](https://github.com/copick/copick/issues/348)) ([9de66dd](https://github.com/copick/copick/commit/9de66dd4c679459e9920dd98b8f03b3c3934514a))
+* Bump tqdm from 4.69.0 to 4.70.0 ([#409](https://github.com/copick/copick/issues/409)) ([918ecc0](https://github.com/copick/copick/commit/918ecc0d45051c04eaf4c4536767b4e1ead3663a))
+* Bump trimesh from 4.12.2 to 5.0.0 ([#391](https://github.com/copick/copick/issues/391)) ([b34d701](https://github.com/copick/copick/commit/b34d70112f02b2cb4b89c361c3d86d8d1f65945e))
+* harden the Zarr v3 cutover and corpus gates ([#419](https://github.com/copick/copick/issues/419)) ([21fd317](https://github.com/copick/copick/commit/21fd317fd0ccaf91326c6306c956a9bdaf31e4d0))
+* preserve SSH byte-range reads ([#434](https://github.com/copick/copick/issues/434)) ([1505dd7](https://github.com/copick/copick/commit/1505dd78053eb99a092262c33d6f9e0c45d0b433))
+
+
+### ⚡️ Performance Improvements
+
+* benchmark canonical Zarr v3 I/O tradeoffs ([#431](https://github.com/copick/copick/issues/431)) ([ddc89bb](https://github.com/copick/copick/commit/ddc89bba67ad0aacf634440952cbeaac6cadd596))
+
+
+### 📝 Documentation
+
+* complete Zarr v3 migration guidance ([#436](https://github.com/copick/copick/issues/436)) ([ae24715](https://github.com/copick/copick/commit/ae247154ab4dd76bf86774d5255a026d734c032e)), closes [#380](https://github.com/copick/copick/issues/380)
+
+
+### 🧪 Tests
+
+* add Zarr migration structural guards ([#402](https://github.com/copick/copick/issues/402)) ([0489935](https://github.com/copick/copick/commit/0489935bb90187d2bb597ea4deef5b96a2064453))
+* prove Zarr readers remain layout agnostic ([#418](https://github.com/copick/copick/issues/418)) ([d123754](https://github.com/copick/copick/commit/d12375456bc911bc3bbaf4a885109d940b1815b6)), closes [#375](https://github.com/copick/copick/issues/375)
+* publish the exact Zarr v3 direct-reader fixture ([#432](https://github.com/copick/copick/issues/432)) ([1f21bf8](https://github.com/copick/copick/commit/1f21bf859e13d5832aab6ff278c47c1b404ed138))
+* validate portal and supported backends ([#435](https://github.com/copick/copick/issues/435)) ([2612a9f](https://github.com/copick/copick/commit/2612a9f46306754c41d3232cea7c4aeaedac07d8)), closes [#379](https://github.com/copick/copick/issues/379)
+
+
+### ⚙ Continuous Integration
+
+* configure v2 alpha releases ([ced28a0](https://github.com/copick/copick/commit/ced28a05d68670b437b5be55032b65d1512ca1eb))
+
 ## [1.26.1](https://github.com/copick/copick/compare/copick-v1.26.0...copick-v1.26.1) (2026-07-07)
 
 
