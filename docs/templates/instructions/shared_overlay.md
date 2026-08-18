@@ -2,6 +2,10 @@
 
 This SMB-share will contain all newly created data for your project.
 
+SMB support is best-effort and is not one of copick's release-gating storage backends. Verify create, read, update, and
+delete behavior against your server before using an SMB overlay in production. The share must allow creation of every
+intermediate directory below `overlay_root`.
+
 In the config file, the location should be passed to the `overlay_root`-field. Any arguments specified to the
 `overlay_fs_args`-field will be passed to [SMBFileSystem](https://filesystem-spec.readthedocs.io/en/latest/api.html#fsspec.implementations.smb.SMBFileSystem).
 
@@ -20,7 +24,7 @@ In the config file, the location should be passed to the `overlay_root`-field. A
 
 
 ??? note "More about `overlay_fs_args` ..."
-    The `auto_mkdir`-flag is necessary to create copick-directories if they do not yet exist. The `tmpath`-flag is not
+    The `auto_mkdir`-flag is necessary to create copick-directories if they do not yet exist. The `temppath`-flag is not
     strictly necessary, this depends on your SMB setup (e.g. if only a specific directory is shared).
 
     ```json
