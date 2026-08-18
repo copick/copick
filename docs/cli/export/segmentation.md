@@ -27,8 +27,8 @@ pyramid. Restrict the export to specific runs with `--run-names`.
 | Option | Type | Default | Description |
 |--------|------|---------|-------------|
 | `-c, --config` | path | — | Path to the configuration file. |
+| `--run-names, -r` | text · multiple | — | Specific run names to process (default: all runs). Repeatable; pass -r once per run. |
 | `--segmentation-uri` | text | **required** | URI to filter segmentations for export (e.g., 'membrane:user1/*@10.0'). |
-| `--run-names` | text | `""` | Comma-separated list of run names to export. If not specified, exports from all runs. |
 | `--output-dir` | directory | **required** | Output directory for exported files. |
 | `--output-format` | choice (mrc \| tiff \| zarr \| em) | **required** | Output format for segmentations. |
 | `--copy-all-levels / --level-only` | boolean flag | `True` | Copy all pyramid levels for Zarr output. |

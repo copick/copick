@@ -27,7 +27,7 @@ JSON.
 | Option | Type | Default | Description |
 |--------|------|---------|-------------|
 | `-c, --config` | path | — | Path to the configuration file. |
-| `--runs` | text · multiple | — | Specific run names to analyze. Can be specified multiple times. |
+| `--run-names, -r` | text · multiple | — | Specific run names to process (default: all runs). Repeatable; pass -r once per run. |
 | `--user-id` | text · multiple | — | Filter by user ID. Can be specified multiple times. |
 | `--session-id` | text · multiple | — | Filter by session ID. Can be specified multiple times. |
 | `--name` | text · multiple | — | Filter by segmentation name. Can be specified multiple times. |

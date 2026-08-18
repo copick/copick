@@ -32,10 +32,10 @@ and Euler-angle conventions, see the docstrings in `copick.util.formats`.
 | Option | Type | Default | Description |
 |--------|------|---------|-------------|
 | `-c, --config` | path | — | Path to the configuration file. |
+| `--run-names, -r` | text · multiple | — | Specific run names to process (default: all runs). Repeatable; pass -r once per run. |
 | `--picks-uri` | text | **required** | URI to filter picks for export (e.g., 'ribosome:user1/*' or '*:*/*'). |
 | `--output-dir` | directory | — | Output directory for per-run export (one file per run). Mutually exclusive with --output-file. |
 | `--output-file` | file | — | Output file for combined export (all runs in one file). Mutually exclusive with --output-dir. |
-| `--run-names` | text | — | Comma-separated list of run names to process. |
 | `--output-format` | choice (em \| star \| dynamo \| csv) | **required** | Output format for picks. |
 | `--voxel-size` | float | — | Voxel size in Angstrom (required for EM, STAR, and Dynamo formats). |
 | `--index-map` | path | — | CSV/TSV file mapping tomogram index to run name. Required for combined EM/Dynamo export, optional for per-run. |
