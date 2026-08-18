@@ -66,20 +66,20 @@ Meshes: object_name:user_id/session_id
 | Option | Type | Default | Description |
 |--------|------|---------|-------------|
 | `-c, --config` | path | — | Path to the configuration file. |
+| `--run-names, -r` | text · multiple | — | Specific run names to process (default: all runs). Repeatable; pass -r once per run. |
 | `--debug / --no-debug` | boolean flag | `False` | Enable debug logging. |
 
 ### Input Options
 
 | Option | Type | Default | Description |
 |--------|------|---------|-------------|
-| `--run-names, -r` | text · multiple | — | Specific run names to process (default: all runs). |
 | `--input, -i` | COPICK_URI | **required** | Input picks URI (format: object_name:user_id/session_id). Supports glob patterns. |
 
 ### Tool Options
 
 | Option | Type | Default | Description |
 |--------|------|---------|-------------|
-| `--mesh-type, -t` | choice (convex_hull \| alpha_shape) | `convex_hull` | Type of mesh to create. |
+| `--mesh-type, -mt` | choice (convex_hull \| alpha_shape) | `convex_hull` | Type of mesh to create. |
 | `--alpha, -a` | float | — | Alpha parameter for alpha shapes (required if mesh-type=alpha_shape). |
 | `--use-clustering, -cl / --no-use-clustering` | boolean flag | `False` | Cluster points before mesh creation. |
 | `--clustering-method` | choice (dbscan \| kmeans) | `dbscan` | Clustering method. |

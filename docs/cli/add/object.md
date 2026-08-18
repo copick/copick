@@ -32,7 +32,7 @@ attached to the object.
 | `--color` | text | — | RGBA color for the object as comma-separated values (e.g. '255,0,0,255' for red). |
 | `--emdb-id` | text | — | EMDB ID for the object. |
 | `--pdb-id` | text | — | PDB ID for the object. |
-| `--identifier` | text | — | Identifier for the object (e.g. Gene Ontology ID or UniProtKB accession). |
+| `--identifier` | text | — | Ontology/database identifier for the object (namespaces: GO, UniProtKB, CHEBI, PDB [dash separator, e.g. PDB-1BXN], UBERON, CL, CDPO). |
 | `--map-threshold` | float | — | Threshold to apply to the map when rendering the isosurface. |
 | `--radius` | float | `50` | Radius of the particle, when displaying as a sphere. |
 | `--metadata` | text | — | Additional metadata values to associate with the object, in JSON format. |
