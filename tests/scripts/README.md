@@ -3,6 +3,28 @@
 This directory contains helper scripts that regenerate the Zenodo-hosted
 `sample_project.zip` test fixture used by the copick test suite.
 
+## Building the direct-reader interoperability fixture
+
+```bash
+python tests/scripts/build_v3_interop_fixture.py \
+  --source-revision "$(git rev-parse HEAD)" \
+  --output /tmp/copick-v3-direct-reader-fixture.zip
+```
+
+This fixture is intentionally produced through copick's centralized writer,
+unlike the independent corpus twin below. It contains two-level boolean,
+uint16, and float32 OME-Zarr 0.5 / Zarr v3 stores, plus a feature-major 4D
+float32 store and a manifest with exact codec metadata, sample values, source
+revision, and SHA-256 checksums. The 3D level-0 shape crosses all three
+inner-chunk boundaries while preserving the required one-shard grid; the 4D
+store writes one padded spatial shard per feature volume. Building the same
+locked revision twice must produce byte-identical archives.
+
+Use this artifact for deployed direct-reader validation; do not modify its
+codec pipeline to accommodate a failing reader. Record the archive checksum,
+source revision, deployed reader build, decoded values/checksums, and evidence
+in issue #378 or a linked report.
+
 ## When to regenerate
 
 Any time the **layout** or **content** of the test fixture needs to change —
