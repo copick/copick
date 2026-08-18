@@ -1,6 +1,7 @@
 import json
 import os
 import shutil
+import subprocess
 import tempfile
 import time
 import uuid
@@ -497,9 +498,40 @@ if BACKEND in ("all", "ssh") and importlib_util.find_spec("sshfs") and RUN_ALL:
         os.environ["HOST_UID"] = str(os.getuid())
         os.environ["HOST_GID"] = str(os.getgid())
 
-        os.system(f"docker compose -f {DOCKER_COMPOSE_FILE} --profile sshfs up -d")
-        # On startup we need to wait for the service to fully initialize (user creation, SSH setup).
-        time.sleep(3)
+        subprocess.run(
+            ["docker", "compose", "-f", str(DOCKER_COMPOSE_FILE), "--profile", "sshfs", "up", "-d"],
+            # xdist workers can race while starting the shared container. One
+            # compose process may report a name conflict even though the other
+            # successfully started the service; the authenticated probe below
+            # is the authoritative readiness check.
+            check=False,
+        )
+
+        # An open TCP port is not sufficient: linuxserver starts accepting
+        # connections before its configured user is always ready. Probe the
+        # same authenticated filesystem the tests use instead of sleeping for
+        # a fixed interval.
+        deadline = time.monotonic() + 60
+        last_error = None
+        while time.monotonic() < deadline:
+            try:
+                probe = fsspec.filesystem(
+                    "ssh",
+                    host="localhost",
+                    port=2222,
+                    username="test.user",
+                    password="password",
+                    known_hosts=None,
+                    skip_instance_cache=True,
+                )
+                probe.ls("/config")
+                probe.client.abort()
+                break
+            except Exception as exc:
+                last_error = exc
+                time.sleep(1)
+        else:
+            raise RuntimeError("SSH test service did not become ready within 60 seconds") from last_error
 
         yield "ssh:///config/test_data/"
 
