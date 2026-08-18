@@ -1,5 +1,52 @@
 # Changelog
 
+## [1.27.0](https://github.com/copick/copick/compare/copick-v1.26.1...copick-v1.27.0) (2026-08-18)
+
+
+### ✨ Features
+
+* Caching mechanism for data portal metadata  ([#335](https://github.com/copick/copick/issues/335)) ([e3537cb](https://github.com/copick/copick/commit/e3537cbeba74e91452eb491906ce3d00368f040b))
+
+
+### 🐞 Bug Fixes
+
+* Bump actions/setup-python from 6 to 7 ([#346](https://github.com/copick/copick/issues/346)) ([4414023](https://github.com/copick/copick/commit/441402317f004152d58f87d9e86128164da49721))
+* Bump aiohttp from 3.14.1 to 3.14.2 ([#349](https://github.com/copick/copick/issues/349)) ([13d5daa](https://github.com/copick/copick/commit/13d5daa803122403d0653d030bf3b03842d2c27f))
+* Bump aiohttp from 3.14.2 to 3.14.3 ([#382](https://github.com/copick/copick/issues/382)) ([11f88e3](https://github.com/copick/copick/commit/11f88e34eac94f29d3d6954fa76e8b20848e397f))
+* Bump black from 26.3.1 to 26.5.1 ([#342](https://github.com/copick/copick/issues/342)) ([95b6b7b](https://github.com/copick/copick/commit/95b6b7b7348f7b0fa01a0d89b173e530d1ef7633))
+* Bump chanzuckerberg/github-actions from 6.29.4 to 6.30.1 ([#340](https://github.com/copick/copick/issues/340)) ([d078423](https://github.com/copick/copick/commit/d078423639b8131dcc7d4d7c1a330c5f7febd10a))
+* Bump chanzuckerberg/github-actions from 6.30.1 to 6.32.0 ([#355](https://github.com/copick/copick/issues/355)) ([e085be8](https://github.com/copick/copick/commit/e085be865a1f86b273e7c20883eaed1c7359d407))
+* Bump chanzuckerberg/github-actions from 6.32.0 to 6.34.0 ([#403](https://github.com/copick/copick/issues/403)) ([71dfb50](https://github.com/copick/copick/commit/71dfb50a9de8f8b0f5798cf5f5e167210b588dd6))
+* Bump chanzuckerberg/github-actions from 6.34.0 to 6.36.1 ([#421](https://github.com/copick/copick/issues/421)) ([f27dfee](https://github.com/copick/copick/commit/f27dfee0dd185117c6397eb3e153c676b2002407))
+* Bump cryptography from 48.0.1 to 50.0.0 ([#381](https://github.com/copick/copick/issues/381)) ([bd63937](https://github.com/copick/copick/commit/bd63937d8fe834ea028e2bca92618ac57e7f4086))
+* Bump filelock from 3.20.3 to 3.32.2 ([#406](https://github.com/copick/copick/issues/406)) ([33a7c1d](https://github.com/copick/copick/commit/33a7c1dcd73b06f686e80cdb6200fb8ecf1a2449))
+* Bump fsspec from 2026.4.0 to 2026.6.0 ([#341](https://github.com/copick/copick/issues/341)) ([95e23da](https://github.com/copick/copick/commit/95e23dab96090ca2c93600387833a077635b5a1a))
+* Bump fsspec from 2026.6.0 to 2026.7.0 ([#389](https://github.com/copick/copick/issues/389)) ([a807f25](https://github.com/copick/copick/commit/a807f251e106dc57169af079b8f85c1d86f1e3eb))
+* Bump mistune from 3.2.1 to 3.3.0 ([#338](https://github.com/copick/copick/issues/338)) ([6cb895e](https://github.com/copick/copick/commit/6cb895e77ff0ed97780467f5149afded158c9d3d))
+* Bump pillow from 12.2.0 to 12.3.0 ([#351](https://github.com/copick/copick/issues/351)) ([44e3f8f](https://github.com/copick/copick/commit/44e3f8fd831198bd5efa745941efc51aa96b92b6))
+* Bump pre-commit from 4.6.0 to 4.6.1 ([#395](https://github.com/copick/copick/issues/395)) ([976c78e](https://github.com/copick/copick/commit/976c78e3f67bd8091b1c77179812547077ab707b))
+* Bump pre-commit from 4.6.1 to 4.6.2 ([#428](https://github.com/copick/copick/issues/428)) ([59d4167](https://github.com/copick/copick/commit/59d41673d9d914cc421ec0d5becbe3adf84642c0))
+* Bump pygments from 2.19.2 to 2.20.0 ([#393](https://github.com/copick/copick/issues/393)) ([2a4cd72](https://github.com/copick/copick/commit/2a4cd729a2abf27aac4f6f5508271af4d3eff21c))
+* Bump pymdown-extensions from 10.21.3 to 11.0 ([#354](https://github.com/copick/copick/issues/354)) ([b3ad3cc](https://github.com/copick/copick/commit/b3ad3cc780936bbd234c51303776110d0aeaf3eb))
+* Bump pymdown-extensions from 11.0 to 11.0.1 ([#411](https://github.com/copick/copick/issues/411)) ([356c57f](https://github.com/copick/copick/commit/356c57f207906edf5c49f3ebd9309353da99c3ec))
+* Bump ruff from 0.15.20 to 0.15.22 ([#350](https://github.com/copick/copick/issues/350)) ([864e5f6](https://github.com/copick/copick/commit/864e5f61d13302ffb6a6ba46cba305eef06a266d))
+* Bump ruff from 0.15.22 to 0.16.1 ([#387](https://github.com/copick/copick/issues/387)) ([6d56f5b](https://github.com/copick/copick/commit/6d56f5b3c455cc0e2c415e8fdd42fba64baacc93))
+* Bump ruff from 0.16.1 to 0.16.2 ([#424](https://github.com/copick/copick/issues/424)) ([8aed9d9](https://github.com/copick/copick/commit/8aed9d9a08d7e49a3c887435cf3aed1066df9592))
+* Bump setuptools from 82.0.0 to 83.0.0 ([#352](https://github.com/copick/copick/issues/352)) ([3eae80b](https://github.com/copick/copick/commit/3eae80b655296457da571b3519c91e402ecb6626))
+* Bump smbprotocol from 1.16.1 to 1.17.0 ([#347](https://github.com/copick/copick/issues/347)) ([b3fca95](https://github.com/copick/copick/commit/b3fca95547afc15bfc9a143f3ce502d61e4f5717))
+* Bump soupsieve from 2.8.3 to 2.8.4 ([#337](https://github.com/copick/copick/issues/337)) ([98ab07d](https://github.com/copick/copick/commit/98ab07d3a4746127e21082a39c4aecf911cf8ee3))
+* Bump sshfs from 2025.11.0 to 2026.8.0 ([#426](https://github.com/copick/copick/issues/426)) ([da20baf](https://github.com/copick/copick/commit/da20bafe8bc191ee8f2bbc286b7d7ca31cee1546))
+* Bump textual from 8.2.5 to 8.2.8 ([#343](https://github.com/copick/copick/issues/343)) ([43cd26b](https://github.com/copick/copick/commit/43cd26b60219853a95de12b4fbf8698f4de57181))
+* Bump tqdm from 4.67.3 to 4.68.4 ([#344](https://github.com/copick/copick/issues/344)) ([7a921ce](https://github.com/copick/copick/commit/7a921ce06468c118f2799d84b848f70f093c8f2e))
+* Bump tqdm from 4.68.4 to 4.69.0 ([#348](https://github.com/copick/copick/issues/348)) ([9de66dd](https://github.com/copick/copick/commit/9de66dd4c679459e9920dd98b8f03b3c3934514a))
+* Bump tqdm from 4.69.0 to 4.70.0 ([#410](https://github.com/copick/copick/issues/410)) ([5eda722](https://github.com/copick/copick/commit/5eda72286a09c096c408330270a76dfd2d92d0a8))
+* Bump trimesh from 4.12.2 to 5.0.0 ([#392](https://github.com/copick/copick/issues/392)) ([aa5167b](https://github.com/copick/copick/commit/aa5167bfab2311673e9107d73f0fdf6546cd82ec))
+
+
+### ⚙ Continuous Integration
+
+* run Dependabot for main and v2.0 ([#386](https://github.com/copick/copick/issues/386)) ([2da0848](https://github.com/copick/copick/commit/2da084894dd9a6abec570b59d64132fdfa5a9651))
+
 ## [1.26.1](https://github.com/copick/copick/compare/copick-v1.26.0...copick-v1.26.1) (2026-07-07)
 
 
