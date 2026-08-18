@@ -14,6 +14,7 @@ from click.testing import CliRunner
 from copick.cli.add import add
 from copick.cli.config import config
 from copick.cli.new import new
+from copick.util.ome import get_level_path, get_voxel_size_from_zarr
 from copick.util.zarr_copy import copy_zarr_store
 from zarr.storage import MemoryStore
 
@@ -835,16 +836,32 @@ class TestCLIConfig:
                 voxel_size=7.84,
             )
 
-            tomogram_group = zarr.open_group(tomogram.zarr(), mode="r")
-            segmentation_group = zarr.open_group(segmentation.zarr(), mode="r")
+            tomogram_store = tomogram.zarr()
+            segmentation_store = segmentation.zarr()
+            tomogram_group = zarr.open_group(tomogram_store, mode="r")
+            segmentation_group = zarr.open_group(segmentation_store, mode="r")
             assert list(tomogram_group.array_keys())
             assert list(segmentation_group.array_keys())
+            assert get_voxel_size_from_zarr(tomogram_group) == pytest.approx(7.84)
+            assert get_voxel_size_from_zarr(segmentation_group) == pytest.approx(7.84)
+
+            tomogram_array = tomogram_group[get_level_path(tomogram_group, 0)]
+            segmentation_array = segmentation_group[get_level_path(segmentation_group, 0)]
+            tomogram_selection = tuple(slice(0, min(2, size)) for size in tomogram_array.shape)
+            segmentation_selection = tuple(slice(0, min(2, size)) for size in segmentation_array.shape)
+            tomogram_sample = np.asarray(tomogram_array[tomogram_selection])
+            segmentation_sample = np.asarray(segmentation_array[segmentation_selection])
+            assert tomogram_sample.size > 0
+            assert segmentation_sample.size > 0
 
             copied_store = MemoryStore()
-            copy_result = copy_zarr_store(segmentation.zarr(), copied_store)
+            copy_result = copy_zarr_store(segmentation_store, copied_store)
             assert copy_result.copied_keys > 0
             assert copy_result.copied_bytes > 0
-            assert list(zarr.open_group(copied_store, mode="r").array_keys())
+            copied_group = zarr.open_group(copied_store, mode="r")
+            assert list(copied_group.array_keys())
+            copied_array = copied_group[get_level_path(copied_group, 0)]
+            np.testing.assert_array_equal(copied_array[segmentation_selection], segmentation_sample)
 
     def test_config_filesystem(self, runner):
         """Test filesystem config command implementation."""
