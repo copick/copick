@@ -5026,15 +5026,15 @@ wheels = [
 
 [[package]]
 name = "sshfs"
-version = "2025.11.0"
+version = "2026.8.0"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
     { name = "asyncssh" },
     { name = "fsspec" },
 ]
-sdist = { url = "https://files.pythonhosted.org/packages/7c/a4/4d445a859a58d3d2ee1e52b0376164a87de63d42304287b7ccd5f6b54d5b/sshfs-2025.11.0.tar.gz", hash = "sha256:f5bad75e16229112a8a13d6d4a2faeffd72e4141907d8d999a978bef599e4847", size = 24755, upload-time = "2025-12-05T05:07:23.126Z" }
+sdist = { url = "https://files.pythonhosted.org/packages/b2/70/0f5b8a8b2ba771102fe24f01436626f77d906f3c8338e40e02466a5bee08/sshfs-2026.8.0.tar.gz", hash = "sha256:1a52db45dce437c62d4a47cb8b4f72bc230300acda536a6d3bac984795262917", size = 27916, upload-time = "2026-08-07T22:17:06.296Z" }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/cc/a7/29935d7b8572ba378514864bd3d99dfb01518a5c20366b794b6cdb283356/sshfs-2025.11.0-py3-none-any.whl", hash = "sha256:90a3a2e815d28a0e8475f10fe8ef0127a507b60f77df17c3473c1a28e78c7f4b", size = 16420, upload-time = "2025-12-05T05:07:21.935Z" },
+    { url = "https://files.pythonhosted.org/packages/ad/99/a8e4260ab8113bdcdf43961855f25c6c4525fa22fa18e91e9bce6085fddc/sshfs-2026.8.0-py3-none-any.whl", hash = "sha256:1c088ac1dde6a416673addb8451ade4a4c4084b0d8a1c236e51ad552c0e1a40f", size = 17207, upload-time = "2026-08-07T22:17:05.223Z" },
 ]
 
 [[package]]
