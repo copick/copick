@@ -42,7 +42,7 @@ jobs:
           python-version: "3.13"
 
       - name: Restore verified corpus cache
-        uses: actions/cache@v5
+        uses: actions/cache@v6
         with:
           path: ${{ env.COPICK_TEST_DATA_CACHE }}/sample_project.zip
           key: copick-test-corpus-${{ hashFiles('tests/corpus_registry.py') }}
