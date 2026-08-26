@@ -193,6 +193,7 @@ nav = [
             {"File System" = "api_reference/implementations/Filesystem.md"},
             {"Data Portal" = "api_reference/implementations/Dataportal.md"},
             {"mlcroissant" = "api_reference/implementations/Croissant.md"},
+            {"Embrella" = "api_reference/implementations/Embrella.md"},
         ]},
         {"Functional API" = [
             {"Add" = "api_reference/functional/add.md"},
