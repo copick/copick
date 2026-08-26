@@ -1,0 +1,55 @@
+{
+    "config_type": "embrella",
+    "name": "Example Embrella Project",
+    "description": "This copick project combines tomograms from multiple Embrella sessions.",
+    "version": "2.0.0",
+    "pickable_objects": [
+        {
+            "name": "proteasome",
+            "is_particle": true,
+            "identifier": "GO:0000502",
+            "label": 1,
+            "color": [255, 0, 0, 255],
+            "radius": 60,
+            "map_threshold": 0.0418
+        },
+        {
+            "name": "membrane",
+            "is_particle": false,
+            "identifier": "GO:0016020",
+            "label": 2,
+            "color": [0, 255, 0, 255],
+            "radius": 10
+        }
+    ],
+    "embrella_base_url": "https://umbrella.czbiohub.org",
+    "sessions": [
+        {
+            "name": "25aug25a",
+            "tomograms": [
+                {"proc_run": "run003", "recon_type": "dctf"},
+                {"proc_run": "run003", "recon_type": "sart"},
+                {"proc_run": "run001", "recon_type": "denoise"}
+            ],
+            "overlay_run": "run002"
+        },
+        {
+            "name": "25aug22b",
+            "tomograms": [
+                {"proc_run": "run001", "recon_type": "dctf", "cluster": "bruno", "voxel_size": 5.002}
+            ]
+        }
+    ],
+    "default_data_cluster": "czii",
+    "scope": "krios1",
+    "overlay_mode": "ssh",
+    "overlay_fs_args": {
+        "host": "login-01.hpc.example.com",
+        "username": "user.name"
+    },
+    "static_mode": "http",
+    "overlay_root": "local:///PATH/TO/PROJECT_OVERLAY_DIR",
+    "overlay_root_fs_args": {
+        "auto_mkdir": true
+    }
+}
