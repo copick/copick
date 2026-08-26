@@ -11,12 +11,10 @@ from http.server import SimpleHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
 from threading import Thread
 
+import copick
 import numpy as np
 import pytest
 import zarr
-from zarr.storage import LocalStore
-
-import copick
 from copick.impl.embrella import (
     CopickConfigEmbrella,
     CopickRootEmbrella,
@@ -25,6 +23,7 @@ from copick.impl.embrella import (
     _positions_from_listing,
 )
 from copick.models import PickableObject
+from zarr.storage import LocalStore
 
 DCTF_VS = 5.0015426674967864  # rounds to 5.002
 SART_VS = 10.003085334993573  # rounds to 10.003
@@ -406,15 +405,7 @@ def test_unknown_cluster_raises(tree, server):
 
 
 def test_query_runs_union_with_overlay_only_runs(tree, root):
-    extra = (
-        tree
-        / "krios1.processing"
-        / "copick"
-        / "25aug25a"
-        / "run002"
-        / "ExperimentRuns"
-        / "25aug25a_Position_99"
-    )
+    extra = tree / "krios1.processing" / "copick" / "25aug25a" / "run002" / "ExperimentRuns" / "25aug25a_Position_99"
     extra.mkdir(parents=True)
 
     names = [r.name for r in root.runs]
@@ -581,15 +572,7 @@ def test_new_run_with_unconfigured_prefix_raises(root):
 def test_new_run_creates_overlay_directory(tree, root):
     run = root.new_run("25aug25a_Position_42")
     assert run is not None
-    run_dir = (
-        tree
-        / "krios1.processing"
-        / "copick"
-        / "25aug25a"
-        / "run002"
-        / "ExperimentRuns"
-        / "25aug25a_Position_42"
-    )
+    run_dir = tree / "krios1.processing" / "copick" / "25aug25a" / "run002" / "ExperimentRuns" / "25aug25a_Position_42"
     assert run_dir.is_dir()
 
 

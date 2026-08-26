@@ -762,9 +762,7 @@ class CopickVoxelSpacingEmbrella(CopickVoxelSpacingOverlay):
             return []
 
         entries = self.run.root.overlay_listdir(self.fs_overlay, self.overlay_path)
-        tomo_types = [
-            e["name"].removesuffix(".zarr") for e in entries if e["is_dir"] and e["name"].endswith(".zarr")
-        ]
+        tomo_types = [e["name"].removesuffix(".zarr") for e in entries if e["is_dir"] and e["name"].endswith(".zarr")]
         tomo_types = [t for t in tomo_types if "features" not in t]
         tomo_types = [tt for tt in tomo_types if tt and not tt.startswith(".")]
         tomo_types = [tt for tt in tomo_types if tt not in self.run.root.config.exclude_overlay_tomo_types]
@@ -1149,9 +1147,10 @@ class CopickRootEmbrella(CopickRoot):
 
         # Eagerly build the index and per-session overlay filesystems.
         self._ensure_index()
-        self._session_fs: Dict[str, Tuple[Optional[AbstractFileSystem], Optional[str], bool]] = (
-            self._build_session_filesystems()
-        )
+        self._session_fs: Dict[
+            str,
+            Tuple[Optional[AbstractFileSystem], Optional[str], bool],
+        ] = self._build_session_filesystems()
 
     @classmethod
     def from_file(cls, path: str) -> "CopickRootEmbrella":
@@ -1437,9 +1436,7 @@ class CopickRootEmbrella(CopickRoot):
         return CopickObjectEmbrella, PickableObject
 
     def query(self) -> List[CopickRunEmbrella]:
-        names: Dict[str, Tuple[str, Optional[str]]] = {
-            run_name: (session, position) for run_name, (session, position) in self.index.runs.items()
-        }
+        names: Dict[str, Tuple[str, Optional[str]]] = dict(self.index.runs.items())
 
         # Union with runs that only exist in the overlay projects.
         for session, (fs, root, _) in self._session_fs.items():
