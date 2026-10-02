@@ -597,6 +597,11 @@ def _walk_project(
         rows["copick/runs"].append(
             {"name": run.name, "portal_run_id": _portal_run_id(run) if is_cdp else ""},
         )
+        if run.filaments:
+            # The Croissant index has no filaments recordset yet; say so rather than drop them silently.
+            logger.warning(
+                f"Run {run.name}: {len(run.filaments)} filament set(s) are not exported to the Croissant index.",
+            )
 
         # Resolve per-run allow-sets for URI-filtered artifact types.
         allowed_tomos = _resolve_allowed_keys(

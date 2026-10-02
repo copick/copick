@@ -1874,3 +1874,116 @@ def test_repr(test_payload: Dict[str, Any]):
     repr(pick)
     repr(seg)
     repr(co)
+
+
+# =============================================================================
+# Filaments
+# =============================================================================
+
+FILAMENT_LINES = [
+    np.array([[0.0, 0.0, 0.0], [10.0, 0.0, 0.0], [20.0, 1.0, 0.0]]),
+    np.array([[5.0, 5.0, 5.0], [5.0, 15.0, 5.0]]),
+]
+
+
+def _croissant_mode_a(root) -> bool:
+    return getattr(root, "mode", None) == "A"
+
+
+def test_filaments_write_read_delete(test_payload: Dict[str, Any]):
+    root = test_payload["root"]
+    run = root.get_run("TS_001")
+    if _croissant_mode_a(root):
+        with pytest.raises(PermissionError):
+            run.new_filaments(object_name="ribosome", user_id="tracer", session_id="1")
+        assert run.filaments == []
+        return
+
+    filaments = run.new_filaments(object_name="ribosome", user_id="tracer", session_id="1")
+    filaments.from_numpy(
+        FILAMENT_LINES,
+        instance_ids=[3, 7],
+        polarity_known=[True, False],
+        radii=[120.0, None],
+        voxel_spacing=10.0,
+    )
+
+    reread = copick.from_file(test_payload["cfg_file"]).get_run("TS_001")
+    found = reread.get_filaments(object_name="ribosome", user_id="tracer", session_id="1")
+    assert len(found) == 1
+    assert found[0].instance_ids().tolist() == [3, 7]
+    for got, expected in zip(found[0].numpy(), FILAMENT_LINES, strict=True):
+        assert got == pytest.approx(expected)
+    assert found[0].get(3).polarity_known is True
+    assert found[0].get(3).radius == 120.0
+    assert found[0].get(7).radius is None
+    assert found[0].voxel_spacing == 10.0
+
+    run.delete_filaments(object_name="ribosome")
+    assert run.get_filaments(object_name="ribosome") == []
+    assert copick.from_file(test_payload["cfg_file"]).get_run("TS_001").filaments == []
+
+
+def test_filaments_uri_copy_and_move(test_payload: Dict[str, Any]):
+    from copick.ops.manage import copy_copick_objects, move_copick_objects
+    from copick.util.uri import resolve_copick_objects, serialize_copick_uri
+
+    root = test_payload["root"]
+    if _croissant_mode_a(root):
+        pytest.skip("Mode A Croissant projects cannot hold filaments")
+    run = root.get_run("TS_001")
+    run.new_filaments(object_name="ribosome", user_id="tracer", session_id="2").from_numpy(FILAMENT_LINES)
+
+    found = resolve_copick_objects("ribosome:tracer/*", root, "filaments", "TS_001")
+    assert [serialize_copick_uri(f) for f in found] == ["ribosome:tracer/2"]
+
+    result = copy_copick_objects(root, "filaments", "ribosome:tracer/2", "ribosome:copied/2", run_name="TS_001")
+    assert result["errors"] == [] and result["copied"] == 1, result
+    fresh = copick.from_file(test_payload["cfg_file"]).get_run("TS_001")
+    copied = fresh.get_filaments(object_name="ribosome", user_id="copied", session_id="2")[0]
+    assert copied.instance_ids().tolist() == [1, 2]
+
+    # Moving an object onto itself is refused instead of deleting it
+    result = move_copick_objects(
+        root,
+        "filaments",
+        "ribosome:copied/2",
+        "ribosome:copied/2",
+        run_name="TS_001",
+        overwrite=True,
+    )
+    assert result["moved"] == 0 and result["errors"]
+    fresh = copick.from_file(test_payload["cfg_file"]).get_run("TS_001")
+    assert fresh.get_filaments(object_name="ribosome", user_id="copied", session_id="2")
+
+
+def test_filaments_static_are_read_only(test_payload: Dict[str, Any]):
+    import json
+
+    from copick.impl.filesystem import CopickRootFSSpec
+
+    root = test_payload["root"]
+    if test_payload["testfs_static"] is None or not isinstance(root, CopickRootFSSpec):
+        pytest.skip("needs a separate static filesystem source")
+
+    directory = test_payload["testpath_static"] / "ExperimentRuns" / "TS_001" / "Filaments"
+    fs = test_payload["testfs_static"]
+    fs.makedirs(str(directory), exist_ok=True)
+    content = {
+        "pickable_object_name": "ribosome",
+        "user_id": "static-tracer",
+        "session_id": "0",
+        "filaments": [{"instance_id": 1, "points": [[0, 0, 0], [1, 0, 0]]}],
+    }
+    with fs.open(str(directory / "static-tracer_0_ribosome.json"), "w") as f:
+        json.dump(content, f)
+    with fs.open(str(directory / "malformed.json"), "w") as f:
+        f.write("{}")
+
+    run = copick.from_file(test_payload["cfg_file"]).get_run("TS_001")
+    found = run.get_filaments(user_id="static-tracer")
+    assert len(found) == 1 and found[0].read_only and found[0].from_tool
+    assert found[0].numpy()[0] == pytest.approx(np.array([[0.0, 0.0, 0.0], [1.0, 0.0, 0.0]]))
+    assert len(run.filaments) == 1, "files whose names are not user_session_object are skipped"
+    with pytest.raises(PermissionError):
+        found[0].store()
