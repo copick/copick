@@ -24,6 +24,31 @@ def _subset(values: Optional[np.ndarray], mask: np.ndarray) -> Optional[np.ndarr
     return None if values is None else np.asarray(values)[mask]
 
 
+def _star_read_kwargs(
+    root: CopickRoot,
+    run_name: str,
+    voxel_spacing: Optional[float],
+    tilt_series_pixel_size: Optional[float],
+    tomograms_star: Optional[str],
+) -> Dict[str, Any]:
+    """Keyword arguments locating a single-run STAR import: the tomograms.star entries if given, else the centre of
+    the run's copick tomogram (at ``voxel_spacing`` if it has one there, else at its smallest voxel spacing with a
+    tomogram)."""
+    from copick.util.formats import get_tomogram_centers_from_copick, read_relion_tomograms
+
+    kwargs: Dict[str, Any] = {"tilt_series_pixel_size": tilt_series_pixel_size}
+    if tomograms_star:
+        kwargs["tomograms"] = read_relion_tomograms(tomograms_star)
+        return kwargs
+    if root.get_run(run_name) is not None:
+        centers = get_tomogram_centers_from_copick(root, [run_name], voxel_spacing)
+        if run_name not in centers and voxel_spacing is not None:
+            centers = get_tomogram_centers_from_copick(root, [run_name], None)
+        if run_name in centers:
+            kwargs["tomogram_center"] = centers[run_name]
+    return kwargs
+
+
 def _usable_scores(scores: Optional[np.ndarray], file_path: str, log: bool) -> Optional[np.ndarray]:
     """Scores read from a file, or None (every point keeps the default score) if any of them is not finite."""
     if scores is None:
@@ -776,7 +801,7 @@ def _add_picks_em(
     from copick.util.formats import em_to_copick_transform, read_em_motivelist
 
     # Read the EM file
-    positions_px, eulers_deg, scores = read_em_motivelist(path)
+    positions_px, eulers_deg, scores, shifts_px = read_em_motivelist(path, include_shifts=True)
 
     # Get or create run
     runobj = get_or_create_run(root, run_name, create=create, log=log)
@@ -786,6 +811,7 @@ def _add_picks_em(
         positions_px,
         eulers_deg,
         voxel_spacing,
+        shifts_px=shifts_px,
     )
 
     # Create the picks
@@ -835,31 +861,10 @@ def _add_picks_star(
     Returns:
         The created CopickPicks object.
     """
-    from scipy.spatial.transform import Rotation
+    from copick.util.handlers.picks.star import star_handler
 
-    from copick.util.formats import read_star_particles
-
-    # Read the STAR file
-    df = read_star_particles(path)
-
-    # Extract pixel coordinates and convert to Angstrom
-    if {"rlnCoordinateX", "rlnCoordinateY", "rlnCoordinateZ"}.issubset(df.columns):
-        positions_px = df[["rlnCoordinateX", "rlnCoordinateY", "rlnCoordinateZ"]].to_numpy()
-    else:
-        raise ValueError("STAR file must contain rlnCoordinateX, rlnCoordinateY, rlnCoordinateZ columns")
-
-    positions_angstrom = positions_px * voxel_spacing
-
-    # Extract Euler angles and convert to 4x4 transformation matrices
-    N = len(positions_angstrom)
-    transforms = np.zeros((N, 4, 4), dtype=float)
-    transforms[:, 3, 3] = 1.0
-
-    if {"rlnAngleRot", "rlnAngleTilt", "rlnAnglePsi"}.issubset(df.columns):
-        angles = df[["rlnAngleRot", "rlnAngleTilt", "rlnAnglePsi"]].to_numpy()
-        transforms[:, :3, :3] = Rotation.from_euler("ZYZ", angles, degrees=True).inv().as_matrix()
-    else:
-        transforms[:, :3, :3] = np.eye(3)
+    # Read the STAR file: coordinates, orientations and shifts as in RELION (see STARPicksHandler)
+    positions_angstrom, transforms, _ = star_handler.read(path, voxel_spacing, tomo_name=run_name)
 
     # Get or create run
     runobj = get_or_create_run(root, run_name, create=create, log=log)
@@ -1076,11 +1081,12 @@ def _add_picks_em_grouped(
     """
     from copick.util.formats import em_to_copick_transform, read_em_motivelist
 
-    # Read the EM file with tomogram indices
-    positions_px, eulers_deg, scores, tomo_indices = read_em_motivelist(
+    # Read the EM file with tomogram indices and shifts
+    positions_px, eulers_deg, scores, tomo_indices, shifts_px = read_em_motivelist(
         path,
         include_tomo_index=True,
         tomo_index_row=tomo_index_row,
+        include_shifts=True,
     )
 
     # Group particles by tomogram index
@@ -1116,6 +1122,7 @@ def _add_picks_em_grouped(
             pos_subset,
             euler_subset,
             voxel_spacing,
+            shifts_px=shifts_px[mask],
         )
 
         # Create the picks
@@ -1652,6 +1659,9 @@ def add_picks_from_file(
     exist_ok: bool = False,
     overwrite: bool = False,
     log: bool = False,
+    tilt_series_pixel_size: Optional[float] = None,
+    tomograms_star: Optional[str] = None,
+    relion_version: Optional[str] = None,
 ) -> CopickPicks:
     """Add picks from any supported file format using the handler registry.
 
@@ -1672,6 +1682,10 @@ def add_picks_from_file(
         exist_ok: Don't raise error if picks exist.
         overwrite: Overwrite if exists.
         log: Log the operation.
+        tilt_series_pixel_size: STAR only: tilt-series pixel size in Angstrom, the unit of rlnCoordinateX/Y/Z
+            (read from the file's optics table when absent).
+        tomograms_star: STAR only: RELION tomograms.star giving each tomogram's centre and tilt-series pixel size.
+        relion_version: STAR only: force centred ("relion5") or pixel ("relion4") coordinates.
 
     Returns:
         The created CopickPicks object.
@@ -1686,17 +1700,22 @@ def add_picks_from_file(
     if handler is None:
         raise ValueError(f"Unsupported picks format for: {file_path}")
 
-    # Validate voxel spacing for formats that need it
-    if handler.capabilities.supports_voxel_size and voxel_spacing is None:
-        raise ValueError(
-            f"Voxel spacing is required for {handler.format_name} format. Please specify --voxel-size.",
-        )
+    if handler.format_name == "star":
+        # STAR coordinates are resolved from the file, the tomogram and the tilt-series pixel size; the voxel size is
+        # needed only for legacy tomogram-pixel coordinates, and the reader says so if it is missing.
+        read_kwargs = _star_read_kwargs(root, run_name, voxel_spacing, tilt_series_pixel_size, tomograms_star)
+        read_kwargs["relion_version"] = relion_version
+        data = handler.read(file_path, voxel_spacing, tomo_name=run_name, **read_kwargs)
+    else:
+        # Validate voxel spacing for formats that need it
+        if handler.capabilities.supports_voxel_size and voxel_spacing is None:
+            raise ValueError(
+                f"Voxel spacing is required for {handler.format_name} format. Please specify --voxel-size.",
+            )
+        data = handler.read(file_path, voxel_spacing if voxel_spacing else 1.0)
 
     # Read picks
-    effective_voxel_spacing = voxel_spacing if voxel_spacing else 1.0
-    positions, transforms, scores, instance_ids = unpack_picks_data(
-        handler.read(file_path, effective_voxel_spacing),
-    )
+    positions, transforms, scores, instance_ids = unpack_picks_data(data)
 
     # Get or create run
     run = get_or_create_run(root, run_name, create=create, log=log)
@@ -1828,6 +1847,8 @@ def add_picks_grouped_from_file(
     log: bool = False,
     tomogram_centers: Optional[Dict[str, Tuple[float, float, float]]] = None,
     relion_version: Optional[str] = None,
+    tilt_series_pixel_size: Optional[float] = None,
+    tomograms: Optional[Dict[str, Any]] = None,
 ) -> Dict[str, CopickPicks]:
     """Add picks from a file containing multiple tomograms using the handler registry.
 
@@ -1851,8 +1872,10 @@ def add_picks_grouped_from_file(
         log: Log the operation.
         tomogram_centers: Dict mapping tomo_name to (center_x, center_y, center_z) in Angstrom.
             Required for RELION 5.0 centered coordinate conversion.
-        relion_version: RELION version for coordinate format ("relion4" or "relion5").
-            If None, auto-detected from column names.
+        relion_version: Force centred ("relion5") or pixel ("relion4") coordinates. If None, centred
+            coordinates are used where tomogram centres are known.
+        tilt_series_pixel_size: STAR only: tilt-series pixel size in Angstrom, the unit of rlnCoordinateX/Y/Z.
+        tomograms: STAR only: ``copick.util.formats.read_relion_tomograms`` entries (centres and pixel sizes).
 
     Returns:
         Dictionary mapping run names to created CopickPicks objects.
@@ -1881,6 +1904,8 @@ def add_picks_grouped_from_file(
         tomo_index_row=tomo_index_row,
         tomogram_centers=tomogram_centers,
         relion_version=relion_version,
+        tilt_series_pixel_size=tilt_series_pixel_size,
+        tomograms=tomograms,
     )
 
     # Create picks for each run

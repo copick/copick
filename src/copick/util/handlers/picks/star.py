@@ -9,6 +9,8 @@ from copick.util.handlers import FormatCapabilities
 if TYPE_CHECKING:
     import pandas as pd
 
+    from copick.util.formats import RelionTomogram
+
 
 class STARPicksHandler:
     """Handler for RELION STAR particle files.
@@ -32,116 +34,101 @@ class STARPicksHandler:
     def _df_to_picks(
         self,
         df: "pd.DataFrame",
-        voxel_spacing: float,
+        voxel_spacing: Optional[float],
         tomogram_centers: Optional[Dict[str, Tuple[float, float, float]]] = None,
         tomo_name: Optional[str] = None,
         relion_version: Optional[str] = None,
+        *,
+        optics: Optional["pd.DataFrame"] = None,
+        tilt_series_pixel_size: Optional[float] = None,
+        tomogram_center: Optional[Tuple[float, float, float]] = None,
+        tomograms: Optional[Dict[str, "RelionTomogram"]] = None,
     ) -> Tuple[np.ndarray, np.ndarray, Optional[np.ndarray]]:
         """Convert a RELION DataFrame to positions and transforms.
 
-        Supports both RELION 4.x pixel coordinates and RELION 5.0 centered
-        Angstrom coordinates. The version is auto-detected from column names
-        unless explicitly specified.
+        Coordinates are resolved by ``copick.util.formats.relion_coordinates_to_angstrom``: centred Angstrom
+        coordinates when the tomogram centres are known, else rlnCoordinateX/Y/Z in tilt-series pixels, else in
+        pixels of ``voxel_spacing``. Orientations and shifts follow RELION (``copick.util.relion.relion_rows_to_poses``):
+        the rotation is ``A_subtomogram @ A_particle`` and the location is the coordinate minus
+        ``A_subtomogram @ rlnOrigin{X,Y,Z}Angst``.
 
         Args:
             df: DataFrame with RELION columns
-            voxel_spacing: Voxel spacing in Angstrom for coordinate conversion
+            voxel_spacing: Voxel spacing in Angstrom for legacy tomogram-pixel coordinates
             tomogram_centers: Dict mapping tomo_name to (center_x, center_y, center_z) in Angstrom.
-                Required for RELION 5.0 centered coordinate conversion.
             tomo_name: Tomogram name for single-tomo reads (used with tomogram_centers)
-            relion_version: Override auto-detection ("relion4" or "relion5")
+            relion_version: Force centred ("relion5") or pixel ("relion4") coordinates
+            optics: The STAR file's optics table
+            tilt_series_pixel_size: Tilt-series pixel size in Angstrom
+            tomogram_center: Tomogram centre in Angstrom for every row
+            tomograms: tomograms.star entries by tomogram name
 
         Returns:
             Tuple of (positions_angstrom, transforms_4x4, None)
         """
-        from scipy.spatial.transform import Rotation
+        from copick.util.formats import relion_coordinates_to_angstrom
+        from copick.util.relion import relion_rows_to_poses
 
-        from copick.util.formats import detect_relion_version
+        coordinates = relion_coordinates_to_angstrom(
+            df,
+            voxel_spacing=voxel_spacing,
+            tomogram_centers=tomogram_centers,
+            tomogram_center=tomogram_center,
+            tomo_name=tomo_name,
+            tilt_series_pixel_size=tilt_series_pixel_size,
+            optics=optics,
+            tomograms=tomograms,
+            relion_version=relion_version,
+        )
+        rotations, offsets = relion_rows_to_poses(df)
 
-        # Auto-detect or use provided version
-        version = relion_version or detect_relion_version(df)
-
-        if version == "relion5":
-            # RELION 5.0: Centered Angstrom coordinates
-            positions_angstrom = df[
-                ["rlnCenteredCoordinateXAngst", "rlnCenteredCoordinateYAngst", "rlnCenteredCoordinateZAngst"]
-            ].to_numpy()
-
-            # Convert centered -> absolute using tomogram centers
-            if tomogram_centers is None:
-                raise ValueError(
-                    "RELION 5.0 coordinates require tomogram dimensions. Provide --tomograms-star "
-                    "or ensure tomograms are already imported into the copick project.",
-                )
-
-            # Get tomo_name from df if not provided (for grouped reads)
-            if "rlnTomoName" in df.columns:
-                for i, (_, row) in enumerate(df.iterrows()):
-                    tomo = str(row["rlnTomoName"])
-                    if tomo not in tomogram_centers:
-                        raise ValueError(f"Tomogram '{tomo}' not found in tomogram centers")
-                    center = tomogram_centers[tomo]
-                    positions_angstrom[i] += np.array(center)
-            elif tomo_name:
-                if tomo_name not in tomogram_centers:
-                    raise ValueError(f"Tomogram '{tomo_name}' not found in tomogram centers")
-                center = np.array(tomogram_centers[tomo_name])
-                positions_angstrom += center
-            else:
-                raise ValueError("Cannot determine tomogram name for RELION 5.0 coordinate conversion")
-
-        else:
-            # RELION 4.x: Pixel coordinates
-            if {"rlnCoordinateX", "rlnCoordinateY", "rlnCoordinateZ"}.issubset(df.columns):
-                positions_px = df[["rlnCoordinateX", "rlnCoordinateY", "rlnCoordinateZ"]].to_numpy()
-            else:
-                raise ValueError("STAR file must contain rlnCoordinateX, rlnCoordinateY, rlnCoordinateZ columns")
-            positions_angstrom = positions_px * voxel_spacing
-
-        # Extract Euler angles and convert to 4x4 transformation matrices
-        N = len(positions_angstrom)
-        transforms = np.zeros((N, 4, 4), dtype=float)
+        transforms = np.zeros((len(df), 4, 4), dtype=float)
+        transforms[:, :3, :3] = rotations
         transforms[:, 3, 3] = 1.0
 
-        if {"rlnAngleRot", "rlnAngleTilt", "rlnAnglePsi"}.issubset(df.columns):
-            angles = df[["rlnAngleRot", "rlnAngleTilt", "rlnAnglePsi"]].to_numpy()
-            transforms[:, :3, :3] = Rotation.from_euler("ZYZ", angles, degrees=True).inv().as_matrix()
-        else:
-            transforms[:, :3, :3] = np.eye(3)
-
-        return positions_angstrom, transforms, None
+        return coordinates - offsets, transforms, None
 
     def read(
         self,
         path: str,
-        voxel_spacing: float,
+        voxel_spacing: Optional[float],
         tomogram_centers: Optional[Dict[str, Tuple[float, float, float]]] = None,
         tomo_name: Optional[str] = None,
         relion_version: Optional[str] = None,
+        *,
+        tilt_series_pixel_size: Optional[float] = None,
+        tomogram_center: Optional[Tuple[float, float, float]] = None,
+        tomograms: Optional[Dict[str, "RelionTomogram"]] = None,
         **kwargs,
     ) -> Tuple[np.ndarray, np.ndarray, Optional[np.ndarray]]:
         """Read picks from a STAR file.
 
         Args:
             path: Path to the STAR file
-            voxel_spacing: Voxel spacing in Angstrom for coordinate conversion
+            voxel_spacing: Voxel spacing in Angstrom for legacy tomogram-pixel coordinates (may be None)
             tomogram_centers: Dict mapping tomo_name to (center_x, center_y, center_z) in Angstrom.
-                Required for RELION 5.0 centered coordinate conversion.
             tomo_name: Tomogram name for coordinate conversion (if not in STAR file)
-            relion_version: Override auto-detection ("relion4" or "relion5")
+            relion_version: Force centred ("relion5") or pixel ("relion4") coordinates
+            tilt_series_pixel_size: Tilt-series pixel size in Angstrom (overrides the optics table)
+            tomogram_center: Tomogram centre in Angstrom for every particle
+            tomograms: tomograms.star entries by tomogram name
 
         Returns:
             Tuple of (positions_angstrom, transforms_4x4, None)
         """
-        from copick.util.formats import read_star_particles
+        from copick.util.formats import read_star_particles_with_optics
 
-        df = read_star_particles(path)
+        df, optics = read_star_particles_with_optics(path)
         return self._df_to_picks(
             df,
             voxel_spacing,
             tomogram_centers=tomogram_centers,
             tomo_name=tomo_name,
             relion_version=relion_version,
+            optics=optics,
+            tilt_series_pixel_size=tilt_series_pixel_size,
+            tomogram_center=tomogram_center,
+            tomograms=tomograms,
         )
 
     def write(
@@ -149,40 +136,59 @@ class STARPicksHandler:
         path: str,
         positions: np.ndarray,
         transforms: np.ndarray,
-        voxel_spacing: float,
+        voxel_spacing: Optional[float],
         include_optics: bool = True,
+        *,
+        tomo_name: Optional[str] = None,
+        tomogram_center: Optional[Tuple[float, float, float]] = None,
+        tilt_series_pixel_size: Optional[float] = None,
+        tomogram: Optional["RelionTomogram"] = None,
         **kwargs,
     ) -> str:
         """Write picks to a STAR file.
 
+        Coordinates and optics follow ``copick.util.formats.build_relion_star_tables``: centred coordinates when the
+        tomogram centre is known, rlnCoordinateX/Y/Z in tilt-series pixels and an optics table when the tilt-series
+        pixel size is known.
+
         Args:
             path: Path to write the STAR file
             positions: Nx3 array of positions in Angstrom
-            transforms: Nx4x4 array of transformation matrices
-            voxel_spacing: Voxel spacing in Angstrom
-            include_optics: Whether to include optics group
+            transforms: Nx4x4 array of transformation matrices; their translations are added to the positions
+            voxel_spacing: Voxel spacing in Angstrom, for legacy tomogram-pixel coordinates when neither the centre
+                nor the tilt-series pixel size is known
+            include_optics: Whether to include the optics table
+            tomo_name: Written as rlnTomoName
+            tomogram_center: Tomogram centre in Angstrom
+            tilt_series_pixel_size: Tilt-series pixel size in Angstrom
+            tomogram: tomograms.star entry for this tomogram (centre, pixel size and CTF parameters)
 
         Returns:
             Path to the written file
         """
-        from copick.util.formats import write_star_particles
+        from copick.util.formats import build_relion_star_tables, write_star_particles
 
-        write_star_particles(
-            path,
-            positions,
-            transforms,
-            voxel_spacing,
+        particles, optics = build_relion_star_tables(
+            {tomo_name: (positions, transforms)},
+            voxel_spacing=voxel_spacing,
+            tomogram_centers={tomo_name: tomogram_center} if tomogram_center is not None else None,
+            tilt_series_pixel_size=tilt_series_pixel_size,
+            tomograms={tomo_name: tomogram} if tomogram is not None and tomo_name is not None else None,
             include_optics=include_optics,
         )
+        write_star_particles(path, particles, optics)
         return path
 
     def read_grouped(
         self,
         path: str,
-        voxel_spacing: float,
+        voxel_spacing: Optional[float],
         index_to_run: Dict[int, str],
         tomogram_centers: Optional[Dict[str, Tuple[float, float, float]]] = None,
         relion_version: Optional[str] = None,
+        *,
+        tilt_series_pixel_size: Optional[float] = None,
+        tomograms: Optional[Dict[str, "RelionTomogram"]] = None,
         **kwargs,
     ) -> Dict[str, Tuple[np.ndarray, np.ndarray, Optional[np.ndarray]]]:
         """Read picks grouped by tomogram name from a STAR file.
@@ -195,27 +201,31 @@ class STARPicksHandler:
 
         Args:
             path: Path to the STAR file
-            voxel_spacing: Voxel spacing in Angstrom for coordinate conversion
+            voxel_spacing: Voxel spacing in Angstrom for legacy tomogram-pixel coordinates (may be None)
             index_to_run: Ignored for STAR files (uses _rlnTomoName directly)
             tomogram_centers: Dict mapping tomo_name to (center_x, center_y, center_z) in Angstrom.
-                Required for RELION 5.0 centered coordinate conversion.
-            relion_version: Override auto-detection ("relion4" or "relion5")
+            relion_version: Force centred ("relion5") or pixel ("relion4") coordinates
+            tilt_series_pixel_size: Tilt-series pixel size in Angstrom (overrides the optics table)
+            tomograms: tomograms.star entries by tomogram name
 
         Returns:
             Dict mapping run_name to (positions, transforms, scores)
         """
-        from copick.util.formats import read_star_particles_grouped
+        from copick.util.formats import group_star_particles_by_tomogram, read_star_particles_with_optics
 
-        grouped_dfs = read_star_particles_grouped(path)
+        df, optics = read_star_particles_with_optics(path)
         results = {}
 
-        for run_name, df in grouped_dfs.items():
+        for run_name, run_df in group_star_particles_by_tomogram(df).items():
             positions, transforms, scores = self._df_to_picks(
-                df,
+                run_df,
                 voxel_spacing,
                 tomogram_centers=tomogram_centers,
                 tomo_name=run_name,
                 relion_version=relion_version,
+                optics=optics,
+                tilt_series_pixel_size=tilt_series_pixel_size,
+                tomograms=tomograms,
             )
             results[run_name] = (positions, transforms, scores)
 
@@ -225,43 +235,43 @@ class STARPicksHandler:
         self,
         path: str,
         grouped_data: Dict[str, Tuple[np.ndarray, np.ndarray, Optional[np.ndarray]]],
-        voxel_spacing: float,
+        voxel_spacing: Optional[float],
         run_to_index: Optional[Dict[str, int]] = None,
         include_optics: bool = True,
+        *,
+        tomogram_centers: Optional[Dict[str, Tuple[float, float, float]]] = None,
+        tilt_series_pixel_size: Optional[float] = None,
+        tomograms: Optional[Dict[str, "RelionTomogram"]] = None,
         **kwargs,
     ) -> str:
         """Write picks from multiple runs to a single STAR file.
 
-        Uses run_name directly as _rlnTomoName column value.
+        Uses run_name directly as _rlnTomoName column value. Coordinates and optics follow
+        ``copick.util.formats.build_relion_star_tables``.
 
         Args:
             path: Path to write the STAR file
             grouped_data: Dict mapping run_name to (positions, transforms, scores)
-            voxel_spacing: Voxel spacing in Angstrom
+            voxel_spacing: Voxel spacing in Angstrom, for legacy tomogram-pixel coordinates
             run_to_index: Ignored for STAR files (uses run_name directly)
-            include_optics: Whether to include optics group
+            include_optics: Whether to include the optics table
+            tomogram_centers: Tomogram centre in Angstrom per run
+            tilt_series_pixel_size: Tilt-series pixel size in Angstrom
+            tomograms: tomograms.star entries by run name
 
         Returns:
             Path to the written file
         """
         from copick.util.formats import write_star_particles_grouped
 
-        optics_group = None
-        if include_optics:
-            optics_group = {
-                "rlnOpticsGroupName": "opticsGroup1",
-                "rlnOpticsGroup": 1,
-                "rlnImagePixelSize": voxel_spacing,
-                "rlnVoltage": 300.0,
-                "rlnSphericalAberration": 2.7,
-                "rlnAmplitudeContrast": 0.1,
-            }
-
         write_star_particles_grouped(
             path,
             grouped_data,
             voxel_spacing,
-            optics_group=optics_group,
+            tomogram_centers=tomogram_centers,
+            tilt_series_pixel_size=tilt_series_pixel_size,
+            tomograms=tomograms,
+            include_optics=include_optics,
         )
         return path
 
