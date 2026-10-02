@@ -12,7 +12,8 @@ Supported formats:
 - TIFF stacks (via tifffile package)
 """
 
-from typing import TYPE_CHECKING, Dict, List, Optional, Tuple, Union
+from dataclasses import dataclass
+from typing import TYPE_CHECKING, Dict, List, Optional, Sequence, Tuple, Union
 
 import numpy as np
 
@@ -640,7 +641,8 @@ def read_em_motivelist(
     path: str,
     include_tomo_index: bool = False,
     tomo_index_row: int = 4,
-) -> Union[Tuple[np.ndarray, np.ndarray, np.ndarray], Tuple[np.ndarray, np.ndarray, np.ndarray, np.ndarray]]:
+    include_shifts: bool = False,
+) -> Tuple[np.ndarray, ...]:
     """Read a TOM toolbox EM motivelist.
 
     TOM motivelists store particle positions and angles in an array where:
@@ -664,11 +666,12 @@ def read_em_motivelist(
         path: Path to the EM file.
         include_tomo_index: If True, also return the tomogram indices.
         tomo_index_row: Row index (0-based) containing tomogram indices (default: 4).
+        include_shifts: If True, also return the shifts (rows 10-12) in pixels.
 
     Returns:
-        If include_tomo_index=False: Tuple of (positions [N, 3] in pixels 0-indexed,
-            eulers [N, 3] in degrees as [phi, theta, psi], scores [N]).
-        If include_tomo_index=True: Same as above plus tomo_indices [N] as integers.
+        Tuple of (positions [N, 3] in pixels 0-indexed, eulers [N, 3] in degrees as [phi, theta, psi], scores [N]),
+        followed by tomo_indices [N] (integers) if ``include_tomo_index`` and then shifts [N, 3] in pixels if
+        ``include_shifts``.
     """
     import emfile
 
@@ -715,9 +718,14 @@ def read_em_motivelist(
                 f"tomo_index_row={tomo_index_row} exceeds data shape {data.shape}",
             )
         tomo_indices = data[tomo_index_row, :].astype(int)
-        return positions, eulers, scores, tomo_indices
+        result = (positions, eulers, scores, tomo_indices)
+    else:
+        result = (positions, eulers, scores)
 
-    return positions, eulers, scores
+    if include_shifts:
+        result = result + (data[10:13, :].T,)
+
+    return result
 
 
 def write_em_motivelist(
@@ -726,6 +734,7 @@ def write_em_motivelist(
     eulers: np.ndarray,
     scores: Optional[np.ndarray] = None,
     tomogram_index: int = 1,
+    shifts: Optional[np.ndarray] = None,
 ) -> None:
     """Write a TOM toolbox EM motivelist.
 
@@ -743,6 +752,7 @@ def write_em_motivelist(
         eulers: Array of shape (N, 3) with Euler angles in degrees as [phi, theta, psi].
         scores: Optional array of shape (N,) with scores.
         tomogram_index: Tomogram index for all particles.
+        shifts: Optional array of shape (N, 3) with shifts in pixels (rows 10-12); zero if None.
     """
     import emfile
 
@@ -774,8 +784,8 @@ def write_em_motivelist(
     # Convert from 0-indexed to 1-indexed by adding 1
     data[0, :, 7:10] = positions + 1
 
-    # Shifts (columns 10-12) - typically zero
-    data[0, :, 10:13] = 0.0
+    # Shifts (columns 10-12), in pixels
+    data[0, :, 10:13] = 0.0 if shifts is None else shifts
 
     # Euler angles: input is [phi, theta, psi] but stored as [phi, psi, theta]
     # Column 16 = phi, Column 17 = psi, Column 18 = theta
@@ -809,10 +819,11 @@ def read_em_motivelist_grouped(
         Only includes runs that are present in index_to_run mapping.
     """
     # Read with tomogram indices
-    positions_px, eulers_deg, scores, tomo_indices = read_em_motivelist(
+    positions_px, eulers_deg, scores, tomo_indices, shifts_px = read_em_motivelist(
         path,
         include_tomo_index=True,
         tomo_index_row=tomo_index_row,
+        include_shifts=True,
     )
 
     # Group by tomogram index
@@ -837,6 +848,7 @@ def read_em_motivelist_grouped(
             positions_px_group,
             eulers_deg_group,
             voxel_spacing,
+            shifts_px=shifts_px[mask],
         )
 
         grouped[run_name] = (positions_angstrom, transforms, scores_group)
@@ -865,6 +877,7 @@ def write_em_motivelist_grouped(
 
     all_positions = []
     all_eulers = []
+    all_shifts = []
     all_scores = []
     all_tomo_indices = []
 
@@ -875,10 +888,11 @@ def write_em_motivelist_grouped(
         tomogram_index = run_to_index[run_name]
 
         # Convert from copick format to EM format
-        positions_px, eulers_deg = copick_to_em_transform(
+        positions_px, eulers_deg, shifts_px = copick_to_em_transform(
             positions,
             transforms,
             voxel_spacing,
+            return_shifts=True,
         )
 
         N = positions_px.shape[0]
@@ -887,12 +901,14 @@ def write_em_motivelist_grouped(
 
         all_positions.append(positions_px)
         all_eulers.append(eulers_deg)
+        all_shifts.append(shifts_px)
         all_scores.append(scores)
         all_tomo_indices.append(np.full(N, tomogram_index))
 
     # Concatenate all data
     positions_combined = np.vstack(all_positions)
     eulers_combined = np.vstack(all_eulers)
+    shifts_combined = np.vstack(all_shifts)
     scores_combined = np.concatenate(all_scores)
     tomo_indices_combined = np.concatenate(all_tomo_indices)
 
@@ -921,8 +937,8 @@ def write_em_motivelist_grouped(
     # Convert from 0-indexed to 1-indexed by adding 1
     data[0, :, 7:10] = positions_combined + 1
 
-    # Shifts (columns 10-12) - typically zero
-    data[0, :, 10:13] = 0.0
+    # Shifts (columns 10-12), in pixels
+    data[0, :, 10:13] = shifts_combined
 
     # Euler angles: input is [phi, theta, psi] but stored as [phi, psi, theta]
     # Column 16 = phi, Column 17 = psi, Column 18 = theta
@@ -964,6 +980,7 @@ def em_to_copick_transform(
     positions_px: np.ndarray,
     eulers_deg: np.ndarray,
     voxel_size: float,
+    shifts_px: Optional[np.ndarray] = None,
 ) -> Tuple[np.ndarray, np.ndarray]:
     """Convert TOM/EM coordinates to copick format.
 
@@ -979,6 +996,8 @@ def em_to_copick_transform(
         positions_px: Coordinates in pixels (0-indexed, corner-origin) [N, 3].
         eulers_deg: ZXZ Euler angles in degrees [N, 3] as [phi, theta, psi].
         voxel_size: Voxel size in Angstrom.
+        shifts_px: Optional shifts in pixels [N, 3] (motivelist rows 10-12). They become the transform translation,
+            so that the particle centre is ``location + translation``.
 
     Returns:
         Tuple of (points_angstrom [N, 3], transforms [N, 4, 4]).
@@ -992,11 +1011,13 @@ def em_to_copick_transform(
     # Use intrinsic zxz (lowercase) as per Artiatomi/ArtiaX convention
     rotations = Rotation.from_euler("zxz", eulers_deg, degrees=True).as_matrix()
 
-    # Create identity transforms (no additional translation beyond point location)
+    # Rotations, with the motivelist shifts (if any) as the translation
     N = positions_px.shape[0]
     transforms = np.zeros((N, 4, 4), dtype=float)
     transforms[:, :3, :3] = rotations
     transforms[:, 3, 3] = 1.0
+    if shifts_px is not None:
+        transforms[:, :3, 3] = np.asarray(shifts_px, dtype=float) * voxel_size
 
     return points_angstrom, transforms
 
@@ -1005,7 +1026,8 @@ def copick_to_em_transform(
     points_angstrom: np.ndarray,
     transforms: np.ndarray,
     voxel_size: float,
-) -> Tuple[np.ndarray, np.ndarray]:
+    return_shifts: bool = False,
+) -> Tuple[np.ndarray, ...]:
     """Convert copick format to TOM/EM coordinates.
 
     This is the inverse of em_to_copick_transform.
@@ -1014,14 +1036,16 @@ def copick_to_em_transform(
         points_angstrom: Coordinates in Angstrom (corner-origin) [N, 3].
         transforms: 4x4 affine matrices [N, 4, 4].
         voxel_size: Voxel size in Angstrom.
+        return_shifts: Also return the transform translations as shifts in pixels (motivelist rows 10-12).
 
     Returns:
-        Tuple of (positions_px [N, 3] corner-origin 0-indexed, eulers_deg [N, 3] as [phi, theta, psi]).
+        Tuple of (positions_px [N, 3] corner-origin 0-indexed, eulers_deg [N, 3] as [phi, theta, psi]), followed by
+        shifts_px [N, 3] if ``return_shifts``.
     """
     from scipy.spatial.transform import Rotation
 
-    # Extract rotations from transforms
-    _, rotations = transforms_to_points_and_rotations(transforms)
+    # Extract rotations and translations from transforms
+    translations, rotations = transforms_to_points_and_rotations(transforms)
 
     # Convert to pixel coordinates (corner-origin, 0-indexed)
     positions_px = points_angstrom / voxel_size
@@ -1037,12 +1061,42 @@ def copick_to_em_transform(
             r = Rotation.from_matrix(Rmat)
             eulers_deg[i] = r.as_euler("zxz", degrees=True)
 
+    if return_shifts:
+        return positions_px, eulers_deg, translations / voxel_size
     return positions_px, eulers_deg
 
 
 # =============================================================================
 # STAR File Utilities
 # =============================================================================
+
+
+def read_star_particles_with_optics(path: str) -> Tuple["pd.DataFrame", Optional["pd.DataFrame"]]:
+    """Read the particle table of a RELION STAR file and, if present, its optics table.
+
+    Args:
+        path: Path to the STAR file.
+
+    Returns:
+        Tuple of (particles DataFrame, optics DataFrame or None).
+    """
+    import starfile
+
+    data = starfile.read(path)
+
+    # starfile returns either a dict (if multiple blocks) or a DataFrame
+    if isinstance(data, dict):
+        optics = data.get("optics")
+        # Look for particles block
+        if "particles" in data:
+            return data["particles"], optics
+        # Fall back to first non-optics block
+        for key, value in data.items():
+            if key != "optics":
+                return value, optics
+        raise ValueError("No particle data found in STAR file")
+
+    return data, None
 
 
 def read_star_particles(path: str) -> "pd.DataFrame":
@@ -1054,22 +1108,7 @@ def read_star_particles(path: str) -> "pd.DataFrame":
     Returns:
         DataFrame with particle data.
     """
-    import starfile
-
-    data = starfile.read(path)
-
-    # starfile returns either a dict (if multiple blocks) or a DataFrame
-    if isinstance(data, dict):
-        # Look for particles block
-        if "particles" in data:
-            return data["particles"]
-        # Fall back to first non-optics block
-        for key, value in data.items():
-            if key != "optics":
-                return value
-        raise ValueError("No particle data found in STAR file")
-
-    return data
+    return read_star_particles_with_optics(path)[0]
 
 
 def read_star_particles_grouped(path: str) -> Dict[str, "pd.DataFrame"]:
@@ -1088,8 +1127,21 @@ def read_star_particles_grouped(path: str) -> Dict[str, "pd.DataFrame"]:
     Raises:
         ValueError: If the STAR file does not contain the rlnTomoName column.
     """
-    df = read_star_particles(path)
+    return group_star_particles_by_tomogram(read_star_particles(path))
 
+
+def group_star_particles_by_tomogram(df: "pd.DataFrame") -> Dict[str, "pd.DataFrame"]:
+    """Group a RELION particle table by its ``rlnTomoName`` column, keeping each tomogram's row order.
+
+    Args:
+        df: DataFrame with particle data.
+
+    Returns:
+        Dictionary mapping run_name (from rlnTomoName) to DataFrame of particles.
+
+    Raises:
+        ValueError: If the table does not contain the rlnTomoName column.
+    """
     # Validate that rlnTomoName column exists
     if "rlnTomoName" not in df.columns:
         raise ValueError(
@@ -1138,21 +1190,39 @@ def detect_relion_version(df: "pd.DataFrame") -> str:
         )
 
 
-def read_relion5_tomogram_centers(
-    tomograms_star_path: str,
-) -> Dict[str, Tuple[float, float, float]]:
-    """Read tomogram centers in Angstrom from RELION 5.0 tomograms.star.
+@dataclass
+class RelionTomogram:
+    """Geometry and optics of one tomogram, read from a RELION tomograms.star file.
 
-    Extracts tomogram dimensions and computes centers for converting
-    RELION 5.0 centered coordinates to absolute coordinates.
+    Attributes:
+        name: The tomogram's ``rlnTomoName``.
+        center_angstrom: Centre of the tomogram in Angstrom, ``rlnTomoSize{X,Y,Z} / 2 * rlnTomoTiltSeriesPixelSize``.
+        tilt_series_pixel_size: ``rlnTomoTiltSeriesPixelSize`` in Angstrom: the unit of ``rlnCoordinate{X,Y,Z}``.
+        voltage: ``rlnVoltage`` in kV, if present.
+        spherical_aberration: ``rlnSphericalAberration`` in mm, if present.
+        amplitude_contrast: ``rlnAmplitudeContrast``, if present.
+    """
 
-    The center is computed as: (tomoSize / 2) * pixel_size * binning
+    name: str
+    center_angstrom: Tuple[float, float, float]
+    tilt_series_pixel_size: float
+    voltage: Optional[float] = None
+    spherical_aberration: Optional[float] = None
+    amplitude_contrast: Optional[float] = None
+
+
+def read_relion_tomograms(tomograms_star_path: str) -> Dict[str, RelionTomogram]:
+    """Read tomogram geometry and optics from a RELION tomograms.star file.
+
+    RELION stores the size of the bin-1 tomogram in tilt-series pixels (``rlnTomoSize{X,Y,Z}``, see RELION's
+    ``metadata_label.h``) and places a tomogram's centre at half that size (``tomogram_set.cpp``), so the centre in
+    Angstrom is ``rlnTomoSize / 2 * rlnTomoTiltSeriesPixelSize``; the reconstruction binning does not enter it.
 
     Args:
-        tomograms_star_path: Path to RELION 5.0 tomograms.star file.
+        tomograms_star_path: Path to a RELION 4/5 tomograms.star file.
 
     Returns:
-        Dict mapping tomo_name -> (center_x_angst, center_y_angst, center_z_angst).
+        Dict mapping tomo_name to its ``RelionTomogram``.
 
     Raises:
         ValueError: If required columns are missing from the STAR file.
@@ -1171,30 +1241,212 @@ def read_relion5_tomogram_centers(
         "rlnTomoSizeY",
         "rlnTomoSizeZ",
         "rlnTomoTiltSeriesPixelSize",
-        "rlnTomoTomogramBinning",
     ]
     for col in required:
         if col not in df.columns:
             raise ValueError(
-                f"Required column '{col}' not found in tomograms.star for RELION 5.0 coordinate conversion",
+                f"Required column '{col}' not found in tomograms.star for RELION coordinate conversion",
             )
 
-    centers = {}
+    def optional(row, column) -> Optional[float]:
+        return float(row[column]) if column in row.index else None
+
+    tomograms = {}
     for _, row in df.iterrows():
         tomo_name = str(row["rlnTomoName"])
-        pixel_size = float(row["rlnTomoTiltSeriesPixelSize"]) * float(row["rlnTomoTomogramBinning"])
-        center_x = (float(row["rlnTomoSizeX"]) / 2) * pixel_size
-        center_y = (float(row["rlnTomoSizeY"]) / 2) * pixel_size
-        center_z = (float(row["rlnTomoSizeZ"]) / 2) * pixel_size
-        centers[tomo_name] = (center_x, center_y, center_z)
+        pixel_size = float(row["rlnTomoTiltSeriesPixelSize"])
+        tomograms[tomo_name] = RelionTomogram(
+            name=tomo_name,
+            center_angstrom=(
+                (float(row["rlnTomoSizeX"]) / 2) * pixel_size,
+                (float(row["rlnTomoSizeY"]) / 2) * pixel_size,
+                (float(row["rlnTomoSizeZ"]) / 2) * pixel_size,
+            ),
+            tilt_series_pixel_size=pixel_size,
+            voltage=optional(row, "rlnVoltage"),
+            spherical_aberration=optional(row, "rlnSphericalAberration"),
+            amplitude_contrast=optional(row, "rlnAmplitudeContrast"),
+        )
 
-    return centers
+    return tomograms
+
+
+def read_relion5_tomogram_centers(
+    tomograms_star_path: str,
+) -> Dict[str, Tuple[float, float, float]]:
+    """Read tomogram centers in Angstrom from a RELION tomograms.star file.
+
+    The center is ``rlnTomoSize{X,Y,Z} / 2 * rlnTomoTiltSeriesPixelSize`` (see ``read_relion_tomograms``).
+
+    Args:
+        tomograms_star_path: Path to RELION 5.0 tomograms.star file.
+
+    Returns:
+        Dict mapping tomo_name -> (center_x_angst, center_y_angst, center_z_angst).
+
+    Raises:
+        ValueError: If required columns are missing from the STAR file.
+    """
+    return {name: tomogram.center_angstrom for name, tomogram in read_relion_tomograms(tomograms_star_path).items()}
+
+
+class RelionPixelSizeError(ValueError):
+    """Raised when RELION pixel coordinates cannot be converted because no pixel size is known."""
+
+
+class RelionTomogramCenterError(ValueError):
+    """Raised when RELION centred coordinates must be used but a tomogram's centre is unknown."""
+
+
+_CENTERED_COLUMNS = ["rlnCenteredCoordinateXAngst", "rlnCenteredCoordinateYAngst", "rlnCenteredCoordinateZAngst"]
+_PIXEL_COLUMNS = ["rlnCoordinateX", "rlnCoordinateY", "rlnCoordinateZ"]
+
+
+def relion_tilt_series_pixel_sizes(df: "pd.DataFrame", optics: Optional["pd.DataFrame"]) -> Optional[np.ndarray]:
+    """Per-particle tilt-series pixel size in Angstrom from a STAR file's optics table, or None if it has none.
+
+    RELION 4 and 5 tomography particle files store ``rlnTomoTiltSeriesPixelSize`` in their optics table; particles
+    refer to their optics group through ``rlnOpticsGroup`` or ``rlnOpticsGroupName``.
+
+    Raises:
+        ValueError: If the optics table has several groups and the particles' groups cannot be resolved.
+    """
+    if optics is None or len(optics) == 0 or "rlnTomoTiltSeriesPixelSize" not in optics.columns:
+        return None
+    sizes = optics["rlnTomoTiltSeriesPixelSize"].astype(float)
+    if len(optics) == 1:
+        return np.full(len(df), float(sizes.iloc[0]))
+    for key in ("rlnOpticsGroup", "rlnOpticsGroupName"):
+        if key in df.columns and key in optics.columns:
+            values = df[key].map(dict(zip(optics[key], sizes, strict=True)))
+            if values.isna().any():
+                raise ValueError(
+                    f"Some particles refer to optics groups ({key}) that are missing from the optics table.",
+                )
+            return values.to_numpy(dtype=float)
+    raise ValueError("The optics table has several groups but the particles do not say which group they belong to.")
+
+
+def relion_coordinates_to_angstrom(
+    df: "pd.DataFrame",
+    *,
+    voxel_spacing: Optional[float] = None,
+    tomogram_centers: Optional[Dict[str, Tuple[float, float, float]]] = None,
+    tomogram_center: Optional[Tuple[float, float, float]] = None,
+    tomo_name: Optional[str] = None,
+    tilt_series_pixel_size: Optional[float] = None,
+    optics: Optional["pd.DataFrame"] = None,
+    tomograms: Optional[Dict[str, RelionTomogram]] = None,
+    relion_version: Optional[str] = None,
+) -> np.ndarray:
+    """Particle coordinates of a RELION particle table in copick's convention (corner-origin Angstrom).
+
+    Shifts (``rlnOrigin{X,Y,Z}Angst``) are not applied here; see ``copick.util.relion.relion_rows_to_poses``.
+
+    The first rule that applies is used:
+
+    1. ``rlnCenteredCoordinate{X,Y,Z}Angst`` plus the tomogram centre, when the centre of every particle's tomogram is
+       known: ``tomogram_center`` for all rows, else ``tomogram_centers`` or ``tomograms`` by ``rlnTomoName`` (or
+       ``tomo_name`` when the table has no such column). RELION itself prefers these coordinates.
+    2. ``rlnCoordinate{X,Y,Z}`` times the tilt-series pixel size, which is what RELION 4 and 5 mean by these columns.
+       The pixel size is ``tilt_series_pixel_size`` if given, else the file's optics table, else the particle's
+       tomogram in ``tomograms``.
+    3. ``rlnCoordinate{X,Y,Z}`` times ``voxel_spacing``: coordinates in pixels of a tomogram, as older tools and
+       earlier copick versions wrote them. A warning is logged.
+
+    ``relion_version="relion5"`` allows only rule 1 and ``"relion4"`` only rules 2 and 3.
+
+    Returns:
+        (N, 3) array of positions in Angstrom.
+
+    Raises:
+        RelionPixelSizeError: If rule 3 is needed and ``voxel_spacing`` is None.
+        RelionTomogramCenterError: If centred coordinates are required (rule 1) but a centre is unknown.
+        ValueError: If the table has no usable coordinate columns.
+    """
+    if relion_version not in (None, "relion4", "relion5"):
+        raise ValueError(f"Unknown RELION version '{relion_version}'; expected 'relion4' or 'relion5'.")
+
+    n = len(df)
+    if "rlnTomoName" in df.columns:
+        names: Optional[List[str]] = df["rlnTomoName"].astype(str).tolist()
+    elif tomo_name is not None:
+        names = [tomo_name] * n
+    else:
+        names = None
+
+    has_centered = set(_CENTERED_COLUMNS).issubset(df.columns)
+    has_pixels = set(_PIXEL_COLUMNS).issubset(df.columns)
+
+    if has_centered and relion_version != "relion4":
+        centers = _row_tomogram_centers(n, names, tomogram_center, tomogram_centers, tomograms)
+        if centers is not None:
+            return df[_CENTERED_COLUMNS].to_numpy(dtype=float) + centers
+        if relion_version == "relion5" or not has_pixels:
+            missing = sorted(set(names or []) - set(tomogram_centers or {}) - set(tomograms or {}))
+            detail = f" (no centre for tomograms {missing})" if missing else ""
+            raise RelionTomogramCenterError(
+                "RELION 5.0 coordinates require tomogram dimensions. Provide --tomograms-star "
+                f"or ensure tomograms are already imported into the copick project{detail}.",
+            )
+    elif relion_version == "relion5":
+        raise ValueError("STAR file must contain rlnCenteredCoordinateXAngst/YAngst/ZAngst columns for RELION 5.0")
+
+    if not has_pixels:
+        raise ValueError("STAR file must contain rlnCoordinateX, rlnCoordinateY, rlnCoordinateZ columns")
+    pixels = df[_PIXEL_COLUMNS].to_numpy(dtype=float)
+
+    sizes = None
+    if tilt_series_pixel_size is not None:
+        sizes = np.full(n, float(tilt_series_pixel_size))
+    if sizes is None:
+        sizes = relion_tilt_series_pixel_sizes(df, optics)
+    if sizes is None and tomograms and names is not None and all(name in tomograms for name in names):
+        sizes = np.array([tomograms[name].tilt_series_pixel_size for name in names], dtype=float)
+    if sizes is not None:
+        return pixels * sizes[:, None]
+
+    if voxel_spacing is None:
+        raise RelionPixelSizeError(
+            "rlnCoordinateX/Y/Z need a pixel size and the file states none: pass the tilt-series pixel size "
+            "(--tilt-series-pixel-size), a tomograms.star (--tomograms-star), or the voxel size the coordinates were "
+            "written in (--voxel-size).",
+        )
+    logger.warning(
+        f"Reading rlnCoordinateX/Y/Z as pixels of a tomogram at {voxel_spacing} A: the file states no tilt-series "
+        "pixel size. RELION 4/5 tomography files use tilt-series pixels; pass --tilt-series-pixel-size if that is "
+        "the case.",
+    )
+    return pixels * float(voxel_spacing)
+
+
+def _row_tomogram_centers(
+    n: int,
+    names: Optional[List[str]],
+    tomogram_center: Optional[Tuple[float, float, float]],
+    tomogram_centers: Optional[Dict[str, Tuple[float, float, float]]],
+    tomograms: Optional[Dict[str, RelionTomogram]],
+) -> Optional[np.ndarray]:
+    """(N, 3) tomogram centres for each particle, or None if any particle's centre is unknown."""
+    if tomogram_center is not None:
+        return np.tile(np.asarray(tomogram_center, dtype=float), (n, 1))
+    if names is None:
+        return None
+    centers = []
+    for name in names:
+        if tomogram_centers and name in tomogram_centers:
+            centers.append(tomogram_centers[name])
+        elif tomograms and name in tomograms:
+            centers.append(tomograms[name].center_angstrom)
+        else:
+            return None
+    return np.asarray(centers, dtype=float).reshape(n, 3)
 
 
 def get_tomogram_centers_from_copick(
     root: "CopickRootFSSpec",
     run_names: List[str],
-    voxel_spacing: float,
+    voxel_spacing: Optional[float],
 ) -> Dict[str, Tuple[float, float, float]]:
     """Get tomogram centers from existing copick project tomograms.
 
@@ -1204,7 +1456,8 @@ def get_tomogram_centers_from_copick(
     Args:
         root: Copick root object.
         run_names: List of run names to get centers for.
-        voxel_spacing: Voxel spacing in Angstrom.
+        voxel_spacing: Voxel spacing in Angstrom. If None, the smallest voxel spacing of each run that has a
+            tomogram is used.
 
     Returns:
         Dict mapping run_name -> (center_x_angst, center_y_angst, center_z_angst).
@@ -1216,7 +1469,11 @@ def get_tomogram_centers_from_copick(
         if run is None:
             continue  # Skip missing runs
 
-        vs = run.get_voxel_spacing(voxel_spacing)
+        if voxel_spacing is None:
+            with_tomograms = [v for v in run.voxel_spacings if v.tomograms]
+            vs = min(with_tomograms, key=lambda v: v.voxel_size) if with_tomograms else None
+        else:
+            vs = run.get_voxel_spacing(voxel_spacing)
         if vs is None:
             continue
 
@@ -1233,9 +1490,9 @@ def get_tomogram_centers_from_copick(
         shape = group[get_level_path(group, 0)].shape  # (z, y, x)
 
         # Compute center in Angstrom
-        center_z = (shape[0] / 2) * voxel_spacing
-        center_y = (shape[1] / 2) * voxel_spacing
-        center_x = (shape[2] / 2) * voxel_spacing
+        center_z = (shape[0] / 2) * vs.voxel_size
+        center_y = (shape[1] / 2) * vs.voxel_size
+        center_x = (shape[2] / 2) * vs.voxel_size
         centers[run_name] = (center_x, center_y, center_z)
 
     return centers
@@ -1244,20 +1501,20 @@ def get_tomogram_centers_from_copick(
 def write_star_particles(
     path: str,
     df: "pd.DataFrame",
-    optics_group: Optional[Dict] = None,
+    optics_group: Union[Dict, "pd.DataFrame", None] = None,
 ) -> None:
     """Write a RELION STAR file.
 
     Args:
         path: Output path for the STAR file.
         df: DataFrame with particle data.
-        optics_group: Optional optics group metadata.
+        optics_group: Optional optics table: one group as a dict, or a DataFrame with one row per group.
     """
     import pandas as pd
     import starfile
 
     if optics_group is not None:
-        optics_df = pd.DataFrame([optics_group])
+        optics_df = optics_group if isinstance(optics_group, pd.DataFrame) else pd.DataFrame([optics_group])
         data = {"optics": optics_df, "particles": df}
     else:
         data = df
@@ -1265,72 +1522,236 @@ def write_star_particles(
     starfile.write(data, path, overwrite=True)
 
 
+def _relion_eulers(rotations: np.ndarray) -> np.ndarray:
+    """RELION Euler angles (rot, tilt, psi) in degrees for object-to-tomogram rotations.
+
+    A matrix that is not a rotation (e.g. a reflection) gets zero angles, and the number of such matrices is logged.
+    """
+    from scipy.spatial.transform import Rotation
+
+    eulers = np.zeros((rotations.shape[0], 3), dtype=float)
+    invalid = 0
+    for i, Rmat in enumerate(rotations):
+        if np.allclose(Rmat, np.eye(3)):  # skip identities to avoid scipy's gimbal-lock warning
+            continue
+        try:
+            eulers[i] = Rotation.from_matrix(Rmat).inv().as_euler("ZYZ", degrees=True)
+        except ValueError:
+            invalid += 1
+    if invalid:
+        logger.warning(
+            f"{invalid} of {len(rotations)} transforms are not rotations; their RELION angles are written as 0."
+        )
+    return eulers
+
+
+def build_relion_particles_df(
+    positions: np.ndarray,
+    transforms: np.ndarray,
+    *,
+    tomo_name: Optional[str] = None,
+    tomogram_center: Optional[Sequence[float]] = None,
+    tilt_series_pixel_size: Optional[float] = None,
+    legacy_voxel_spacing: Optional[float] = None,
+) -> "pd.DataFrame":
+    """RELION particle rows for copick picks.
+
+    Each particle's position is its location plus its transform's translation (``geometry.md`` §2.3); its angles
+    come from the transform's rotation. Coordinates are written as:
+
+    - ``rlnCenteredCoordinate{X,Y,Z}Angst`` (position minus the tomogram centre) whenever ``tomogram_center`` is
+      given; RELION 5 reads these.
+    - ``rlnCoordinate{X,Y,Z}`` in tilt-series pixels whenever ``tilt_series_pixel_size`` is given; that is what
+      RELION 4 and 5 mean by these columns.
+    - With neither, ``rlnCoordinate{X,Y,Z}`` in pixels of ``legacy_voxel_spacing``, as earlier copick versions wrote
+      them, with a warning, since RELION would read them as tilt-series pixels.
+
+    Args:
+        positions: (N, 3) locations in Angstrom.
+        transforms: (N, 4, 4) transforms.
+        tomo_name: Written as ``rlnTomoName`` if given.
+        tomogram_center: Tomogram centre in Angstrom.
+        tilt_series_pixel_size: Tilt-series pixel size in Angstrom.
+        legacy_voxel_spacing: Voxel size for the fallback described above.
+
+    Raises:
+        ValueError: If no coordinates can be written.
+    """
+    import pandas as pd
+
+    positions = np.asarray(positions, dtype=float).reshape(-1, 3)
+    transforms = np.asarray(transforms, dtype=float).reshape(-1, 4, 4)
+    n = positions.shape[0]
+    full_positions = positions + transforms[:, :3, 3]
+    eulers = _relion_eulers(transforms[:, :3, :3])
+
+    data = {}
+    if tomo_name is not None:
+        data["rlnTomoName"] = [tomo_name] * n
+    if tilt_series_pixel_size is not None:
+        pixels = full_positions / float(tilt_series_pixel_size)
+    elif tomogram_center is None:
+        if legacy_voxel_spacing is None:
+            raise ValueError(
+                "Cannot write RELION coordinates: need the tomogram centre (for centred coordinates) or the "
+                "tilt-series pixel size.",
+            )
+        logger.warning(
+            f"Writing rlnCoordinateX/Y/Z in pixels of a tomogram at {legacy_voxel_spacing} A{f' ({tomo_name})' if tomo_name else ''}: "
+            "neither the tomogram centre nor the tilt-series pixel size is known. RELION would read these as "
+            "tilt-series pixels; pass --tilt-series-pixel-size or --tomograms-star for RELION.",
+        )
+        pixels = full_positions / float(legacy_voxel_spacing)
+    else:
+        pixels = None
+    if pixels is not None:
+        data["rlnCoordinateX"] = pixels[:, 0]
+        data["rlnCoordinateY"] = pixels[:, 1]
+        data["rlnCoordinateZ"] = pixels[:, 2]
+    data["rlnAngleRot"] = eulers[:, 0]
+    data["rlnAngleTilt"] = eulers[:, 1]
+    data["rlnAnglePsi"] = eulers[:, 2]
+    if tomogram_center is not None:
+        centered = full_positions - np.asarray(tomogram_center, dtype=float)
+        data["rlnCenteredCoordinateXAngst"] = centered[:, 0]
+        data["rlnCenteredCoordinateYAngst"] = centered[:, 1]
+        data["rlnCenteredCoordinateZAngst"] = centered[:, 2]
+    return pd.DataFrame(data)
+
+
+def _relion_optics_row(
+    group: int,
+    name: str,
+    tilt_series_pixel_size: float,
+    tomogram: Optional[RelionTomogram] = None,
+) -> Dict:
+    """One optics group: the tilt-series pixel size RELION requires, and the CTF parameters if they are known."""
+    row = {
+        "rlnOpticsGroup": group,
+        "rlnOpticsGroupName": name,
+        "rlnTomoTiltSeriesPixelSize": float(tilt_series_pixel_size),
+    }
+    if tomogram is not None:
+        for column, value in (
+            ("rlnVoltage", tomogram.voltage),
+            ("rlnSphericalAberration", tomogram.spherical_aberration),
+            ("rlnAmplitudeContrast", tomogram.amplitude_contrast),
+        ):
+            if value is not None:
+                row[column] = float(value)
+    return row
+
+
+def build_relion_star_tables(
+    runs: Dict[Optional[str], Tuple[np.ndarray, np.ndarray]],
+    *,
+    voxel_spacing: Optional[float] = None,
+    tomogram_centers: Optional[Dict[Optional[str], Tuple[float, float, float]]] = None,
+    tilt_series_pixel_size: Optional[float] = None,
+    tomograms: Optional[Dict[str, RelionTomogram]] = None,
+    include_optics: bool = True,
+) -> Tuple["pd.DataFrame", Optional["pd.DataFrame"]]:
+    """Particle and optics tables of a RELION STAR file for picks from one or more runs.
+
+    The same coordinate columns are written for every run: centred coordinates if every run's tomogram centre is
+    known, ``rlnCoordinate{X,Y,Z}`` in tilt-series pixels if every run's tilt-series pixel size is known, and the
+    legacy tomogram-pixel coordinates (see ``build_relion_particles_df``) only if neither is.
+
+    An optics table is written only when the tilt-series pixel size is known (RELION refuses an optics table without
+    ``rlnTomoTiltSeriesPixelSize``, and builds one from tomograms.star when the file has none), one group per run.
+
+    Args:
+        runs: Dict mapping run name (written as rlnTomoName; None writes no such column) to (positions, transforms).
+        voxel_spacing: Voxel size for the legacy fallback.
+        tomogram_centers: Tomogram centre in Angstrom per run.
+        tilt_series_pixel_size: Tilt-series pixel size for every run.
+        tomograms: tomograms.star entries per run; they supply centres, tilt-series pixel sizes and CTF parameters.
+        include_optics: Write an optics table (when the tilt-series pixel size is known).
+
+    Returns:
+        Tuple of (particles DataFrame, optics DataFrame or None).
+    """
+    import pandas as pd
+
+    tomograms = tomograms or {}
+    tomogram_centers = tomogram_centers or {}
+    centers, sizes = {}, {}
+    for name in runs:
+        tomogram = tomograms.get(name) if name is not None else None
+        centers[name] = tomogram.center_angstrom if tomogram is not None else tomogram_centers.get(name)
+        sizes[name] = (
+            tilt_series_pixel_size
+            if tilt_series_pixel_size is not None
+            else (tomogram.tilt_series_pixel_size if tomogram is not None else None)
+        )
+    use_centers = all(center is not None for center in centers.values())
+    use_sizes = all(size is not None for size in sizes.values())
+
+    particle_tables, optics_rows = [], []
+    for group, (name, (positions, transforms)) in enumerate(runs.items(), start=1):
+        df = build_relion_particles_df(
+            positions,
+            transforms,
+            tomo_name=name,
+            tomogram_center=centers[name] if use_centers else None,
+            tilt_series_pixel_size=sizes[name] if use_sizes else None,
+            legacy_voxel_spacing=None if (use_centers or use_sizes) else voxel_spacing,
+        )
+        if include_optics and use_sizes:
+            df["rlnOpticsGroup"] = group
+            optics_rows.append(_relion_optics_row(group, name or "opticsGroup1", sizes[name], tomograms.get(name)))
+        particle_tables.append(df)
+
+    particles = pd.concat(particle_tables, ignore_index=True) if particle_tables else pd.DataFrame()
+    optics = pd.DataFrame(optics_rows) if optics_rows else None
+    return particles, optics
+
+
 def write_star_particles_grouped(
     path: str,
     grouped_data: Dict[str, Tuple[np.ndarray, np.ndarray, Optional[np.ndarray]]],
-    voxel_spacing: float,
+    voxel_spacing: Optional[float] = None,
     optics_group: Optional[Dict] = None,
+    *,
+    tomogram_centers: Optional[Dict[str, Tuple[float, float, float]]] = None,
+    tilt_series_pixel_size: Optional[float] = None,
+    tomograms: Optional[Dict[str, RelionTomogram]] = None,
+    include_optics: bool = True,
 ) -> None:
     """Write a combined RELION STAR file from multiple runs.
 
-    Uses run_name directly as _rlnTomoName column value.
+    Uses run_name directly as _rlnTomoName column value. Coordinates and optics follow
+    ``build_relion_star_tables``.
 
     Args:
         path: Output path for the STAR file.
         grouped_data: Dict mapping run_name to (positions_angstrom, transforms_4x4, scores).
-        voxel_spacing: Voxel spacing in Angstrom for coordinate conversion.
-        optics_group: Optional optics group metadata.
+        voxel_spacing: Voxel spacing in Angstrom, used only when neither tomogram centres nor the tilt-series pixel
+            size are known.
+        optics_group: Deprecated and ignored: the optics table is derived from the tilt-series pixel size.
+        tomogram_centers: Tomogram centre in Angstrom per run.
+        tilt_series_pixel_size: Tilt-series pixel size in Angstrom for every run.
+        tomograms: tomograms.star entries per run.
+        include_optics: Write an optics table when the tilt-series pixel size is known.
     """
-    import pandas as pd
-    import starfile
-    from scipy.spatial.transform import Rotation
-
-    all_dfs = []
-
-    for run_name, (positions, transforms, _scores) in grouped_data.items():
-        N = positions.shape[0]
-
-        # Convert positions from Angstrom to pixels
-        positions_px = positions / voxel_spacing
-
-        # Extract Euler angles from transforms (per-matrix to handle invalid rotations)
-        rotation_matrices = transforms[:, :3, :3]
-        euler_angles = np.zeros((N, 3), dtype=float)
-        for i, Rmat in enumerate(rotation_matrices):
-            if np.allclose(Rmat, np.eye(3)):
-                euler_angles[i] = [0.0, 0.0, 0.0]
-            else:
-                try:
-                    euler_angles[i] = Rotation.from_matrix(Rmat).inv().as_euler("ZYZ", degrees=True)
-                except ValueError:
-                    euler_angles[i] = [0.0, 0.0, 0.0]
-
-        df = pd.DataFrame(
-            {
-                "rlnTomoName": [run_name] * N,
-                "rlnCoordinateX": positions_px[:, 0],
-                "rlnCoordinateY": positions_px[:, 1],
-                "rlnCoordinateZ": positions_px[:, 2],
-                "rlnAngleRot": euler_angles[:, 0],
-                "rlnAngleTilt": euler_angles[:, 1],
-                "rlnAnglePsi": euler_angles[:, 2],
-            },
-        )
-
-        if optics_group is not None:
-            df["rlnOpticsGroup"] = 1
-
-        all_dfs.append(df)
-
-    combined_df = pd.concat(all_dfs, ignore_index=True)
+    import warnings
 
     if optics_group is not None:
-        optics_df = pd.DataFrame([optics_group])
-        data = {"optics": optics_df, "particles": combined_df}
-    else:
-        data = combined_df
+        warnings.warn(
+            "optics_group is ignored: the optics table is derived from the tilt-series pixel size.",
+            DeprecationWarning,
+            stacklevel=2,
+        )
 
-    starfile.write(data, path, overwrite=True)
+    particles, optics = build_relion_star_tables(
+        {run_name: (positions, transforms) for run_name, (positions, transforms, *_rest) in grouped_data.items()},
+        voxel_spacing=voxel_spacing,
+        tomogram_centers=tomogram_centers,
+        tilt_series_pixel_size=tilt_series_pixel_size,
+        tomograms=tomograms,
+        include_optics=include_optics,
+    )
+    write_star_particles(path, particles, optics)
 
 
 def read_relion_tomograms_star(
@@ -1341,8 +1762,8 @@ def read_relion_tomograms_star(
     """Read a RELION tomograms.star file.
 
     Parses a RELION tomograms.star file and extracts tomogram paths, run names,
-    and voxel sizes. The voxel size is computed from the original pixel size
-    multiplied by the binning factor.
+    and voxel sizes. The voxel size is the tilt-series pixel size (rlnTomoTiltSeriesPixelSize; for older files
+    without it, rlnMicrographOriginalPixelSize) multiplied by the binning factor.
 
     Args:
         path: Path to the tomograms.star file.
@@ -1393,12 +1814,22 @@ def read_relion_tomograms_star(
     # Validate required columns
     required_cols = [
         "rlnTomoName",
-        "rlnMicrographOriginalPixelSize",
         "rlnTomoTomogramBinning",
     ]
     for col in required_cols:
         if col not in df.columns:
             raise ValueError(f"Required column '{col}' not found in tomograms.star file")
+    # The tomogram's pixel size is the tilt series' times the binning (RELION's reconstruct_tomogram); older files
+    # without rlnTomoTiltSeriesPixelSize fall back to the original micrograph pixel size.
+    pixel_size_col = next(
+        (col for col in ("rlnTomoTiltSeriesPixelSize", "rlnMicrographOriginalPixelSize") if col in df.columns),
+        None,
+    )
+    if pixel_size_col is None:
+        raise ValueError(
+            "Required column 'rlnTomoTiltSeriesPixelSize' (or 'rlnMicrographOriginalPixelSize') not found in "
+            "tomograms.star file",
+        )
 
     # Determine path column based on half
     if half.lower() == "half1":
@@ -1414,7 +1845,7 @@ def read_relion_tomograms_star(
     result = {}
     for _, row in df.iterrows():
         run_name = str(row["rlnTomoName"])
-        pixel_size = float(row["rlnMicrographOriginalPixelSize"])
+        pixel_size = float(row[pixel_size_col])
         binning = float(row["rlnTomoTomogramBinning"])
         mrc_path = str(row[path_col])
 
