@@ -221,7 +221,7 @@ class CopickTreeApp(App):
         elif data_type == "tomogram":
             self.markdown.update(ENTITY_TO_MD["tomogram"](data))
         elif data_type == "feature":
-            self.markdown.update(ENTITY_TO_MD["feature"](data))
+            self.markdown.update(ENTITY_TO_MD["features"](data))
         elif data_type == "segmentation":
             self.markdown.update(ENTITY_TO_MD["segmentation"](data))
         elif data_type == "mesh":
