@@ -1552,6 +1552,9 @@ def build_relion_particles_df(
     tomogram_center: Optional[Sequence[float]] = None,
     tilt_series_pixel_size: Optional[float] = None,
     legacy_voxel_spacing: Optional[float] = None,
+    instance_ids: Optional[np.ndarray] = None,
+    filament: bool = False,
+    polarity_known: bool = False,
 ) -> "pd.DataFrame":
     """RELION particle rows for copick picks.
 
@@ -1572,9 +1575,15 @@ def build_relion_particles_df(
         tomogram_center: Tomogram centre in Angstrom.
         tilt_series_pixel_size: Tilt-series pixel size in Angstrom.
         legacy_voxel_spacing: Voxel size for the fallback described above.
+        instance_ids: (N,) instance IDs; with ``filament``, the filament IDs.
+        filament: Write RELION's filament convention (``copick.util.relion.filament_relion_angles``) instead of
+            plain angles, plus ``rlnHelicalTubeID`` (the instance ID), ``rlnHelicalTrackLengthAngst`` (Angstrom along
+            the filament in point order) and, unless ``polarity_known``, ``rlnAnglePsiFlipRatio`` = 0.5. The
+            transforms' +Z axis must be the filament axis (copick's filament pick convention).
+        polarity_known: The point order follows the filament's polarity.
 
     Raises:
-        ValueError: If no coordinates can be written.
+        ValueError: If no coordinates can be written, or filament columns are requested for picks without filament IDs.
     """
     import pandas as pd
 
@@ -1582,7 +1591,20 @@ def build_relion_particles_df(
     transforms = np.asarray(transforms, dtype=float).reshape(-1, 4, 4)
     n = positions.shape[0]
     full_positions = positions + transforms[:, :3, 3]
-    eulers = _relion_eulers(transforms[:, :3, :3])
+    if filament:
+        if instance_ids is None or (n and np.min(instance_ids) < 1):
+            unassigned = n if instance_ids is None else int(np.sum(np.asarray(instance_ids) < 1))
+            raise ValueError(
+                f"{unassigned} of {n} picks{f' in {tomo_name}' if tomo_name else ''} have no filament ID "
+                "(instance_id < 1); rlnHelicalTubeID starts at 1. Assign filament IDs, or export without filament "
+                "columns.",
+            )
+        from copick.util.relion import filament_relion_angles
+
+        angle_columns = filament_relion_angles(transforms[:, :3, :3])
+    else:
+        eulers = _relion_eulers(transforms[:, :3, :3])
+        angle_columns = {"rlnAngleRot": eulers[:, 0], "rlnAngleTilt": eulers[:, 1], "rlnAnglePsi": eulers[:, 2]}
 
     data = {}
     if tomo_name is not None:
@@ -1607,9 +1629,15 @@ def build_relion_particles_df(
         data["rlnCoordinateX"] = pixels[:, 0]
         data["rlnCoordinateY"] = pixels[:, 1]
         data["rlnCoordinateZ"] = pixels[:, 2]
-    data["rlnAngleRot"] = eulers[:, 0]
-    data["rlnAngleTilt"] = eulers[:, 1]
-    data["rlnAnglePsi"] = eulers[:, 2]
+    data.update(angle_columns)
+    if filament:
+        from copick.util.relion import filament_track_lengths
+
+        ids = np.asarray(instance_ids, dtype=np.int64)
+        data["rlnHelicalTubeID"] = ids
+        data["rlnHelicalTrackLengthAngst"] = filament_track_lengths(full_positions, ids)
+        if not polarity_known:
+            data["rlnAnglePsiFlipRatio"] = np.full(n, 0.5)
     if tomogram_center is not None:
         centered = full_positions - np.asarray(tomogram_center, dtype=float)
         data["rlnCenteredCoordinateXAngst"] = centered[:, 0]
@@ -1649,6 +1677,9 @@ def build_relion_star_tables(
     tilt_series_pixel_size: Optional[float] = None,
     tomograms: Optional[Dict[str, RelionTomogram]] = None,
     include_optics: bool = True,
+    instance_ids: Optional[Dict[Optional[str], np.ndarray]] = None,
+    filament: bool = False,
+    polarity_known: bool = False,
 ) -> Tuple["pd.DataFrame", Optional["pd.DataFrame"]]:
     """Particle and optics tables of a RELION STAR file for picks from one or more runs.
 
@@ -1666,6 +1697,9 @@ def build_relion_star_tables(
         tilt_series_pixel_size: Tilt-series pixel size for every run.
         tomograms: tomograms.star entries per run; they supply centres, tilt-series pixel sizes and CTF parameters.
         include_optics: Write an optics table (when the tilt-series pixel size is known).
+        instance_ids: Instance IDs per run (filament IDs with ``filament``).
+        filament: Write RELION's filament columns (see ``build_relion_particles_df``).
+        polarity_known: For filament columns: the point order follows the filaments' polarity.
 
     Returns:
         Tuple of (particles DataFrame, optics DataFrame or None).
@@ -1695,6 +1729,9 @@ def build_relion_star_tables(
             tomogram_center=centers[name] if use_centers else None,
             tilt_series_pixel_size=sizes[name] if use_sizes else None,
             legacy_voxel_spacing=None if (use_centers or use_sizes) else voxel_spacing,
+            instance_ids=(instance_ids or {}).get(name),
+            filament=filament,
+            polarity_known=polarity_known,
         )
         if include_optics and use_sizes:
             df["rlnOpticsGroup"] = group
@@ -1716,6 +1753,9 @@ def write_star_particles_grouped(
     tilt_series_pixel_size: Optional[float] = None,
     tomograms: Optional[Dict[str, RelionTomogram]] = None,
     include_optics: bool = True,
+    instance_ids: Optional[Dict[str, np.ndarray]] = None,
+    filament: bool = False,
+    polarity_known: bool = False,
 ) -> None:
     """Write a combined RELION STAR file from multiple runs.
 
@@ -1732,6 +1772,9 @@ def write_star_particles_grouped(
         tilt_series_pixel_size: Tilt-series pixel size in Angstrom for every run.
         tomograms: tomograms.star entries per run.
         include_optics: Write an optics table when the tilt-series pixel size is known.
+        instance_ids: Instance IDs per run (filament IDs with ``filament``).
+        filament: Write RELION's filament columns (see ``build_relion_particles_df``).
+        polarity_known: For filament columns: the point order follows the filaments' polarity.
     """
     import warnings
 
@@ -1749,6 +1792,9 @@ def write_star_particles_grouped(
         tilt_series_pixel_size=tilt_series_pixel_size,
         tomograms=tomograms,
         include_optics=include_optics,
+        instance_ids=instance_ids,
+        filament=filament,
+        polarity_known=polarity_known,
     )
     write_star_particles(path, particles, optics)
 

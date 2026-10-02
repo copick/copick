@@ -1,4 +1,4 @@
-from typing import TYPE_CHECKING, Optional, Tuple, Union
+from typing import TYPE_CHECKING, Dict, Optional, Tuple, Union
 
 import numpy as np
 import zarr
@@ -84,6 +84,83 @@ def get_tomogram_spacing_and_dimensions(
     return voxel_spacing.voxel_size, tomogram_x, tomogram_y, tomogram_z
 
 
+#: Rotation by +90 degrees about Y. RELION's filament poses are the filament frame times this
+#: (tomography_python_programs/get_particle_poses/filaments.py).
+RY90 = np.array([[0.0, 0.0, 1.0], [0.0, 1.0, 0.0], [-1.0, 0.0, 0.0]])
+
+
+def filament_relion_angles(rotations: np.ndarray) -> Dict[str, np.ndarray]:
+    """RELION's filament convention for object-to-tomogram rotations whose +Z axis is the filament axis.
+
+    RELION (``get_particle_poses/filaments.py``, ``relion_tomo_import_coordinates``) stores a filament particle's frame
+    in ``rlnTomoSubtomogram{Rot,Tilt,Psi}``, pre-rotated by Ry(90), and sets ``rlnAngle{Rot,Tilt,Psi}`` to (0, 90, 0)
+    with priors ``rlnAngleTiltPrior`` = 90 and ``rlnAnglePsiPrior`` = 0, so that ``A_subtomogram @ A_particle`` is the
+    frame and helical refinement searches around in-plane particles.
+
+    Args:
+        rotations: (N, 3, 3) object-to-tomogram rotations.
+
+    Returns:
+        Dict of RELION column name to (N,) array.
+    """
+    from copick.util.formats import _relion_eulers
+
+    rotations = np.asarray(rotations, dtype=float).reshape(-1, 3, 3)
+    n = rotations.shape[0]
+    sub = _relion_eulers(rotations @ RY90)
+    return {
+        "rlnTomoSubtomogramRot": sub[:, 0],
+        "rlnTomoSubtomogramTilt": sub[:, 1],
+        "rlnTomoSubtomogramPsi": sub[:, 2],
+        "rlnAngleRot": np.zeros(n),
+        "rlnAngleTilt": np.full(n, 90.0),
+        "rlnAnglePsi": np.zeros(n),
+        "rlnAngleTiltPrior": np.full(n, 90.0),
+        "rlnAnglePsiPrior": np.zeros(n),
+    }
+
+
+def filament_track_lengths(positions: np.ndarray, instance_ids: np.ndarray) -> np.ndarray:
+    """Distance in Angstrom along each filament, in point order: 0 at each filament's first point.
+
+    This is ``rlnHelicalTrackLengthAngst`` in Angstrom, as its name says. (RELION's own filament picker writes evenly
+    spaced values in tilt-series pixels.)
+
+    Args:
+        positions: (N, 3) particle centres in Angstrom.
+        instance_ids: (N,) filament IDs.
+    """
+    positions = np.asarray(positions, dtype=float).reshape(-1, 3)
+    instance_ids = np.asarray(instance_ids)
+    lengths = np.zeros(positions.shape[0])
+    for filament_id in np.unique(instance_ids):
+        index = np.flatnonzero(instance_ids == filament_id)
+        steps = np.linalg.norm(np.diff(positions[index], axis=0), axis=1)
+        lengths[index[1:]] = np.cumsum(steps)
+    return lengths
+
+
+def order_filament_rows(df: "pd.DataFrame") -> "pd.DataFrame":
+    """Rows of a RELION particle table in filament order when it has filament columns.
+
+    With ``rlnHelicalTubeID`` and ``rlnHelicalTrackLengthAngst``, rows are stably sorted by (rlnTomoName, tube, track
+    length), so that each filament's points are contiguous and ordered along it; otherwise the table is unchanged.
+    """
+    keys = [key for key in ("rlnHelicalTubeID", "rlnHelicalTrackLengthAngst") if key in df.columns]
+    if len(keys) < 2:
+        return df
+    if "rlnTomoName" in df.columns:
+        keys = ["rlnTomoName", *keys]
+    return df.sort_values(keys, kind="stable").reset_index(drop=True)
+
+
+def relion_instance_ids(df: "pd.DataFrame") -> Optional[np.ndarray]:
+    """Filament IDs (``rlnHelicalTubeID``) of a RELION particle table, or None if it has none."""
+    if "rlnHelicalTubeID" not in df.columns:
+        return None
+    return df["rlnHelicalTubeID"].to_numpy().astype(np.int64)
+
+
 def relion_rows_to_poses(df: "pd.DataFrame") -> Tuple[np.ndarray, np.ndarray]:
     """Rotations and shifts of RELION tomography particles, in copick's convention.
 
@@ -159,6 +236,8 @@ def picks_to_df_relion(
     voxel_spacing: Optional[float] = None,
     tilt_series_pixel_size: Optional[float] = None,
     tomogram_center: Optional[Tuple[float, float, float]] = None,
+    filament: Union[bool, str] = "auto",
+    polarity_known: bool = False,
 ) -> "pd.DataFrame":
     """Returns the points as a pandas DataFrame with RELION columns.
 
@@ -171,6 +250,10 @@ def picks_to_df_relion(
         voxel_spacing: Voxel spacing whose tomogram defines the centre (see ``copick_tomogram_center``).
         tilt_series_pixel_size: Tilt-series pixel size in Angstrom; enables rlnCoordinateX/Y/Z.
         tomogram_center: Tomogram centre in Angstrom; overrides the copick tomogram.
+        filament: Write RELION's filament columns (see ``filament_relion_angles``): True, False, or "auto" for picks
+            of an object declared a filament.
+        polarity_known: For filament columns: the point order follows the filament's polarity, so
+            rlnAnglePsiFlipRatio is not written.
     """
     from copick.util.formats import build_relion_particles_df
 
@@ -189,7 +272,21 @@ def picks_to_df_relion(
         tomogram_center=tomogram_center,
         tilt_series_pixel_size=tilt_series_pixel_size,
         legacy_voxel_spacing=legacy_voxel_spacing,
+        instance_ids=picks.instance_ids(),
+        filament=is_filament_export(picks, filament),
+        polarity_known=polarity_known,
     )
+
+
+def is_filament_export(picks: "CopickPicks", filament: Union[bool, str]) -> bool:
+    """Whether to write filament columns for these picks: ``filament`` if it is a bool, else (``"auto"``) whether
+    their object is declared a filament."""
+    if isinstance(filament, bool):
+        return filament
+    if filament != "auto":
+        raise ValueError(f"filament must be True, False or 'auto', not {filament!r}")
+    obj = picks.run.root.get_object(picks.pickable_object_name)
+    return bool(obj is not None and obj.is_filament)
 
 
 def relion_df_to_picks(
@@ -206,7 +303,8 @@ def relion_df_to_picks(
     Coordinates are resolved by ``copick.util.formats.relion_coordinates_to_angstrom`` (centred coordinates with the
     copick tomogram's centre first, then rlnCoordinateX/Y/Z in tilt-series pixels, then in pixels of the run's smallest
     voxel spacing), and orientations and shifts by ``relion_rows_to_poses``: each pick's location is its coordinate
-    minus its shift, and its transform holds the rotation with zero translation.
+    minus its shift, and its transform holds the rotation with zero translation. ``rlnHelicalTubeID`` becomes the
+    pick's instance ID, and filament rows are ordered along each filament (``order_filament_rows``).
 
     Args:
         picks: The picks to set.
@@ -223,6 +321,7 @@ def relion_df_to_picks(
     ) and not {"rlnCoordinateX", "rlnCoordinateY", "rlnCoordinateZ"}.issubset(df.columns):
         raise ValueError("DataFrame does not contain required RELION columns.")
 
+    df = order_filament_rows(df)
     has_centered = {
         "rlnCenteredCoordinateXAngst",
         "rlnCenteredCoordinateYAngst",
@@ -247,4 +346,4 @@ def relion_df_to_picks(
     transforms[:, :3, :3] = rotations
     transforms[:, 3, 3] = 1.0
 
-    picks.from_numpy(coordinates - offsets, transforms)
+    picks.from_numpy(coordinates - offsets, transforms, instance_ids=relion_instance_ids(df))
