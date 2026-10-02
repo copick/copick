@@ -10,7 +10,7 @@
 ## Usage
 
 ```bash
-copick mv [OPTIONS] {picks|mesh|segmentation} URI URI
+copick mv [OPTIONS] {picks|filaments|mesh|segmentation} URI URI
 ```
 
 ## Description

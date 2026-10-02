@@ -10,7 +10,7 @@
 ## Usage
 
 ```bash
-copick rm [OPTIONS] {picks|mesh|segmentation|tomogram|feature} URI
+copick rm [OPTIONS] {picks|filaments|mesh|segmentation|tomogram|feature} URI
 ```
 
 ## Description
