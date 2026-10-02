@@ -108,10 +108,12 @@ class PicksFormatHandler(Protocol):
             **kwargs: Format-specific options
 
         Returns:
-            Tuple of (positions_angstrom, transforms_4x4, scores_or_none)
+            Tuple of (positions_angstrom, transforms_4x4, scores_or_none), optionally followed by instance IDs
+            for formats that carry them; read results with ``unpack_picks_data``.
             - positions_angstrom: Nx3 array of positions in Angstrom
             - transforms_4x4: Nx4x4 array of transformation matrices
             - scores: Optional Nx1 array of scores (None if not supported)
+            - instance_ids: Optional Nx1 integer array (absent or None if not supported)
         """
         ...
 
@@ -186,3 +188,17 @@ class PicksFormatHandler(Protocol):
             Path to the written file
         """
         ...
+
+
+def unpack_picks_data(
+    data: Tuple[np.ndarray, ...],
+) -> Tuple[np.ndarray, np.ndarray, Optional[np.ndarray], Optional[np.ndarray]]:
+    """Unpack a picks handler's read result into (positions, transforms, scores, instance_ids).
+
+    Handlers return (positions, transforms, scores) and may append instance IDs; this accepts both forms.
+    """
+    if len(data) == 3:
+        positions, transforms, scores = data
+        return positions, transforms, scores, None
+    positions, transforms, scores, instance_ids = data
+    return positions, transforms, scores, instance_ids
