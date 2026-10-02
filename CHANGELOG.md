@@ -1,5 +1,20 @@
 # Changelog
 
+## [1.27.1](https://github.com/copick/copick/compare/copick-v1.27.0...copick-v1.27.1) (2026-10-02)
+
+
+### 🐞 Bug Fixes
+
+* Bump anyio from 4.12.1 to 4.14.2 ([#468](https://github.com/copick/copick/issues/468)) ([1350579](https://github.com/copick/copick/commit/1350579e62afcaf514a61de639b0d9891f02fe15))
+* Bump asyncssh from 2.23.0 to 2.24.0 ([#466](https://github.com/copick/copick/issues/466)) ([1bc8221](https://github.com/copick/copick/commit/1bc8221060eb95e36cf655a821c476986d5bd53e))
+* Bump chanzuckerberg/github-actions from 6.36.1 to 6.41.2 ([#470](https://github.com/copick/copick/issues/470)) ([c70593a](https://github.com/copick/copick/commit/c70593aac71845dbc0d981dd0e70939f9bab5a61))
+* Bump click from 8.4.2 to 8.5.0 ([#457](https://github.com/copick/copick/issues/457)) ([47f76c4](https://github.com/copick/copick/commit/47f76c4132d0841cd057b5c5ad7080ce55f2cc87))
+* Bump filelock from 3.32.2 to 3.32.4 ([#455](https://github.com/copick/copick/issues/455)) ([7b765e8](https://github.com/copick/copick/commit/7b765e87be8406cc20a7c733f0abe7a6d43ab55a))
+* Bump mistune from 3.3.0 to 3.3.3 ([#461](https://github.com/copick/copick/issues/461)) ([45429ec](https://github.com/copick/copick/commit/45429ec7235c1ef98a75225f02b96d99b86ca739))
+* Bump ruff from 0.16.2 to 0.16.4 ([#458](https://github.com/copick/copick/issues/458)) ([5c1f989](https://github.com/copick/copick/commit/5c1f98984bd312baae6bcf6562ac1e0f87b967d0))
+* Bump soupsieve from 2.8.4 to 2.9 ([#467](https://github.com/copick/copick/issues/467)) ([a221d82](https://github.com/copick/copick/commit/a221d828bdf2930cb8fa31a291c40fb9a418eca2))
+* Bump tornado from 6.5.7 to 6.5.8 ([#460](https://github.com/copick/copick/issues/460)) ([daaae60](https://github.com/copick/copick/commit/daaae600cdf677a83907c7cefa67abfdac8b1664))
+
 ## [1.27.0](https://github.com/copick/copick/compare/copick-v1.26.1...copick-v1.27.0) (2026-08-18)
 
 
