@@ -1,5 +1,16 @@
 # Changelog
 
+## [2.0.0-alpha.2](https://github.com/copick/copick/compare/copick-v2.0.0-alpha.1...copick-v2.0.0-alpha.2) (2026-10-02)
+
+
+### 🐞 Bug Fixes
+
+* Bump actions/cache from 5 to 6 ([#439](https://github.com/copick/copick/issues/439)) ([434bbb3](https://github.com/copick/copick/commit/434bbb36cff871b51c29f66f817f9f3db6d82152))
+* Bump actions/download-artifact from 7 to 8 ([#441](https://github.com/copick/copick/issues/441)) ([9d899ef](https://github.com/copick/copick/commit/9d899ef64ae2ede2f39148b3963de601fa8e7fa6))
+* Bump astral-sh/setup-uv from 10.0.0 to 10.2.0 ([#471](https://github.com/copick/copick/issues/471)) ([b0711b9](https://github.com/copick/copick/commit/b0711b9b13c05746a9be34ad728bba93da0c1e20))
+* Bump chanzuckerberg/github-actions from 6.36.1 to 6.41.2 ([#472](https://github.com/copick/copick/issues/472)) ([95b8da1](https://github.com/copick/copick/commit/95b8da1b2f3c80675529a3225439bc59412c8b5f))
+* Bump ruff from 0.16.1 to 0.16.3 ([#445](https://github.com/copick/copick/issues/445)) ([ed5bbee](https://github.com/copick/copick/commit/ed5bbee6c4a25aa14494510673d506a37f9475c0))
+
 ## [2.0.0-alpha.1](https://github.com/copick/copick/compare/copick-v1.26.1...copick-v2.0.0-alpha.1) (2026-08-18)
 
 
