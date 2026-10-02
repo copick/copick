@@ -331,6 +331,7 @@ def export_picks_combined(
 
     # Collect picks from all runs
     grouped_data: Dict[str, Tuple[np.ndarray, np.ndarray, Optional[np.ndarray]]] = {}
+    grouped_instance_ids: Dict[str, np.ndarray] = {}
     total_particles = 0
 
     for run in runs:
@@ -345,6 +346,7 @@ def export_picks_combined(
                 scores = None
                 if picks.points:
                     scores = np.array([p.score for p in picks.points])
+                instance_ids = picks.instance_ids()
 
                 # Accumulate data for this run
                 if run.name in grouped_data:
@@ -360,6 +362,10 @@ def export_picks_combined(
                     )
                 else:
                     grouped_data[run.name] = (points, transforms, scores)
+                if run.name in grouped_instance_ids:
+                    grouped_instance_ids[run.name] = np.concatenate([grouped_instance_ids[run.name], instance_ids])
+                else:
+                    grouped_instance_ids[run.name] = instance_ids
                 total_particles += len(points)
         except Exception as e:
             if log:
@@ -378,6 +384,7 @@ def export_picks_combined(
         voxel_spacing=voxel_spacing or 1.0,
         run_to_index=run_to_index,
         include_optics=include_optics,
+        grouped_instance_ids=grouped_instance_ids,
     )
 
     if log:

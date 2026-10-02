@@ -23,6 +23,7 @@ from copick.util.handlers.base import (
     FormatCapabilities,
     PicksFormatHandler,
     VolumeFormatHandler,
+    unpack_picks_data,
 )
 from copick.util.handlers.registry import (
     FormatRegistry,
@@ -43,4 +44,5 @@ __all__ = [
     "PicksFormatHandler",
     "get_volume_format_from_path",
     "get_picks_format_from_path",
+    "unpack_picks_data",
 ]
