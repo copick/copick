@@ -31,7 +31,7 @@ class CSVPicksHandler:
         path: str,
         voxel_spacing: float = 1.0,
         **kwargs,
-    ) -> Tuple[np.ndarray, np.ndarray, Optional[np.ndarray]]:
+    ) -> Tuple[np.ndarray, np.ndarray, Optional[np.ndarray], Optional[np.ndarray]]:
         """Read picks from a CSV file.
 
         Note: CSV files store coordinates in Angstrom, so voxel_spacing
@@ -42,12 +42,12 @@ class CSVPicksHandler:
             voxel_spacing: Ignored (coordinates already in Angstrom)
 
         Returns:
-            Tuple of (positions_angstrom, transforms_4x4, scores_or_none)
+            Tuple of (positions_angstrom, transforms_4x4, scores_or_none, instance_ids_or_none)
         """
-        from copick.util.formats import read_copick_csv
+        from copick.util.formats import copick_csv_df_to_arrays, read_picks_csv
 
-        positions, transforms, scores, _ = read_copick_csv(path)
-        return positions, transforms, scores
+        positions, transforms, scores, _, instance_ids = copick_csv_df_to_arrays(read_picks_csv(path))
+        return positions, transforms, scores, instance_ids
 
     def write(
         self,
@@ -57,6 +57,7 @@ class CSVPicksHandler:
         voxel_spacing: float,
         run_name: str = "",
         scores: Optional[np.ndarray] = None,
+        instance_ids: Optional[np.ndarray] = None,
         **kwargs,
     ) -> str:
         """Write picks to a CSV file.
@@ -68,13 +69,14 @@ class CSVPicksHandler:
             voxel_spacing: Ignored (coordinates already in Angstrom)
             run_name: Run name to include in the file
             scores: Optional Nx1 array of scores
+            instance_ids: Optional Nx1 array of instance IDs
 
         Returns:
             Path to the written file
         """
         from copick.util.formats import write_copick_csv
 
-        write_copick_csv(path, positions, transforms, run_name=run_name, scores=scores)
+        write_copick_csv(path, positions, transforms, run_name=run_name, scores=scores, instance_ids=instance_ids)
         return path
 
     def read_grouped(
@@ -95,11 +97,11 @@ class CSVPicksHandler:
             index_to_run: Ignored (CSV uses run_name column directly)
 
         Returns:
-            Dict mapping run_name to (positions, transforms, scores)
+            Dict mapping run_name to (positions, transforms, scores, instance_ids)
         """
-        from copick.util.formats import read_copick_csv_grouped
+        from copick.util.formats import csv_to_copick_arrays, read_picks_csv
 
-        return read_copick_csv_grouped(path)
+        return csv_to_copick_arrays(read_picks_csv(path), include_instance_ids=True)
 
     def write_grouped(
         self,
@@ -124,7 +126,7 @@ class CSVPicksHandler:
         """
         from copick.util.formats import write_picks_csv_grouped
 
-        write_picks_csv_grouped(path, grouped_data)
+        write_picks_csv_grouped(path, grouped_data, instance_ids=kwargs.get("grouped_instance_ids"))
         return path
 
 

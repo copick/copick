@@ -945,3 +945,30 @@ class TestSyncIntegration:
         # but the specific pick may not be created due to missing target object
         target_run = target_root.get_run(source_run.name)
         assert target_run is not None, "Target run should still be created"
+
+
+def test_ensure_pickable_objects_copies_object_metadata(source_target_configs):
+    """Objects created in the target keep the source's metadata, including a filament declaration."""
+    from copick.util.sync import ensure_pickable_objects
+
+    source_root = source_target_configs["source_root"]
+    target_root = source_target_configs["target_root"]
+    source_root.new_object(
+        name="microtubule",
+        is_particle=True,
+        radius=120,
+        metadata={"note": "kept"},
+        filament={"polar": True},
+    )
+
+    ensure_pickable_objects(
+        source_root,
+        target_root,
+        source_target_configs["target_config"],
+        ["microtubule"],
+        {},
+    )
+
+    target_obj = copick.from_file(source_target_configs["target_config"]).get_object("microtubule")
+    assert target_obj.metadata == {"note": "kept", "copick": {"filament": {"polar": True}}}
+    assert target_obj.filament.polar is True

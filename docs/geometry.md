@@ -128,6 +128,22 @@ The **full position** of the particle center, including any refinement shifts, i
 $$\mathbf{p}_\text{full} = \mathbf{p}_\text{location} + \mathbf{t}_\text{transform}$$
 
 where $\mathbf{t}_\text{transform} = (t_x, t_y, t_z)^T$ is extracted from the transformation matrix.
+`CopickPicks.full_positions()` returns these centres; use it, not the locations returned by `CopickPicks.numpy()`,
+wherever a particle is placed, drawn or extracted.
+
+### 2.4 Filament Frames
+
+Objects declared as filaments (see [Pickable Object](datamodel.md#pickable-object)) use the point fields with these
+conventions:
+
+- `instance_id` is the filament ID. IDs start at 1; 0 means the point is not assigned to a filament.
+- Points are grouped by filament and stored in order along it.
+- The +Z axis of the transform's rotation, $\mathbf{R}\,\hat{\mathbf{z}}$, is the local filament axis (the tangent),
+  pointing in the direction of increasing point order. The rotation about the axis (roll) is arbitrary unless a tool
+  documents otherwise.
+- The transform's translation is 0; the position along the axis is the `location`.
+- The point order follows the structure's polarity only where the producer states it. Otherwise the direction along
+  the filament is unknown.
 
 ---
 

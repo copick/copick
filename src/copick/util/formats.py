@@ -1509,6 +1509,7 @@ def write_picks_csv(
 def write_picks_csv_grouped(
     path: str,
     grouped_data: Dict[str, Tuple[np.ndarray, np.ndarray, Optional[np.ndarray]]],
+    instance_ids: Optional[Dict[str, np.ndarray]] = None,
 ) -> None:
     """Write a combined CSV file from multiple runs.
 
@@ -1517,6 +1518,8 @@ def write_picks_csv_grouped(
     Args:
         path: Output path for the CSV file.
         grouped_data: Dict mapping run_name to (positions_angstrom, transforms_4x4, scores).
+        instance_ids: Optional dict mapping run_name to an (N,) array of instance IDs. When given, an
+            ``instance_id`` column is written (0 for runs without an entry).
     """
     import pandas as pd
 
@@ -1542,20 +1545,37 @@ def write_picks_csv_grouped(
         else:
             data["score"] = np.ones(N)
 
+        if instance_ids is not None:
+            ids = instance_ids.get(run_name)
+            data["instance_id"] = np.zeros(N, dtype=np.int64) if ids is None else np.asarray(ids, dtype=np.int64)
+
         all_dfs.append(pd.DataFrame(data))
 
     combined_df = pd.concat(all_dfs, ignore_index=True)
     combined_df.to_csv(path, index=False)
 
 
-def csv_to_copick_arrays(df: "pd.DataFrame") -> Dict[str, Tuple[np.ndarray, np.ndarray, np.ndarray]]:
+def _csv_instance_ids(df: "pd.DataFrame") -> Optional[np.ndarray]:
+    """The ``instance_id`` column of a copick CSV as an int64 array (missing values become 0), or None."""
+    if "instance_id" not in df.columns:
+        return None
+    return df["instance_id"].fillna(0).to_numpy().astype(np.int64)
+
+
+def csv_to_copick_arrays(
+    df: "pd.DataFrame",
+    include_instance_ids: bool = False,
+) -> Dict[str, Tuple[np.ndarray, ...]]:
     """Convert CSV DataFrame to copick arrays, grouped by run_name.
 
     Args:
         df: DataFrame with CSV picks data.
+        include_instance_ids: Append the instance IDs to each tuple (zeros if the file has no ``instance_id``
+            column).
 
     Returns:
-        Dictionary mapping run_name to (positions, transforms, scores) tuples.
+        Dictionary mapping run_name to (positions, transforms, scores) tuples, or to
+        (positions, transforms, scores, instance_ids) tuples if ``include_instance_ids`` is set.
     """
     results = {}
 
@@ -1576,7 +1596,11 @@ def csv_to_copick_arrays(df: "pd.DataFrame") -> Dict[str, Tuple[np.ndarray, np.n
 
         scores = group["score"].to_numpy() if "score" in group.columns else np.ones(N)
 
-        results[run_name] = (positions, transforms, scores)
+        if include_instance_ids:
+            ids = _csv_instance_ids(group)
+            results[run_name] = (positions, transforms, scores, np.zeros(N, dtype=np.int64) if ids is None else ids)
+        else:
+            results[run_name] = (positions, transforms, scores)
 
     return results
 
@@ -1600,8 +1624,22 @@ def read_copick_csv(
     """
     import pandas as pd
 
-    df = pd.read_csv(path)
+    positions, transforms, scores, run_names, _ = copick_csv_df_to_arrays(pd.read_csv(path))
+    return positions, transforms, scores, run_names
 
+
+def copick_csv_df_to_arrays(
+    df: "pd.DataFrame",
+) -> Tuple[np.ndarray, np.ndarray, Optional[np.ndarray], np.ndarray, Optional[np.ndarray]]:
+    """Convert a copick CSV DataFrame to arrays.
+
+    Args:
+        df: DataFrame with CSV picks data.
+
+    Returns:
+        Tuple of (positions, transforms, scores, run_names, instance_ids); ``scores`` and ``instance_ids`` are
+        None when the file has no such column.
+    """
     N = len(df)
     positions = df[["x", "y", "z"]].to_numpy()
 
@@ -1618,7 +1656,7 @@ def read_copick_csv(
     scores = df["score"].to_numpy() if "score" in df.columns else None
     run_names = df["run_name"].to_numpy() if "run_name" in df.columns else np.array([""] * N)
 
-    return positions, transforms, scores, run_names
+    return positions, transforms, scores, run_names, _csv_instance_ids(df)
 
 
 def write_copick_csv(

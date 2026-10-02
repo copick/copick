@@ -179,6 +179,7 @@ nav = [
             {"Metadata Models" = [
                 {"CopickConfig" = "api_reference/base_classes/metadata_models/CopickConfig.md"},
                 {"PickableObject" = "api_reference/base_classes/metadata_models/PickableObject.md"},
+                {"FilamentSpec" = "api_reference/base_classes/metadata_models/FilamentSpec.md"},
                 {"CopickPicksFile" = "api_reference/base_classes/metadata_models/CopickPicksFile.md"},
                 {"CopickRunMeta" = "api_reference/base_classes/metadata_models/CopickRunMeta.md"},
                 {"CopickVoxelSpacingMeta" = "api_reference/base_classes/metadata_models/CopickVoxelSpacingMeta.md"},

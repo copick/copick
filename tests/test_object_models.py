@@ -626,3 +626,138 @@ def test_copick_types_lists_each_entity_class_once():
 
     assert len(COPICK_TYPES) == len(set(COPICK_TYPES))
     assert CopickRoot in COPICK_TYPES
+
+
+class TestFilamentSpec:
+    """The filament declaration stored under the reserved metadata key."""
+
+    def test_spec_is_validated_and_normalised(self):
+        from copick.models import FilamentSpec, PickableObject
+
+        metadata = {"copick": {"filament": {"polar": True, "helical_rise_a": 9.4, "seam": True}}, "user": 1}
+        obj = PickableObject(name="microtubule", is_particle=True, radius=120, metadata=metadata)
+
+        assert obj.is_filament
+        assert obj.filament == FilamentSpec(polar=True, helical_rise_a=9.4, seam=True)
+        assert obj.model_dump()["metadata"] == {
+            "copick": {"filament": {"polar": True, "helical_rise_a": 9.4, "seam": True}},
+            "user": 1,
+        }
+        assert metadata == {"copick": {"filament": {"polar": True, "helical_rise_a": 9.4, "seam": True}}, "user": 1}
+
+    @pytest.mark.parametrize(
+        "is_particle, spec",
+        [
+            (True, "yes"),
+            (True, {"helical_rise_a": -1.0}),
+            (True, {"polar": "sometimes"}),
+            (False, {"polar": True}),
+        ],
+    )
+    def test_invalid_spec_raises(self, is_particle, spec):
+        from copick.models import PickableObject
+
+        with pytest.raises(ValueError):
+            PickableObject(name="filament", is_particle=is_particle, metadata={"copick": {"filament": spec}})
+
+    @pytest.mark.parametrize(
+        "metadata",
+        [{}, {"copick": "written-before-the-key-was-reserved"}, {"copick": {"filament": None}}, {"copick": {}}],
+    )
+    def test_objects_without_a_spec_are_not_filaments(self, metadata):
+        from copick.models import PickableObject
+
+        obj = PickableObject(name="ribosome", is_particle=True, metadata=metadata)
+
+        assert not obj.is_filament
+        assert obj.filament is None
+        assert obj.metadata == metadata
+
+    def test_set_filament(self):
+        from copick.models import FilamentSpec, PickableObject
+
+        obj = PickableObject(name="actin", is_particle=True, metadata={"user": 1})
+        obj.set_filament(FilamentSpec(polar=True))
+        assert obj.metadata == {"user": 1, "copick": {"filament": {"polar": True}}}
+        obj.set_filament({"polar": False, "helical_twist_deg": -166.7})
+        assert obj.filament == FilamentSpec(polar=False, helical_twist_deg=-166.7)
+        obj.set_filament(None)
+        assert obj.metadata == {"user": 1}
+
+        with pytest.raises(ValueError):
+            PickableObject(name="mask", is_particle=False).set_filament({"polar": True})
+        with pytest.raises(ValueError, match="reserves this key"):
+            PickableObject(name="old", is_particle=True, metadata={"copick": "legacy"}).set_filament({})
+
+    def test_new_object_declares_a_filament(self, test_payload):
+        root = test_payload["root"]
+
+        obj = root.new_object(name="microtubule", is_particle=True, radius=120, filament={"polar": True})
+
+        assert obj.is_filament
+        assert obj.filament.polar is True
+        assert root.get_object("microtubule").is_filament
+
+    def test_new_object_exist_ok_validates_the_update(self, test_payload):
+        root = test_payload["root"]
+        root.new_object(name="microtubule", is_particle=True, radius=120, filament={"polar": True})
+
+        with pytest.raises(ValueError):
+            root.new_object(name="microtubule", is_particle=False, exist_ok=True)
+
+        obj = root.get_object("microtubule")
+        assert obj.is_particle is True, "a refused update must leave the object unchanged"
+        assert obj.is_filament
+
+        root.new_object(name="microtubule", is_particle=True, exist_ok=True, filament={"polar": False})
+        assert root.get_object("microtubule").filament.polar is False
+
+    def test_spec_survives_save_and_reload(self, test_payload, tmp_path):
+        root = test_payload["root"]
+        root.new_object(name="microtubule", is_particle=True, radius=120, filament={"polar": True})
+        config_path = tmp_path / "config.json"
+        root.save_config(str(config_path))
+
+        import json
+
+        saved = {o["name"]: o for o in json.loads(config_path.read_text())["pickable_objects"]}
+        assert saved["microtubule"]["metadata"] == {"copick": {"filament": {"polar": True}}}
+
+        reloaded = copick.from_file(str(config_path))
+        assert reloaded.get_object("microtubule").filament.polar is True
+
+    def test_add_object_and_cli_declare_a_filament(self, test_payload):
+        from click.testing import CliRunner
+        from copick.cli.add import object as add_object_cli
+
+        root = test_payload["root"]
+        obj = add_object(root, "actin", is_particle=True, radius=35, filament={"polar": True})
+        assert obj.is_filament
+
+        result = CliRunner().invoke(
+            add_object_cli,
+            [
+                "-c",
+                test_payload["cfg_file"],
+                "--name",
+                "microtubule",
+                "--object-type",
+                "filament",
+                "--radius",
+                "120",
+                "--polar",
+                "--helical-rise",
+                "9.4",
+            ],
+        )
+        assert result.exit_code == 0, result.output
+        reloaded = copick.from_file(test_payload["cfg_file"]).get_object("microtubule")
+        assert reloaded.is_particle is True
+        assert reloaded.filament.polar is True
+        assert reloaded.filament.helical_rise_a == 9.4
+
+        result = CliRunner().invoke(
+            add_object_cli,
+            ["-c", test_payload["cfg_file"], "--name", "membrane", "--object-type", "segmentation", "--polar"],
+        )
+        assert result.exit_code != 0

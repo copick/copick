@@ -76,7 +76,49 @@ label, color, radius, and other properties.
         the project's root.
     - `metadata`: An optional dictionary that can contain arbitrary key-value pairs for storing additional custom
         information about the object. This field allows users to attach project-specific metadata such as confidence scores,
-        data sources, or processing notes.
+        data sources, or processing notes. The key `copick` is reserved for copick's own extensions of the object
+        definition (see Filament Objects below).
+
+#### Filament Objects
+
+A filament is a continuous, typically helical or tubular assembly, such as a microtubule or an actin filament, that is
+annotated with ordered points along its axis. An object is declared a filament by a `FilamentSpec` stored in its
+metadata under `metadata["copick"]["filament"]`:
+
+```json
+{
+    "name": "microtubule",
+    "is_particle": true,
+    "label": 2,
+    "radius": 120,
+    "metadata": {
+        "copick": {
+            "filament": {"polar": true, "helical_rise_a": 9.4}
+        }
+    }
+}
+```
+
+- `polar`: Whether the structure has a polarity (`true` for microtubules and actin). Omitted if not stated.
+- `helical_rise_a`, `helical_twist_deg`: Rise per subunit in angstrom and twist per subunit in degrees. Both are
+  descriptive; tools never use them as a default sampling distance.
+
+A filament object must have `is_particle: true`, because filaments are annotated with points; its `radius` is the tube
+radius. Copick validates the declaration when it reads the configuration. Clients that do not know filaments read the
+object as an ordinary particle, and keep the declaration when they rewrite the configuration because it lives in
+`metadata`.
+
+```python
+root.new_object(name="microtubule", is_particle=True, radius=120, filament={"polar": True})
+root.get_object("microtubule").is_filament  # True
+```
+
+```bash
+copick add object -c config.json --name microtubule --object-type filament --radius 120 --polar
+```
+
+Picks of a filament object follow the [filament conventions](geometry.md#24-filament-frames): `instance_id` is the
+filament ID, points are ordered along each filament, and the transform's +Z axis is the filament axis.
 
 
 ### Run
@@ -184,6 +226,18 @@ allows relating the points to the user or tool that created them, as well as the
     The `good.picker` part of the filename is the user or tool that created the points. The `0` part of the filename is
     the session id of the user or tool that created the points. The `proteasome` part of the filename is the name of the
     object that the points represent.
+
+Each point has a `location` (angstrom), a `transformation` (a 4×4 matrix from the object's frame to the tomogram, whose
+translation is a shift added to the location), an `instance_id` (default 0) and a `score` (default 1.0). For filament
+objects, `instance_id` is the filament ID and the points are ordered along each filament; see
+[Pick Geometry](geometry.md#2-pick-geometry).
+
+```python
+positions, transforms = picks.numpy()            # locations and 4x4 transforms
+centres = picks.full_positions()                 # location + transform translation
+picks.from_numpy(positions, transforms, instance_ids=ids, scores=scores)
+ids, scores = picks.instance_ids(), picks.scores()
+```
 
 
 
