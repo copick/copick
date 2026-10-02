@@ -17,14 +17,17 @@ copick add picks-relion [OPTIONS] PATH
 
 Imports particle picks from one or more RELION particle STAR files that carry
 the `_rlnTomoName` column identifying each particle's tomogram; run names are
-extracted from that column automatically. Both RELION 4.x (pixel coordinates in
-`rlnCoordinateX/Y/Z`) and RELION 5.0 (centered Angstrom coordinates in
-`rlnCenteredCoordinateX/Y/ZAngst`) formats are supported, with the version
-auto-detected from the column names unless overridden by `--relion-version`.
+extracted from that column automatically.
 
-For RELION 5.0, tomogram dimensions are needed to convert centered coordinates
-to absolute coordinates. Supply them with `--tomograms-star`, or omit it to read
-the dimensions from tomograms already present in the copick project.
+Coordinates are read as RELION does: centred Angstrom coordinates
+(`rlnCenteredCoordinateX/Y/ZAngst`) relative to each tomogram's centre when it
+is known, from `--tomograms-star` or the tomograms already in the copick
+project; otherwise `rlnCoordinateX/Y/Z` in tilt-series pixels, the unit RELION
+4 and 5 use (from `--tilt-series-pixel-size`, the file's optics table, or the
+tomograms.star); otherwise, for files written by other tools, in pixels of
+`--voxel-size`. `--relion-version relion5` or `relion4` forces centred or pixel
+coordinates. Subtomogram orientations (`rlnTomoSubtomogram*`) and shifts
+(`rlnOrigin*Angst`) are applied.
 
 ## Arguments
 
@@ -40,8 +43,9 @@ the dimensions from tomograms already present in the copick project.
 | `--object-name` | text | **required** | Name of the pickable object (must exist in config). |
 | `--session-id` | text | `1` | Session ID for the annotation. |
 | `--user-id` | text | `copick` | User ID for the annotation. |
-| `--voxel-size` | float | **required** | Voxel size in Angstrom (required for coordinate conversion). |
-| `--tomograms-star` | file | — | Path to RELION tomograms.star file for RELION 5.0 coordinate conversion. If not provided and RELION 5.0 format is detected, tomogram dimensions will be read from existing tomograms in the copick project. |
+| `--voxel-size` | float | — | Voxel size in Angstrom. Selects the copick tomograms whose centres are used for centred coordinates, and is the unit of rlnCoordinateX/Y/Z when no tilt-series pixel size is known (then it is required). |
+| `--tomograms-star` | file | — | Path to RELION tomograms.star giving each tomogram's centre and tilt-series pixel size. If not provided, centres are read from existing tomograms in the copick project. |
+| `--tilt-series-pixel-size` | float | — | STAR only: tilt-series pixel size in Angstrom, the unit RELION 4/5 use for rlnCoordinateX/Y/Z. Read from the file's optics table (rlnTomoTiltSeriesPixelSize) when omitted. |
 | `--relion-version` | choice (auto \| relion4 \| relion5) | `auto` | RELION version for coordinate format. 'auto' detects from column names. |
 | `--max-workers` | integer | `4` | Maximum number of worker threads. |
 | `--overwrite / --no-overwrite` | boolean flag | `False` | Overwrite the object if it exists. |
@@ -51,7 +55,7 @@ the dimensions from tomograms already present in the copick project.
 ## Examples
 
 ```bash
-# Import RELION 4.x particles
+# Import particles whose coordinates are tomogram pixels at 10 A (no optics table)
 copick add picks-relion particles.star -c config.json --object-name ribosome \
     --voxel-size 10.0
 
