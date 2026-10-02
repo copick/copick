@@ -29,6 +29,11 @@ any storage supported by `fsspec`. The filesystem implementation is defined in t
 
 ****
 
+[](){#CopickFilamentsFSSpec}
+::: copick.impl.filesystem.CopickFilamentsFSSpec
+
+****
+
 [](){#CopickMeshFSSpec}
 ::: copick.impl.filesystem.CopickMeshFSSpec
 

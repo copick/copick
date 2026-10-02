@@ -82,7 +82,7 @@ def _apply_template(
     result = template_uri
 
     # Replace placeholders based on object type
-    if object_type in ("picks", "mesh"):
+    if object_type in ("picks", "filaments", "mesh"):
         result = result.replace("{object_name}", obj.pickable_object_name)
         result = result.replace("{user_id}", obj.user_id)
         result = result.replace("{session_id}", obj.session_id)
@@ -107,7 +107,7 @@ def remove_copick_objects(
 
     Args:
         root: CopickRoot instance
-        object_type: Type of object ('picks', 'mesh', 'segmentation', 'tomogram', 'feature')
+        object_type: Type of object ('picks', 'filaments', 'mesh', 'segmentation', 'tomogram', 'feature')
         uri: Copick URI (supports patterns)
         run_name: Specific run name to operate on (None = all runs)
         dry_run: If True, only list objects that would be deleted
@@ -166,7 +166,7 @@ def move_copick_objects(
 
     Args:
         root: CopickRoot instance
-        object_type: Type of object ('picks', 'mesh', 'segmentation')
+        object_type: Type of object ('picks', 'filaments', 'mesh', 'segmentation')
         source_uri: Source copick URI (supports patterns)
         target_uri: Target copick URI (use templates for patterns)
         run_name: Specific run name to operate on (None = all runs)
@@ -179,7 +179,7 @@ def move_copick_objects(
     Raises:
         ValueError: If URIs are invalid or incompatible
     """
-    if object_type not in ("picks", "mesh", "segmentation"):
+    if object_type not in ("picks", "filaments", "mesh", "segmentation"):
         raise ValueError(f"Move operation not supported for object type: {object_type}")
 
     # Resolve source objects
@@ -202,6 +202,9 @@ def move_copick_objects(
         try:
             # Generate target URI
             concrete_target_uri = _apply_template(target_uri, source_obj, object_type)
+            if concrete_target_uri == source_obj_uri:
+                # Moving an object onto itself would copy it to itself and then delete it.
+                raise ValueError("Source and target are the same object; nothing to move.")
 
             # Parse target to get new parameters
             target_params = parse_copick_uri(concrete_target_uri, object_type)
@@ -209,6 +212,13 @@ def move_copick_objects(
             # Create new object with target parameters
             if object_type == "picks":
                 target_obj = source_obj.run.new_picks(
+                    object_name=target_params["object_name"],
+                    session_id=target_params["session_id"],
+                    user_id=target_params["user_id"],
+                    exist_ok=overwrite,
+                )
+            elif object_type == "filaments":
+                target_obj = source_obj.run.new_filaments(
                     object_name=target_params["object_name"],
                     session_id=target_params["session_id"],
                     user_id=target_params["user_id"],
@@ -240,6 +250,11 @@ def move_copick_objects(
                 # For picks, copy the points
                 source_obj.load()
                 target_obj.points = source_obj.points
+                target_obj.store()
+            elif object_type == "filaments":
+                source_obj.load()
+                target_obj.filaments = source_obj.filaments
+                target_obj.meta.voxel_spacing = source_obj.voxel_spacing
                 target_obj.store()
             elif object_type == "mesh":
                 # For meshes, copy the mesh geometry (trimesh object)
@@ -283,7 +298,7 @@ def copy_copick_objects(
 
     Args:
         root: CopickRoot instance
-        object_type: Type of object ('picks', 'mesh', 'segmentation')
+        object_type: Type of object ('picks', 'filaments', 'mesh', 'segmentation')
         source_uri: Source copick URI (supports patterns)
         target_uri: Target copick URI (use templates for patterns)
         run_name: Specific run name to operate on (None = all runs)
@@ -296,7 +311,7 @@ def copy_copick_objects(
     Raises:
         ValueError: If URIs are invalid or incompatible
     """
-    if object_type not in ("picks", "mesh", "segmentation"):
+    if object_type not in ("picks", "filaments", "mesh", "segmentation"):
         raise ValueError(f"Copy operation not supported for object type: {object_type}")
 
     # Resolve source objects
@@ -331,6 +346,13 @@ def copy_copick_objects(
                     user_id=target_params["user_id"],
                     exist_ok=overwrite,
                 )
+            elif object_type == "filaments":
+                target_obj = source_obj.run.new_filaments(
+                    object_name=target_params["object_name"],
+                    session_id=target_params["session_id"],
+                    user_id=target_params["user_id"],
+                    exist_ok=overwrite,
+                )
             elif object_type == "mesh":
                 target_obj = source_obj.run.new_mesh(
                     object_name=target_params["object_name"],
@@ -357,6 +379,11 @@ def copy_copick_objects(
                 # For picks, copy the points
                 source_obj.load()
                 target_obj.points = source_obj.points
+                target_obj.store()
+            elif object_type == "filaments":
+                source_obj.load()
+                target_obj.filaments = source_obj.filaments
+                target_obj.meta.voxel_spacing = source_obj.voxel_spacing
                 target_obj.store()
             elif object_type == "mesh":
                 # For meshes, copy the mesh geometry (trimesh object)
@@ -398,7 +425,7 @@ def remove_copick_objects_per_run(
 
     Args:
         run: CopickRun instance to process
-        object_type: Type of object ('picks', 'mesh', 'segmentation', 'tomogram', 'feature')
+        object_type: Type of object ('picks', 'filaments', 'mesh', 'segmentation', 'tomogram', 'feature')
         uri: Copick URI (supports patterns)
         dry_run: If True, only list objects that would be deleted
 
@@ -447,7 +474,7 @@ def remove_copick_objects_batch(
 
     Args:
         root: CopickRoot instance
-        object_type: Type of object ('picks', 'mesh', 'segmentation', 'tomogram', 'feature')
+        object_type: Type of object ('picks', 'filaments', 'mesh', 'segmentation', 'tomogram', 'feature')
         uri: Copick URI (supports patterns)
         run_names: List of run names to process (None = all runs)
         dry_run: If True, only list objects that would be deleted
@@ -496,7 +523,7 @@ def move_copick_objects_per_run(
 
     Args:
         run: CopickRun instance to process
-        object_type: Type of object ('picks', 'mesh', 'segmentation')
+        object_type: Type of object ('picks', 'filaments', 'mesh', 'segmentation')
         source_uri: Source copick URI (supports patterns)
         target_uri: Target copick URI (may contain templates)
         overwrite: Allow overwriting existing objects
@@ -505,7 +532,7 @@ def move_copick_objects_per_run(
         Dict with 'moved' count, 'mappings' list, and 'errors' list
     """
     try:
-        if object_type not in ("picks", "mesh", "segmentation"):
+        if object_type not in ("picks", "filaments", "mesh", "segmentation"):
             return {
                 "moved": 0,
                 "mappings": [],
@@ -527,6 +554,9 @@ def move_copick_objects_per_run(
             try:
                 # Generate target URI (apply templates if present)
                 concrete_target_uri = _apply_template(target_uri, source_obj, object_type)
+                if concrete_target_uri == source_obj_uri:
+                    # Moving an object onto itself would copy it to itself and then delete it.
+                    raise ValueError("Source and target are the same object; nothing to move.")
 
                 # Parse target to get new parameters
                 target_params = parse_copick_uri(concrete_target_uri, object_type)
@@ -534,6 +564,13 @@ def move_copick_objects_per_run(
                 # Create new object with target parameters
                 if object_type == "picks":
                     target_obj = source_obj.run.new_picks(
+                        object_name=target_params["object_name"],
+                        session_id=target_params["session_id"],
+                        user_id=target_params["user_id"],
+                        exist_ok=overwrite,
+                    )
+                elif object_type == "filaments":
+                    target_obj = source_obj.run.new_filaments(
                         object_name=target_params["object_name"],
                         session_id=target_params["session_id"],
                         user_id=target_params["user_id"],
@@ -564,6 +601,11 @@ def move_copick_objects_per_run(
                 if object_type == "picks":
                     source_obj.load()
                     target_obj.points = source_obj.points
+                    target_obj.store()
+                elif object_type == "filaments":
+                    source_obj.load()
+                    target_obj.filaments = source_obj.filaments
+                    target_obj.meta.voxel_spacing = source_obj.voxel_spacing
                     target_obj.store()
                 elif object_type == "mesh":
                     source_obj.load()
@@ -601,7 +643,7 @@ def move_copick_objects_batch(
 
     Args:
         root: CopickRoot instance
-        object_type: Type of object ('picks', 'mesh', 'segmentation')
+        object_type: Type of object ('picks', 'filaments', 'mesh', 'segmentation')
         source_uri: Source copick URI (supports patterns)
         target_uri: Target copick URI (may contain templates)
         run_names: List of run names to process (None = all runs)
@@ -651,7 +693,7 @@ def copy_copick_objects_per_run(
 
     Args:
         run: CopickRun instance to process
-        object_type: Type of object ('picks', 'mesh', 'segmentation')
+        object_type: Type of object ('picks', 'filaments', 'mesh', 'segmentation')
         source_uri: Source copick URI (supports patterns)
         target_uri: Target copick URI (may contain templates)
         overwrite: Allow overwriting existing objects
@@ -660,7 +702,7 @@ def copy_copick_objects_per_run(
         Dict with 'copied' count, 'mappings' list, and 'errors' list
     """
     try:
-        if object_type not in ("picks", "mesh", "segmentation"):
+        if object_type not in ("picks", "filaments", "mesh", "segmentation"):
             return {
                 "copied": 0,
                 "mappings": [],
@@ -694,6 +736,13 @@ def copy_copick_objects_per_run(
                         user_id=target_params["user_id"],
                         exist_ok=overwrite,
                     )
+                elif object_type == "filaments":
+                    target_obj = source_obj.run.new_filaments(
+                        object_name=target_params["object_name"],
+                        session_id=target_params["session_id"],
+                        user_id=target_params["user_id"],
+                        exist_ok=overwrite,
+                    )
                 elif object_type == "mesh":
                     target_obj = source_obj.run.new_mesh(
                         object_name=target_params["object_name"],
@@ -719,6 +768,11 @@ def copy_copick_objects_per_run(
                 if object_type == "picks":
                     source_obj.load()
                     target_obj.points = source_obj.points
+                    target_obj.store()
+                elif object_type == "filaments":
+                    source_obj.load()
+                    target_obj.filaments = source_obj.filaments
+                    target_obj.meta.voxel_spacing = source_obj.voxel_spacing
                     target_obj.store()
                 elif object_type == "mesh":
                     source_obj.load()
@@ -753,7 +807,7 @@ def copy_copick_objects_batch(
 
     Args:
         root: CopickRoot instance
-        object_type: Type of object ('picks', 'mesh', 'segmentation')
+        object_type: Type of object ('picks', 'filaments', 'mesh', 'segmentation')
         source_uri: Source copick URI (supports patterns)
         target_uri: Target copick URI (may contain templates)
         run_names: List of run names to process (None = all runs)
