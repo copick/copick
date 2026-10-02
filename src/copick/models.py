@@ -2369,17 +2369,25 @@ class CopickPicks:
         self.points = points
         self.store()
 
-    def df(self, format: str = "relion") -> "pd.DataFrame":
-        """Returns the points as a pandas DataFrame with columns based on the format."""
+    def df(self, format: str = "relion", **kwargs) -> "pd.DataFrame":
+        """Returns the points as a pandas DataFrame with columns based on the format.
+
+        For ``format="relion"``, keyword arguments go to ``copick.util.relion.picks_to_df_relion``
+        (``voxel_spacing``, ``tilt_series_pixel_size``, ``tomogram_center``).
+        """
         if format == "relion":
-            return picks_to_df_relion(self)
+            return picks_to_df_relion(self, **kwargs)
         else:
             raise ValueError(f"Format {format} is not supported.")
 
-    def from_df(self, df: "pd.DataFrame", format: str = "relion") -> None:
-        """Set the points from a pandas DataFrame with columns based on the format."""
+    def from_df(self, df: "pd.DataFrame", format: str = "relion", **kwargs) -> None:
+        """Set the points from a pandas DataFrame with columns based on the format.
+
+        For ``format="relion"``, keyword arguments go to ``copick.util.relion.relion_df_to_picks`` (``optics``,
+        ``tilt_series_pixel_size``, ``tomogram_center``, ``relion_version``).
+        """
         if format == "relion":
-            relion_df_to_picks(self, df)
+            relion_df_to_picks(self, df, **kwargs)
         else:
             raise ValueError(f"Format {format} is not supported.")
 

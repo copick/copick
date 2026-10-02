@@ -210,7 +210,7 @@ def sample_relion5_star_files():
         # Center: 50, 50, 50 pixels = 50, 50, 50 Angstrom
         tomo_size_x, tomo_size_y, tomo_size_z = 100, 100, 100
         pixel_size = 1.0
-        binning = 1.0
+        binning = 4.0  # does not enter the centre: rlnTomoSize is in (unbinned) tilt-series pixels
 
         # Create particles STAR file with RELION 5.0 centered coordinates
         particles_path = Path(tmpdir) / "particles_relion5.star"
@@ -252,9 +252,9 @@ TS_relion5_002 {tomo_size_x} {tomo_size_y} {tomo_size_z} {pixel_size} {binning}
             "particles_star": str(particles_path),
             "tomograms_star": str(tomograms_path),
             "tomo_center": (
-                tomo_size_x * pixel_size * binning / 2,
-                tomo_size_y * pixel_size * binning / 2,
-                tomo_size_z * pixel_size * binning / 2,
+                tomo_size_x * pixel_size / 2,
+                tomo_size_y * pixel_size / 2,
+                tomo_size_z * pixel_size / 2,
             ),
         }
 
@@ -1313,3 +1313,310 @@ class TestFormatUtilities:
             np.testing.assert_array_almost_equal(df["y"].values, positions[:, 1], decimal=6)
             np.testing.assert_array_almost_equal(df["z"].values, positions[:, 2], decimal=6)
             np.testing.assert_array_almost_equal(df["score"].values, scores, decimal=6)
+
+
+# =============================================================================
+# RELION geometry: rotation order, shifts, coordinate units, tomogram centres
+# =============================================================================
+
+
+def _relion_matrix(rot, tilt, psi):
+    """RELION's Euler matrix (jaz/math/Euler_angles_relion.h, Euler::anglesToMatrix3), angles in degrees."""
+    phi, theta, chi = np.radians([rot, tilt, psi])
+    sp, cp, st, ct, sc, cc = np.sin(phi), np.cos(phi), np.sin(theta), np.cos(theta), np.sin(chi), np.cos(chi)
+    return np.array(
+        [
+            [cc * ct * cp - sc * sp, cc * ct * sp + sc * cp, -cc * st],
+            [-sc * ct * cp - cc * sp, -sc * ct * sp + cc * cp, sc * st],
+            [st * cp, st * sp, ct],
+        ],
+    )
+
+
+def _star(path, particles, optics=None):
+    import pandas as pd
+    import starfile
+
+    data = pd.DataFrame(particles)
+    if optics is not None:
+        data = {"optics": pd.DataFrame(optics), "particles": data}
+    starfile.write(data, path, overwrite=True)
+    return str(path)
+
+
+def _random_transforms(n, seed=0):
+    from scipy.spatial.transform import Rotation
+
+    rng = np.random.default_rng(seed)
+    transforms = np.tile(np.eye(4), (n, 1, 1))
+    transforms[:, :3, :3] = Rotation.random(n, random_state=seed).as_matrix()
+    transforms[:, :3, 3] = rng.uniform(-20.0, 20.0, (n, 3))
+    return transforms
+
+
+SUB_ANGLES = (30.0, 60.0, -45.0)
+PARTICLE_ANGLES = (-100.0, 20.0, 75.0)
+ORIGIN = np.array([4.0, -2.5, 1.5])
+
+
+class TestRelionGeometry:
+    """copick reads and writes RELION tomography particles the way RELION does."""
+
+    def test_tomogram_centre_ignores_binning(self, tmp_path):
+        from copick.util.formats import read_relion5_tomogram_centers, read_relion_tomograms
+
+        path = _star(
+            tmp_path / "tomograms.star",
+            {
+                "rlnTomoName": ["TS_01"],
+                "rlnTomoSizeX": [4096],
+                "rlnTomoSizeY": [4096],
+                "rlnTomoSizeZ": [2048],
+                "rlnTomoTiltSeriesPixelSize": [1.35],
+                "rlnTomoTomogramBinning": [8.0],
+                "rlnVoltage": [300.0],
+            },
+        )
+
+        tomogram = read_relion_tomograms(path)["TS_01"]
+        assert tomogram.center_angstrom == pytest.approx((2764.8, 2764.8, 1382.4))
+        assert tomogram.tilt_series_pixel_size == 1.35
+        assert tomogram.voltage == 300.0
+        assert tomogram.amplitude_contrast is None
+        assert read_relion5_tomogram_centers(path)["TS_01"] == pytest.approx((2764.8, 2764.8, 1382.4))
+
+    def test_from_df_composes_rotations_and_shifts_as_relion(self, test_payload):
+        import pandas as pd
+
+        picks = (
+            test_payload["root"]
+            .get_run("TS_001")
+            .new_picks(object_name="ribosome", user_id="relion-order", session_id="1")
+        )
+        centered = np.array([10.0, -20.0, 30.0])
+        df = pd.DataFrame(
+            {
+                "rlnCenteredCoordinateXAngst": [centered[0]],
+                "rlnCenteredCoordinateYAngst": [centered[1]],
+                "rlnCenteredCoordinateZAngst": [centered[2]],
+                "rlnTomoSubtomogramRot": [SUB_ANGLES[0]],
+                "rlnTomoSubtomogramTilt": [SUB_ANGLES[1]],
+                "rlnTomoSubtomogramPsi": [SUB_ANGLES[2]],
+                "rlnAngleRot": [PARTICLE_ANGLES[0]],
+                "rlnAngleTilt": [PARTICLE_ANGLES[1]],
+                "rlnAnglePsi": [PARTICLE_ANGLES[2]],
+                "rlnOriginXAngst": [ORIGIN[0]],
+                "rlnOriginYAngst": [ORIGIN[1]],
+                "rlnOriginZAngst": [ORIGIN[2]],
+            },
+        )
+
+        picks.from_df(df, tomogram_center=(100.0, 100.0, 100.0))
+
+        positions, transforms = picks.numpy()
+        a_sub, a_particle = _relion_matrix(*SUB_ANGLES), _relion_matrix(*PARTICLE_ANGLES)
+        # RELION ParticleSet: A = A_subtomogram * A_particle; position = coordinate - A_subtomogram * origin
+        assert transforms[0, :3, :3] == pytest.approx(a_sub @ a_particle)
+        assert positions[0] == pytest.approx(centered + 100.0 - a_sub @ ORIGIN)
+        assert transforms[0, :3, 3] == pytest.approx(np.zeros(3))
+
+    def test_cli_star_import_uses_optics_pixel_size_shifts_and_subtomogram_angles(
+        self,
+        test_payload,
+        runner,
+        tmp_path,
+    ):
+        coordinate = np.array([100.0, 150.0, 50.0])
+        path = _star(
+            tmp_path / "particles.star",
+            {
+                "rlnTomoName": ["TS_001"],
+                "rlnCoordinateX": [coordinate[0]],
+                "rlnCoordinateY": [coordinate[1]],
+                "rlnCoordinateZ": [coordinate[2]],
+                "rlnTomoSubtomogramRot": [SUB_ANGLES[0]],
+                "rlnTomoSubtomogramTilt": [SUB_ANGLES[1]],
+                "rlnTomoSubtomogramPsi": [SUB_ANGLES[2]],
+                "rlnAngleRot": [PARTICLE_ANGLES[0]],
+                "rlnAngleTilt": [PARTICLE_ANGLES[1]],
+                "rlnAnglePsi": [PARTICLE_ANGLES[2]],
+                "rlnOriginXAngst": [ORIGIN[0]],
+                "rlnOriginYAngst": [ORIGIN[1]],
+                "rlnOriginZAngst": [ORIGIN[2]],
+                "rlnOpticsGroup": [1],
+            },
+            optics={"rlnOpticsGroup": [1], "rlnOpticsGroupName": ["optics1"], "rlnTomoTiltSeriesPixelSize": [2.0]},
+        )
+
+        # No --voxel-size: the optics table states the tilt-series pixel size
+        result = runner.invoke(
+            add,
+            [
+                "picks",
+                "--config",
+                str(test_payload["cfg_file"]),
+                "--run",
+                "TS_001",
+                "--object-name",
+                "ribosome",
+                "--user-id",
+                "relion-cli",
+                "--session-id",
+                "1",
+                path,
+            ],
+        )
+        assert result.exit_code == 0, result.output
+
+        picks = copick.from_file(test_payload["cfg_file"]).get_run("TS_001").get_picks("ribosome", "relion-cli", "1")[0]
+        positions, transforms = picks.numpy()
+        a_sub, a_particle = _relion_matrix(*SUB_ANGLES), _relion_matrix(*PARTICLE_ANGLES)
+        assert positions[0] == pytest.approx(coordinate * 2.0 - a_sub @ ORIGIN)
+        assert transforms[0, :3, :3] == pytest.approx(a_sub @ a_particle)
+
+    def test_cli_star_import_prefers_centred_coordinates(self, test_payload, runner, tmp_path):
+        # TS_001's tomogram is centred at 320 A; the pixel columns are deliberately inconsistent and must be ignored
+        path = _star(
+            tmp_path / "both.star",
+            {
+                "rlnCoordinateX": [1.0],
+                "rlnCoordinateY": [1.0],
+                "rlnCoordinateZ": [1.0],
+                "rlnCenteredCoordinateXAngst": [-20.0],
+                "rlnCenteredCoordinateYAngst": [10.0],
+                "rlnCenteredCoordinateZAngst": [0.0],
+            },
+        )
+        result = runner.invoke(
+            add,
+            [
+                "picks",
+                "--config",
+                str(test_payload["cfg_file"]),
+                "--run",
+                "TS_001",
+                "--object-name",
+                "ribosome",
+                "--user-id",
+                "relion-centred",
+                "--session-id",
+                "1",
+                "--voxel-size",
+                "10.0",
+                path,
+            ],
+        )
+        assert result.exit_code == 0, result.output
+
+        picks = (
+            copick.from_file(test_payload["cfg_file"]).get_run("TS_001").get_picks("ribosome", "relion-centred", "1")
+        )
+        assert picks[0].numpy()[0][0] == pytest.approx([300.0, 330.0, 320.0])
+
+    @pytest.mark.parametrize("source", ["argument", "optics"])
+    def test_pixel_coordinates_use_the_tilt_series_pixel_size(self, test_payload, source):
+        import pandas as pd
+
+        picks = (
+            test_payload["root"]
+            .get_run("TS_001")
+            .new_picks(object_name="ribosome", user_id="relion-pixels", session_id=source)
+        )
+        df = pd.DataFrame({"rlnCoordinateX": [10.0], "rlnCoordinateY": [20.0], "rlnCoordinateZ": [30.0]})
+        if source == "argument":
+            picks.from_df(df, tilt_series_pixel_size=1.5)
+        else:
+            picks.from_df(df, optics=pd.DataFrame({"rlnTomoTiltSeriesPixelSize": [1.5]}))
+
+        assert picks.numpy()[0][0] == pytest.approx([15.0, 30.0, 45.0])
+
+    @pytest.mark.parametrize("tilt_series_pixel_size", [None, 2.5])
+    def test_star_export_round_trip(self, test_payload, tmp_path, tilt_series_pixel_size):
+        import starfile
+        from copick.ops.add import add_picks_from_file
+        from copick.ops.export import export_picks
+
+        run = test_payload["root"].get_run("TS_001")
+        points = np.array([[100.0, 200.0, 300.0], [400.0, 150.0, 250.0], [320.0, 320.0, 320.0]])
+        transforms = _random_transforms(3)
+        picks = run.new_picks(object_name="ribosome", user_id="relion-export", session_id="1")
+        picks.from_numpy(points, transforms)
+
+        path = str(tmp_path / "export.star")
+        export_picks(picks, path, "star", voxel_spacing=10.0, tilt_series_pixel_size=tilt_series_pixel_size)
+
+        data = starfile.read(path)
+        particles = data["particles"] if isinstance(data, dict) else data
+        assert (particles["rlnTomoName"] == "TS_001").all()
+        assert {"rlnCenteredCoordinateXAngst", "rlnCenteredCoordinateYAngst", "rlnCenteredCoordinateZAngst"} <= set(
+            particles.columns,
+        )
+        if tilt_series_pixel_size is None:
+            assert not isinstance(data, dict), "no optics table without a tilt-series pixel size"
+            assert "rlnCoordinateX" not in particles.columns
+        else:
+            assert data["optics"]["rlnTomoTiltSeriesPixelSize"].tolist() == [tilt_series_pixel_size]
+            assert particles["rlnOpticsGroup"].tolist() == [1, 1, 1]
+            assert particles["rlnCoordinateX"].to_numpy() == pytest.approx(
+                (points[:, 0] + transforms[:, 0, 3]) / tilt_series_pixel_size,
+            )
+
+        imported = add_picks_from_file(test_payload["root"], "TS_001", path, "ribosome", "relion-export", "2", 10.0)
+        assert imported.full_positions() == pytest.approx(picks.full_positions())
+        assert imported.numpy()[1][:, :3, :3] == pytest.approx(transforms[:, :3, :3])
+
+    def test_combined_star_export_keeps_shifts(self, test_payload, tmp_path):
+        from copick.ops.add import add_picks_grouped_from_file
+        from copick.ops.export import export_picks_combined
+
+        run = test_payload["root"].get_run("TS_001")
+        points = np.array([[100.0, 200.0, 300.0], [400.0, 150.0, 250.0]])
+        transforms = _random_transforms(2, seed=1)
+        picks = run.new_picks(object_name="ribosome", user_id="relion-combined", session_id="1")
+        picks.from_numpy(points, transforms)
+
+        path = str(tmp_path / "combined.star")
+        export_picks_combined(
+            str(test_payload["cfg_file"]),
+            path,
+            "ribosome:relion-combined/1",
+            "star",
+            voxel_spacing=10.0,
+            tilt_series_pixel_size=2.0,
+            log=True,
+        )
+
+        results = add_picks_grouped_from_file(
+            test_payload["root"],
+            path,
+            "ribosome",
+            "relion-combined",
+            "2",
+            None,
+            {},
+            file_type="star",
+        )
+        assert results["TS_001"].full_positions() == pytest.approx(picks.full_positions())
+        assert results["TS_001"].numpy()[1][:, :3, :3] == pytest.approx(transforms[:, :3, :3])
+
+
+@pytest.mark.parametrize("format_name", ["star", "em", "dynamo", "csv"])
+def test_picks_handler_write_read_round_trip(format_name, tmp_path):
+    """Every handler that can write reads its own output back: same particle centres and rotations."""
+    from copick.util.handlers import FormatRegistry, unpack_picks_data
+
+    handler = FormatRegistry.get_picks_handler(format_name)
+    assert handler.capabilities.can_write
+
+    points = np.array([[100.0, 200.0, 300.0], [400.0, 150.0, 250.0], [10.0, 20.0, 30.0]])
+    transforms = _random_transforms(3, seed=2)
+    path = str(tmp_path / f"picks.{ {'dynamo': 'tbl'}.get(format_name, format_name) }")
+
+    if format_name == "star":
+        handler.write(path, points, transforms, 10.0, tomo_name="TS_001", tilt_series_pixel_size=10.0)
+    else:
+        handler.write(path, points, transforms, 10.0)
+    positions, read_transforms, _, _ = unpack_picks_data(handler.read(path, 10.0))
+
+    assert positions + read_transforms[:, :3, 3] == pytest.approx(points + transforms[:, :3, 3], abs=1e-3)
+    assert read_transforms[:, :3, :3] == pytest.approx(transforms[:, :3, :3], abs=1e-4)

@@ -63,6 +63,7 @@ class DynamoPicksHandler:
         transforms: np.ndarray,
         voxel_spacing: float,
         scores: Optional[np.ndarray] = None,
+        tomogram_index: int = 1,
         **kwargs,
     ) -> str:
         """Write picks to a Dynamo table file.
@@ -70,16 +71,25 @@ class DynamoPicksHandler:
         Args:
             path: Path to write the .tbl file
             positions: Nx3 array of positions in Angstrom
-            transforms: Nx4x4 array of transformation matrices
+            transforms: Nx4x4 array of transformation matrices; their translations are written as shifts
             voxel_spacing: Voxel spacing in Angstrom
             scores: Optional Nx1 array of CC scores
+            tomogram_index: Tomogram index for all particles
 
         Returns:
             Path to the written file
         """
-        from copick.util.formats import write_dynamo_table
+        from copick.util.formats import copick_to_dynamo_transform, write_dynamo_table
 
-        write_dynamo_table(path, positions, transforms, voxel_spacing, scores=scores)
+        positions_px, eulers_deg, shifts_px = copick_to_dynamo_transform(positions, transforms, voxel_spacing)
+        write_dynamo_table(
+            path,
+            positions_px,
+            eulers_deg,
+            shifts_px,
+            scores=scores,
+            tomogram_index=tomogram_index,
+        )
         return path
 
     def read_grouped(

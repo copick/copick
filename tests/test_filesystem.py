@@ -494,7 +494,19 @@ def test_picks_read_relion_df(
     ts_001_ribosome_gapstop_translations = ts_001_ribosome_gapstop_transformations[:, :3, 3]
     ts_001_ribosome_gapstop_translated_points = ts_001_ribosome_gapstop_points + ts_001_ribosome_gapstop_translations
 
+    # Without a tilt-series pixel size, only centred coordinates are written (TS_001's tomogram centre is 320 A)
     df = picks[0].df()
+    assert not {"rlnCoordinateX", "rlnCoordinateY", "rlnCoordinateZ"} & set(df.columns)
+    assert (df["rlnTomoName"] == "TS_001").all()
+    df_centered = df[["rlnCenteredCoordinateXAngst", "rlnCenteredCoordinateYAngst", "rlnCenteredCoordinateZAngst"]]
+    assert np.allclose(
+        df_centered.to_numpy() + 320.0,
+        ts_001_ribosome_gapstop_translated_points,
+        atol=NUMERICAL_PRECISION,
+    ), "Error getting centred coordinates from DataFrame."
+
+    # With it, rlnCoordinateX/Y/Z are written in tilt-series pixels
+    df = picks[0].df(tilt_series_pixel_size=SMALLEST_VOXEL_SIZE)
     df_points_px = df[["rlnCoordinateX", "rlnCoordinateY", "rlnCoordinateZ"]].to_numpy() * SMALLEST_VOXEL_SIZE
     assert np.allclose(
         df_points_px,
