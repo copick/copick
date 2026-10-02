@@ -2491,7 +2491,7 @@ class CopickSegmentation:
 
 
 COPICK_TYPES = (
-    CopickRun,
+    CopickRoot,
     CopickRun,
     CopickVoxelSpacing,
     CopickTomogram,

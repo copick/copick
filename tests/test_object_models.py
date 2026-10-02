@@ -618,3 +618,11 @@ class TestPickableObjectModel:
         obj = PickableObject(name="complex-object", is_particle=True, metadata=complex_metadata)
 
         assert obj.metadata == complex_metadata, "Complex metadata should be preserved"
+
+
+def test_copick_types_lists_each_entity_class_once():
+    """COPICK_TYPES names every entity class once, the root included."""
+    from copick.models import COPICK_TYPES, CopickRoot
+
+    assert len(COPICK_TYPES) == len(set(COPICK_TYPES))
+    assert CopickRoot in COPICK_TYPES
