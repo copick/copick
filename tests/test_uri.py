@@ -897,3 +897,19 @@ class TestPrivateHelpers:
         """Wildcard matches any numeric value."""
         assert _matches_numeric_pattern(10.0, "*", "glob") is True
         assert _matches_numeric_pattern("10.0", "*", "regex") is True
+
+
+def test_filaments_uri():
+    from copick.util.uri import parse_copick_uri, serialize_copick_uri_from_dict
+
+    assert parse_copick_uri("microtubule:tracer/1", "filaments") == {
+        "object_type": "filaments",
+        "pattern_type": "glob",
+        "object_name": "microtubule",
+        "user_id": "tracer",
+        "session_id": "1",
+    }
+    assert (
+        serialize_copick_uri_from_dict("filaments", object_name="microtubule", user_id="tracer", session_id="1")
+        == "microtubule:tracer/1"
+    )

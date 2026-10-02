@@ -26,6 +26,11 @@ One source is considered read-only ('static'), while the other source is conside
 
 ****
 
+[](){#CopickFilamentsOverlay}
+::: copick.impl.overlay.CopickFilamentsOverlay
+
+****
+
 [](){#CopickMeshOverlay}
 ::: copick.impl.overlay.CopickMeshOverlay
 
