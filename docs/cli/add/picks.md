@@ -23,6 +23,14 @@ files (.csv). A voxel size is required for the EM, STAR, and Dynamo formats so
 coordinates can be converted; CSV files carry a `run_name` column and are
 grouped automatically.
 
+STAR files are read as RELION does: centred coordinates
+(`rlnCenteredCoordinate*Angst`) relative to the tomogram centre when it is
+known (from `--tomograms-star` or the run's copick tomogram), otherwise
+`rlnCoordinateX/Y/Z` in tilt-series pixels (`--tilt-series-pixel-size`, or the
+file's optics table), otherwise in pixels of `--voxel-size`. Subtomogram
+orientations (`rlnTomoSubtomogram*`) and shifts (`rlnOrigin*Angst`) are
+applied.
+
 For batch imports from a single file that spans many tomograms, use the
 dedicated commands `copick add picks-em`, `copick add picks-dynamo`, or
 `copick add picks-relion` instead. For format-specific conventions (coordinate
@@ -45,7 +53,9 @@ systems, Euler angle conventions), see the docstrings in `copick.util.formats`.
 | `--object-name` | text | **required** | Name of the pickable object (must exist in config). |
 | `--session-id` | text | `1` | Session ID for the annotation. |
 | `--user-id` | text | `copick` | User ID for the annotation. |
-| `--voxel-size` | float | — | Voxel size in Angstrom (required for EM, STAR, and Dynamo formats for coordinate conversion). |
+| `--voxel-size` | float | — | Voxel size in Angstrom (required for EM and Dynamo formats for coordinate conversion; for STAR, required only when the file's coordinates are tomogram pixels, i.e. no tilt-series pixel size is known). |
+| `--tilt-series-pixel-size` | float | — | STAR only: tilt-series pixel size in Angstrom, the unit RELION 4/5 use for rlnCoordinateX/Y/Z. Read from the file's optics table (rlnTomoTiltSeriesPixelSize) when omitted. |
+| `--tomograms-star` | file | — | STAR only: RELION tomograms.star giving each tomogram's centre (for rlnCenteredCoordinate*Angst) and tilt-series pixel size. |
 | `--file-type` | choice (em \| star \| dynamo \| csv) | — | File type ('em', 'star', 'dynamo', 'csv'). Will guess type based on extension if omitted. |
 | `--max-workers` | integer | `4` | Maximum number of worker threads. |
 | `--overwrite / --no-overwrite` | boolean flag | `False` | Overwrite the object if it exists. |

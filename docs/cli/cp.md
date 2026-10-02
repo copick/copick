@@ -10,7 +10,7 @@
 ## Usage
 
 ```bash
-copick cp [OPTIONS] {picks|mesh|segmentation} URI URI
+copick cp [OPTIONS] {picks|filaments|mesh|segmentation} URI URI
 ```
 
 ## Description
