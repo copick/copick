@@ -37,7 +37,7 @@ from copick.util.log import get_logger
 @add_debug_option
 @click.argument(
     "object_type",
-    type=click.Choice(["picks", "mesh", "segmentation"], case_sensitive=False),
+    type=click.Choice(["picks", "filaments", "mesh", "segmentation"], case_sensitive=False),
 )
 @click.argument("source_uri", type=CopickURI("any", "input"))
 @click.argument("target_uri", type=CopickURI("any", "output"))
