@@ -1620,3 +1620,152 @@ def test_picks_handler_write_read_round_trip(format_name, tmp_path):
 
     assert positions + read_transforms[:, :3, 3] == pytest.approx(points + transforms[:, :3, 3], abs=1e-3)
     assert read_transforms[:, :3, :3] == pytest.approx(transforms[:, :3, :3], abs=1e-4)
+
+
+# =============================================================================
+# RELION filament conventions
+# =============================================================================
+
+
+def _frames_along(tangent, n, roll_seed=0):
+    """(n, 3, 3) rotations whose +Z column is ``tangent`` and whose roll about it varies."""
+    from scipy.spatial.transform import Rotation
+
+    z = np.asarray(tangent, dtype=float) / np.linalg.norm(tangent)
+    helper = np.array([1.0, 0.0, 0.0]) if abs(z[0]) < 0.9 else np.array([0.0, 1.0, 0.0])
+    x = np.cross(helper, z)
+    x /= np.linalg.norm(x)
+    base = np.stack([x, np.cross(z, x), z], axis=1)
+    rolls = np.random.default_rng(roll_seed).uniform(0, 360, n)
+    return np.stack([base @ Rotation.from_euler("z", roll, degrees=True).as_matrix() for roll in rolls])
+
+
+def _relion_filament_rows(tomo_name, centred_points, frames, tube_id, pixel_size=1.0):
+    """Rows as RELION's get_particle_poses/filaments.py writes them (subtomogram frame = O @ Ry(90))."""
+    from scipy.spatial.transform import Rotation
+
+    ry90 = Rotation.from_euler("y", 90, degrees=True).as_matrix()
+    sub = Rotation.from_matrix(frames @ ry90).inv().as_euler("ZYZ", degrees=True)
+    n = len(centred_points)
+    return {
+        "rlnTomoName": [tomo_name] * n,
+        "rlnCenteredCoordinateXAngst": centred_points[:, 0],
+        "rlnCenteredCoordinateYAngst": centred_points[:, 1],
+        "rlnCenteredCoordinateZAngst": centred_points[:, 2],
+        "rlnTomoSubtomogramRot": sub[:, 0],
+        "rlnTomoSubtomogramTilt": sub[:, 1],
+        "rlnTomoSubtomogramPsi": sub[:, 2],
+        "rlnAngleRot": np.zeros(n),
+        "rlnAngleTilt": np.full(n, 90.0),
+        "rlnAnglePsi": np.zeros(n),
+        "rlnAngleTiltPrior": np.full(n, 90.0),
+        "rlnAnglePsiPrior": np.zeros(n),
+        "rlnHelicalTubeID": [tube_id] * n,
+        "rlnHelicalTrackLengthAngst": np.linspace(0, 1, n) * (n - 1) * 40.0 / pixel_size,
+        "rlnAnglePsiFlipRatio": np.full(n, 0.5),
+    }
+
+
+class TestRelionFilaments:
+    """RELION's filament particles in and out of copick."""
+
+    def test_import_relion_filament_particles(self, test_payload, tmp_path):
+        import pandas as pd
+        from copick.ops.add import add_picks_from_file
+
+        steps = np.arange(5)[:, None] * 40.0
+        along_x = np.array([-80.0, -50.0, 10.0]) + steps * np.array([1.0, 0.0, 0.0])
+        along_y = np.array([60.0, -90.0, -20.0]) + steps * np.array([0.0, 1.0, 0.0])
+        rows = pd.concat(
+            [
+                pd.DataFrame(_relion_filament_rows("TS_001", along_x, _frames_along([1, 0, 0], 5), 1)),
+                pd.DataFrame(_relion_filament_rows("TS_001", along_y, _frames_along([0, 1, 0], 5, 1), 2)),
+            ],
+            ignore_index=True,
+        )
+        shuffled = rows.sample(frac=1.0, random_state=3).reset_index(drop=True)
+        path = _star(tmp_path / "filaments.star", shuffled.to_dict(orient="list"))
+
+        # TS_001's copick tomogram is centred at 320 A
+        picks = add_picks_from_file(test_payload["root"], "TS_001", path, "ribosome", "relion-filaments", "1", 10.0)
+
+        assert picks.instance_ids().tolist() == [1] * 5 + [2] * 5
+        positions, transforms = picks.numpy()
+        assert positions == pytest.approx(np.vstack([along_x, along_y]) + 320.0)
+        tangents = transforms[:, :3, 2]
+        assert tangents[:5] == pytest.approx(np.tile([1.0, 0.0, 0.0], (5, 1)), abs=1e-6)
+        assert tangents[5:] == pytest.approx(np.tile([0.0, 1.0, 0.0], (5, 1)), abs=1e-6)
+
+    @pytest.mark.parametrize("polarity_known", [False, True])
+    def test_filament_export_round_trip(self, test_payload, tmp_path, polarity_known):
+        import starfile
+        from copick.ops.add import add_picks_from_file
+        from copick.ops.export import export_picks
+
+        root = test_payload["root"]
+        root.new_object(name="microtubule", is_particle=True, radius=120, filament={"polar": True})
+        steps = np.arange(4)[:, None] * 82.0
+        points = np.vstack(
+            [np.array([100.0, 100.0, 300.0]) + steps * [1, 0, 0], np.array([400.0, 50.0, 200.0]) + steps * [0, 1, 0]],
+        )
+        transforms = np.tile(np.eye(4), (8, 1, 1))
+        transforms[:4, :3, :3] = _frames_along([1, 0, 0], 4)
+        transforms[4:, :3, :3] = _frames_along([0, 1, 0], 4, 1)
+        picks = root.get_run("TS_001").new_picks(object_name="microtubule", user_id="filament-export", session_id="1")
+        picks.from_numpy(points, transforms, instance_ids=[1] * 4 + [2] * 4)
+
+        path = str(tmp_path / "filaments.star")
+        export_picks(picks, path, "star", voxel_spacing=10.0, tilt_series_pixel_size=2.0)
+        if polarity_known:
+            from copick.util.relion import picks_to_df_relion
+
+            df = picks_to_df_relion(picks, voxel_spacing=10.0, polarity_known=True)
+            assert "rlnAnglePsiFlipRatio" not in df.columns
+            return
+
+        particles = starfile.read(path)["particles"]
+        assert particles["rlnHelicalTubeID"].tolist() == [1] * 4 + [2] * 4
+        assert particles["rlnHelicalTrackLengthAngst"].tolist() == pytest.approx([0, 82, 164, 246] * 2)
+        assert (particles["rlnAngleTilt"] == 90).all() and (particles["rlnAngleTiltPrior"] == 90).all()
+        assert (particles["rlnAnglePsiFlipRatio"] == 0.5).all()
+
+        imported = add_picks_from_file(root, "TS_001", path, "microtubule", "filament-export", "2", 10.0)
+        assert imported.instance_ids().tolist() == [1] * 4 + [2] * 4
+        assert imported.full_positions() == pytest.approx(points)
+        assert imported.numpy()[1][:, :3, :3] == pytest.approx(transforms[:, :3, :3], abs=1e-6)
+
+    def test_filament_export_needs_filament_ids(self, test_payload, tmp_path):
+        from copick.ops.export import export_picks
+
+        picks = (
+            test_payload["root"].get_run("TS_001").new_picks(object_name="ribosome", user_id="no-ids", session_id="1")
+        )
+        picks.from_numpy(np.array([[100.0, 100.0, 100.0], [200.0, 100.0, 100.0]]), instance_ids=[1, 0])
+
+        with pytest.raises(ValueError, match="1 of 2 picks in TS_001 have no filament ID"):
+            export_picks(picks, str(tmp_path / "f.star"), "star", voxel_spacing=10.0, filament_columns="on")
+        # The default ("auto") exports a non-filament object with plain angles
+        export_picks(picks, str(tmp_path / "p.star"), "star", voxel_spacing=10.0)
+
+    def test_combined_export_mixing_objects_writes_plain_angles(self, test_payload, tmp_path):
+        import starfile
+        from copick.ops.export import export_picks_combined
+
+        root = test_payload["root"]
+        root.new_object(name="actin", is_particle=True, radius=35, filament={"polar": True})
+        root.save_config(test_payload["cfg_file"])
+        run = root.get_run("TS_001")
+        run.new_picks(object_name="actin", user_id="mixed", session_id="1").from_numpy(
+            np.array([[100.0, 100.0, 100.0]]),
+            instance_ids=[1],
+        )
+        run.new_picks(object_name="ribosome", user_id="mixed", session_id="1").from_numpy(
+            np.array([[150.0, 100.0, 100.0]]),
+        )
+
+        path = str(tmp_path / "mixed.star")
+        export_picks_combined(str(test_payload["cfg_file"]), path, "*:mixed/1", "star", voxel_spacing=10.0)
+
+        data = starfile.read(path)
+        particles = data["particles"] if isinstance(data, dict) else data
+        assert "rlnHelicalTubeID" not in particles.columns
