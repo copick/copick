@@ -423,6 +423,18 @@ class TestAddPicks:
         )
         assert len(picks.points) == 2
 
+    def test_add_picks_csv_keeps_instance_ids_and_scores(self, test_payload, sample_csv_picks):
+        """CSV imports keep the instance_id and score columns, on both import paths."""
+        from copick.ops.add import add_picks_from_file
+
+        root = test_payload["root"]
+        legacy = add_picks(root, "TS_001", sample_csv_picks, "ribosome", "ops-ids", "legacy", 10.0, file_type="csv")
+        handler = add_picks_from_file(root, "TS_001", sample_csv_picks, "ribosome", "ops-ids", "handler")
+
+        for picks in (legacy, handler):
+            assert picks.instance_ids().tolist() == [1, 2]
+            assert picks.scores() == pytest.approx([0.95, 0.87])
+
     def test_add_picks_unsupported_type_raises(self, test_payload, sample_csv_picks):
         """Unsupported file type raises ValueError."""
         root = test_payload["root"]

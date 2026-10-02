@@ -15,8 +15,26 @@ from copick.models import (
     CopickSegmentation,
     CopickTomogram,
     CopickVoxelSpacing,
+    FilamentSpec,
 )
 from copick.util.ome import get_voxel_size_from_zarr, ome_metadata, volume_pyramid
+
+
+def _subset(values: Optional[np.ndarray], mask: np.ndarray) -> Optional[np.ndarray]:
+    """``values[mask]``, or None when there are no values."""
+    return None if values is None else np.asarray(values)[mask]
+
+
+def _usable_scores(scores: Optional[np.ndarray], file_path: str, log: bool) -> Optional[np.ndarray]:
+    """Scores read from a file, or None (every point keeps the default score) if any of them is not finite."""
+    if scores is None:
+        return None
+    scores = np.asarray(scores, dtype=float)
+    if not np.all(np.isfinite(scores)):
+        if log:
+            logging.warning(f"Ignoring scores in {file_path}: not all of them are finite.")
+        return None
+    return scores
 
 
 def add_run(
@@ -483,6 +501,7 @@ def add_object(
     save_config: bool = False,
     config_path: Optional[str] = None,
     log: bool = False,
+    filament: Union[FilamentSpec, Dict[str, Any], None] = None,
 ) -> CopickObject:
     """Add a new pickable object to the copick root configuration.
 
@@ -504,6 +523,8 @@ def add_object(
         save_config: Whether to save the configuration to disk after adding the object.
         config_path: Path to save the configuration. Required if save_config is True.
         log: Whether to log the operation.
+        filament: Declare the object a filament (see ``copick.models.FilamentSpec``); stored as
+            ``metadata["copick"]["filament"]``. Requires ``is_particle=True``.
 
     Returns:
         CopickObject: The newly created object.
@@ -536,6 +557,7 @@ def add_object(
         radius=radius,
         metadata=metadata or {},
         exist_ok=exist_ok,
+        filament=filament,
     )
 
     # Add volume data if provided
@@ -785,7 +807,7 @@ def _add_picks_em(
         exist_ok=exist_ok or overwrite,
     )
 
-    picks.from_numpy(points_angstrom, transforms)
+    picks.from_numpy(points_angstrom, transforms, scores=_usable_scores(scores, path, log))
 
     if log:
         logging.info(f"Added {len(points_angstrom)} picks from EM file to run {run_name}.")
@@ -924,7 +946,7 @@ def _add_picks_dynamo(
         exist_ok=exist_ok or overwrite,
     )
 
-    picks.from_numpy(points_angstrom, transforms)
+    picks.from_numpy(points_angstrom, transforms, scores=_usable_scores(scores, path, log))
 
     if log:
         logging.info(f"Added {len(points_angstrom)} picks from Dynamo table to run {run_name}.")
@@ -1016,7 +1038,7 @@ def _add_picks_dynamo_grouped(
             exist_ok=exist_ok or overwrite,
         )
 
-        picks.from_numpy(points_angstrom, transforms)
+        picks.from_numpy(points_angstrom, transforms, scores=_usable_scores(_subset(scores, mask), path, log))
         results[run_name] = picks
 
         if log:
@@ -1115,7 +1137,7 @@ def _add_picks_em_grouped(
             exist_ok=exist_ok or overwrite,
         )
 
-        picks.from_numpy(points_angstrom, transforms)
+        picks.from_numpy(points_angstrom, transforms, scores=_usable_scores(_subset(scores, mask), path, log))
         results[run_name] = picks
 
         if log:
@@ -1157,15 +1179,17 @@ def _add_picks_csv(
         Dictionary mapping run names to created CopickPicks objects.
     """
     from copick.util.formats import csv_to_copick_arrays, read_picks_csv
+    from copick.util.handlers import unpack_picks_data
 
     # Read the CSV file
     df = read_picks_csv(path)
 
     # Convert to copick arrays grouped by run
-    run_data = csv_to_copick_arrays(df)
+    run_data = csv_to_copick_arrays(df, include_instance_ids="instance_id" in df.columns)
 
     results = {}
-    for run_name, (positions, transforms, _scores) in run_data.items():
+    for run_name, arrays in run_data.items():
+        positions, transforms, scores, instance_ids = unpack_picks_data(arrays)
         # Get or create run
         runobj = get_or_create_run(root, run_name, create=create, log=log)
 
@@ -1177,7 +1201,7 @@ def _add_picks_csv(
             exist_ok=exist_ok or overwrite,
         )
 
-        picks.from_numpy(positions, transforms)
+        picks.from_numpy(positions, transforms, instance_ids=instance_ids, scores=_usable_scores(scores, path, log))
         results[run_name] = picks
 
         if log:
@@ -1666,7 +1690,7 @@ def add_picks_from_file(
     Raises:
         ValueError: If the format is not supported.
     """
-    from copick.util.handlers import FormatRegistry
+    from copick.util.handlers import FormatRegistry, unpack_picks_data
 
     # Get handler
     handler = FormatRegistry.get_picks_handler(file_type or file_path)
@@ -1681,7 +1705,9 @@ def add_picks_from_file(
 
     # Read picks
     effective_voxel_spacing = voxel_spacing if voxel_spacing else 1.0
-    positions, transforms, scores = handler.read(file_path, effective_voxel_spacing)
+    positions, transforms, scores, instance_ids = unpack_picks_data(
+        handler.read(file_path, effective_voxel_spacing),
+    )
 
     # Get or create run
     run = get_or_create_run(root, run_name, create=create, log=log)
@@ -1699,7 +1725,12 @@ def add_picks_from_file(
         picks.points = []
 
     # Convert to copick format and store
-    picks.from_numpy(positions, transforms)
+    picks.from_numpy(
+        positions,
+        transforms,
+        instance_ids=instance_ids,
+        scores=_usable_scores(scores, file_path, log),
+    )
 
     # Store picks
     picks.store()
@@ -1840,7 +1871,7 @@ def add_picks_grouped_from_file(
     Raises:
         ValueError: If the format is not supported or doesn't support grouped import.
     """
-    from copick.util.handlers import FormatRegistry
+    from copick.util.handlers import FormatRegistry, unpack_picks_data
 
     # Get handler
     handler = FormatRegistry.get_picks_handler(file_type or file_path)
@@ -1865,7 +1896,8 @@ def add_picks_grouped_from_file(
 
     # Create picks for each run
     results = {}
-    for run_name, (positions, transforms, _scores) in grouped_data.items():
+    for run_name, run_data in grouped_data.items():
+        positions, transforms, scores, instance_ids = unpack_picks_data(run_data)
         # Get or create run
         run = get_or_create_run(root, run_name, create=create, log=log)
         if run is None:
@@ -1886,7 +1918,12 @@ def add_picks_grouped_from_file(
             picks.points = []
 
         # Convert to copick format and store
-        picks.from_numpy(positions, transforms)
+        picks.from_numpy(
+            positions,
+            transforms,
+            instance_ids=instance_ids,
+            scores=_usable_scores(scores, file_path, log),
+        )
         picks.store()
 
         results[run_name] = picks

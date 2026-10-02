@@ -787,9 +787,10 @@ def segmentation(
 )
 @click.option(
     "--object-type",
-    type=click.Choice(["particle", "segmentation"], case_sensitive=False),
+    type=click.Choice(["particle", "segmentation", "filament"], case_sensitive=False),
     default="particle",
-    help="Type of object: 'particle' for point annotations or 'segmentation' for mask annotations.",
+    help="Type of object: 'particle' for point annotations, 'segmentation' for mask annotations, or 'filament' "
+    "for point annotations ordered along filaments (e.g. microtubules, actin).",
     show_default=True,
 )
 @click.option(
@@ -835,8 +836,25 @@ def segmentation(
     "--radius",
     type=float,
     default=50,
-    help="Radius of the particle, when displaying as a sphere.",
+    help="Radius of the particle, when displaying as a sphere. For a filament, the tube radius.",
     show_default=True,
+)
+@click.option(
+    "--polar/--apolar",
+    default=None,
+    help="Filaments only: whether the structure has a polarity (microtubules and actin do). Not stated by default.",
+)
+@click.option(
+    "--helical-rise",
+    type=float,
+    default=None,
+    help="Filaments only: axial rise per subunit in Angstrom. Descriptive only; never used as a sampling default.",
+)
+@click.option(
+    "--helical-twist",
+    type=float,
+    default=None,
+    help="Filaments only: twist per subunit in degrees. Descriptive only.",
 )
 @click.option(
     "--metadata",
@@ -885,6 +903,9 @@ def object(
     identifier: str,
     map_threshold: float,
     radius: float,
+    polar: bool,
+    helical_rise: float,
+    helical_twist: float,
     metadata: str,
     volume: str,
     volume_format: str,
@@ -918,6 +939,11 @@ def object(
         copick add object -c config.json --name membrane --object-type segmentation \\
             --label 1 --color "0,255,0,128"
 
+        \b
+        # Add a polar filament with its tube radius
+        copick add object -c config.json --name microtubule --object-type filament \\
+            --radius 120 --polar
+
     See Also:
 
         \b
@@ -934,8 +960,15 @@ def object(
     # Get root
     root = copick.from_file(config)
 
-    # Convert object type to is_particle boolean
-    is_particle = object_type.lower() == "particle"
+    # Convert object type to is_particle boolean; filaments are point-annotated
+    object_type = object_type.lower()
+    is_particle = object_type in ("particle", "filament")
+
+    filament_spec = None
+    if object_type == "filament":
+        filament_spec = {"polar": polar, "helical_rise_a": helical_rise, "helical_twist_deg": helical_twist}
+    elif polar is not None or helical_rise is not None or helical_twist is not None:
+        ctx.fail("--polar/--apolar, --helical-rise and --helical-twist apply only to --object-type filament.")
 
     # Parse color if provided
     color_tuple = None
@@ -997,6 +1030,7 @@ def object(
             save_config=True,
             config_path=config,
             log=debug,
+            filament=filament_spec,
         )
 
         logger.info(f"Successfully added {object_type} object '{name}' with label {obj.label}")
