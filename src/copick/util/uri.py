@@ -5,6 +5,7 @@ from urllib.parse import parse_qs
 
 from copick.models import (
     CopickFeatures,
+    CopickFilaments,
     CopickMesh,
     CopickPicks,
     CopickRoot,
@@ -36,7 +37,7 @@ def parse_copick_uri(uri: str, object_type: str) -> Dict[str, Any]:
 
     Args:
         uri (str): The copick URI to parse.
-        object_type (str): Type of object ('picks', 'mesh', 'segmentation', 'tomogram', 'feature').
+        object_type (str): Type of object ('picks', 'filaments', 'mesh', 'segmentation', 'tomogram', 'feature').
 
     Returns:
         Dict[str, Any]: A dictionary containing the parsed components.
@@ -62,7 +63,7 @@ def parse_copick_uri(uri: str, object_type: str) -> Dict[str, Any]:
         # Flatten single-value lists
         query_params = {k: v[0] if len(v) == 1 else v for k, v in query_params.items()}
 
-    if object_type in ("picks", "mesh"):
+    if object_type in ("picks", "filaments", "mesh"):
         # Pattern: object_name:user_id/session_id
         # Support incomplete patterns: 'obj' → 'obj:*/*', 'obj:user' → 'obj:user/*'
         parts = uri.split(":")
@@ -179,7 +180,8 @@ def parse_copick_uri(uri: str, object_type: str) -> Dict[str, Any]:
 
     else:
         raise ValueError(
-            f"Unknown object type: {object_type}. Must be one of: picks, mesh, segmentation, tomogram, feature",
+            f"Unknown object type: {object_type}. Must be one of: picks, filaments, mesh, segmentation, tomogram, "
+            "feature",
         )
 
 
@@ -222,8 +224,8 @@ def expand_output_uri(
     Args:
         output_uri: Output URI (can be shorthand or full).
         input_uri: Input URI to inherit defaults from.
-        input_type: Type of input object ('picks', 'mesh', 'segmentation').
-        output_type: Type of output object ('picks', 'mesh', 'segmentation').
+        input_type: Type of input object ('picks', 'filaments', 'mesh', 'segmentation').
+        output_type: Type of output object ('picks', 'filaments', 'mesh', 'segmentation').
         command_name: Name of the command (used as default user_id).
         individual_outputs: Whether creating individual outputs (affects session_id template).
 
@@ -348,7 +350,7 @@ def expand_output_uri(
         output_parts["multilabel"] = input_multilabel
 
     # Reconstruct the URI
-    if output_type in ("picks", "mesh"):
+    if output_type in ("picks", "filaments", "mesh"):
         expanded = f"{output_parts['object_name']}:{output_parts['user_id']}/{output_parts['session_id']}"
     elif output_type == "segmentation":
         expanded = f"{output_parts['object_name']}:{output_parts['user_id']}/{output_parts['session_id']}"
@@ -381,7 +383,7 @@ def serialize_copick_uri(
     Raises:
         ValueError: If the object type is not recognized.
     """
-    if isinstance(obj, (CopickPicks, CopickMesh)):
+    if isinstance(obj, (CopickPicks, CopickFilaments, CopickMesh)):
         return f"{obj.pickable_object_name}:{obj.user_id}/{obj.session_id}"
 
     elif isinstance(obj, CopickSegmentation):
@@ -414,7 +416,7 @@ def serialize_copick_uri_from_dict(
     """Serialize copick object parameters into a URI according to copick URI schemes.
 
     Args:
-        object_type (str): Type of copick object ('picks', 'mesh', 'segmentation', 'tomogram', 'feature')
+        object_type (str): Type of copick object ('picks', 'filaments', 'mesh', 'segmentation', 'tomogram', 'feature')
         object_name (str, optional): Object name for picks/meshes
         name (str, optional): Name for segmentations
         user_id (str, optional): User ID for picks/meshes/segmentations
@@ -433,6 +435,11 @@ def serialize_copick_uri_from_dict(
     if object_type == "picks":
         if not all([object_name, user_id, session_id]):
             raise ValueError("Picks require object_name, user_id, and session_id")
+        return f"{object_name}:{user_id}/{session_id}"
+
+    elif object_type == "filaments":
+        if not all([object_name, user_id, session_id]):
+            raise ValueError("Filaments require object_name, user_id, and session_id")
         return f"{object_name}:{user_id}/{session_id}"
 
     elif object_type == "mesh":
@@ -481,7 +488,7 @@ def resolve_copick_objects(
     Args:
         uri (str): The copick URI to resolve.
         root (CopickRoot): The copick root to search in.
-        object_type (str): Type of object ('picks', 'mesh', 'segmentation', 'tomogram', 'feature').
+        object_type (str): Type of object ('picks', 'filaments', 'mesh', 'segmentation', 'tomogram', 'feature').
         run_name (str, optional): Specific run name to search in. If None, searches all runs.
 
     Returns:
@@ -514,7 +521,7 @@ def get_copick_objects_by_type(
 
     Args:
         root (CopickRoot): The copick root to search in.
-        object_type (str): The type of objects to retrieve ('picks', 'mesh', 'segmentation', 'tomogram', 'feature').
+        object_type (str): The type of objects to retrieve ('picks', 'filaments', 'mesh', 'segmentation', 'tomogram', 'feature').
         run_name (str, optional): Specific run name to search in.
         **filters: Additional filters based on object type.
                   For picks/meshes: object_name, user_id, session_id
@@ -541,6 +548,7 @@ def get_copick_objects_by_type(
     # Dispatch to type-specific handler
     handlers = {
         "picks": _get_picks_from_runs,
+        "filaments": _get_filaments_from_runs,
         "mesh": _get_meshes_from_runs,
         "segmentation": _get_segmentations_from_runs,
         "tomogram": _get_tomograms_from_runs,
@@ -549,7 +557,8 @@ def get_copick_objects_by_type(
 
     if object_type not in handlers:
         raise ValueError(
-            f"Unknown object type: {object_type}. Must be one of: picks, mesh, segmentation, tomogram, feature",
+            f"Unknown object type: {object_type}. Must be one of: picks, filaments, mesh, segmentation, tomogram, "
+            "feature",
         )
 
     return handlers[object_type](runs_to_search, filters)
@@ -665,6 +674,34 @@ def _get_picks_from_runs(
                     results.append(pick)
 
     return results
+
+
+def _get_filaments_from_runs(
+    runs: List["CopickRun"],
+    filters: Dict[str, Any],
+) -> List["CopickFilaments"]:
+    """Get filaments matching object name, user and session patterns.
+
+    Args:
+        runs: List of runs to search.
+        filters: Filter dictionary with optional keys: object_name, user_id, session_id, pattern_type.
+
+    Returns:
+        List of matching filaments.
+    """
+    pattern_type = filters.get("pattern_type", "glob")
+    object_name = filters.get("object_name")
+    user_id = filters.get("user_id")
+    session_id = filters.get("session_id")
+
+    return [
+        filaments
+        for run in runs
+        for filaments in run.filaments
+        if (not object_name or _matches_pattern(filaments.pickable_object_name, object_name, pattern_type))
+        and (not user_id or _matches_pattern(filaments.user_id, user_id, pattern_type))
+        and (not session_id or _matches_pattern(filaments.session_id, session_id, pattern_type))
+    ]
 
 
 def _get_meshes_from_runs(

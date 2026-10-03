@@ -86,6 +86,14 @@ def export(ctx):
     help="STAR only: RELION tomograms.star giving each tomogram's centre, tilt-series pixel size and CTF parameters "
     "(takes precedence over the copick tomograms).",
 )
+@click.option(
+    "--filament-columns",
+    type=click.Choice(["auto", "on", "off"], case_sensitive=False),
+    default="auto",
+    show_default=True,
+    help="STAR only: RELION's filament columns (rlnHelicalTubeID, track length, subtomogram frame, priors) for "
+    "objects declared a filament ('auto'), always ('on'), or never ('off').",
+)
 @add_max_workers_option
 @add_debug_option
 @click.pass_context
@@ -102,6 +110,7 @@ def picks(
     include_optics: bool,
     tilt_series_pixel_size: float,
     tomograms_star: str,
+    filament_columns: str,
     max_workers: int,
     debug: bool,
 ):
@@ -124,7 +133,10 @@ def picks(
     `--tomograms-star`, or the copick tomogram at `--voxel-size`). With
     `--tilt-series-pixel-size` (or a tomograms.star) they also carry
     `rlnCoordinateX/Y/Z` in tilt-series pixels and the optics table RELION
-    requires.
+    requires. Picks of objects declared a filament get RELION's filament
+    columns (`--filament-columns`): the frame in `rlnTomoSubtomogram*`,
+    `rlnAngleTilt` and its prior at 90, `rlnHelicalTubeID` from the instance
+    ID, and `rlnHelicalTrackLengthAngst`.
 
     Examples:
 
@@ -199,6 +211,7 @@ def picks(
                 log=debug,
                 tilt_series_pixel_size=tilt_series_pixel_size,
                 tomograms_star=tomograms_star,
+                filament_columns=filament_columns.lower(),
             )
         else:
             # Per-run export mode
@@ -215,6 +228,7 @@ def picks(
                 log=debug,
                 tilt_series_pixel_size=tilt_series_pixel_size,
                 tomograms_star=tomograms_star,
+                filament_columns=filament_columns.lower(),
             )
         logger.info("Export completed successfully.")
     except Exception as e:

@@ -875,7 +875,7 @@ def _add_picks_star(
     from copick.util.handlers.picks.star import star_handler
 
     # Read the STAR file: coordinates, orientations and shifts as in RELION (see STARPicksHandler)
-    positions_angstrom, transforms, _ = star_handler.read(path, voxel_spacing, tomo_name=run_name)
+    positions_angstrom, transforms, _, instance_ids = star_handler.read(path, voxel_spacing, tomo_name=run_name)
 
     # Get or create run
     runobj = get_or_create_run(root, run_name, create=create, log=log)
@@ -888,7 +888,7 @@ def _add_picks_star(
         exist_ok=exist_ok or overwrite,
     )
 
-    picks.from_numpy(positions_angstrom, transforms)
+    picks.from_numpy(positions_angstrom, transforms, instance_ids=instance_ids)
 
     if log:
         logging.info(f"Added {len(positions_angstrom)} picks from STAR file to run {run_name}.")

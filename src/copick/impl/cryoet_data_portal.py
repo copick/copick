@@ -955,6 +955,17 @@ class CopickRunCDP(CopickRunOverlay):
     def _voxel_spacing_factory(self) -> Tuple[Type[CopickVoxelSpacingCDP], Type[CopickVoxelSpacingMetaCDP]]:
         return CopickVoxelSpacingCDP, CopickVoxelSpacingMetaCDP
 
+    def _filaments_factory(self):
+        from copick.impl.filesystem import CopickFilamentsFSSpec
+
+        return CopickFilamentsFSSpec
+
+    def _query_overlay_filaments(self):
+        # The portal has no filament annotations; traced filaments live in the writable overlay.
+        from copick.impl.filesystem import query_filament_files
+
+        return query_filament_files(self, read_only=False)
+
     def _picks_factory(self) -> Type[CopickPicksCDP]:
         return CopickPicksCDP
 

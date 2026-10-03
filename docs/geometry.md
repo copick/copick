@@ -272,6 +272,21 @@ $$\mathbf{R} = \mathbf{A}_\text{sub} \cdot \mathbf{A}_\text{particle}, \qquad
 where $\mathbf{o}$ is the origin shift in Angstrom. Copick stores the shifted position as the location and leaves the
 transform's translation at zero. On export, the location plus the translation is written, with no origin shift.
 
+#### RELION filament particles
+
+RELION's filament convention (`get_particle_poses/filaments.py`, `relion_tomo_import_coordinates`) stores the
+filament frame in the subtomogram orientation, pre-rotated by $R_y(90°)$, and fixes the particle angles at
+(0, 90, 0) with priors `rlnAngleTiltPrior` = 90 and `rlnAnglePsiPrior` = 0:
+
+$$\mathbf{A}_\text{sub} = \mathbf{R} \cdot R_y(90°), \qquad \mathbf{A}_\text{particle} = R_y(90°)^{-1},
+\qquad \mathbf{A}_\text{sub} \cdot \mathbf{A}_\text{particle} = \mathbf{R}$$
+
+where $\mathbf{R}$ is copick's rotation, whose +Z axis is the filament axis (see 2.4 Filament Frames). Copick writes
+this convention for picks of filament objects (`copick export picks --filament-columns`), together with
+`rlnHelicalTubeID` (the instance ID), `rlnHelicalTrackLengthAngst` (Angstrom along the filament in point order) and,
+unless the point order follows the filament's polarity, `rlnAnglePsiFlipRatio` = 0.5. On import,
+`rlnHelicalTubeID` becomes the instance ID and rows are ordered by tube and track length.
+
 #### Dynamo to Copick
 
 Given Dynamo Euler angles $(t_\text{drot}, t_\text{ilt}, n_\text{arot})$ in ZXZ convention:

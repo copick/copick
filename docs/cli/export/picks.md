@@ -27,19 +27,31 @@ tomogram index to each run; per-run EM/Dynamo default to index 1 unless an
 index map is supplied, and STAR/CSV reference runs by name. For coordinate
 and Euler-angle conventions, see the docstrings in `copick.util.formats`.
 
+STAR files carry `rlnTomoName` and coordinates centred on each tomogram (from
+`--tomograms-star`, or the copick tomogram at `--voxel-size`). With
+`--tilt-series-pixel-size` (or a tomograms.star) they also carry
+`rlnCoordinateX/Y/Z` in tilt-series pixels and the optics table RELION
+requires. Picks of objects declared a filament get RELION's filament
+columns (`--filament-columns`): the frame in `rlnTomoSubtomogram*`,
+`rlnAngleTilt` and its prior at 90, `rlnHelicalTubeID` from the instance
+ID, and `rlnHelicalTrackLengthAngst`.
+
 ## Options
 
 | Option | Type | Default | Description |
 |--------|------|---------|-------------|
 | `-c, --config` | path | — | Path to the configuration file. |
+| `--run-names, -r` | text · multiple | — | Specific run names to process (default: all runs). Repeatable; pass -r once per run. |
 | `--picks-uri` | text | **required** | URI to filter picks for export (e.g., 'ribosome:user1/*' or '*:*/*'). |
 | `--output-dir` | directory | — | Output directory for per-run export (one file per run). Mutually exclusive with --output-file. |
 | `--output-file` | file | — | Output file for combined export (all runs in one file). Mutually exclusive with --output-dir. |
-| `--run-names` | text | — | Comma-separated list of run names to process. |
 | `--output-format` | choice (em \| star \| dynamo \| csv) | **required** | Output format for picks. |
 | `--voxel-size` | float | — | Voxel size in Angstrom (required for EM, STAR, and Dynamo formats). |
 | `--index-map` | path | — | CSV/TSV file mapping tomogram index to run name. Required for combined EM/Dynamo export, optional for per-run. |
 | `--include-optics / --no-include-optics` | boolean flag | `True` | Include optics group in STAR file output. |
+| `--tilt-series-pixel-size` | float | — | STAR only: tilt-series pixel size in Angstrom. Adds rlnCoordinateX/Y/Z in tilt-series pixels and an optics table with rlnTomoTiltSeriesPixelSize, which RELION requires. |
+| `--tomograms-star` | file | — | STAR only: RELION tomograms.star giving each tomogram's centre, tilt-series pixel size and CTF parameters (takes precedence over the copick tomograms). |
+| `--filament-columns` | choice (auto \| on \| off) | `auto` | STAR only: RELION's filament columns (rlnHelicalTubeID, track length, subtomogram frame, priors) for objects declared a filament ('auto'), always ('on'), or never ('off'). |
 | `--max-workers` | integer | `4` | Maximum number of worker threads. |
 | `--debug / --no-debug` | boolean flag | `False` | Enable debug logging. |
 
