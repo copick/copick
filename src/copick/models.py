@@ -916,6 +916,8 @@ class CopickRun:
         self._meshes: Optional[List["CopickMesh"]] = None
         """Meshes for this run. Either populated from config or lazily loaded when CopickRun.picks is
         accessed for the first time."""
+        self._filaments: Optional[List["CopickFilaments"]] = None
+        """Traced filaments for this run, lazily loaded when CopickRun.filaments is accessed for the first time."""
         self._segmentations: Optional[List["CopickSegmentation"]] = None
         """Segmentations for this run. Either populated from config or lazily loaded when
         CopickRun.segmentations is accessed for the first time."""
@@ -998,6 +1000,10 @@ class CopickRun:
             List[CopickPicks]: List of picks for this run.
         """
         raise NotImplementedError("query_picks must be implemented for CopickRun.")
+
+    def query_filaments(self) -> List["CopickFilaments"]:
+        """Override this method to query for filaments. Runs of backends without filaments have none."""
+        return []
 
     def query_meshes(self) -> List["CopickMesh"]:
         """Override this method to query for meshes.
@@ -1108,6 +1114,45 @@ class CopickRun:
         if session_id is not None:
             session_id = [session_id] if isinstance(session_id, str) else session_id
             ret = [p for p in ret if p.session_id in session_id]
+
+        return ret
+
+    @property
+    def filaments(self) -> List["CopickFilaments"]:
+        if self._filaments is None:
+            self._filaments = self.query_filaments()
+
+        return self._filaments
+
+    def get_filaments(
+        self,
+        object_name: Union[str, Iterable[str]] = None,
+        user_id: Union[str, Iterable[str]] = None,
+        session_id: Union[str, Iterable[str]] = None,
+    ) -> List["CopickFilaments"]:
+        """Get filaments by object name, user_id or session_id (or combinations).
+
+        Args:
+            object_name: Name of the object to search for.
+            user_id: User ID to search for.
+            session_id: Session ID to search for.
+
+        Returns:
+            List[CopickFilaments]: List of filaments that match the search criteria.
+        """
+        ret = list(self.filaments)
+
+        if object_name is not None:
+            object_name = [object_name] if isinstance(object_name, str) else object_name
+            ret = [f for f in ret if f.pickable_object_name in object_name]
+
+        if user_id is not None:
+            user_id = [user_id] if isinstance(user_id, str) else user_id
+            ret = [f for f in ret if f.user_id in user_id]
+
+        if session_id is not None:
+            session_id = [session_id] if isinstance(session_id, str) else session_id
+            ret = [f for f in ret if f.session_id in session_id]
 
         return ret
 
@@ -1347,6 +1392,74 @@ class CopickRun:
         """Override this method to return the picks class."""
         return CopickPicks
 
+    def new_filaments(
+        self,
+        object_name: str,
+        session_id: str,
+        user_id: Optional[str] = None,
+        exist_ok: bool = False,
+    ) -> "CopickFilaments":
+        """Create a new, empty set of traced filaments.
+
+        Args:
+            object_name: Name of the pickable object the filaments are of. A warning is logged if the object is not
+                declared a filament.
+            session_id: Session ID for the filaments.
+            user_id: User ID for the filaments.
+            exist_ok: Whether to return existing filaments instead of raising an error.
+
+        Returns:
+            CopickFilaments: The newly created (or existing) filaments.
+
+        Raises:
+            ValueError: If the filaments already exist and exist_ok is False, if the object name is not found in the
+                pickable objects, or if the user ID is not set in the root config or supplied.
+        """
+        object_name = sanitize_name(object_name)
+        session_id = sanitize_name(session_id)
+        if user_id is not None:
+            user_id = sanitize_name(user_id)
+
+        obj = self.root.get_object(object_name)
+        if obj is None:
+            raise ValueError(f"Object name {object_name} not found in pickable objects.")
+        if not obj.is_filament:
+            import logging
+
+            logging.getLogger(__name__).warning(
+                f"Object {object_name} is not declared a filament (see PickableObject.set_filament).",
+            )
+
+        uid = user_id if user_id is not None else self.root.config.user_id
+        if uid is None:
+            raise ValueError("User ID must be set in the root config or supplied to new_filaments.")
+
+        if existing := self.get_filaments(object_name=object_name, session_id=session_id, user_id=uid):
+            if exist_ok:
+                return existing[0]
+            raise ValueError(f"Filaments for {object_name} by user/tool {uid} already exist in session {session_id}.")
+
+        clz = self._filaments_factory()
+        filaments = clz(
+            run=self,
+            file=CopickFilamentsFile(
+                pickable_object_name=object_name,
+                user_id=uid,
+                session_id=session_id,
+                run_name=self.name,
+            ),
+        )
+        # Store first, so a backend that cannot store leaves no entry in the cache (get_filaments above has
+        # already populated it)
+        filaments.store()
+        self.filaments.append(filaments)
+
+        return filaments
+
+    def _filaments_factory(self) -> Type["CopickFilaments"]:
+        """Override this method to return the filaments class."""
+        return CopickFilaments
+
     def new_mesh(
         self,
         object_name: str,
@@ -1522,6 +1635,10 @@ class CopickRun:
         """Refresh the meshes."""
         self._meshes = self.query_meshes()
 
+    def refresh_filaments(self) -> None:
+        """Refresh the filaments."""
+        self._filaments = self.query_filaments()
+
     def refresh_segmentations(self) -> None:
         """Refresh the segmentations."""
         self._segmentations = self.query_segmentations()
@@ -1532,6 +1649,7 @@ class CopickRun:
         self.refresh_picks()
         self.refresh_meshes()
         self.refresh_segmentations()
+        self.refresh_filaments()
 
     def _invalidate_caches(self) -> None:
         """Invalidate all cached child data for this run."""
@@ -1542,6 +1660,7 @@ class CopickRun:
         self._picks = None
         self._meshes = None
         self._segmentations = None
+        self._filaments = None
 
     def ensure(self, create: bool = False) -> bool:
         """Check if the run record exists, optionally create it if it does not.
@@ -1564,6 +1683,7 @@ class CopickRun:
         self.delete_picks()
         self.delete_meshes()
         self.delete_segmentations()
+        self.delete_filaments()
         self._delete_data()
 
         # Remove the run from the root
@@ -1582,7 +1702,7 @@ class CopickRun:
             vs.delete()
             del vs
         else:
-            for vs in self.voxel_spacings:
+            for vs in list(self.voxel_spacings):
                 self._voxel_spacings.remove(vs)
                 vs.delete()
                 del vs
@@ -1595,7 +1715,7 @@ class CopickRun:
             user_id: User ID to delete.
             session_id: Session ID to delete.
         """
-        for p in self.get_picks(object_name=object_name, user_id=user_id, session_id=session_id):
+        for p in list(self.get_picks(object_name=object_name, user_id=user_id, session_id=session_id)):
             self._picks.remove(p)
             p.delete()
             del p
@@ -1608,7 +1728,7 @@ class CopickRun:
             user_id: User ID to delete.
             session_id: Session ID to delete.
         """
-        for m in self.get_meshes(object_name=object_name, user_id=user_id, session_id=session_id):
+        for m in list(self.get_meshes(object_name=object_name, user_id=user_id, session_id=session_id)):
             self._meshes.remove(m)
             m.delete()
             del m
@@ -1630,16 +1750,29 @@ class CopickRun:
             name: Name of the segmentation to delete.
             voxel_size: Voxel size to delete.
         """
-        for s in self.get_segmentations(
-            user_id=user_id,
-            session_id=session_id,
-            is_multilabel=is_multilabel,
-            name=name,
-            voxel_size=voxel_size,
+        for s in list(
+            self.get_segmentations(
+                user_id=user_id,
+                session_id=session_id,
+                is_multilabel=is_multilabel,
+                name=name,
+                voxel_size=voxel_size,
+            ),
         ):
             self._segmentations.remove(s)
             s.delete()
             del s
+
+    def delete_filaments(self, object_name: str = None, user_id: str = None, session_id: str = None) -> None:
+        """Delete filaments by name, user_id or session_id (or combinations).
+
+        Args:
+            object_name: Name of the object to delete.
+            user_id: User ID to delete.
+            session_id: Session ID to delete.
+        """
+        for f in self.get_filaments(object_name=object_name, user_id=user_id, session_id=session_id):
+            f.delete()
 
 
 class CopickVoxelSpacingMeta(BaseModel):
@@ -2491,6 +2624,240 @@ class CopickPicks:
             raise ValueError(f"Format {format} is not supported.")
 
 
+class CopickFilament(BaseModel):
+    """One traced filament: an ordered centreline polyline in tomogram coordinates.
+
+    Attributes:
+        instance_id: Filament ID (>= 1), unique within its file. Picks sampled from this filament use it as their
+            instance ID.
+        points: Ordered vertices ``[[x, y, z], ...]`` in Angstrom, at least two. Consecutive vertices should be no
+            further apart than the trace's voxel spacing, so that linear interpolation follows the centreline.
+        polarity_known: Whether the point order follows the structure's polarity (meaningful for objects whose
+            filament spec has ``polar: true``).
+        score: Confidence score.
+        radius: Tube radius in Angstrom, if measured.
+        metadata: Additional metadata (user-defined contents).
+    """
+
+    instance_id: int = Field(ge=1)
+    points: List[Tuple[float, float, float]]
+    polarity_known: bool = False
+    score: float = 1.0
+    radius: Optional[float] = Field(None, gt=0)
+    metadata: Dict[str, Any] = Field(default_factory=dict)
+
+    @field_validator("points")
+    @classmethod
+    def validate_points(cls, v) -> List[Tuple[float, float, float]]:
+        """At least two finite vertices."""
+        if len(v) < 2:
+            raise ValueError("A filament needs at least two points.")
+        if not np.all(np.isfinite(np.asarray(v, dtype=float))):
+            raise ValueError("Filament points must be finite.")
+        return v
+
+    @field_validator("metadata", mode="before")
+    @classmethod
+    def none_to_empty_dict(cls, v):
+        return {} if v is None else v
+
+
+class CopickFilamentsFile(BaseModel):
+    """Datamodel for the traced filaments of one pickable object in one run, by one user or tool and session.
+
+    Stored as ``{run}/Filaments/{user_id}_{session_id}_{pickable_object_name}.json``.
+
+    Attributes:
+        pickable_object_name: Pickable object name from CopickConfig.pickable_objects[X].name
+        user_id: Unique identifier for the user or tool name.
+        session_id: Unique identifier for the session. If it is 0, the filaments were generated by a tool.
+        run_name: Name of the run the filaments belong to.
+        voxel_spacing: Voxel spacing of the data the filaments were traced in, if any.
+        unit: Unit of the point coordinates.
+        version: Version of this file format.
+        filaments (List[CopickFilament]): The filaments.
+    """
+
+    pickable_object_name: str
+    user_id: str
+    session_id: Union[str, Literal["0"]]
+    run_name: Optional[str] = None
+    voxel_spacing: Optional[float] = None
+    unit: str = "angstrom"
+    version: int = 1
+    filaments: List[CopickFilament] = Field(default_factory=list)
+
+    @model_validator(mode="after")
+    def validate_unique_ids(self) -> "CopickFilamentsFile":
+        """Filament IDs are unique within a file."""
+        ids = [f.instance_id for f in self.filaments]
+        if len(ids) != len(set(ids)):
+            raise ValueError("Filament instance IDs must be unique within a file.")
+        return self
+
+
+class CopickFilaments:
+    """The traced filaments (ordered centrelines) of one pickable object in one run.
+
+    Attributes:
+        run (CopickRun): Reference to the run these filaments belong to.
+        meta (CopickFilamentsFile): The filaments and their metadata. Loaded from storage when
+            ``CopickFilaments.filaments`` is first accessed.
+    """
+
+    def __init__(self, run: CopickRun, file: CopickFilamentsFile):
+        """
+        Args:
+            run: Reference to the run these filaments belong to.
+            file: Metadata for this set of filaments.
+        """
+        self.meta: CopickFilamentsFile = file
+        self.run: CopickRun = run
+        self._loaded = False
+
+    def __repr__(self):
+        count = len(self.meta.filaments) if self._loaded else None
+        return (
+            f"CopickFilaments(pickable_object_name={self.pickable_object_name}, user_id={self.user_id}, "
+            f"session_id={self.session_id}, len(filaments)={count}) at {hex(id(self))}"
+        )
+
+    def _load(self) -> CopickFilamentsFile:
+        """Override this method to load the filaments from storage."""
+        raise NotImplementedError("_load must be implemented for CopickFilaments.")
+
+    def _store(self) -> None:
+        """Override this method to store the filaments, creating the file if it doesn't exist."""
+        raise NotImplementedError("_store must be implemented for CopickFilaments.")
+
+    def _delete_data(self) -> None:
+        """Override this method to delete the filaments from storage."""
+        raise NotImplementedError("_delete_data must be implemented for CopickFilaments.")
+
+    def load(self) -> CopickFilamentsFile:
+        """Load the filaments from storage."""
+        self.meta = self._load()
+        self._loaded = True
+        return self.meta
+
+    def store(self) -> None:
+        """Store the filaments."""
+        self._store()
+        self._loaded = True
+
+    def refresh(self) -> None:
+        """Reload the filaments from storage."""
+        self.load()
+
+    def delete(self) -> None:
+        """Delete the filaments."""
+        self._delete_data()
+        if self.run._filaments is not None and self in self.run._filaments:
+            self.run._filaments.remove(self)
+
+    @property
+    def from_tool(self) -> bool:
+        return self.session_id == "0"
+
+    @property
+    def from_user(self) -> bool:
+        return self.session_id != "0"
+
+    @property
+    def pickable_object_name(self) -> str:
+        return self.meta.pickable_object_name
+
+    @property
+    def user_id(self) -> str:
+        return self.meta.user_id
+
+    @property
+    def session_id(self) -> Union[str, Literal["0"]]:
+        return self.meta.session_id
+
+    @property
+    def voxel_spacing(self) -> Optional[float]:
+        return self.meta.voxel_spacing
+
+    @property
+    def filaments(self) -> List[CopickFilament]:
+        if not self._loaded:
+            self.load()
+        return self.meta.filaments
+
+    @filaments.setter
+    def filaments(self, value: List[CopickFilament]) -> None:
+        self.meta = CopickFilamentsFile.model_validate({**self.meta.model_dump(), "filaments": value})
+        self._loaded = True
+
+    def get(self, instance_id: int) -> Optional[CopickFilament]:
+        """The filament with this instance ID, or None."""
+        for filament in self.filaments:
+            if filament.instance_id == instance_id:
+                return filament
+        return None
+
+    def instance_ids(self) -> np.ndarray:
+        """The filaments' instance IDs, in file order."""
+        return np.array([f.instance_id for f in self.filaments], dtype=np.int64)
+
+    def numpy(self) -> List[np.ndarray]:
+        """The centrelines as a list of (M, 3) arrays of [x, y, z] in Angstrom, in file order."""
+        return [np.asarray(f.points, dtype=float).reshape(-1, 3) for f in self.filaments]
+
+    def from_numpy(
+        self,
+        polylines: List[np.ndarray],
+        instance_ids: Optional[List[int]] = None,
+        polarity_known: Optional[List[bool]] = None,
+        scores: Optional[List[float]] = None,
+        radii: Optional[List[Optional[float]]] = None,
+        voxel_spacing: Optional[float] = None,
+    ) -> None:
+        """Set the filaments from (M, 3) arrays of ordered points in Angstrom, and store them.
+
+        Args:
+            polylines: One (M, 3) array per filament, M >= 2, in order along the filament.
+            instance_ids: Filament IDs (>= 1, unique). Default 1..K.
+            polarity_known: Per filament, whether the point order follows the polarity. Default False.
+            scores: Per filament score. Default 1.0.
+            radii: Per filament tube radius in Angstrom, or None.
+            voxel_spacing: Voxel spacing the filaments were traced in, recorded in the file.
+
+        Raises:
+            ValueError: If the arguments' lengths differ or a filament is invalid.
+        """
+        k = len(polylines)
+        for name, values in (
+            ("instance_ids", instance_ids),
+            ("polarity_known", polarity_known),
+            ("scores", scores),
+            ("radii", radii),
+        ):
+            if values is not None and len(values) != k:
+                raise ValueError(f"{name} must have one entry per filament ({k}), got {len(values)}.")
+
+        filaments = [
+            CopickFilament(
+                instance_id=int(instance_ids[i]) if instance_ids is not None else i + 1,
+                points=[tuple(map(float, p)) for p in np.asarray(polylines[i], dtype=float).reshape(-1, 3)],
+                polarity_known=bool(polarity_known[i]) if polarity_known is not None else False,
+                score=float(scores[i]) if scores is not None else 1.0,
+                radius=None if radii is None or radii[i] is None else float(radii[i]),
+            )
+            for i in range(k)
+        ]
+        self.meta = CopickFilamentsFile.model_validate(
+            {
+                **self.meta.model_dump(),
+                "filaments": filaments,
+                "voxel_spacing": voxel_spacing if voxel_spacing is not None else self.meta.voxel_spacing,
+            },
+        )
+        self._loaded = True
+        self.store()
+
+
 class CopickMeshMeta(BaseModel):
     """Data model for mesh metadata.
 
@@ -2800,4 +3167,5 @@ COPICK_TYPES = (
     CopickMesh,
     CopickSegmentation,
     CopickObject,
+    CopickFilaments,
 )

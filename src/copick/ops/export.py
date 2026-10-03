@@ -43,6 +43,7 @@ def export_picks(
     log: bool = False,
     tilt_series_pixel_size: Optional[float] = None,
     tomograms_star: Optional[str] = None,
+    filament_columns: str = "auto",
 ) -> str:
     """Export picks to an external format.
 
@@ -59,6 +60,8 @@ def export_picks(
             tilt-series pixels and an optics table.
         tomograms_star: STAR only: RELION tomograms.star giving the tomogram's centre, tilt-series pixel size and
             CTF parameters (takes precedence over the copick tomogram).
+        filament_columns: STAR only: write RELION's filament columns ("on"), plain particle angles ("off"), or
+            filament columns for objects declared a filament ("auto").
 
     Returns:
         Path to the created output file.
@@ -85,6 +88,7 @@ def export_picks(
             log=log,
             tilt_series_pixel_size=tilt_series_pixel_size,
             tomograms_star=tomograms_star,
+            filament_columns=filament_columns,
         )
     elif output_format == "dynamo":
         return _export_picks_dynamo(picks, output_path, voxel_spacing, tomogram_index=tomogram_index, log=log)
@@ -93,6 +97,14 @@ def export_picks(
         return _export_picks_csv(picks, output_path, run_name, log=log)
     else:
         raise ValueError(f"Unsupported output format: {output_format}")
+
+
+def _filament_mode(filament_columns: str):
+    """``filament_columns`` ("auto", "on" or "off") as "auto", True or False."""
+    modes = {"auto": "auto", "on": True, "off": False}
+    if filament_columns not in modes:
+        raise ValueError(f"filament_columns must be one of {sorted(modes)}, not {filament_columns!r}")
+    return modes[filament_columns]
 
 
 def _export_picks_em(
@@ -147,6 +159,7 @@ def _export_picks_star(
     log: bool = False,
     tilt_series_pixel_size: Optional[float] = None,
     tomograms_star: Optional[str] = None,
+    filament_columns: str = "auto",
 ) -> str:
     """Export picks to RELION STAR format.
 
@@ -162,13 +175,14 @@ def _export_picks_star(
         log: Log the operation.
         tilt_series_pixel_size: Tilt-series pixel size in Angstrom.
         tomograms_star: RELION tomograms.star with this run's tomogram.
+        filament_columns: "on", "off", or "auto" (filament columns for objects declared a filament).
 
     Returns:
         Path to the created output file.
     """
     from copick.util.formats import read_relion_tomograms
     from copick.util.handlers.picks.star import star_handler
-    from copick.util.relion import copick_tomogram_center
+    from copick.util.relion import copick_tomogram_center, is_filament_export
 
     if voxel_spacing is None:
         raise ValueError("voxel_spacing is required for STAR export.")
@@ -195,6 +209,8 @@ def _export_picks_star(
         tomogram_center=center,
         tilt_series_pixel_size=tilt_series_pixel_size,
         tomogram=tomogram,
+        instance_ids=picks.instance_ids(),
+        filament=is_filament_export(picks, _filament_mode(filament_columns)),
     )
 
     if log:
@@ -303,6 +319,7 @@ def export_picks_combined(
     log: bool = False,
     tilt_series_pixel_size: Optional[float] = None,
     tomograms_star: Optional[str] = None,
+    filament_columns: str = "auto",
 ) -> str:
     """Export picks from multiple runs to a single combined file.
 
@@ -322,6 +339,8 @@ def export_picks_combined(
         tilt_series_pixel_size: STAR only: tilt-series pixel size in Angstrom for every run.
         tomograms_star: STAR only: RELION tomograms.star giving each run's tomogram centre, tilt-series pixel size
             and CTF parameters (takes precedence over the copick tomograms).
+        filament_columns: STAR only: "on", "off", or "auto": filament columns when every exported object is declared
+            a filament (one table cannot mix filament and particle columns).
 
     Returns:
         Path to the created output file.
@@ -357,6 +376,7 @@ def export_picks_combined(
     # Collect picks from all runs
     grouped_data: Dict[str, Tuple[np.ndarray, np.ndarray, Optional[np.ndarray]]] = {}
     grouped_instance_ids: Dict[str, np.ndarray] = {}
+    exported_filament_objects = []
     total_particles = 0
 
     for run in runs:
@@ -372,6 +392,8 @@ def export_picks_combined(
                 if picks.points:
                     scores = np.array([p.score for p in picks.points])
                 instance_ids = picks.instance_ids()
+                obj = root.get_object(picks.pickable_object_name)
+                exported_filament_objects.append(bool(obj is not None and obj.is_filament))
 
                 # Accumulate data for this run
                 if run.name in grouped_data:
@@ -404,10 +426,21 @@ def export_picks_combined(
     if output_format == "star":
         from copick.util.formats import get_tomogram_centers_from_copick, read_relion_tomograms
 
+        mode = _filament_mode(filament_columns)
+        if mode == "auto":
+            filament = bool(exported_filament_objects) and all(exported_filament_objects)
+            if any(exported_filament_objects) and not filament:
+                logging.warning(
+                    "Exporting filament and non-filament objects to one STAR file: writing plain particle angles. "
+                    "Export filament objects separately to get RELION's filament columns.",
+                )
+        else:
+            filament = mode
         star_kwargs = {
             "tomogram_centers": get_tomogram_centers_from_copick(root, list(grouped_data), voxel_spacing),
             "tilt_series_pixel_size": tilt_series_pixel_size,
             "tomograms": read_relion_tomograms(tomograms_star) if tomograms_star else None,
+            "filament": filament,
         }
 
     # Create output directory if needed
@@ -795,6 +828,7 @@ def export_run(
     log: bool = False,
     tilt_series_pixel_size: Optional[float] = None,
     tomograms_star: Optional[str] = None,
+    filament_columns: str = "auto",
 ) -> Dict[str, int]:
     """Export data from a single run.
 
@@ -813,6 +847,7 @@ def export_run(
         log: Log operations.
         tilt_series_pixel_size: STAR only: tilt-series pixel size in Angstrom.
         tomograms_star: STAR only: RELION tomograms.star with the runs' tomograms.
+        filament_columns: STAR only: "on", "off", or "auto" (filament columns for objects declared a filament).
 
     Returns:
         Dictionary with counts of exported items.
@@ -849,6 +884,7 @@ def export_run(
                     log=log,
                     tilt_series_pixel_size=tilt_series_pixel_size,
                     tomograms_star=tomograms_star,
+                    filament_columns=filament_columns,
                 )
                 results["picks"] += 1
         except Exception as e:
@@ -923,6 +959,7 @@ def export(
     log: bool = False,
     tilt_series_pixel_size: Optional[float] = None,
     tomograms_star: Optional[str] = None,
+    filament_columns: str = "auto",
 ) -> None:
     """Export data from a copick project.
 
@@ -943,6 +980,7 @@ def export(
         log: Log operations.
         tilt_series_pixel_size: STAR only: tilt-series pixel size in Angstrom.
         tomograms_star: STAR only: RELION tomograms.star with the runs' tomograms.
+        filament_columns: STAR only: "on", "off", or "auto" (filament columns for objects declared a filament).
     """
     import copick
     from copick.ops.run import map_runs
@@ -968,6 +1006,7 @@ def export(
             "log": log,
             "tilt_series_pixel_size": tilt_series_pixel_size,
             "tomograms_star": tomograms_star,
+            "filament_columns": filament_columns,
         }
         for _ in runs
     ]

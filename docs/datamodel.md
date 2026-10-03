@@ -268,6 +268,47 @@ glb file allows relating the mesh to the user or tool that created it, as well a
     object that the mesh represents.
 
 
+#### Filaments
+Traced filaments are stored as JSON files in the `Filaments` directory of the run, named like point annotations
+(`[user_id]_[session_id]_[object_name].json`). Each file holds the filaments of one object, each an ordered
+centreline (polyline) in angstrom coordinates with its own `instance_id`:
+
+```json
+{
+    "pickable_object_name": "microtubule",
+    "user_id": "tracer",
+    "session_id": "1",
+    "voxel_spacing": 10.0,
+    "unit": "angstrom",
+    "version": 1,
+    "filaments": [
+        {"instance_id": 1, "points": [[100.0, 200.0, 50.0], [110.0, 200.5, 50.2], ...],
+         "polarity_known": false, "score": 1.0, "radius": 120.0, "metadata": {}}
+    ]
+}
+```
+
+- `instance_id` is at least 1 and unique within the file; picks sampled from a filament use it as their
+  `instance_id`.
+- `points` are ordered along the filament, at least two, and should be no further apart than the voxel spacing the
+  filament was traced at, so that linear interpolation follows the centreline.
+- `polarity_known` says whether the point order follows the structure's polarity (meaningful for objects whose
+  filament spec has `polar: true`).
+- `version` is the version of this file format.
+
+The cryoET Data Portal has no filament annotations, so data-portal projects keep filaments in their overlay; a
+self-contained Croissant project (Mode A) cannot hold them.
+
+```python
+filaments = run.new_filaments(object_name="microtubule", user_id="tracer", session_id="1")
+filaments.from_numpy([centreline_1, centreline_2], voxel_spacing=10.0)  # (M, 3) arrays in angstrom
+for line in run.get_filaments(object_name="microtubule")[0].numpy():
+    ...
+```
+
+Refer to the [API Reference](api_reference/base_classes/data_entity_models/CopickFilaments.md) for the
+CopickFilaments API.
+
 #### Dense Segmentations
 Dense segmentations are stored as OME-NGFF files in the `Segmentations` directory of the run. Each can either contain a
 binary segmentation (values of 0 or 1) or a multilabel segmentation (where permissable labels are defined by the
@@ -334,6 +375,8 @@ The on-disk data model of copick is as follows:
       │  └─ 📄 [user_id | tool_name]_[session_id | 0]_[object_name].json
       ├─ 📁 Meshes/
       │  └─ 📄 [user_id | tool_name]_[session_id | 0]_[object_name].glb
+      ├─ 📁 Filaments/
+      │  └─ 📄 [user_id | tool_name]_[session_id | 0]_[object_name].json
       └─ 📁 Segmentations/
          ├─ 📁 [xx.yyy]_[user_id | tool_name]_[session_id | 0]_[object_name].zarr
          │   └─ [OME-NGFF spec at 100% scale, 50% and 25% scale]

@@ -43,14 +43,15 @@ class STARPicksHandler:
         tilt_series_pixel_size: Optional[float] = None,
         tomogram_center: Optional[Tuple[float, float, float]] = None,
         tomograms: Optional[Dict[str, "RelionTomogram"]] = None,
-    ) -> Tuple[np.ndarray, np.ndarray, Optional[np.ndarray]]:
+    ) -> Tuple[np.ndarray, np.ndarray, Optional[np.ndarray], Optional[np.ndarray]]:
         """Convert a RELION DataFrame to positions and transforms.
 
         Coordinates are resolved by ``copick.util.formats.relion_coordinates_to_angstrom``: centred Angstrom
         coordinates when the tomogram centres are known, else rlnCoordinateX/Y/Z in tilt-series pixels, else in
         pixels of ``voxel_spacing``. Orientations and shifts follow RELION (``copick.util.relion.relion_rows_to_poses``):
         the rotation is ``A_subtomogram @ A_particle`` and the location is the coordinate minus
-        ``A_subtomogram @ rlnOrigin{X,Y,Z}Angst``.
+        ``A_subtomogram @ rlnOrigin{X,Y,Z}Angst``. Filament tables (``rlnHelicalTubeID`` with
+        ``rlnHelicalTrackLengthAngst``) are ordered along each filament, and the tube IDs become instance IDs.
 
         Args:
             df: DataFrame with RELION columns
@@ -64,11 +65,12 @@ class STARPicksHandler:
             tomograms: tomograms.star entries by tomogram name
 
         Returns:
-            Tuple of (positions_angstrom, transforms_4x4, None)
+            Tuple of (positions_angstrom, transforms_4x4, None, instance_ids or None)
         """
         from copick.util.formats import relion_coordinates_to_angstrom
-        from copick.util.relion import relion_rows_to_poses
+        from copick.util.relion import order_filament_rows, relion_instance_ids, relion_rows_to_poses
 
+        df = order_filament_rows(df)
         coordinates = relion_coordinates_to_angstrom(
             df,
             voxel_spacing=voxel_spacing,
@@ -86,7 +88,7 @@ class STARPicksHandler:
         transforms[:, :3, :3] = rotations
         transforms[:, 3, 3] = 1.0
 
-        return coordinates - offsets, transforms, None
+        return coordinates - offsets, transforms, None, relion_instance_ids(df)
 
     def read(
         self,
@@ -114,7 +116,7 @@ class STARPicksHandler:
             tomograms: tomograms.star entries by tomogram name
 
         Returns:
-            Tuple of (positions_angstrom, transforms_4x4, None)
+            Tuple of (positions_angstrom, transforms_4x4, None, instance_ids or None)
         """
         from copick.util.formats import read_star_particles_with_optics
 
@@ -143,6 +145,9 @@ class STARPicksHandler:
         tomogram_center: Optional[Tuple[float, float, float]] = None,
         tilt_series_pixel_size: Optional[float] = None,
         tomogram: Optional["RelionTomogram"] = None,
+        instance_ids: Optional[np.ndarray] = None,
+        filament: bool = False,
+        polarity_known: bool = False,
         **kwargs,
     ) -> str:
         """Write picks to a STAR file.
@@ -162,6 +167,9 @@ class STARPicksHandler:
             tomogram_center: Tomogram centre in Angstrom
             tilt_series_pixel_size: Tilt-series pixel size in Angstrom
             tomogram: tomograms.star entry for this tomogram (centre, pixel size and CTF parameters)
+            instance_ids: Instance IDs (filament IDs with ``filament``)
+            filament: Write RELION's filament columns (``copick.util.formats.build_relion_particles_df``)
+            polarity_known: For filament columns: the point order follows the filament's polarity
 
         Returns:
             Path to the written file
@@ -175,6 +183,9 @@ class STARPicksHandler:
             tilt_series_pixel_size=tilt_series_pixel_size,
             tomograms={tomo_name: tomogram} if tomogram is not None and tomo_name is not None else None,
             include_optics=include_optics,
+            instance_ids={tomo_name: instance_ids} if instance_ids is not None else None,
+            filament=filament,
+            polarity_known=polarity_known,
         )
         write_star_particles(path, particles, optics)
         return path
@@ -209,7 +220,7 @@ class STARPicksHandler:
             tomograms: tomograms.star entries by tomogram name
 
         Returns:
-            Dict mapping run_name to (positions, transforms, scores)
+            Dict mapping run_name to (positions, transforms, scores, instance_ids or None)
         """
         from copick.util.formats import group_star_particles_by_tomogram, read_star_particles_with_optics
 
@@ -217,7 +228,7 @@ class STARPicksHandler:
         results = {}
 
         for run_name, run_df in group_star_particles_by_tomogram(df).items():
-            positions, transforms, scores = self._df_to_picks(
+            results[run_name] = self._df_to_picks(
                 run_df,
                 voxel_spacing,
                 tomogram_centers=tomogram_centers,
@@ -227,7 +238,6 @@ class STARPicksHandler:
                 tilt_series_pixel_size=tilt_series_pixel_size,
                 tomograms=tomograms,
             )
-            results[run_name] = (positions, transforms, scores)
 
         return results
 
@@ -242,6 +252,9 @@ class STARPicksHandler:
         tomogram_centers: Optional[Dict[str, Tuple[float, float, float]]] = None,
         tilt_series_pixel_size: Optional[float] = None,
         tomograms: Optional[Dict[str, "RelionTomogram"]] = None,
+        grouped_instance_ids: Optional[Dict[str, np.ndarray]] = None,
+        filament: bool = False,
+        polarity_known: bool = False,
         **kwargs,
     ) -> str:
         """Write picks from multiple runs to a single STAR file.
@@ -258,6 +271,9 @@ class STARPicksHandler:
             tomogram_centers: Tomogram centre in Angstrom per run
             tilt_series_pixel_size: Tilt-series pixel size in Angstrom
             tomograms: tomograms.star entries by run name
+            grouped_instance_ids: Instance IDs per run (filament IDs with ``filament``)
+            filament: Write RELION's filament columns (``copick.util.formats.build_relion_particles_df``)
+            polarity_known: For filament columns: the point order follows the filaments' polarity
 
         Returns:
             Path to the written file
@@ -272,6 +288,9 @@ class STARPicksHandler:
             tilt_series_pixel_size=tilt_series_pixel_size,
             tomograms=tomograms,
             include_optics=include_optics,
+            instance_ids=grouped_instance_ids,
+            filament=filament,
+            polarity_known=polarity_known,
         )
         return path
 
