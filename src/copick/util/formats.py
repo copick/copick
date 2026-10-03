@@ -1540,7 +1540,7 @@ def _relion_eulers(rotations: np.ndarray) -> np.ndarray:
             invalid += 1
     if invalid:
         logger.warning(
-            f"{invalid} of {len(rotations)} transforms are not rotations; their RELION angles are written as 0."
+            f"{invalid} of {len(rotations)} transforms are not rotations; their RELION angles are written as 0.",
         )
     return eulers
 
