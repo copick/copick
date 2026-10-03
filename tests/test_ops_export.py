@@ -375,6 +375,22 @@ class TestExportPicksCombined:
                 pytest.skip("No picks available for combined export")
             raise
 
+    def test_export_picks_combined_csv_keeps_instance_ids(self, test_payload, tmp_path):
+        """Combined CSV export writes each point's instance ID and score."""
+        import numpy as np
+        import pandas as pd
+
+        root = test_payload["root"]
+        picks = root.get_run("TS_001").new_picks(object_name="ribosome", user_id="combined-ids", session_id="1")
+        picks.from_numpy(np.array([[1.0, 2.0, 3.0], [4.0, 5.0, 6.0]]), instance_ids=[3, 4], scores=[0.5, 0.6])
+
+        output_file = str(tmp_path / "combined.csv")
+        export_picks_combined(str(test_payload["cfg_file"]), output_file, "ribosome:combined-ids/1", "csv")
+
+        df = pd.read_csv(output_file)
+        assert df["instance_id"].tolist() == [3, 4]
+        assert df["score"].tolist() == pytest.approx([0.5, 0.6])
+
     def test_export_picks_combined_star(self, test_payload, tmp_path):
         """Combined STAR export with voxel_spacing."""
         config = str(test_payload["cfg_file"])

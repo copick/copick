@@ -45,14 +45,15 @@ class EMPicksHandler:
         """
         from copick.util.formats import em_to_copick_transform, read_em_motivelist
 
-        # Read raw EM data (positions in pixels, Euler angles)
-        positions_px, eulers_deg, scores = read_em_motivelist(path)
+        # Read raw EM data (positions and shifts in pixels, Euler angles)
+        positions_px, eulers_deg, scores, shifts_px = read_em_motivelist(path, include_shifts=True)
 
-        # Convert to copick format (positions in Angstrom, 4x4 transforms)
+        # Convert to copick format (positions in Angstrom, 4x4 transforms carrying the shifts)
         positions_angstrom, transforms = em_to_copick_transform(
             positions_px,
             eulers_deg,
             voxel_spacing,
+            shifts_px=shifts_px,
         )
 
         return positions_angstrom, transforms, scores
@@ -64,6 +65,7 @@ class EMPicksHandler:
         transforms: np.ndarray,
         voxel_spacing: float,
         scores: Optional[np.ndarray] = None,
+        tomogram_index: int = 1,
         **kwargs,
     ) -> str:
         """Write picks to an EM motivelist file.
@@ -71,16 +73,30 @@ class EMPicksHandler:
         Args:
             path: Path to write the EM file
             positions: Nx3 array of positions in Angstrom
-            transforms: Nx4x4 array of transformation matrices
+            transforms: Nx4x4 array of transformation matrices; their translations are written as shifts
             voxel_spacing: Voxel spacing in Angstrom
             scores: Optional Nx1 array of CCC scores
+            tomogram_index: Tomogram index for all particles
 
         Returns:
             Path to the written file
         """
-        from copick.util.formats import write_em_motivelist
+        from copick.util.formats import copick_to_em_transform, write_em_motivelist
 
-        write_em_motivelist(path, positions, transforms, voxel_spacing, scores=scores)
+        positions_px, eulers_deg, shifts_px = copick_to_em_transform(
+            positions,
+            transforms,
+            voxel_spacing,
+            return_shifts=True,
+        )
+        write_em_motivelist(
+            path,
+            positions_px,
+            eulers_deg,
+            scores=scores,
+            tomogram_index=tomogram_index,
+            shifts=shifts_px,
+        )
         return path
 
     def read_grouped(

@@ -787,9 +787,10 @@ def segmentation(
 )
 @click.option(
     "--object-type",
-    type=click.Choice(["particle", "segmentation"], case_sensitive=False),
+    type=click.Choice(["particle", "segmentation", "filament"], case_sensitive=False),
     default="particle",
-    help="Type of object: 'particle' for point annotations or 'segmentation' for mask annotations.",
+    help="Type of object: 'particle' for point annotations, 'segmentation' for mask annotations, or 'filament' "
+    "for point annotations ordered along filaments (e.g. microtubules, actin).",
     show_default=True,
 )
 @click.option(
@@ -835,8 +836,25 @@ def segmentation(
     "--radius",
     type=float,
     default=50,
-    help="Radius of the particle, when displaying as a sphere.",
+    help="Radius of the particle, when displaying as a sphere. For a filament, the tube radius.",
     show_default=True,
+)
+@click.option(
+    "--polar/--apolar",
+    default=None,
+    help="Filaments only: whether the structure has a polarity (microtubules and actin do). Not stated by default.",
+)
+@click.option(
+    "--helical-rise",
+    type=float,
+    default=None,
+    help="Filaments only: axial rise per subunit in Angstrom. Descriptive only; never used as a sampling default.",
+)
+@click.option(
+    "--helical-twist",
+    type=float,
+    default=None,
+    help="Filaments only: twist per subunit in degrees. Descriptive only.",
 )
 @click.option(
     "--metadata",
@@ -885,6 +903,9 @@ def object(
     identifier: str,
     map_threshold: float,
     radius: float,
+    polar: bool,
+    helical_rise: float,
+    helical_twist: float,
     metadata: str,
     volume: str,
     volume_format: str,
@@ -918,6 +939,11 @@ def object(
         copick add object -c config.json --name membrane --object-type segmentation \\
             --label 1 --color "0,255,0,128"
 
+        \b
+        # Add a polar filament with its tube radius
+        copick add object -c config.json --name microtubule --object-type filament \\
+            --radius 120 --polar
+
     See Also:
 
         \b
@@ -934,8 +960,15 @@ def object(
     # Get root
     root = copick.from_file(config)
 
-    # Convert object type to is_particle boolean
-    is_particle = object_type.lower() == "particle"
+    # Convert object type to is_particle boolean; filaments are point-annotated
+    object_type = object_type.lower()
+    is_particle = object_type in ("particle", "filament")
+
+    filament_spec = None
+    if object_type == "filament":
+        filament_spec = {"polar": polar, "helical_rise_a": helical_rise, "helical_twist_deg": helical_twist}
+    elif polar is not None or helical_rise is not None or helical_twist is not None:
+        ctx.fail("--polar/--apolar, --helical-rise and --helical-twist apply only to --object-type filament.")
 
     # Parse color if provided
     color_tuple = None
@@ -997,6 +1030,7 @@ def object(
             save_config=True,
             config_path=config,
             log=debug,
+            filament=filament_spec,
         )
 
         logger.info(f"Successfully added {object_type} object '{name}' with label {obj.label}")
@@ -1118,6 +1152,20 @@ def object_volume(
         ctx.fail(f"Error adding volume to object: {e}")
 
 
+def _star_pixel_size_known(path: str, tilt_series_pixel_size, tomograms_star) -> bool:
+    """Whether a STAR import knows the tilt-series pixel size without --voxel-size: given explicitly, from a
+    tomograms.star, or from the file's optics table."""
+    from copick.util.formats import read_star_particles_with_optics, relion_tilt_series_pixel_sizes
+
+    if tilt_series_pixel_size is not None or tomograms_star:
+        return True
+    try:
+        df, optics = read_star_particles_with_optics(path)
+        return relion_tilt_series_pixel_sizes(df, optics) is not None
+    except Exception:
+        return False
+
+
 @add.command(
     short_help="Add picks from external formats (EM, STAR, Dynamo, CSV).",
     no_args_is_help=True,
@@ -1137,7 +1185,24 @@ def object_volume(
     type=float,
     default=None,
     show_default=True,
-    help="Voxel size in Angstrom (required for EM, STAR, and Dynamo formats for coordinate conversion).",
+    help="Voxel size in Angstrom (required for EM and Dynamo formats for coordinate conversion; for STAR, required "
+    "only when the file's coordinates are tomogram pixels, i.e. no tilt-series pixel size is known).",
+)
+@click.option(
+    "--tilt-series-pixel-size",
+    required=False,
+    type=float,
+    default=None,
+    help="STAR only: tilt-series pixel size in Angstrom, the unit RELION 4/5 use for rlnCoordinateX/Y/Z. "
+    "Read from the file's optics table (rlnTomoTiltSeriesPixelSize) when omitted.",
+)
+@click.option(
+    "--tomograms-star",
+    required=False,
+    type=click.Path(exists=True, file_okay=True, dir_okay=False),
+    default=None,
+    help="STAR only: RELION tomograms.star giving each tomogram's centre (for rlnCenteredCoordinate*Angst) and "
+    "tilt-series pixel size.",
 )
 @click.option(
     "--file-type",
@@ -1167,6 +1232,8 @@ def picks(
     user_id: str,
     session_id: str,
     voxel_size: float,
+    tilt_series_pixel_size: float,
+    tomograms_star: str,
     file_type: str,
     max_workers: int,
     path: str,
@@ -1184,6 +1251,14 @@ def picks(
     files (.csv). A voxel size is required for the EM, STAR, and Dynamo formats so
     coordinates can be converted; CSV files carry a `run_name` column and are
     grouped automatically.
+
+    STAR files are read as RELION does: centred coordinates
+    (`rlnCenteredCoordinate*Angst`) relative to the tomogram centre when it is
+    known (from `--tomograms-star` or the run's copick tomogram), otherwise
+    `rlnCoordinateX/Y/Z` in tilt-series pixels (`--tilt-series-pixel-size`, or the
+    file's optics table), otherwise in pixels of `--voxel-size`. Subtomogram
+    orientations (`rlnTomoSubtomogram*`) and shifts (`rlnOrigin*Angst`) are
+    applied.
 
     For batch imports from a single file that spans many tomograms, use the
     dedicated commands `copick add picks-em`, `copick add picks-dynamo`, or
@@ -1249,8 +1324,17 @@ def picks(
 
     # Validate voxel size for formats that require it
     ft = file_type.lower() if file_type else get_picks_format_from_extension(paths[0])
-    if ft in ["em", "star", "dynamo"] and voxel_size is None:
+    if ft in ["em", "dynamo"] and voxel_size is None:
         ctx.fail(f"--voxel-size is required for {ft.upper()} format import.")
+    if (
+        ft == "star"
+        and voxel_size is None
+        and not _star_pixel_size_known(paths[0], tilt_series_pixel_size, tomograms_star)
+    ):
+        ctx.fail(
+            "--voxel-size is required for STAR import unless the tilt-series pixel size is known "
+            "(--tilt-series-pixel-size, --tomograms-star, or rlnTomoTiltSeriesPixelSize in the file's optics table).",
+        )
 
     # For CSV files, we handle them specially since they contain run_name column
     if ft == "csv":
@@ -1297,6 +1381,8 @@ def picks(
                 exist_ok=overwrite,
                 overwrite=overwrite,
                 log=debug,
+                tilt_series_pixel_size=tilt_series_pixel_size,
+                tomograms_star=tomograms_star,
             )
             return {"processed": 1, "errors": []}
         except Exception as e:
@@ -1643,18 +1729,27 @@ def picks_dynamo(
 @add_user_session_options
 @click.option(
     "--voxel-size",
-    required=True,
+    required=False,
     type=float,
-    help="Voxel size in Angstrom (required for coordinate conversion).",
+    default=None,
+    help="Voxel size in Angstrom. Selects the copick tomograms whose centres are used for centred coordinates, and "
+    "is the unit of rlnCoordinateX/Y/Z when no tilt-series pixel size is known (then it is required).",
 )
 @click.option(
     "--tomograms-star",
     required=False,
     type=click.Path(exists=True, file_okay=True, dir_okay=False),
     default=None,
-    help="Path to RELION tomograms.star file for RELION 5.0 coordinate conversion. "
-    "If not provided and RELION 5.0 format is detected, tomogram dimensions will be "
-    "read from existing tomograms in the copick project.",
+    help="Path to RELION tomograms.star giving each tomogram's centre and tilt-series pixel size. "
+    "If not provided, centres are read from existing tomograms in the copick project.",
+)
+@click.option(
+    "--tilt-series-pixel-size",
+    required=False,
+    type=float,
+    default=None,
+    help="STAR only: tilt-series pixel size in Angstrom, the unit RELION 4/5 use for rlnCoordinateX/Y/Z. "
+    "Read from the file's optics table (rlnTomoTiltSeriesPixelSize) when omitted.",
 )
 @click.option(
     "--relion-version",
@@ -1682,6 +1777,7 @@ def picks_relion(
     session_id: str,
     voxel_size: float,
     tomograms_star: str,
+    tilt_series_pixel_size: float,
     relion_version: str,
     max_workers: int,
     path: str,
@@ -1694,14 +1790,17 @@ def picks_relion(
 
     Imports particle picks from one or more RELION particle STAR files that carry
     the `_rlnTomoName` column identifying each particle's tomogram; run names are
-    extracted from that column automatically. Both RELION 4.x (pixel coordinates in
-    `rlnCoordinateX/Y/Z`) and RELION 5.0 (centered Angstrom coordinates in
-    `rlnCenteredCoordinateX/Y/ZAngst`) formats are supported, with the version
-    auto-detected from the column names unless overridden by `--relion-version`.
+    extracted from that column automatically.
 
-    For RELION 5.0, tomogram dimensions are needed to convert centered coordinates
-    to absolute coordinates. Supply them with `--tomograms-star`, or omit it to read
-    the dimensions from tomograms already present in the copick project.
+    Coordinates are read as RELION does: centred Angstrom coordinates
+    (`rlnCenteredCoordinateX/Y/ZAngst`) relative to each tomogram's centre when it
+    is known, from `--tomograms-star` or the tomograms already in the copick
+    project; otherwise `rlnCoordinateX/Y/Z` in tilt-series pixels, the unit RELION
+    4 and 5 use (from `--tilt-series-pixel-size`, the file's optics table, or the
+    tomograms.star); otherwise, for files written by other tools, in pixels of
+    `--voxel-size`. `--relion-version relion5` or `relion4` forces centred or pixel
+    coordinates. Subtomogram orientations (`rlnTomoSubtomogram*`) and shifts
+    (`rlnOrigin*Angst`) are applied.
 
     Arguments:
 
@@ -1711,7 +1810,7 @@ def picks_relion(
     Examples:
 
         \b
-        # Import RELION 4.x particles
+        # Import particles whose coordinates are tomogram pixels at 10 A (no optics table)
         copick add picks-relion particles.star -c config.json --object-name ribosome \\
             --voxel-size 10.0
 
@@ -1735,9 +1834,10 @@ def picks_relion(
     import copick
     from copick.ops.add import add_picks_grouped_from_file
     from copick.util.formats import (
-        detect_relion_version,
+        RelionPixelSizeError,
+        RelionTomogramCenterError,
         get_tomogram_centers_from_copick,
-        read_relion5_tomogram_centers,
+        read_relion_tomograms,
         read_star_particles,
     )
 
@@ -1759,30 +1859,16 @@ def picks_relion(
     total_runs = set()
     for p in paths:
         try:
-            # Read STAR file to detect version
             df = read_star_particles(p)
-            detected_version = relion_version if relion_version != "auto" else detect_relion_version(df)
-            logger.info(f"Detected RELION version: {detected_version}")
+            forced_version = None if relion_version == "auto" else relion_version
 
-            # Get tomogram centers for RELION 5.0
+            # Tomogram centres and pixel sizes: from tomograms.star, else from the copick project's tomograms
+            tomograms = read_relion_tomograms(tomograms_star) if tomograms_star else None
             tomogram_centers = None
-            if detected_version == "relion5":
-                if tomograms_star:
-                    # Option A: Use tomograms.star file
-                    logger.info(f"Loading tomogram centers from {tomograms_star}")
-                    tomogram_centers = read_relion5_tomogram_centers(tomograms_star)
-                else:
-                    # Option B: Use existing copick project tomograms
-                    run_names = df["rlnTomoName"].unique().tolist() if "rlnTomoName" in df.columns else []
-                    logger.info(f"Loading tomogram centers from copick project for {len(run_names)} runs")
-                    tomogram_centers = get_tomogram_centers_from_copick(root, run_names, voxel_size)
-
-                    if not tomogram_centers:
-                        ctx.fail(
-                            "RELION 5.0 coordinates require tomogram dimensions. Either:\n"
-                            "  1. Provide --tomograms-star with tomogram metadata, or\n"
-                            "  2. Import tomograms first so dimensions can be read from copick project",
-                        )
+            if tomograms is None:
+                run_names = df["rlnTomoName"].astype(str).unique().tolist() if "rlnTomoName" in df.columns else []
+                tomogram_centers = get_tomogram_centers_from_copick(root, run_names, voxel_size)
+                logger.info(f"Loaded tomogram centers from the copick project for {len(tomogram_centers)} runs")
 
             results = add_picks_grouped_from_file(
                 root=root,
@@ -1798,13 +1884,17 @@ def picks_relion(
                 overwrite=overwrite,
                 log=debug,
                 tomogram_centers=tomogram_centers,
-                relion_version=detected_version,
+                relion_version=forced_version,
+                tilt_series_pixel_size=tilt_series_pixel_size,
+                tomograms=tomograms,
             )
             total_runs.update(results.keys())
             logger.info(f"Imported picks from {p} to {len(results)} runs")
         except (SystemExit, click.UsageError):
             # Re-raise click exceptions from ctx.fail()
             raise
+        except (RelionPixelSizeError, RelionTomogramCenterError) as e:
+            ctx.fail(f"{p}: {e}")
         except Exception as e:
             logger.error(f"Failed to import picks from {p}: {e}")
 
