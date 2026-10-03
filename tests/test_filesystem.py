@@ -494,7 +494,19 @@ def test_picks_read_relion_df(
     ts_001_ribosome_gapstop_translations = ts_001_ribosome_gapstop_transformations[:, :3, 3]
     ts_001_ribosome_gapstop_translated_points = ts_001_ribosome_gapstop_points + ts_001_ribosome_gapstop_translations
 
+    # Without a tilt-series pixel size, only centred coordinates are written (TS_001's tomogram centre is 320 A)
     df = picks[0].df()
+    assert not {"rlnCoordinateX", "rlnCoordinateY", "rlnCoordinateZ"} & set(df.columns)
+    assert (df["rlnTomoName"] == "TS_001").all()
+    df_centered = df[["rlnCenteredCoordinateXAngst", "rlnCenteredCoordinateYAngst", "rlnCenteredCoordinateZAngst"]]
+    assert np.allclose(
+        df_centered.to_numpy() + 320.0,
+        ts_001_ribosome_gapstop_translated_points,
+        atol=NUMERICAL_PRECISION,
+    ), "Error getting centred coordinates from DataFrame."
+
+    # With it, rlnCoordinateX/Y/Z are written in tilt-series pixels
+    df = picks[0].df(tilt_series_pixel_size=SMALLEST_VOXEL_SIZE)
     df_points_px = df[["rlnCoordinateX", "rlnCoordinateY", "rlnCoordinateZ"]].to_numpy() * SMALLEST_VOXEL_SIZE
     assert np.allclose(
         df_points_px,
@@ -576,6 +588,52 @@ def test_picks_write_numpy(test_payload: Dict[str, Any]):
 
     with pytest.raises(ValueError):
         picks.from_numpy(POINTS_err, ORIENTATIONS)
+
+
+def test_picks_write_numpy_identity_and_scores(test_payload: Dict[str, Any]):
+    copick_run = test_payload["root"].get_run("TS_001")
+    picks = copick_run.new_picks(object_name="ribosome", user_id="identity", session_id="1")
+
+    points = np.array([[1.0, 2.0, 3.0], [4.0, 5.0, 6.0], [7.0, 8.0, 9.0]])
+    transforms = np.tile(np.eye(4), (3, 1, 1))
+    transforms[:, :3, 3] = [[0.5, 0.0, 0.0], [0.0, -2.0, 0.0], [0.0, 0.0, 3.0]]
+    picks.from_numpy(points, transforms, instance_ids=np.array([1, 1, 2]), scores=np.array([0.5, 0.25, 0.75]))
+    del picks
+
+    picks = copick_run.get_picks(object_name="ribosome", user_id="identity", session_id="1")[0]
+    assert picks.instance_ids().tolist() == [1, 1, 2]
+    assert picks.scores() == pytest.approx([0.5, 0.25, 0.75])
+    assert picks.full_positions() == pytest.approx(points + transforms[:, :3, 3])
+    positions, read_transforms = picks.numpy()  # numpy() still returns locations and transforms only
+    assert positions == pytest.approx(points)
+    assert read_transforms == pytest.approx(transforms)
+
+
+def test_picks_write_numpy_identity_defaults(test_payload: Dict[str, Any]):
+    copick_run = test_payload["root"].get_run("TS_001")
+    picks = copick_run.new_picks(object_name="ribosome", user_id="identity", session_id="2")
+    picks.from_numpy(np.array([[1.0, 2.0, 3.0], [4.0, 5.0, 6.0]]))
+
+    assert picks.instance_ids().tolist() == [0, 0]
+    assert picks.scores().tolist() == [1.0, 1.0]
+    assert picks.full_positions() == pytest.approx(np.array([[1.0, 2.0, 3.0], [4.0, 5.0, 6.0]]))
+
+
+@pytest.mark.parametrize(
+    "kwargs, message",
+    [
+        ({"instance_ids": np.array([1, 2, 3])}, "instance_ids must have shape"),
+        ({"instance_ids": np.array([1, -1])}, "instance_ids must be >= 0"),
+        ({"instance_ids": np.array([1.5, 2.0])}, "instance_ids must be integers"),
+        ({"scores": np.array([1.0])}, "scores must have shape"),
+        ({"scores": np.array([1.0, np.nan])}, "scores must be finite"),
+    ],
+)
+def test_picks_write_numpy_identity_rejects(test_payload: Dict[str, Any], kwargs, message):
+    copick_run = test_payload["root"].get_run("TS_001")
+    picks = copick_run.new_picks(object_name="ribosome", user_id="identity", session_id="3")
+    with pytest.raises(ValueError, match=message):
+        picks.from_numpy(np.array([[1.0, 2.0, 3.0], [4.0, 5.0, 6.0]]), **kwargs)
 
 
 def test_picks_write_relion_df(

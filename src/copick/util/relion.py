@@ -1,4 +1,4 @@
-from typing import TYPE_CHECKING, Tuple, Union
+from typing import TYPE_CHECKING, Optional, Tuple, Union
 
 import numpy as np
 import zarr
@@ -84,114 +84,167 @@ def get_tomogram_spacing_and_dimensions(
     return voxel_spacing.voxel_size, tomogram_x, tomogram_y, tomogram_z
 
 
-def picks_to_df_relion(picks: "CopickPicks") -> "pd.DataFrame":
-    """Returns the points as a pandas DataFrame with RELION columns:
-    rlnCoordinateX, rlnCoordinateY, rlnCoordinateZ,
-    rlnAngleRot, rlnAngleTilt, rlnAnglePsi,
-    rlnCenteredCoordinateXAngst, rlnCenteredCoordinateYAngst, rlnCenteredCoordinateZAngst
+def relion_rows_to_poses(df: "pd.DataFrame") -> Tuple[np.ndarray, np.ndarray]:
+    """Rotations and shifts of RELION tomography particles, in copick's convention.
+
+    RELION composes a particle's orientation as ``A = A_subtomogram @ A_particle`` from ``rlnTomoSubtomogram{Rot,Tilt,
+    Psi}`` and ``rlnAngle{Rot,Tilt,Psi}``, and places it at its coordinate minus ``A_subtomogram @ rlnOrigin{X,Y,Z}Angst``
+    (RELION's ``ParticleSet::getMatrix3x3`` and ``getPosition``). Each Euler triple is converted with
+    ``Rotation.from_euler("ZYZ", angles).inv()``, which equals RELION's Euler-angle matrix. Missing columns count as
+    zero angles and zero shifts.
+
+    Args:
+        df: RELION particle table.
+
+    Returns:
+        Tuple of (rotations, offsets): (N, 3, 3) object-to-tomogram rotations, and (N, 3) shifts in Angstrom in the
+        tomogram frame, to be subtracted from the particle coordinates.
     """
-    import pandas as pd
     from scipy.spatial.transform import Rotation
+
+    n = len(df)
+
+    sub_orientations = np.tile(np.eye(3), (n, 1, 1))
+    if {"rlnTomoSubtomogramRot", "rlnTomoSubtomogramTilt", "rlnTomoSubtomogramPsi"}.issubset(df.columns):
+        angles = df[["rlnTomoSubtomogramRot", "rlnTomoSubtomogramTilt", "rlnTomoSubtomogramPsi"]].to_numpy(dtype=float)
+        sub_orientations = Rotation.from_euler("ZYZ", angles, degrees=True).inv().as_matrix().reshape(n, 3, 3)
+
+    particle_orientations = np.tile(np.eye(3), (n, 1, 1))
+    if {"rlnAngleRot", "rlnAngleTilt", "rlnAnglePsi"}.issubset(df.columns):
+        angles = df[["rlnAngleRot", "rlnAngleTilt", "rlnAnglePsi"]].to_numpy(dtype=float)
+        particle_orientations = Rotation.from_euler("ZYZ", angles, degrees=True).inv().as_matrix().reshape(n, 3, 3)
+
+    origins = np.zeros((n, 3), dtype=float)
+    if {"rlnOriginXAngst", "rlnOriginYAngst", "rlnOriginZAngst"}.issubset(df.columns):
+        origins = df[["rlnOriginXAngst", "rlnOriginYAngst", "rlnOriginZAngst"]].to_numpy(dtype=float)
+
+    rotations = np.einsum("nij,njk->nik", sub_orientations, particle_orientations)
+    offsets = np.einsum("nij,nj->ni", sub_orientations, origins)
+    return rotations, offsets
+
+
+def copick_tomogram_center(
+    picks: "CopickPicks",
+    voxel_spacing: Optional[float] = None,
+) -> Optional[Tuple[float, float, float]]:
+    """Centre in Angstrom of the tomogram of the run these picks belong to (tomogram shape / 2 * voxel size).
+
+    Uses a tomogram at ``voxel_spacing`` if the run has one there, else the tomogram at the smallest voxel spacing
+    with a tomogram (as earlier copick versions did). Returns None if the run has no tomogram.
+    """
+    from copick.util.formats import get_tomogram_centers_from_copick
+
+    run = picks.run
+    if voxel_spacing is not None:
+        centers = get_tomogram_centers_from_copick(run.root, [run.name], voxel_spacing)
+        if run.name in centers:
+            return centers[run.name]
+    try:
+        voxel_size, tomogram_x, tomogram_y, tomogram_z = get_tomogram_spacing_and_dimensions(picks)
+    except ValueError:
+        return None
+    return (tomogram_x / 2 * voxel_size, tomogram_y / 2 * voxel_size, tomogram_z / 2 * voxel_size)
+
+
+def _smallest_voxel_spacing(picks: "CopickPicks") -> Optional[float]:
+    """The run's smallest voxel spacing, or None if it has none."""
+    if not picks.run.voxel_spacings:
+        return None
+    return get_tomogram_spacing_and_dimensions(picks, only_voxel_size=True)[0]
+
+
+def picks_to_df_relion(
+    picks: "CopickPicks",
+    *,
+    voxel_spacing: Optional[float] = None,
+    tilt_series_pixel_size: Optional[float] = None,
+    tomogram_center: Optional[Tuple[float, float, float]] = None,
+) -> "pd.DataFrame":
+    """Returns the points as a pandas DataFrame with RELION columns.
+
+    Columns are rlnTomoName, rlnAngleRot/Tilt/Psi and, following ``copick.util.formats.build_relion_particles_df``,
+    rlnCenteredCoordinateX/Y/ZAngst whenever the tomogram centre is known and rlnCoordinateX/Y/Z in tilt-series pixels
+    whenever ``tilt_series_pixel_size`` is given. Positions include the transforms' translations.
+
+    Args:
+        picks: The picks to convert.
+        voxel_spacing: Voxel spacing whose tomogram defines the centre (see ``copick_tomogram_center``).
+        tilt_series_pixel_size: Tilt-series pixel size in Angstrom; enables rlnCoordinateX/Y/Z.
+        tomogram_center: Tomogram centre in Angstrom; overrides the copick tomogram.
+    """
+    from copick.util.formats import build_relion_particles_df
 
     points, _ = picks.numpy()
     transforms = normalize_transforms(picks)
-    translations = transforms[:, :3, 3]
-    points += translations
-    rots = transforms[:, :3, :3]
-    eulers = np.zeros((rots.shape[0], 3))
-    for i, Rmat in enumerate(rots):
-        if np.allclose(Rmat, np.eye(3)):
-            # handle identity rotation to prevent excessive scipy UserWarning
-            eulers[i] = np.array([0.0, 0.0, 0.0])
-        else:
-            r = Rotation.from_matrix(Rmat)
-            eulers[i] = r.inv().as_euler("ZYZ", degrees=True)
-    voxel_size, tomogram_x, tomogram_y, tomogram_z = get_tomogram_spacing_and_dimensions(picks, only_voxel_size=False)
-    points_px = points / voxel_size
-    centered_points = points.copy()
-    centered_points[:, 0] -= tomogram_x / 2 * voxel_size
-    centered_points[:, 1] -= tomogram_y / 2 * voxel_size
-    centered_points[:, 2] -= tomogram_z / 2 * voxel_size
+    if tomogram_center is None:
+        tomogram_center = copick_tomogram_center(picks, voxel_spacing)
+    legacy_voxel_spacing = None
+    if tomogram_center is None and tilt_series_pixel_size is None:
+        legacy_voxel_spacing = voxel_spacing if voxel_spacing is not None else _smallest_voxel_spacing(picks)
 
-    df = pd.DataFrame(
-        {
-            "rlnCoordinateX": points_px[:, 0],
-            "rlnCoordinateY": points_px[:, 1],
-            "rlnCoordinateZ": points_px[:, 2],
-            "rlnAngleRot": eulers[:, 0],
-            "rlnAngleTilt": eulers[:, 1],
-            "rlnAnglePsi": eulers[:, 2],
-            "rlnCenteredCoordinateXAngst": centered_points[:, 0],
-            "rlnCenteredCoordinateYAngst": centered_points[:, 1],
-            "rlnCenteredCoordinateZAngst": centered_points[:, 2],
-        },
+    return build_relion_particles_df(
+        points,
+        transforms,
+        tomo_name=picks.run.name,
+        tomogram_center=tomogram_center,
+        tilt_series_pixel_size=tilt_series_pixel_size,
+        legacy_voxel_spacing=legacy_voxel_spacing,
     )
-    return df
 
 
-def relion_df_to_picks(picks: "CopickPicks", df: "pd.DataFrame") -> None:
-    """Set the points from a pandas DataFrame with RELION columns."""
-    from scipy.spatial.transform import Rotation
+def relion_df_to_picks(
+    picks: "CopickPicks",
+    df: "pd.DataFrame",
+    *,
+    optics: Optional["pd.DataFrame"] = None,
+    tilt_series_pixel_size: Optional[float] = None,
+    tomogram_center: Optional[Tuple[float, float, float]] = None,
+    relion_version: Optional[str] = None,
+) -> None:
+    """Set the points from a pandas DataFrame with RELION columns.
+
+    Coordinates are resolved by ``copick.util.formats.relion_coordinates_to_angstrom`` (centred coordinates with the
+    copick tomogram's centre first, then rlnCoordinateX/Y/Z in tilt-series pixels, then in pixels of the run's smallest
+    voxel spacing), and orientations and shifts by ``relion_rows_to_poses``: each pick's location is its coordinate
+    minus its shift, and its transform holds the rotation with zero translation.
+
+    Args:
+        picks: The picks to set.
+        df: RELION particle table; every row belongs to this run.
+        optics: The STAR file's optics table, for its tilt-series pixel size.
+        tilt_series_pixel_size: Tilt-series pixel size in Angstrom, overriding the optics table.
+        tomogram_center: Tomogram centre in Angstrom; overrides the copick tomogram.
+        relion_version: Force centred ("relion5") or pixel ("relion4") coordinates.
+    """
+    from copick.util.formats import relion_coordinates_to_angstrom
 
     if not {"rlnCenteredCoordinateXAngst", "rlnCenteredCoordinateYAngst", "rlnCenteredCoordinateZAngst"}.issubset(
         df.columns,
     ) and not {"rlnCoordinateX", "rlnCoordinateY", "rlnCoordinateZ"}.issubset(df.columns):
         raise ValueError("DataFrame does not contain required RELION columns.")
 
-    N = len(df)
-    all_sub_orientations = np.zeros((N, 3, 3), dtype=float)
-    aligned_offsets = np.zeros((N, 3), dtype=float)
-    all_orientations = np.zeros((N, 3, 3), dtype=float)
-    affine_combined_orientations = np.zeros((N, 4, 4), dtype=float)
+    has_centered = {
+        "rlnCenteredCoordinateXAngst",
+        "rlnCenteredCoordinateYAngst",
+        "rlnCenteredCoordinateZAngst",
+    }.issubset(
+        df.columns,
+    )
+    if tomogram_center is None and has_centered:
+        tomogram_center = copick_tomogram_center(picks)
 
-    # Following RELION convention, offsets are oriented in the direction of the subtomogram orientation and subtracted from the point
-    # and the aligned orientation is combined with the subtomogram orientation and converted to a 4x4 affine transformation matrix
+    coordinates = relion_coordinates_to_angstrom(
+        df.drop(columns=["rlnTomoName"], errors="ignore"),
+        voxel_spacing=_smallest_voxel_spacing(picks),
+        tomogram_center=tomogram_center,
+        tilt_series_pixel_size=tilt_series_pixel_size,
+        optics=optics,
+        relion_version=relion_version,
+    )
+    rotations, offsets = relion_rows_to_poses(df)
 
-    # First do the affine transformation matrix (holds the orientations)
-    # Subtomogram orientations
-    if {"rlnTomoSubtomogramRot", "rlnTomoSubtomogramTilt", "rlnTomoSubtomogramPsi"}.issubset(df.columns):
-        angles = df[["rlnTomoSubtomogramRot", "rlnTomoSubtomogramTilt", "rlnTomoSubtomogramPsi"]].to_numpy()
-        all_sub_orientations[:] = Rotation.from_euler("ZYZ", angles, degrees=True).inv().as_matrix()
-    else:
-        all_sub_orientations[:] = np.eye(3)
+    transforms = np.zeros((len(df), 4, 4), dtype=float)
+    transforms[:, :3, :3] = rotations
+    transforms[:, 3, 3] = 1.0
 
-    # Refined particle orientations
-    if {"rlnAngleRot", "rlnAngleTilt", "rlnAnglePsi"}.issubset(df.columns):
-        angles = df[["rlnAngleRot", "rlnAngleTilt", "rlnAnglePsi"]].to_numpy()
-        all_orientations[:] = Rotation.from_euler("ZYZ", angles, degrees=True).inv().as_matrix()
-    else:
-        all_orientations[:] = np.eye(3)
-
-    combined_orientations = np.einsum("nij,njk->nik", all_orientations, all_sub_orientations)
-
-    affine_combined_orientations[:, :3, :3] = combined_orientations
-    affine_combined_orientations[:, 3, 3] = 1.0
-
-    # Refined particle offsets
-    if {"rlnOriginXAngst", "rlnOriginYAngst", "rlnOriginZAngst"}.issubset(df.columns):
-        aligned_offsets = df[["rlnOriginXAngst", "rlnOriginYAngst", "rlnOriginZAngst"]].to_numpy()
-
-    all_sub_oriented_aligned_offsets = np.einsum("nij,nj->ni", all_sub_orientations, aligned_offsets)
-
-    # Convert coordinates to uncentered angstrom copick format
-    # Use "rlnCoordinateX", "rlnCoordinateY, and rlnCoordinateZ" if possible because it doesn't require tomogram dimensions for converting to copick format
-    if {"rlnCoordinateX", "rlnCoordinateY", "rlnCoordinateZ"}.issubset(df.columns):
-        all_coords = df[["rlnCoordinateX", "rlnCoordinateY", "rlnCoordinateZ"]].to_numpy()
-        voxel_size, _, _, _ = get_tomogram_spacing_and_dimensions(picks, only_voxel_size=True)
-        all_coords *= voxel_size
-    else:
-        all_coords = df[
-            ["rlnCenteredCoordinateXAngst", "rlnCenteredCoordinateYAngst", "rlnCenteredCoordinateZAngst"]
-        ].to_numpy()
-        voxel_size, tomogram_x, tomogram_y, tomogram_z = get_tomogram_spacing_and_dimensions(
-            picks,
-            only_voxel_size=False,
-        )
-
-        all_coords[:, 0] += tomogram_x / 2 * voxel_size
-        all_coords[:, 1] += tomogram_y / 2 * voxel_size
-        all_coords[:, 2] += tomogram_z / 2 * voxel_size
-
-    corrected_all_coords = all_coords - all_sub_oriented_aligned_offsets
-
-    picks.from_numpy(corrected_all_coords, affine_combined_orientations)
+    picks.from_numpy(coordinates - offsets, transforms)

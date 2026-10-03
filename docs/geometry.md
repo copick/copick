@@ -128,6 +128,22 @@ The **full position** of the particle center, including any refinement shifts, i
 $$\mathbf{p}_\text{full} = \mathbf{p}_\text{location} + \mathbf{t}_\text{transform}$$
 
 where $\mathbf{t}_\text{transform} = (t_x, t_y, t_z)^T$ is extracted from the transformation matrix.
+`CopickPicks.full_positions()` returns these centres; use it, not the locations returned by `CopickPicks.numpy()`,
+wherever a particle is placed, drawn or extracted.
+
+### 2.4 Filament Frames
+
+Objects declared as filaments (see [Pickable Object](datamodel.md#pickable-object)) use the point fields with these
+conventions:
+
+- `instance_id` is the filament ID. IDs start at 1; 0 means the point is not assigned to a filament.
+- Points are grouped by filament and stored in order along it.
+- The +Z axis of the transform's rotation, $\mathbf{R}\,\hat{\mathbf{z}}$, is the local filament axis (the tangent),
+  pointing in the direction of increasing point order. The rotation about the axis (roll) is arbitrary unless a tool
+  documents otherwise.
+- The transform's translation is 0; the position along the axis is the `location`.
+- The point order follows the structure's polarity only where the producer states it. Otherwise the direction along
+  the filament is unknown.
 
 ---
 
@@ -246,6 +262,16 @@ $$\mathbf{R} = \left( R_z(\phi) \cdot R_y(\theta) \cdot R_z(\psi) \right)^{-1}$$
 
 where $R_z$ and $R_y$ are elementary rotation matrices about the Z and Y axes, respectively.
 
+RELION 4/5 tomography particles may also carry a subtomogram orientation (`rlnTomoSubtomogramRot/Tilt/Psi`) and
+shifts (`rlnOriginX/Y/ZAngst`). As in RELION's `ParticleSet`, with $\mathbf{A}_\text{sub}$ and
+$\mathbf{A}_\text{particle}$ the matrices of the two angle triples (each converted as above):
+
+$$\mathbf{R} = \mathbf{A}_\text{sub} \cdot \mathbf{A}_\text{particle}, \qquad
+\mathbf{p}_\text{location} = \mathbf{p}_\text{coordinate} - \mathbf{A}_\text{sub} \cdot \mathbf{o}$$
+
+where $\mathbf{o}$ is the origin shift in Angstrom. Copick stores the shifted position as the location and leaves the
+transform's translation at zero. On export, the location plus the translation is written, with no origin shift.
+
 #### Dynamo to Copick
 
 Given Dynamo Euler angles $(t_\text{drot}, t_\text{ilt}, n_\text{arot})$ in ZXZ convention:
@@ -271,6 +297,30 @@ No inversion is applied for the TOM format.
 | **TOM/Artiatomi** | Pixels | Corner | 1-indexed (converted on read) |
 | **RELION** | Pixels or Angstrom | Centered or Corner | 0-indexed |
 | **CSV** | Angstrom | Corner | 0-indexed |
+
+#### RELION coordinates
+
+RELION 4/5 tomography files give a particle's position as `rlnCenteredCoordinateX/Y/ZAngst` (Angstrom from the
+tomogram centre) and/or `rlnCoordinateX/Y/Z` (pixels of the unbinned tilt series, from the corner). The tomogram
+centre is `rlnTomoSizeX/Y/Z / 2 * rlnTomoTiltSeriesPixelSize` from `tomograms.star`; the reconstruction binning
+does not enter it. On import copick uses, in order:
+
+1. centred coordinates, when the tomogram's centre is known (from a `tomograms.star`, or the copick tomogram);
+2. `rlnCoordinateX/Y/Z` times the tilt-series pixel size (given explicitly, from the file's optics table
+   `rlnTomoTiltSeriesPixelSize`, or from `tomograms.star`);
+3. `rlnCoordinateX/Y/Z` times the given voxel size, for files whose coordinates are tomogram pixels (older tools,
+   earlier copick versions), with a warning.
+
+On export copick writes `rlnTomoName`, centred coordinates whenever the tomogram centre is known and, when the
+tilt-series pixel size is known, `rlnCoordinateX/Y/Z` in tilt-series pixels together with the optics table
+(`rlnTomoTiltSeriesPixelSize`) that RELION requires. Without a tilt-series pixel size no optics table is written, and
+RELION builds one from `tomograms.star`.
+
+#### Shifts in EM and Dynamo files
+
+Dynamo table shifts (`dx`, `dy`, `dz`) and TOM motivelist shifts (rows 11-13) in pixels become the transform's
+translation in Angstrom, so the particle centre is the location plus the shift; export writes the translation back as
+shifts.
 
 ---
 
