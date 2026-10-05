@@ -56,16 +56,16 @@ updating the pickable objects list or adding new artifact types. Add the content
    same bytes (the Croissant lists rows in directory order, and compressed chunks
    may differ), so test the exact archive you upload.
 
-3. **Test both lines against it before uploading.**
+3. **Test both lines against it before uploading.** On each line, with the zip in
+   `<dir>`:
 
-   - 1.x: copy it to `~/.cache/test_data/sample_project.zip` (or under
-     `$XDG_CACHE_HOME/test_data/`), put its md5 in `tests/conftest.py`, delete
-     `test_data/sample_project/` (the 1.x suite only extracts when that directory is
-     missing), and run `BACKEND=local pytest tests`.
-   - 2.0: `COPICK_TEST_DATA_CACHE=<dir with the zip>
-     COPICK_TEST_DATA_DIGEST=md5:<md5> COPICK_TEST_ZARR_FORMAT=v2 pytest tests`,
-     then again with `COPICK_TEST_ZARR_FORMAT=v3` (which runs the corpus parity
-     gate).
+   ```bash
+   COPICK_TEST_DATA_CACHE=<dir> COPICK_TEST_DATA_DIGEST=md5:<md5> BACKEND=local pytest tests
+   ```
+
+   On 2.0, run it with `COPICK_TEST_ZARR_FORMAT=v2` and again with `v3` (which runs
+   the corpus parity gate). The suite unpacks the archive again whenever the md5
+   changes.
 
 ## Uploading to Zenodo
 
@@ -76,9 +76,11 @@ updating the pickable objects list or adding new artifact types. Add the content
 
 ## Pointing the tests at the new archive
 
-- 1.x: `tests/conftest.py`, the `base_url` and `registry` of the pooch registry.
-- 2.0: `tests/corpus_registry.py`, `CORPUS_DOI` and `CORPUS_DIGEST`.
-- Both: `CURRENT_DOI` and `CURRENT_MD5` in `regenerate_sample_zip.py`, so the next
+On both lines:
+
+- `tests/corpus_registry.py`: `CORPUS_DOI` and `CORPUS_DIGEST`. CI caches the
+  archive under a key derived from this file, so changing it fetches the new one.
+- `regenerate_sample_zip.py`: `CURRENT_DOI` and `CURRENT_MD5`, so the next
   regeneration starts from it.
 
 ## Flags (`regenerate_sample_zip.py`)

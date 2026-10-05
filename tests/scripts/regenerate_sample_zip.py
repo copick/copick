@@ -322,8 +322,7 @@ def main():
         print("  1. On the 2.0 line, add the Zarr v3 twin:")
         print(f"       python tests/scripts/build_v3_twin.py {zip_out} --output <dir>/sample_project.zip")
         print("  2. Upload that archive to Zenodo as a new version of the sample project record.")
-        print("  3. Point both lines at the new DOI and md5: tests/conftest.py (1.x) and")
-        print("     tests/corpus_registry.py (2.0).")
+        print("  3. Point both lines at the new DOI and md5 in tests/corpus_registry.py.")
         print("==================================================================")
 
     finally:
