@@ -50,7 +50,7 @@ pip install "copick[all]"
 
 ## Example dataset
 
-An example dataset can be obtained from [Zenodo](https://doi.org/10.5281/zenodo.21939821). The migration-test archive
+An example dataset can be obtained from [Zenodo](https://doi.org/10.5281/zenodo.23171726). The migration-test archive
 contains both the legacy Zarr v2 project and its Zarr v3 twin, so it is larger than the earlier single-format example.
 
 To test with the example dataset:

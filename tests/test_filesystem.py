@@ -2420,3 +2420,24 @@ def test_panoptic_segmentation_copy_keeps_type(test_payload: Dict[str, Any]):
     copied_run = copick.from_file(test_payload["cfg_file"]).get_run("TS_001")
     (copied,) = copied_run.get_segmentations(user_id="copied", is_panoptic=True)
     assert copied.is_panoptic and np.array_equal(copied.numpy(), _panoptic_volume())
+
+
+def test_sample_project_instance_and_panoptic_segmentations(test_payload: Dict[str, Any]):
+    """The sample project's TS_002 holds an instance and a panoptic segmentation of the same three ribosomes."""
+    run = test_payload["root"].get_run("TS_002")
+    (instance,) = run.get_segmentations(user_id="annotator", is_instance=True)
+    (panoptic,) = run.get_segmentations(user_id="annotator", is_panoptic=True)
+    assert (instance.name, instance.directory) == ("ribosome", "InstanceSegmentations")
+    assert (panoptic.name, panoptic.directory) == ("cell", "PanopticSegmentations")
+
+    assert instance.instance_ids().tolist() == [1, 2, 3]
+    assert panoptic.segments() == [
+        ("membrane", 0),
+        ("proteasome", 1),
+        ("ribosome", 1),
+        ("ribosome", 2),
+        ("ribosome", 3),
+    ]
+    # The panoptic segmentation's ribosomes are the instance segmentation, with the same IDs
+    assert np.array_equal(panoptic.instance_volume("ribosome"), instance.numpy())
+    assert panoptic.numpy().shape == (2, 64, 64, 64)
