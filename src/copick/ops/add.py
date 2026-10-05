@@ -447,6 +447,7 @@ def add_segmentation(
     user_id: str,
     session_id: str,
     multilabel: bool = False,
+    instance: bool = False,
     transpose: Optional[str] = None,
     flip: Optional[str] = None,
     create: bool = True,
@@ -460,6 +461,9 @@ def add_segmentation(
     Args:
         root (CopickRoot): The copick root object.
         segmentation_file (str): The path to the segmentation file.
+        multilabel (bool, optional): Whether this is a multilabel segmentation. Defaults to False.
+        instance (bool, optional): Whether this is an instance segmentation (voxel = instance ID of the object
+            `name`). Defaults to False.
         create (bool, optional): Create the object if it does not exist. Defaults to True.
         exist_ok (bool, optional): If True, do not raise an error if the segmentation already exists. Defaults to False.
         overwrite (bool, optional): Overwrite the object if it exists. Defaults to False.
@@ -493,6 +497,7 @@ def add_segmentation(
         name=name,
         user_id=user_id,
         is_multilabel=multilabel,
+        is_instance=instance,
         voxel_size=voxel_spacing,
         session_id=session_id,
         exist_ok=exist_ok,
@@ -1372,6 +1377,7 @@ def _add_segmentation_from_array(
     user_id: str,
     session_id: str,
     multilabel: bool = False,
+    instance: bool = False,
     transpose: Optional[str] = None,
     flip: Optional[str] = None,
     create: bool = True,
@@ -1390,6 +1396,7 @@ def _add_segmentation_from_array(
         user_id: User ID for the segmentation.
         session_id: Session ID for the segmentation.
         multilabel: Whether this is a multilabel segmentation.
+        instance: Whether this is an instance segmentation (voxel = instance ID of the object `name`).
         transpose: Transpose axes. E.g., '2,1,0' to reverse all axes. Default: None.
         flip: Flip axes. E.g., '0' to flip Z, '0,2' to flip Z and X. Default: None.
         create: Create run if it doesn't exist.
@@ -1417,6 +1424,7 @@ def _add_segmentation_from_array(
         name=name,
         user_id=user_id,
         is_multilabel=multilabel,
+        is_instance=instance,
         voxel_size=voxel_spacing,
         session_id=session_id,
         exist_ok=exist_ok,
@@ -1440,6 +1448,7 @@ def _add_segmentation_tiff(
     user_id: str,
     session_id: str,
     multilabel: bool = False,
+    instance: bool = False,
     transpose: Optional[str] = None,
     flip: Optional[str] = None,
     create: bool = True,
@@ -1458,6 +1467,7 @@ def _add_segmentation_tiff(
         user_id: User ID for the segmentation.
         session_id: Session ID for the segmentation.
         multilabel: Whether this is a multilabel segmentation.
+        instance: Whether this is an instance segmentation (voxel = instance ID of the object `name`).
         transpose: Transpose axes. E.g., '2,1,0' to reverse all axes. Default: None.
         flip: Flip axes. E.g., '0' to flip Z, '0,2' to flip Z and X. Default: None.
         create: Create run if it doesn't exist.
@@ -1487,6 +1497,7 @@ def _add_segmentation_tiff(
         user_id=user_id,
         session_id=session_id,
         multilabel=multilabel,
+        instance=instance,
         transpose=transpose,
         flip=flip,
         create=create,
@@ -1505,6 +1516,7 @@ def _add_segmentation_em(
     user_id: str,
     session_id: str,
     multilabel: bool = False,
+    instance: bool = False,
     transpose: Optional[str] = None,
     flip: Optional[str] = None,
     create: bool = True,
@@ -1523,6 +1535,7 @@ def _add_segmentation_em(
         user_id: User ID for the segmentation.
         session_id: Session ID for the segmentation.
         multilabel: Whether this is a multilabel segmentation.
+        instance: Whether this is an instance segmentation (voxel = instance ID of the object `name`).
         transpose: Transpose axes. E.g., '2,1,0' to reverse all axes. Default: None.
         flip: Flip axes. E.g., '0' to flip Z, '0,2' to flip Z and X. Default: None.
         create: Create run if it doesn't exist.
@@ -1552,6 +1565,7 @@ def _add_segmentation_em(
         user_id=user_id,
         session_id=session_id,
         multilabel=multilabel,
+        instance=instance,
         transpose=transpose,
         flip=flip,
         create=create,
@@ -1769,7 +1783,8 @@ def add_segmentation_from_file(
     user_id: str,
     session_id: str,
     file_type: Optional[str] = None,
-    multilabel: bool = True,
+    multilabel: Optional[bool] = None,
+    instance: bool = False,
     transpose: Optional[str] = None,
     flip: Optional[str] = None,
     create: bool = True,
@@ -1792,7 +1807,9 @@ def add_segmentation_from_file(
         session_id: Session ID for the segmentation.
         file_type: File type override (e.g., 'mrc', 'tiff', 'em').
                    If None, auto-detected from file extension.
-        multilabel: Whether this is a multilabel segmentation.
+        multilabel: Whether this is a multilabel segmentation. ``None`` (the default) means multilabel unless
+            ``instance`` is set.
+        instance: Whether this is an instance segmentation (voxel = instance ID of the object `name`).
         transpose: Transpose axes. E.g., '2,1,0' to reverse all axes.
         flip: Flip axes. E.g., '0' to flip Z, '0,2' to flip Z and X.
         create: Create run if it doesn't exist.
@@ -1807,6 +1824,9 @@ def add_segmentation_from_file(
         ValueError: If the format is not supported.
     """
     from copick.util.handlers import FormatRegistry
+
+    if multilabel is None:
+        multilabel = not instance
 
     # Get handler
     handler = FormatRegistry.get_volume_handler(file_type or file_path)
@@ -1833,6 +1853,7 @@ def add_segmentation_from_file(
         user_id=user_id,
         session_id=session_id,
         multilabel=multilabel,
+        instance=instance,
         transpose=transpose,
         flip=flip,
         create=create,

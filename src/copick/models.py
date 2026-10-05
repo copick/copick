@@ -19,7 +19,13 @@ from copick.util.filaments import (
 from copick.util.log import get_logger
 from copick.util.ome import fits_in_memory, segmentation_pyramid, volume_pyramid, write_ome_zarr_3d
 from copick.util.relion import picks_to_df_relion, relion_df_to_picks
-from copick.util.segmentation import checked_label_cast, label_dtype
+from copick.util.segmentation import (
+    RESERVED_NAME_SUFFIXES,
+    checked_label_cast,
+    label_dtype,
+    segmentation_directory,
+    segmentation_type,
+)
 
 # Don't import Geometry at runtime to keep CLI snappy
 if TYPE_CHECKING:
@@ -757,6 +763,13 @@ class CopickRoot:
                 f"Object name '{name}' contains invalid characters. Use copick.escape.sanitize_name() to clean it.",
             )
         name = sane_name
+        if name.endswith(RESERVED_NAME_SUFFIXES):
+            import logging
+
+            logging.getLogger(__name__).warning(
+                f"Object name '{name}' ends in a segmentation type suffix ({', '.join(RESERVED_NAME_SUFFIXES)}); "
+                "its segmentation store names will be ambiguous.",
+            )
 
         # Check if the object already exists
         obj = self.get_object(name)
@@ -1218,6 +1231,8 @@ class CopickRun:
         is_multilabel: bool = None,
         name: Union[str, Iterable[str]] = None,
         voxel_size: Union[float, Iterable[float]] = None,
+        *,
+        is_instance: bool = None,
         **kwargs,
     ) -> List["CopickSegmentation"]:
         """Get segmentations by user_id, session_id, name, type or voxel_size (or combinations).
@@ -1228,6 +1243,8 @@ class CopickRun:
             is_multilabel: Whether the segmentation is multilabel or not.
             name: Name of the segmentation to search for.
             voxel_size: Voxel size to search for.
+            is_instance: Whether the segmentation is an instance segmentation or not. Binary segmentations are
+                ``is_multilabel=False, is_instance=False``.
             **kwargs: Additional parameters for subclass implementations.
 
         Returns:
@@ -1245,6 +1262,9 @@ class CopickRun:
 
         if is_multilabel is not None:
             ret = [s for s in ret if s.is_multilabel == is_multilabel]
+
+        if is_instance is not None:
+            ret = [s for s in ret if s.is_instance == is_instance]
 
         if name is not None:
             name = [name] if isinstance(name, str) else name
@@ -1513,37 +1533,44 @@ class CopickRun:
         voxel_size: float,
         name: str,
         session_id: str,
-        is_multilabel: bool,
+        is_multilabel: bool = False,
         user_id: Optional[str] = None,
         exist_ok: bool = False,
+        *,
+        is_instance: bool = False,
         **kwargs,
     ) -> "CopickSegmentation":
         """Create a new segmentation object.
 
         Args:
             voxel_size: Voxel size for the segmentation.
-            name: Name of the segmentation.
+            name: Name of the segmentation. For binary and instance segmentations, the name of a pickable object.
             session_id: Session ID for the segmentation.
-            is_multilabel: Whether the segmentation is multilabel or not.
+            is_multilabel: Whether the segmentation is multilabel (several objects, voxel = object label).
             user_id: User ID for the segmentation.
             exist_ok: Whether to raise an error if the segmentation already exists.
+            is_instance: Whether the segmentation is an instance segmentation (one object, voxel = instance ID).
             **kwargs: Additional keyword arguments for the segmentation metadata.
 
         Returns:
             CopickSegmentation: The newly created segmentation object.
 
         Raises:
-            ValueError: If a segmentation for the given name, session ID, user ID, voxel size and multilabel flag already
-                exist, if the object name is not found in the pickable objects, if the voxel size is not found in the
-                voxel spacings, or if the user ID is not set in the root config or supplied.
+            ValueError: If a segmentation for the given name, session ID, user ID, voxel size and type already
+                exist, if both ``is_multilabel`` and ``is_instance`` are set, if the object name is not found in the
+                pickable objects, if the voxel size is not found in the voxel spacings, or if the user ID is not set
+                in the root config or supplied.
         """
         name = sanitize_name(name)
         session_id = sanitize_name(session_id)
         if user_id is not None:
             user_id = sanitize_name(user_id)
 
+        seg_type = segmentation_type(is_multilabel, is_instance)
         if not is_multilabel and name not in [o.name for o in self.root.config.pickable_objects]:
-            raise ValueError(f"Object name {name} not found in pickable objects.")
+            raise ValueError(
+                f"Object name {name} not found in pickable objects ({seg_type} segmentations are named after one).",
+            )
 
         uid = self.root.config.user_id
 
@@ -1559,19 +1586,21 @@ class CopickRun:
             name=name,
             is_multilabel=is_multilabel,
             voxel_size=voxel_size,
+            is_instance=is_instance,
         ):
             if exist_ok:
                 seg = seg[0]
             else:
                 raise ValueError(
-                    f"Segmentation by user/tool {uid} already exist in session {session_id} with name {name}, "
-                    f"voxel size of {voxel_size}, and has a multilabel flag of {is_multilabel}.",
+                    f"A {seg_type} segmentation by user/tool {uid} already exists in session {session_id} with name "
+                    f"{name} and voxel size of {voxel_size}.",
                 )
         else:
             clz, meta_clz = self._segmentation_factory()
 
             sm = meta_clz(
                 is_multilabel=is_multilabel,
+                is_instance=is_instance,
                 voxel_size=voxel_size,
                 user_id=uid,
                 session_id=session_id,
@@ -1711,6 +1740,8 @@ class CopickRun:
         is_multilabel: bool = None,
         name: str = None,
         voxel_size: float = None,
+        *,
+        is_instance: bool = None,
     ) -> None:
         """Delete segmentation by name, user_id or session_id (or combinations).
 
@@ -1720,6 +1751,7 @@ class CopickRun:
             is_multilabel: Whether the segmentation is multilabel or not.
             name: Name of the segmentation to delete.
             voxel_size: Voxel size to delete.
+            is_instance: Whether the segmentation is an instance segmentation or not.
         """
         for s in list(
             self.get_segmentations(
@@ -1728,6 +1760,7 @@ class CopickRun:
                 is_multilabel=is_multilabel,
                 name=name,
                 voxel_size=voxel_size,
+                is_instance=is_instance,
             ),
         ):
             self._segmentations.remove(s)
@@ -3281,16 +3314,26 @@ class CopickSegmentationMeta(BaseModel):
         session_id: Unique identifier for the segmentation session. If it is 0, this segmentation was generated by a
             tool.
         name: Pickable Object name or multilabel name of the segmentation.
-        is_multilabel: Flag to indicate if this is a multilabel segmentation. If False, it is a single label
-            segmentation.
+        is_multilabel: Flag to indicate if this is a multilabel segmentation: several objects, each voxel holding
+            an object's ``label``.
+        is_instance: Flag to indicate if this is an instance segmentation: one object (``name``), each voxel
+            holding the ID of the instance it belongs to, 0 for background.
         voxel_size: Voxel size in angstrom of the tomogram this segmentation belongs to. Rounded to the third decimal.
+
+    A segmentation with neither flag is binary: one object (``name``), 1 inside, 0 outside.
     """
 
     user_id: str
     session_id: Union[str, Literal["0"]]
     name: str
     is_multilabel: bool
+    is_instance: bool = False
     voxel_size: float
+
+    @model_validator(mode="after")
+    def _one_type(self) -> "CopickSegmentationMeta":
+        segmentation_type(self.is_multilabel, self.is_instance)
+        return self
 
 
 class CopickSegmentation:
@@ -3306,8 +3349,11 @@ class CopickSegmentation:
         from_user (bool): Flag to indicate if this segmentation was generated by a user.
         user_id (str): Unique identifier for the user or tool name.
         session_id (str): Unique identifier for the segmentation session
-        is_multilabel (bool): Flag to indicate if this is a multilabel segmentation. If False, it is a single label
-            segmentation.
+        is_multilabel (bool): Flag to indicate if this is a multilabel segmentation.
+        is_instance (bool): Flag to indicate if this is an instance segmentation: voxel values are instance IDs of
+            the object ``name``, 0 for background.
+        segmentation_type (str): ``"binary"``, ``"multilabel"`` or ``"instance"``.
+        directory (str): The run-level directory holding the store.
         voxel_size (float): Voxel size of the tomogram this segmentation belongs to.
         name (str): Pickable Object name or multilabel name of the segmentation.
         color: Color of the pickable object this segmentation belongs to.
@@ -3326,7 +3372,7 @@ class CopickSegmentation:
     def __repr__(self):
         ret = (
             f"CopickSegmentation(user_id={self.user_id}, session_id={self.session_id}, name={self.name}, "
-            f"is_multilabel={self.is_multilabel}, voxel_size={self.voxel_size}) at {hex(id(self))}"
+            f"segmentation_type={self.segmentation_type}, voxel_size={self.voxel_size}) at {hex(id(self))}"
         )
         return ret
 
@@ -3349,6 +3395,20 @@ class CopickSegmentation:
     @property
     def is_multilabel(self) -> bool:
         return self.meta.is_multilabel
+
+    @property
+    def is_instance(self) -> bool:
+        return self.meta.is_instance
+
+    @property
+    def segmentation_type(self) -> Literal["binary", "multilabel", "instance"]:
+        return segmentation_type(self.is_multilabel, self.is_instance)
+
+    @property
+    def directory(self) -> str:
+        """The run-level directory holding this segmentation's store (``Segmentations`` for binary and multilabel,
+        ``InstanceSegmentations`` for instance segmentations)."""
+        return segmentation_directory(self.is_multilabel, self.is_instance)
 
     @property
     def voxel_size(self) -> float:
@@ -3425,11 +3485,11 @@ class CopickSegmentation:
             data: The segmentation as a numpy array.
             levels: Number of levels in the multiscale pyramid.
             dtype: Data type of the segmentation. ``None`` (the default) chooses the smallest unsigned integer type
-                that holds every value, starting at ``np.uint8``. A value that would not survive the cast raises
-                ``ValueError``; nothing is wrapped or truncated.
+                that holds every value, starting at ``np.uint8`` (``np.uint16`` for instance segmentations). A value
+                that would not survive the cast raises ``ValueError``; nothing is wrapped or truncated.
         """
         if dtype is None:
-            dtype = label_dtype(data, floor=np.uint8)
+            dtype = label_dtype(data, floor=np.uint16 if self.is_instance else np.uint8)
         loc = self.zarr()
         pyramid = segmentation_pyramid(data, self.voxel_size, levels, dtype=dtype)
         write_ome_zarr_3d(loc, pyramid)
@@ -3455,6 +3515,35 @@ class CopickSegmentation:
         loc = self.zarr()
         array = zarr.open(loc)[zarr_group]
         array[z, y, x] = checked_label_cast(data, array.dtype)
+
+    def instance_ids(self, zarr_group: str = "0") -> np.ndarray:
+        """The instance IDs present in an instance segmentation: its unique non-zero values.
+
+        The volume is read one chunk at a time, so memory stays bounded by the chunk size.
+
+        Args:
+            zarr_group: Zarr group (pyramid level) to read. Level 0 holds every instance.
+
+        Returns:
+            Sorted ``int64`` array of instance IDs.
+
+        Raises:
+            ValueError: If this is not an instance segmentation.
+        """
+        if not self.is_instance:
+            raise ValueError(
+                f"{self} is a {self.segmentation_type} segmentation; instance_ids() needs an instance one.",
+            )
+        array = zarr.open(self.zarr(), mode="r")[zarr_group]
+        found = np.zeros(0, dtype=array.dtype)
+        cz, cy, cx = array.chunks
+        nz, ny, nx = array.shape
+        for z0 in range(0, nz, cz):
+            for y0 in range(0, ny, cy):
+                for x0 in range(0, nx, cx):
+                    block = array[z0 : z0 + cz, y0 : y0 + cy, x0 : x0 + cx]
+                    found = np.union1d(found, np.unique(block))
+        return found[found != 0].astype(np.int64)
 
 
 COPICK_TYPES = (

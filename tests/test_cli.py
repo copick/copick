@@ -612,6 +612,44 @@ class TestCLIAdd:
             test_run = root.get_run(expected_run_name)
             assert test_run is not None, f"Run {expected_run_name} should be created"
 
+    def test_add_segmentation_instance_type(self, test_payload, runner, tmp_path):
+        """--segmentation-type instance stores an instance segmentation with its IDs."""
+        from copick.util.formats import write_tiff_volume
+
+        config_file = test_payload["cfg_file"]
+        volume = np.zeros((8, 8, 8), dtype=np.uint16)
+        volume[1, 1, 1] = 1
+        volume[5, 5, 5] = 400
+        path = tmp_path / "filaments.tif"
+        write_tiff_volume(str(path), volume)
+
+        result = runner.invoke(
+            add,
+            [
+                "segmentation",
+                "--config",
+                str(config_file),
+                "--run",
+                "TS_001",
+                "--voxel-size",
+                "10.0",
+                "--name",
+                "ribosome",
+                "--user-id",
+                "tracer",
+                "--session-id",
+                "9",
+                "--segmentation-type",
+                "instance",
+                str(path),
+            ],
+        )
+        assert result.exit_code == 0, f"Command failed: {result.output}"
+
+        run = copick.from_file(config_file).get_run("TS_001")
+        (seg,) = run.get_segmentations(user_id="tracer", session_id="9")
+        assert seg.is_instance and seg.instance_ids().tolist() == [1, 400]
+
 
 class TestCLIAddTomogramsBatch:
     """Test cases for batch tomogram add commands (tomograms-dynamo, tomograms-relion)."""

@@ -157,6 +157,7 @@ def segmentations_stats(
     parallel: bool = False,
     workers: Optional[int] = 8,
     show_progress: bool = True,
+    is_instance: bool = None,
 ) -> Dict[str, Union[int, Dict[str, int]]]:
     """Generate statistics for segmentations in a Copick project.
 
@@ -171,6 +172,7 @@ def segmentations_stats(
         parallel: Whether to query segmentations in parallel. Default is `False`.
         workers: The number of workers to use. Default is `8`.
         show_progress: Whether to show progress. Default is `True`.
+        is_instance: Whether the segmentations are instance segmentations. If `None`, query all segmentations.
 
     Returns:
         A dictionary containing segmentation count and frequency statistics.
@@ -186,6 +188,7 @@ def segmentations_stats(
         parallel=parallel,
         workers=workers,
         show_progress=show_progress,
+        is_instance=is_instance,
     )
 
     if not segmentations_list:
@@ -196,6 +199,7 @@ def segmentations_stats(
             "distribution_by_name": {},
             "distribution_by_voxel_size": {},
             "distribution_by_multilabel": {},
+            "distribution_by_type": {},
             "session_user_voxelspacing_multilabel_combinations": {},
         }
 
@@ -205,6 +209,7 @@ def segmentations_stats(
     distribution_by_name = defaultdict(int)
     distribution_by_voxel_size = defaultdict(int)
     distribution_by_multilabel = defaultdict(int)
+    distribution_by_type = defaultdict(int)
     combo_freq = defaultdict(int)
 
     for seg in segmentations_list:
@@ -213,6 +218,7 @@ def segmentations_stats(
         distribution_by_name[seg.name] += 1
         distribution_by_voxel_size[seg.voxel_size] += 1
         distribution_by_multilabel[str(seg.is_multilabel)] += 1
+        distribution_by_type[seg.segmentation_type] += 1
 
         combo_key = f"{seg.session_id}_{seg.user_id}_{seg.name}_{seg.voxel_size}_{seg.is_multilabel}"
         combo_freq[combo_key] += 1
@@ -224,5 +230,6 @@ def segmentations_stats(
         "distribution_by_name": dict(distribution_by_name),
         "distribution_by_voxel_size": dict(distribution_by_voxel_size),
         "distribution_by_multilabel": dict(distribution_by_multilabel),
+        "distribution_by_type": dict(distribution_by_type),
         "session_user_voxelspacing_multilabel_combinations": dict(combo_freq),
     }

@@ -21,6 +21,7 @@ def _segmentation_query(
     is_multilabel: bool = None,
     name: Union[str, Iterable[str], None] = None,
     voxel_size: Union[float, Iterable[float], None] = None,
+    is_instance: bool = None,
 ) -> List[CopickSegmentation]:
     return run.get_segmentations(
         user_id=user_id,
@@ -28,6 +29,7 @@ def _segmentation_query(
         is_multilabel=is_multilabel,
         name=name,
         voxel_size=voxel_size,
+        is_instance=is_instance,
     )
 
 
@@ -42,6 +44,7 @@ def get_segmentations(
     parallel: bool = False,
     workers: Optional[int] = 8,
     show_progress: bool = True,
+    is_instance: bool = None,
 ) -> Union[List[CopickSegmentation], None]:
     """Query segmentations from a Copick project.
 
@@ -56,6 +59,7 @@ def get_segmentations(
         parallel: Whether to query segmentations in parallel. Default is `False`.
         workers: The number of workers to use. Default is `8`.
         show_progress: Whether to show progress. Default is `True`.
+        is_instance: Whether the segmentations are instance segmentations. If `None`, query all segmentations.
     """
 
     if isinstance(root, str):
@@ -79,6 +83,7 @@ def get_segmentations(
             is_multilabel=is_multilabel,
             name=name,
             voxel_size=voxel_size,
+            is_instance=is_instance,
             show_progress=show_progress,
         )
         return [seg for seglist in res.values() for seg in seglist]
@@ -93,6 +98,7 @@ def get_segmentations(
             is_multilabel=is_multilabel,
             name=name,
             voxel_size=voxel_size,
+            is_instance=is_instance,
             show_progress=show_progress,
         )
         return [seg for seglist in res.values() for seg in seglist]

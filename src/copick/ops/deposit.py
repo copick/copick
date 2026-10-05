@@ -23,6 +23,7 @@ from copick.impl.filesystem import (
 from copick.models import CopickFeatures, CopickMesh, CopickPicks, CopickRun, CopickSegmentation, CopickTomogram
 from copick.ops.run import map_runs, report_results
 from copick.util.log import get_logger
+from copick.util.segmentation import segmentation_store_name
 from copick.util.uri import resolve_copick_objects
 
 logger = get_logger(__name__)
@@ -201,11 +202,15 @@ def deposit_run(
                 segs_list = resolve_copick_objects(uri, run.root, "segmentation", run.name)
                 for seg in segs_list:
                     source = _get_file_path(seg)
-                    if seg.is_multilabel:
-                        filename = f"{seg.voxel_size:.3f}_{seg.user_id}_{seg.session_id}_{seg.name}-multilabel.zarr"
-                    else:
-                        filename = f"{seg.voxel_size:.3f}_{seg.user_id}_{seg.session_id}_{seg.name}.zarr"
-                    target = run_dir / "Segmentations" / filename
+                    filename = segmentation_store_name(
+                        seg.voxel_size,
+                        seg.user_id,
+                        seg.session_id,
+                        seg.name,
+                        is_multilabel=seg.is_multilabel,
+                        is_instance=seg.is_instance,
+                    )
+                    target = run_dir / seg.directory / filename
                     _create_symlink(source, str(target))
                     processed += 1
             except Exception as e:

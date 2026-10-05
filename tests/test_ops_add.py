@@ -481,3 +481,28 @@ def test_add_segmentation_from_tiff_keeps_labels_above_255(test_payload, tmp_pat
     stored = zarr.open(seg.zarr(), "r")["0"]
     assert stored.dtype == np.uint16
     assert stored[1, 2, 3] == 300
+
+
+def test_add_segmentation_from_file_instance(test_payload, tmp_path):
+    from copick.ops.add import add_segmentation_from_file
+    from copick.util.formats import write_tiff_volume
+
+    volume = np.zeros((4, 6, 8), dtype=np.uint16)
+    volume[1, 2, 3] = 2
+    path = str(tmp_path / "instances.tif")
+    write_tiff_volume(path, volume)
+
+    # instance=True alone is enough; multilabel then defaults to False
+    seg = add_segmentation_from_file(
+        test_payload["root"],
+        "TS_001",
+        path,
+        10.0,
+        "ribosome",
+        "test-user",
+        "tiff-inst",
+        instance=True,
+        exist_ok=True,
+    )
+    assert seg.segmentation_type == "instance"
+    assert seg.instance_ids().tolist() == [2]
