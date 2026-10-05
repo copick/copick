@@ -19,14 +19,18 @@ from copick.models import (
 # ============================================================================
 
 
+#: Segmentation URI query flags; at most one may be true.
+_SEGMENTATION_TYPE_FLAGS = ("multilabel", "instance", "panoptic")
+
+
 def parse_copick_uri(uri: str, object_type: str) -> Dict[str, Any]:
     """Parse a copick object URI according to the copick URI schemes.
 
     URI Schemes:
     - Picks: object_name:user_id/session_id
     - Meshes: object_name:user_id/session_id
-    - Segmentations: name:user_id/session_id@voxel_spacing[?multilabel=true|?instance=true]; without a type, binary
-      and multilabel segmentations
+    - Segmentations: name:user_id/session_id@voxel_spacing[?multilabel=true|?instance=true|?panoptic=true];
+      without a type, binary and multilabel segmentations
     - Tomogram: tomo_type@voxel_spacing
     - Feature: tomo_type@voxel_spacing:feature_type
 
@@ -131,14 +135,15 @@ def parse_copick_uri(uri: str, object_type: str) -> Dict[str, Any]:
             # URI keeps the type of its input.
             "multilabel": None,
             "instance": None,
+            "panoptic": None,
         }
 
         # Check for the segmentation type parameters
-        for flag in ("multilabel", "instance"):
+        for flag in _SEGMENTATION_TYPE_FLAGS:
             if flag in query_params:
                 result[flag] = str(query_params[flag]).lower() in ("true", "1", "yes")
-        if result["multilabel"] and result["instance"]:
-            raise ValueError(f"A segmentation is either multilabel or instance, not both: '{uri}'")
+        if sum(bool(result[flag]) for flag in _SEGMENTATION_TYPE_FLAGS) > 1:
+            raise ValueError(f"A segmentation has one type (multilabel, instance or panoptic): '{uri}'")
 
         return result
 
@@ -274,8 +279,7 @@ def expand_output_uri(
     input_user_id = input_params.get("user_id", "*")
     input_session_id = input_params.get("session_id", "*")
     input_voxel_spacing = input_params.get("voxel_spacing")
-    input_multilabel = input_params.get("multilabel")
-    input_instance = input_params.get("instance")
+    input_flags = {flag: input_params.get(flag) for flag in _SEGMENTATION_TYPE_FLAGS}
 
     # Determine if input uses patterns
     has_input_pattern = (
@@ -294,6 +298,7 @@ def expand_output_uri(
         "voxel_spacing": None,
         "multilabel": None,
         "instance": None,
+        "panoptic": None,
     }
 
     # Handle query parameters first (for segmentations)
@@ -301,7 +306,7 @@ def expand_output_uri(
     if "?" in uri_to_parse:
         uri_to_parse, query_string = uri_to_parse.split("?", 1)
         query_params = parse_qs(query_string)
-        for flag in ("multilabel", "instance"):
+        for flag in _SEGMENTATION_TYPE_FLAGS:
             if flag in query_params:
                 output_parts[flag] = query_params[flag][0].lower() in ("true", "1", "yes")
 
@@ -359,12 +364,11 @@ def expand_output_uri(
         elif isinstance(input_voxel_spacing, (int, float)):
             output_parts["voxel_spacing"] = str(input_voxel_spacing)
 
-    # 5. Segmentation type (segmentation only). An output that states a type does not inherit the other flag.
-    if output_type == "segmentation" and output_parts["multilabel"] is None and output_parts["instance"] is None:
-        output_parts["multilabel"] = input_multilabel
-        output_parts["instance"] = input_instance
-    if output_parts["multilabel"] and output_parts["instance"]:
-        raise ValueError(f"A segmentation is either multilabel or instance, not both: '{output_uri}'")
+    # 5. Segmentation type (segmentation only). An output that states a type inherits none from the input.
+    if output_type == "segmentation" and all(output_parts[flag] is None for flag in _SEGMENTATION_TYPE_FLAGS):
+        output_parts.update(input_flags)
+    if sum(bool(output_parts[flag]) for flag in _SEGMENTATION_TYPE_FLAGS) > 1:
+        raise ValueError(f"A segmentation has one type (multilabel, instance or panoptic): '{output_uri}'")
 
     # Reconstruct the URI
     if output_type in ("picks", "filaments", "mesh"):
@@ -373,10 +377,9 @@ def expand_output_uri(
         expanded = f"{output_parts['object_name']}:{output_parts['user_id']}/{output_parts['session_id']}"
         if output_parts["voxel_spacing"]:
             expanded += f"@{output_parts['voxel_spacing']}"
-        if output_parts["multilabel"]:
-            expanded += "?multilabel=true"
-        elif output_parts["instance"]:
-            expanded += "?instance=true"
+        for flag in _SEGMENTATION_TYPE_FLAGS:
+            if output_parts[flag]:
+                expanded += f"?{flag}=true"
     else:
         raise ValueError(f"Unsupported output_type for expansion: {output_type}")
 
@@ -407,10 +410,8 @@ def serialize_copick_uri(
 
     elif isinstance(obj, CopickSegmentation):
         uri = f"{obj.name}:{obj.user_id}/{obj.session_id}@{obj.voxel_size}"
-        if obj.is_multilabel:
-            uri += "?multilabel=true"
-        elif obj.is_instance:
-            uri += "?instance=true"
+        if obj.segmentation_type != "binary":
+            uri += f"?{obj.segmentation_type}=true"
         return uri
 
     elif isinstance(obj, CopickTomogram):
@@ -434,6 +435,7 @@ def serialize_copick_uri_from_dict(
     feature_type: Optional[str] = None,
     multilabel: Optional[bool] = None,
     instance: Optional[bool] = None,
+    panoptic: Optional[bool] = None,
 ) -> str:
     """Serialize copick object parameters into a URI according to copick URI schemes.
 
@@ -448,6 +450,7 @@ def serialize_copick_uri_from_dict(
         feature_type (str, optional): Feature type for features
         multilabel (bool, optional): Whether segmentation is multilabel
         instance (bool, optional): Whether segmentation is an instance segmentation
+        panoptic (bool, optional): Whether segmentation is a panoptic segmentation
 
     Returns:
         str: The serialized copick URI
@@ -474,12 +477,12 @@ def serialize_copick_uri_from_dict(
         if not all([name, user_id, session_id, voxel_spacing is not None]):
             raise ValueError("Segmentations require name, user_id, session_id, and voxel_spacing")
         uri = f"{name}:{user_id}/{session_id}@{voxel_spacing}"
-        if multilabel is True and instance is True:
-            raise ValueError("A segmentation is either multilabel or instance, not both")
-        if multilabel is True:
-            uri += "?multilabel=true"
-        elif instance is True:
-            uri += "?instance=true"
+        flags = {"multilabel": multilabel, "instance": instance, "panoptic": panoptic}
+        stated = [flag for flag, value in flags.items() if value is True]
+        if len(stated) > 1:
+            raise ValueError("A segmentation has one type: multilabel, instance or panoptic")
+        if stated:
+            uri += f"?{stated[0]}=true"
         return uri
 
     elif object_type == "tomogram":
@@ -552,7 +555,7 @@ def get_copick_objects_by_type(
         run_name (str, optional): Specific run name to search in.
         **filters: Additional filters based on object type.
                   For picks/meshes: object_name, user_id, session_id
-                  For segmentations: name, user_id, session_id, voxel_spacing, multilabel, instance
+                  For segmentations: name, user_id, session_id, voxel_spacing, multilabel, instance, panoptic
                   For tomograms: tomo_type, voxel_spacing
                   For features: tomo_type, voxel_spacing, feature_type
 
@@ -789,7 +792,7 @@ def _get_segmentations_from_runs(
     Args:
         runs: List of runs to search.
         filters: Filter dictionary with optional keys: name, user_id, session_id, voxel_spacing, multilabel, instance,
-            pattern_type.
+            panoptic, pattern_type.
 
     Returns:
         List of matching segmentations.
@@ -802,9 +805,10 @@ def _get_segmentations_from_runs(
     voxel_spacing = filters.get("voxel_spacing")
     multilabel = filters.get("multilabel")
     instance = filters.get("instance")
-    if instance is None:
+    panoptic = filters.get("panoptic")
+    if instance is None and panoptic is None:
         # An untyped URI selects binary and multilabel segmentations, as CopickRun.get_segmentations does
-        instance = False
+        instance, panoptic = False, False
 
     # Check if we need pattern matching
     use_builtin = (
@@ -832,6 +836,7 @@ def _get_segmentations_from_runs(
                 is_multilabel=multilabel,
                 voxel_size=vs_value,
                 is_instance=instance,
+                is_panoptic=panoptic,
             )
             results.extend(segs)
     else:
@@ -845,6 +850,7 @@ def _get_segmentations_from_runs(
                     and (not voxel_spacing or _matches_numeric_pattern(seg.voxel_size, voxel_spacing, pattern_type))
                     and (multilabel is None or seg.is_multilabel == multilabel)
                     and (instance is None or seg.is_instance == instance)
+                    and (panoptic is None or seg.is_panoptic == panoptic)
                 ):
                     results.append(seg)
 

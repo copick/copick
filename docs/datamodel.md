@@ -378,13 +378,14 @@ CopickFilaments API.
 
 #### Dense Segmentations
 Dense segmentations are stored as OME-NGFF files in the run. The directory and the filename of the zarr file relate the
-segmentation to the user or tool that created it and to what it represents, and record which of three types it is:
+segmentation to the user or tool that created it and to what it represents, and record which of four types it is:
 
 | Type | Directory | Name | Voxel values | Filename ends in |
 |---|---|---|---|---|
 | binary | `Segmentations` | a pickable object | 1 inside the object, 0 outside | `_[object_name].zarr` |
 | multilabel | `Segmentations` | any descriptive name | the `label` of the pickable object at that voxel, 0 for background | `_[name]-multilabel.zarr` |
 | instance | `InstanceSegmentations` | a pickable object | the ID of the object instance at that voxel, 0 for background | `_[object_name].zarr` |
+| panoptic | `PanopticSegmentations` | any descriptive name | two channels: the object `label` and the instance ID within that object | `_[name].zarr` |
 
 Types added after binary and multilabel live in their own directory, so copick versions and other clients that predate
 them never list them, instead of misreading their voxel values.
@@ -401,17 +402,37 @@ seg.instance_ids()                  # array([1, 2, ...])
 run.get_segmentations(is_instance=True)
 ```
 
+A **panoptic segmentation** combines both in one volume of shape `(2, Z, Y, X)`, with a leading OME-NGFF axis of type
+`channel` (scale `[1, voxel, voxel, voxel]`):
+
+- channel 0, `label`: the `label` of the pickable object at each voxel, 0 for background (the multilabel convention);
+- channel 1, `instance`: the instance ID within that object. IDs are per object, so a segment is the pair
+  (label, instance ID): ribosome 1 and vesicle 1 are different segments, and each object's IDs match its picks,
+  filaments and instance segmentations. Instance 0 on a labelled voxel is a region of that object that is not split
+  into instances (a membrane, the cytosol); background voxels carry no instance ID.
+
+```python
+seg = run.new_segmentation(10.0, "cell", "1", user_id="tracer", is_panoptic=True)
+seg.from_numpy(np.stack([labels, instance_ids]))   # (2, Z, Y, X)
+seg.numpy(channel="label")                          # (Z, Y, X)
+seg.instance_ids(object_name="microtubule")        # IDs where the label is microtubule's
+seg.segments()                                      # [("membrane", 0), ("microtubule", 1), ...]
+```
+
+Writes check that every label is 0 or a pickable object's label, and that no background voxel carries an instance ID.
+MRC, TIFF and EM hold one volume each, so a panoptic segmentation is exported to them one channel at a time.
+
 Queries that do not name a type select binary and multilabel segmentations, the types every client reads:
-`get_segmentations(...)` and `delete_segmentations(...)` default to `is_instance=False` (pass `is_instance=None` for any
-type), and `run.segmentations` lists all of them. Segmentation URIs mark the type with `?multilabel=true` or
-`?instance=true` (`microtubule:tracer/1@10.0?instance=true`); a URI without either selects binary and multilabel
-segmentations, so `copick cp`, `mv`, `rm` and `export` do too. `copick sync segmentations` and
-`copick stats segmentations` take `--segmentation-type binary|multilabel|instance|all`.
+`get_segmentations(...)` and `delete_segmentations(...)` default to `is_instance=False, is_panoptic=False` (pass `None`
+for any type), and `run.segmentations` lists all of them. Segmentation URIs mark the type with `?multilabel=true`,
+`?instance=true` or `?panoptic=true` (`microtubule:tracer/1@10.0?instance=true`); a URI without one selects binary and
+multilabel segmentations, so `copick cp`, `mv`, `rm` and `export` do too. `copick sync segmentations` and
+`copick stats segmentations` take `--segmentation-type binary|multilabel|instance|panoptic|all`.
 
 !!! note "Data types"
     Segmentation values are stored without loss. When no dtype is given, `from_numpy` chooses the smallest unsigned
     integer type that holds every value: `uint8` and up for binary and multilabel segmentations, `uint16` and up for
-    instance segmentations. A value that does not fit a requested dtype raises an error instead of wrapping.
+    instance and panoptic segmentations. A value that does not fit a requested dtype raises an error instead of wrapping.
 
 !!! warning "Naming Conventions"
     user_ids, session_ids, and object names should never contain underscores! Object names should also not end in
@@ -492,7 +513,10 @@ The on-disk data model of copick is as follows:
       │  │   └─ [OME-NGFF spec at 100% scale, 50% and 25% scale]
       │  └─ 📁 [xx.yyy]_[user_id | tool_name]_[session_id | 0]_[name]-multilabel.zarr
       │      └─ [OME-NGFF spec at 100% scale, 50% and 25% scale]
-      └─ 📁 InstanceSegmentations/
-         └─ 📁 [xx.yyy]_[user_id | tool_name]_[session_id | 0]_[object_name].zarr
-             └─ [OME-NGFF spec at 100% scale, 50% and 25% scale]
+      ├─ 📁 InstanceSegmentations/
+      │  └─ 📁 [xx.yyy]_[user_id | tool_name]_[session_id | 0]_[object_name].zarr
+      │      └─ [OME-NGFF spec at 100% scale, 50% and 25% scale]
+      └─ 📁 PanopticSegmentations/
+         └─ 📁 [xx.yyy]_[user_id | tool_name]_[session_id | 0]_[name].zarr
+             └─ [OME-NGFF spec, axes c/z/y/x, at 100% scale, 50% and 25% scale]
 ```

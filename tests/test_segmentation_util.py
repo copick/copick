@@ -15,14 +15,15 @@ from copick.util.segmentation import (
 
 
 @pytest.mark.parametrize(
-    "is_multilabel,is_instance,suffix,directory",
+    "is_multilabel,is_instance,is_panoptic,suffix,directory",
     [
-        (False, False, "", "Segmentations"),
-        (True, False, "-multilabel", "Segmentations"),
-        (False, True, "", "InstanceSegmentations"),
+        (False, False, False, "", "Segmentations"),
+        (True, False, False, "-multilabel", "Segmentations"),
+        (False, True, False, "", "InstanceSegmentations"),
+        (False, False, True, "", "PanopticSegmentations"),
     ],
 )
-def test_store_name_round_trip(is_multilabel, is_instance, suffix, directory):
+def test_store_name_round_trip(is_multilabel, is_instance, is_panoptic, suffix, directory):
     name = segmentation_store_name(
         10.0,
         "tracer",
@@ -30,9 +31,10 @@ def test_store_name_round_trip(is_multilabel, is_instance, suffix, directory):
         "microtubule",
         is_multilabel=is_multilabel,
         is_instance=is_instance,
+        is_panoptic=is_panoptic,
     )
     assert name == f"10.000_tracer_7_microtubule{suffix}.zarr"
-    assert segmentation_directory(is_multilabel, is_instance) == directory
+    assert segmentation_directory(is_multilabel, is_instance, is_panoptic) == directory
     assert parse_segmentation_store_name(name, directory) == {
         "voxel_size": 10.0,
         "user_id": "tracer",
@@ -40,6 +42,7 @@ def test_store_name_round_trip(is_multilabel, is_instance, suffix, directory):
         "name": "microtubule",
         "is_multilabel": is_multilabel,
         "is_instance": is_instance,
+        "is_panoptic": is_panoptic,
     }
 
 
@@ -102,11 +105,12 @@ def test_checked_label_cast():
 @pytest.mark.parametrize(
     "kind,query",
     [
-        (None, {"is_multilabel": None, "is_instance": False}),
-        ("binary", {"is_multilabel": False, "is_instance": False}),
-        ("multilabel", {"is_multilabel": True, "is_instance": False}),
-        ("instance", {"is_multilabel": False, "is_instance": True}),
-        ("all", {"is_multilabel": None, "is_instance": None}),
+        (None, {"is_multilabel": None, "is_instance": False, "is_panoptic": False}),
+        ("binary", {"is_multilabel": False, "is_instance": False, "is_panoptic": False}),
+        ("multilabel", {"is_multilabel": True, "is_instance": False, "is_panoptic": False}),
+        ("instance", {"is_multilabel": False, "is_instance": True, "is_panoptic": False}),
+        ("panoptic", {"is_multilabel": False, "is_instance": False, "is_panoptic": True}),
+        ("all", {"is_multilabel": None, "is_instance": None, "is_panoptic": None}),
     ],
 )
 def test_segmentation_type_query(kind, query):

@@ -588,6 +588,7 @@ class CopickSegmentationCDP(CopickSegmentationOverlay):
             self.name,
             is_multilabel=self.is_multilabel,
             is_instance=self.is_instance,
+            is_panoptic=self.is_panoptic,
         )
 
     @property
@@ -1233,6 +1234,7 @@ class CopickRunCDP(CopickRunOverlay):
         portal_author_query: List[str] = None,
         *,
         is_instance: Optional[bool] = False,
+        is_panoptic: Optional[bool] = False,
         **kwargs,
     ) -> List["CopickSegmentationCDP"]:
         """Get segmentations by user_id, session_id, name, type or voxel_size (or combinations) and portal metadata and
@@ -1251,6 +1253,8 @@ class CopickRunCDP(CopickRunOverlay):
                 annotation's author list.
             is_instance: Whether to select instance segmentations (True) or not (False, the default); None selects any
                 type.
+            is_panoptic: Whether to select panoptic segmentations (True) or not (False, the default); None selects any
+                type.
             **kwargs: Additional parameters passed to parent class.
 
         Returns:
@@ -1263,6 +1267,7 @@ class CopickRunCDP(CopickRunOverlay):
             name=name,
             voxel_size=voxel_size,
             is_instance=is_instance,
+            is_panoptic=is_panoptic,
             **kwargs,
         )
 

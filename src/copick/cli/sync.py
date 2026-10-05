@@ -484,7 +484,10 @@ def meshes(
 )
 @click.option(
     "--segmentation-type",
-    type=click.Choice(["binary", "multilabel", "instance", "all"], case_sensitive=False),  # SEGMENTATION_TYPE_FILTERS
+    type=click.Choice(  # SEGMENTATION_TYPE_FILTERS
+        ["binary", "multilabel", "instance", "panoptic", "all"],
+        case_sensitive=False,
+    ),
     default=None,
     help="Segmentation type to synchronize; 'all' for every type. Default: binary and multilabel segmentations.",
 )
@@ -537,7 +540,7 @@ def segmentations(
 
     When specific segmentation names are requested, the matching pickable objects are
     created in the target project before copying (binary and instance segmentations require
-    the name to match a pickable object). Use `--exist-ok` to overwrite segmentations that
+    the name to match a pickable object; multilabel and panoptic ones do not). Use `--exist-ok` to overwrite segmentations that
     already exist in the target.
 
     Examples:

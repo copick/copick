@@ -59,9 +59,9 @@ def _ome_zarr_axes() -> List[Dict[str, str]]:
     ]
 
 
-def _ome_zarr_transforms(voxel_size: float) -> Dict[str, Any]:
+def _ome_zarr_transforms(voxel_size: float, channel_axis: bool = False) -> Dict[str, Any]:
     return {
-        "scale": [voxel_size, voxel_size, voxel_size],
+        "scale": [1.0, voxel_size, voxel_size, voxel_size] if channel_axis else [voxel_size, voxel_size, voxel_size],
         "type": "scale",
     }
 
@@ -106,7 +106,8 @@ def segmentation_pyramid(
     """Create an image pyramid by downsampling without interpolation.
 
     Args:
-        segmentation: The segmentation to downsample.
+        segmentation: The segmentation to downsample, ``(Z, Y, X)`` or channel-first ``(C, Z, Y, X)``. Each channel
+            is downsampled on the same grid, so values that belong together at a voxel stay together.
         voxel_size: The voxel size of the input segmentation.
         levels: The number of levels in the pyramid.
         dtype: The data type of the output arrays. ``None`` keeps the input dtype. A value the cast would change
@@ -121,6 +122,9 @@ def segmentation_pyramid(
     from copick.util.segmentation import checked_label_cast
 
     base = checked_label_cast(segmentation, dtype)
+    if base.ndim == 4:
+        channels = [segmentation_pyramid(channel, voxel_size, levels) for channel in base]
+        return {vs: np.stack([channel[vs] for channel in channels]) for vs in channels[0]}
     dtype = base.dtype
     pyramid = {voxel_size: base}
     vs = voxel_size
@@ -139,10 +143,13 @@ def segmentation_pyramid(
     return pyramid
 
 
-def ome_metadata(pyramid: Dict[float, np.ndarray]) -> Dict[str, Any]:
+def ome_metadata(pyramid: Dict[float, np.ndarray], channel_axis: bool = False) -> Dict[str, Any]:
+    axes = _ome_zarr_axes()
+    if channel_axis:
+        axes = [{"name": "c", "type": "channel"}, *axes]
     return {
-        "axes": _ome_zarr_axes(),
-        "coordinate_transformations": [[_ome_zarr_transforms(voxel_size)] for voxel_size in pyramid],
+        "axes": axes,
+        "coordinate_transformations": [[_ome_zarr_transforms(voxel_size, channel_axis)] for voxel_size in pyramid],
     }
 
 
@@ -150,20 +157,27 @@ def write_ome_zarr_3d(
     store: MutableMapping,
     pyramid: Dict[float, np.ndarray],
     chunk_size: Tuple[int, ...] = (256, 256, 256),
+    channel_axis: bool = False,
+    metadata: Optional[Dict[str, Any]] = None,
 ) -> None:
     """Write a 3D pyramid to an OME-Zarr store.
 
     Args:
         store: The store to write to.
         pyramid: The pyramid to write.
-        chunk_size: The chunk size to use for the Zarr store. Default is (256, 256, 256).
+        chunk_size: The spatial chunk size to use for the Zarr store. Default is (256, 256, 256).
+        channel_axis: The arrays are channel-first ``(C, Z, Y, X)``; written with a leading ``c`` axis of type
+            ``channel``, one channel per chunk.
+        metadata: Extra entries for the multiscales metadata.
     """
     # This is a super heavy import, so we do it here to avoid loading it before it's needed.
     # Writing is slow anyway.
     from ome_zarr.writer import write_multiscale
 
-    ome_meta = ome_metadata(pyramid)
+    ome_meta = ome_metadata(pyramid, channel_axis)
     root_group = zarr.group(store=store, overwrite=True)
+    if channel_axis and len(chunk_size) == 3:
+        chunk_size = (1, *chunk_size)
 
     write_multiscale(
         list(pyramid.values()),
@@ -172,7 +186,7 @@ def write_ome_zarr_3d(
         coordinate_transformations=ome_meta["coordinate_transformations"],
         storage_options=dict(chunks=chunk_size, overwrite=True),
         compute=True,
-        metadata={},
+        metadata={} if metadata is None else metadata,
     )
 
 

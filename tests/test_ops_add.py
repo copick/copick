@@ -506,3 +506,45 @@ def test_add_segmentation_from_file_instance(test_payload, tmp_path):
     )
     assert seg.segmentation_type == "instance"
     assert seg.instance_ids().tolist() == [2]
+
+
+def test_add_panoptic_segmentation_from_tiff(test_payload, tmp_path):
+    from copick.ops.add import add_segmentation_from_file
+    from copick.util.formats import write_tiff_volume
+
+    labels = np.zeros((4, 6, 8), dtype=np.uint16)
+    labels[0, 0, 0] = 2
+    instances = np.zeros_like(labels)
+    instances[0, 0, 0] = 9
+    path = str(tmp_path / "panoptic.tif")
+    write_tiff_volume(path, np.stack([labels, instances]))
+
+    # --transpose addresses the spatial axes; the channel axis stays first
+    seg = add_segmentation_from_file(
+        test_payload["root"],
+        "TS_001",
+        path,
+        10.0,
+        "cells",
+        "test-user",
+        "pan-tiff",
+        panoptic=True,
+        transpose="2,1,0",
+        exist_ok=True,
+    )
+    assert seg.segmentation_type == "panoptic"
+    assert seg.numpy().shape == (2, 8, 6, 4)
+    assert seg.instance_ids(object_name="ribosome").tolist() == [9]
+
+    with pytest.raises(ValueError, match="holds no channels"):
+        add_segmentation_from_file(
+            test_payload["root"],
+            "TS_001",
+            str(tmp_path / "x.mrc"),
+            10.0,
+            "cells",
+            "test-user",
+            "pan-mrc",
+            file_type="mrc",
+            panoptic=True,
+        )

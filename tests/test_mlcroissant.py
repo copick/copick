@@ -1762,3 +1762,24 @@ def test_instance_segmentations_in_an_older_croissant(tiny_filesystem_project):
     assert sorted(s.segmentation_type for s in fresh.segmentations) == ["binary", "instance"]
     (inst,) = fresh.get_segmentations(is_instance=True)
     assert inst.instance_ids().tolist() == [1, 2, 3]
+
+
+def test_panoptic_segmentations_in_their_own_recordset(tiny_filesystem_project):
+    import copick
+    import numpy as np
+    from copick.ops.croissant import export_croissant
+
+    proj = tiny_filesystem_project
+    root = copick.from_file(str(proj / "filesystem.json"))
+    export_croissant(root, project_root=str(proj), base_url=f"file://{proj}")
+    meta_path = proj / "Croissant" / "metadata.json"
+
+    run = copick.from_croissant(str(meta_path)).get_run("run_001")
+    data = np.zeros((2, 2, 2, 2), dtype=np.uint16)
+    data[0, 0, 0, 0], data[1, 0, 0, 0] = 1, 4
+    run.new_segmentation(10.0, "cells", "1", user_id="alice", is_panoptic=True).from_numpy(data)
+
+    assert "PanopticSegmentations" in (proj / "Croissant" / "panoptic_segmentations.csv").read_text()
+    assert "PanopticSegmentations" not in (proj / "Croissant" / "segmentations.csv").read_text()
+    (pan,) = copick.from_croissant(str(meta_path)).get_run("run_001").get_segmentations(is_panoptic=True)
+    assert pan.instance_ids(object_name="ribosome").tolist() == [4]
