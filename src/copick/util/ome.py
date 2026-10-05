@@ -199,10 +199,12 @@ def get_voxel_size_from_zarr(zarr_group: zarr.Group) -> float:
     first_dataset = datasets[0]
     coord_transforms = first_dataset["coordinateTransformations"]
 
-    # Find the scale transformation
+    # Find the scale transformation. Spatial axes come last in OME-NGFF, so a leading channel axis (scale 1) is
+    # skipped by reading the first of the trailing three.
     for transform in coord_transforms:
         if transform["type"] == "scale":
-            scale_value = float(transform["scale"][0])
+            scale = transform["scale"]
+            scale_value = float(scale[len(scale) - 3] if len(scale) >= 3 else scale[0])
 
             # Handle unit conversion
             conversion_factor = UNITFACTOR.get(unit, 1.0)  # Default to 1.0 if unknown unit

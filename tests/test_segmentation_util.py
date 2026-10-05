@@ -126,3 +126,27 @@ def test_cli_type_filters_match():
     for command in (stats_segmentations, sync_segmentations):
         (option,) = [p for p in command.params if p.name == "segmentation_type"]
         assert tuple(option.type.choices) == SEGMENTATION_TYPE_FILTERS
+
+
+@pytest.mark.parametrize(
+    "axes,scale",
+    [
+        (["z", "y", "x"], [7.5, 7.5, 7.5]),
+        (["c", "z", "y", "x"], [1.0, 7.5, 7.5, 7.5]),
+    ],
+)
+def test_voxel_size_comes_from_the_spatial_scale(tmp_path, axes, scale):
+    import zarr
+    from copick.util.ome import get_voxel_size_from_zarr
+
+    group = zarr.open_group(str(tmp_path / "store.zarr"), mode="w")
+    group.attrs["multiscales"] = [
+        {
+            "axes": [
+                {"name": a, "type": "channel"} if a == "c" else {"name": a, "type": "space", "unit": "angstrom"}
+                for a in axes
+            ],
+            "datasets": [{"path": "0", "coordinateTransformations": [{"type": "scale", "scale": scale}]}],
+        },
+    ]
+    assert get_voxel_size_from_zarr(group) == 7.5
