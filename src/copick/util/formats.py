@@ -973,7 +973,11 @@ def write_em_volume(path: str, volume: np.ndarray, dtype: np.dtype = np.float32)
     """
     import emfile
 
-    emfile.write(path, volume.astype(dtype))
+    data = volume.astype(dtype)
+    if data.dtype.kind == "i" and data.dtype.itemsize == 4:
+        # emfile looks types up by character code and knows int32 only as "i" (C int); Windows spells it "l".
+        data = data.view(np.intc)
+    emfile.write(path, data)
 
 
 def em_to_copick_transform(
