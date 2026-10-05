@@ -19,6 +19,7 @@ from copick.util.filaments import (
 from copick.util.log import get_logger
 from copick.util.ome import fits_in_memory, segmentation_pyramid, volume_pyramid, write_ome_zarr_3d
 from copick.util.relion import picks_to_df_relion, relion_df_to_picks
+from copick.util.segmentation import checked_label_cast, label_dtype
 
 # Don't import Geometry at runtime to keep CLI snappy
 if TYPE_CHECKING:
@@ -3361,8 +3362,9 @@ class CopickSegmentation:
     def color(self):
         if self.is_multilabel:
             return [128, 128, 128, 0]
-        else:
-            return self.run.root.get_object(self.name).color
+        obj = self.run.root.get_object(self.name)
+        # A store whose name is not (or no longer) a pickable object still lists; it just has no colour of its own.
+        return obj.color if obj is not None else [128, 128, 128, 0]
 
     def delete(self) -> None:
         """Delete the segmentation record."""
@@ -3414,7 +3416,7 @@ class CopickSegmentation:
         self,
         data: np.ndarray,
         levels: int = 1,
-        dtype: Optional[np.dtype] = np.uint8,
+        dtype: Optional[np.dtype] = None,
     ) -> None:
         """Set the segmentation from a numpy array and compute multiscale pyramid. By default, no pyramid is computed
         for segmentations.
@@ -3422,8 +3424,12 @@ class CopickSegmentation:
         Args:
             data: The segmentation as a numpy array.
             levels: Number of levels in the multiscale pyramid.
-            dtype: Data type of the segmentation. Default is `np.uint8`.
+            dtype: Data type of the segmentation. ``None`` (the default) chooses the smallest unsigned integer type
+                that holds every value, starting at ``np.uint8``. A value that would not survive the cast raises
+                ``ValueError``; nothing is wrapped or truncated.
         """
+        if dtype is None:
+            dtype = label_dtype(data, floor=np.uint8)
         loc = self.zarr()
         pyramid = segmentation_pyramid(data, self.voxel_size, levels, dtype=dtype)
         write_ome_zarr_3d(loc, pyramid)
@@ -3439,14 +3445,16 @@ class CopickSegmentation:
         """Set a region of the segmentation from a numpy array.
 
         Args:
-            data: The segmentation's subregion as a numpy array.
+            data: The segmentation's subregion as a numpy array. Values that do not fit the stored dtype raise
+                ``ValueError`` instead of wrapping.
             zarr_group: Zarr group to access.
             x: Slice for the x-axis.
             y: Slice for the y-axis.
             z: Slice for the z-axis.
         """
         loc = self.zarr()
-        zarr.open(loc)[zarr_group][z, y, x] = data
+        array = zarr.open(loc)[zarr_group]
+        array[z, y, x] = checked_label_cast(data, array.dtype)
 
 
 COPICK_TYPES = (

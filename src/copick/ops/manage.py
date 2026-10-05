@@ -2,11 +2,42 @@
 
 from typing import Any, Dict, List, Optional, Union
 
+import zarr
+from zarr.convenience import copy_store
+
 from copick.models import CopickMesh, CopickPicks, CopickRoot, CopickRun, CopickSegmentation
 from copick.util.log import get_logger
 from copick.util.uri import parse_copick_uri, resolve_copick_objects, serialize_copick_uri
 
 logger = get_logger(__name__)
+
+
+def _copy_segmentation_store(
+    source: CopickSegmentation,
+    target: CopickSegmentation,
+    *,
+    verify_before_delete: bool,
+) -> None:
+    """Raw-copy a segmentation's store, keeping its dtype and every pyramid level.
+
+    Round-tripping through ``numpy()``/``from_numpy()`` would keep only level 0 and re-choose the dtype.
+    """
+    source_store = source.zarr()
+    target_store = target.zarr()
+    source_path = getattr(source_store, "path", None)
+    if source_path is not None and source_path == getattr(target_store, "path", None):
+        raise ValueError("Source and target are the same segmentation store.")
+    # An overwritten target must not keep levels the source doesn't have.
+    for key in list(target_store.keys()):
+        del target_store[key]
+    copy_store(source_store, target_store, if_exists="replace")
+    if verify_before_delete:
+        src = zarr.open_group(source_store, mode="r")
+        trg = zarr.open_group(target_store, mode="r")
+        for name, array in src.arrays():
+            copied = trg[name]
+            if copied.shape != array.shape or copied.dtype != array.dtype:
+                raise ValueError(f"Copied segmentation level {name} does not match its source.")
 
 
 def _validate_target_template(
@@ -262,9 +293,7 @@ def move_copick_objects(
                 target_obj.mesh = source_obj.mesh
                 target_obj.store()
             elif object_type == "segmentation":
-                # For segmentations, copy the volume data
-                data = source_obj.numpy()
-                target_obj.from_numpy(data)
+                _copy_segmentation_store(source_obj, target_obj, verify_before_delete=True)
 
             # Delete source object
             source_obj.delete()
@@ -391,9 +420,7 @@ def copy_copick_objects(
                 target_obj.mesh = source_obj.mesh
                 target_obj.store()
             elif object_type == "segmentation":
-                # For segmentations, copy the volume data
-                data = source_obj.numpy()
-                target_obj.from_numpy(data)
+                _copy_segmentation_store(source_obj, target_obj, verify_before_delete=False)
 
             mappings.append((source_obj_uri, concrete_target_uri))
             if log:
@@ -612,8 +639,7 @@ def move_copick_objects_per_run(
                     target_obj.mesh = source_obj.mesh
                     target_obj.store()
                 elif object_type == "segmentation":
-                    data = source_obj.numpy()
-                    target_obj.from_numpy(data)
+                    _copy_segmentation_store(source_obj, target_obj, verify_before_delete=True)
 
                 # Delete source object
                 source_obj.delete()
@@ -779,8 +805,7 @@ def copy_copick_objects_per_run(
                     target_obj.mesh = source_obj.mesh
                     target_obj.store()
                 elif object_type == "segmentation":
-                    data = source_obj.numpy()
-                    target_obj.from_numpy(data)
+                    _copy_segmentation_store(source_obj, target_obj, verify_before_delete=False)
 
                 mappings.append((source_obj_uri, concrete_target_uri))
 
