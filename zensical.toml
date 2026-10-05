@@ -184,6 +184,7 @@ nav = [
                 {"CopickPicksFile" = "api_reference/base_classes/metadata_models/CopickPicksFile.md"},
                 {"CopickFilamentsFile" = "api_reference/base_classes/metadata_models/CopickFilamentsFile.md"},
                 {"CopickFilament" = "api_reference/base_classes/metadata_models/CopickFilament.md"},
+                {"CopickFilamentCurve" = "api_reference/base_classes/metadata_models/CopickFilamentCurve.md"},
                 {"CopickRunMeta" = "api_reference/base_classes/metadata_models/CopickRunMeta.md"},
                 {"CopickVoxelSpacingMeta" = "api_reference/base_classes/metadata_models/CopickVoxelSpacingMeta.md"},
                 {"CopickTomogramMeta" = "api_reference/base_classes/metadata_models/CopickTomogramMeta.md"},
