@@ -1906,6 +1906,83 @@ def test_filaments_uri_copy_and_move(test_payload: Dict[str, Any]):
     assert fresh.get_filaments(object_name="ribosome", user_id="copied", session_id="2")
 
 
+def test_filament_curves_round_trip_and_copy(test_payload: Dict[str, Any]):
+    from copick.models import CopickFilamentCurve
+    from copick.ops.manage import copy_copick_objects
+
+    root = test_payload["root"]
+    if _croissant_mode_a(root):
+        pytest.skip("Mode A Croissant projects cannot hold filaments")
+    curves = [
+        CopickFilamentCurve(
+            kind="catmull-rom",
+            step=10.0,
+            control_points=[(100, 200, 50), (180, 230, 55), (260, 240, 70)],
+        ),
+        CopickFilamentCurve(kind="linear", step=10.0, control_points=[(0, 0, 0), (50, 0, 0), (50, 60, 0)]),
+        CopickFilamentCurve(
+            kind="bspline",
+            step=10.0,
+            degree=3,
+            smoothing=2.0,
+            knots=[0, 0, 0, 0, 0.5, 1, 1, 1, 1],
+            control_points=[(0, 0, 100), (30, 40, 100), (80, 50, 110), (120, 0, 120), (160, -20, 125)],
+        ),
+    ]
+    run = root.get_run("TS_001")
+    run.new_filaments(object_name="ribosome", user_id="tracer", session_id="3").from_curves(
+        curves,
+        instance_ids=[1, 2, 5],
+        voxel_spacing=10.0,
+        metadata=[None, {"tool": "clicks"}, {"fit": {"method": "splprep"}}],
+    )
+
+    reread = copick.from_file(test_payload["cfg_file"]).get_run("TS_001")
+    (found,) = reread.get_filaments(object_name="ribosome", user_id="tracer", session_id="3")
+    assert [f.curve for f in found.filaments] == curves
+    assert all(f.curve_is_current() for f in found.filaments)
+    assert found.get(2).metadata == {"tool": "clicks"} and found.get(1).metadata == {}
+    for got, curve in zip(found.numpy(), curves, strict=True):
+        assert got == pytest.approx(curve.evaluate())
+    assert all(c is not None for c in found.control_points())
+
+    result = copy_copick_objects(root, "filaments", "ribosome:tracer/3", "ribosome:copied/3", run_name="TS_001")
+    assert result["errors"] == [] and result["copied"] == 1, result
+    fresh = copick.from_file(test_payload["cfg_file"]).get_run("TS_001")
+    (copied,) = fresh.get_filaments(object_name="ribosome", user_id="copied", session_id="3")
+    assert [f.curve for f in copied.filaments] == curves
+
+
+def test_filament_stale_curve_is_dropped_on_store(test_payload: Dict[str, Any]):
+    root = test_payload["root"]
+    if _croissant_mode_a(root):
+        pytest.skip("Mode A Croissant projects cannot hold filaments")
+    run = root.get_run("TS_001")
+    filaments = run.new_filaments(object_name="ribosome", user_id="tracer", session_id="4")
+    filaments.from_control_points([[(0, 0, 0), (40, 10, 0), (80, 0, 0)]], voxel_spacing=10.0)
+    (traced,) = filaments.filaments
+    assert traced.curve_is_current() and filaments.voxel_spacing == 10.0
+
+    # Points changed without the curve: the curve no longer describes them and is not stored
+    filaments.filaments = [traced.model_copy(update={"points": [(0, 0, 0), (40, 40, 0), (80, 0, 0)]})]
+    filaments.store()
+    (reread,) = (
+        copick.from_file(test_payload["cfg_file"]).get_run("TS_001").get_filaments(user_id="tracer", session_id="4")
+    )
+    assert reread.filaments[0].curve is None
+    assert reread.filaments[0].points[1] == (40.0, 40.0, 0.0)
+
+    # An editor gets control points derived from the points, and its edit stores a curve again
+    curve = reread.editable_curve(1)
+    assert curve.kind == "catmull-rom" and curve.step == 10.0
+    reread.filaments = [reread.filaments[0].with_control_points(curve.control_points, step=curve.step)]
+    reread.store()
+    (again,) = (
+        copick.from_file(test_payload["cfg_file"]).get_run("TS_001").get_filaments(user_id="tracer", session_id="4")
+    )
+    assert again.filaments[0].curve_is_current()
+
+
 def test_filaments_static_are_read_only(test_payload: Dict[str, Any]):
     import json
 

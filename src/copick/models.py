@@ -3,9 +3,20 @@ from typing import TYPE_CHECKING, Any, Dict, Iterable, List, Literal, MutableMap
 
 import numpy as np
 import zarr
-from pydantic import AliasChoices, BaseModel, ConfigDict, Field, field_validator, model_validator
+from pydantic import AliasChoices, BaseModel, ConfigDict, Field, field_validator, model_serializer, model_validator
 
 from copick.util.escape import sanitize_name
+from copick.util.filaments import (
+    CURVE_KINDS,
+    check_curve,
+    control_points_from_polyline,
+    curve_anchors,
+    curve_is_current,
+    evaluate_curve,
+    median_spacing,
+    reverse_knots,
+)
+from copick.util.log import get_logger
 from copick.util.ome import fits_in_memory, segmentation_pyramid, volume_pyramid, write_ome_zarr_3d
 from copick.util.relion import picks_to_df_relion, relion_df_to_picks
 
@@ -13,6 +24,8 @@ from copick.util.relion import picks_to_df_relion, relion_df_to_picks
 if TYPE_CHECKING:
     import pandas as pd
     from trimesh.parent import Geometry
+
+logger = get_logger(__name__)
 
 
 #: Key in ``PickableObject.metadata`` reserved for copick's own extensions of the object spec.
@@ -2525,6 +2538,135 @@ class CopickPicks:
             raise ValueError(f"Format {format} is not supported.")
 
 
+class CopickFilamentCurve(BaseModel):
+    """The editable or fitted representation of a filament's centreline, from which its ``points`` are regenerated.
+
+    The curve is optional; ``points`` stay the canonical centreline. See ``docs/datamodel.md`` (Filaments, Editable
+    curves) for the specification, and ``copick.util.filaments`` for the reference implementation.
+
+    Attributes:
+        kind: ``"catmull-rom"`` (passes through its control points; interactive tracing), ``"linear"``, or
+            ``"bspline"`` (a fitted B-spline, stored exactly). Other kinds are kept as they are but never evaluated.
+        control_points: ``[[x, y, z], ...]`` in Angstrom, in the direction of ``points``; the B-spline coefficients
+            for ``"bspline"``.
+        step: Arc-length spacing of the regenerated ``points``, in Angstrom.
+        alpha: Catmull-Rom parameterisation; 0.5 (centripetal) when not given.
+        degree: B-spline degree (1-5).
+        knots: B-spline knots, clamped.
+        smoothing: The fit's smoothing factor (scipy's ``s``). Descriptive only.
+    """
+
+    model_config = ConfigDict(extra="allow")
+
+    kind: str = Field(min_length=1)
+    control_points: List[Tuple[float, float, float]]
+    step: float = Field(gt=0)
+    alpha: Optional[float] = None
+    degree: Optional[int] = None
+    knots: Optional[List[float]] = None
+    smoothing: Optional[float] = Field(None, ge=0)
+
+    @model_validator(mode="after")
+    def validate_curve(self) -> "CopickFilamentCurve":
+        """Check a curve of a known kind against its kind's rules."""
+        if self.kind == "catmull-rom" and self.alpha is None:
+            self.alpha = 0.5
+        if self.kind in CURVE_KINDS:
+            check_curve(
+                self.kind,
+                self.control_points,
+                self.step,
+                alpha=self.alpha,
+                degree=self.degree,
+                knots=self.knots,
+            )
+        return self
+
+    @model_serializer(mode="wrap")
+    def _omit_unset(self, handler):
+        """Leave out the fields that do not apply to the curve's kind."""
+        return {key: value for key, value in handler(self).items() if value is not None}
+
+    @property
+    def is_known(self) -> bool:
+        """Whether this copick evaluates the curve's kind."""
+        return self.kind in CURVE_KINDS
+
+    @property
+    def passes_through_control_points(self) -> bool:
+        """Whether the curve passes through every control point (all but ``bspline``)."""
+        return self.kind in ("catmull-rom", "linear")
+
+    def evaluate(self) -> np.ndarray:
+        """The (N, 3) centreline points regenerated from this curve."""
+        if not self.is_known:
+            raise ValueError(f"Cannot evaluate a curve of unknown kind {self.kind!r}.")
+        return evaluate_curve(
+            self.control_points,
+            self.step,
+            kind=self.kind,
+            alpha=self.alpha,
+            degree=self.degree,
+            knots=self.knots,
+        )
+
+    def anchors(self) -> np.ndarray:
+        """The points the curve passes through: its control points, or a B-spline at its knots."""
+        return curve_anchors(self.control_points, kind=self.kind, degree=self.degree, knots=self.knots)
+
+    def is_current_for(self, points) -> bool:
+        """Whether this curve still describes ``points`` (never, for an unknown kind)."""
+        return curve_is_current(
+            points,
+            self.control_points,
+            self.step,
+            kind=self.kind,
+            degree=self.degree,
+            knots=self.knots,
+        )
+
+    def reversed(self) -> "CopickFilamentCurve":
+        """The same curve traversed backwards."""
+        update = {"control_points": list(reversed(self.control_points))}
+        if self.knots is not None:
+            update["knots"] = [float(u) for u in reverse_knots(self.knots)]
+        return CopickFilamentCurve.model_validate({**self.model_dump(), **update})
+
+    @classmethod
+    def from_tck(
+        cls,
+        tck,
+        step: float,
+        smoothing: Optional[float] = None,
+        scale: float = 1.0,
+    ) -> "CopickFilamentCurve":
+        """A ``bspline`` curve from scipy's ``splprep`` output.
+
+        Args:
+            tck: ``(knots, [cx, cy, cz], degree)``, with the coefficients of the x, y and z coordinates.
+            step: Arc-length spacing of the regenerated points, in Angstrom.
+            smoothing: The fit's smoothing factor, recorded on the curve.
+            scale: Factor from the fit's coordinates to Angstrom (the voxel spacing for a fit in voxels).
+
+        Returns:
+            The curve.
+        """
+        knots, coefficients, degree = tck
+        coefficients = np.asarray([np.asarray(c, dtype=float) for c in coefficients])
+        if coefficients.ndim != 2 or coefficients.shape[0] != 3:
+            raise ValueError("tck must hold three coefficient arrays, for x, y and z.")
+        count = len(knots) - int(degree) - 1
+        control_points = coefficients[:, :count].T * float(scale)
+        return cls(
+            kind="bspline",
+            degree=int(degree),
+            knots=[float(u) for u in knots],
+            control_points=[tuple(map(float, c)) for c in control_points],
+            step=step,
+            smoothing=smoothing,
+        )
+
+
 class CopickFilament(BaseModel):
     """One traced filament: an ordered centreline polyline in tomogram coordinates.
 
@@ -2538,6 +2680,7 @@ class CopickFilament(BaseModel):
         score: Confidence score.
         radius: Tube radius in Angstrom, if measured.
         metadata: Additional metadata (user-defined contents).
+        curve: The editable or fitted curve ``points`` were regenerated from, if any (see ``CopickFilamentCurve``).
     """
 
     instance_id: int = Field(ge=1)
@@ -2546,6 +2689,7 @@ class CopickFilament(BaseModel):
     score: float = 1.0
     radius: Optional[float] = Field(None, gt=0)
     metadata: Dict[str, Any] = Field(default_factory=dict)
+    curve: Optional[CopickFilamentCurve] = None
 
     @field_validator("points")
     @classmethod
@@ -2561,6 +2705,133 @@ class CopickFilament(BaseModel):
     @classmethod
     def none_to_empty_dict(cls, v):
         return {} if v is None else v
+
+    @classmethod
+    def from_curve(cls, instance_id: int, curve: CopickFilamentCurve, **fields) -> "CopickFilament":
+        """A filament whose ``points`` are regenerated from ``curve``.
+
+        Args:
+            instance_id: Filament ID (>= 1).
+            curve: The curve (a known kind).
+            **fields: Other ``CopickFilament`` fields (``polarity_known``, ``score``, ``radius``, ``metadata``).
+        """
+        curve = CopickFilamentCurve.model_validate(curve)
+        return cls(instance_id=instance_id, points=_point_list(curve.evaluate()), curve=curve, **fields)
+
+    @classmethod
+    def from_control_points(
+        cls,
+        instance_id: int,
+        control_points,
+        step: float,
+        kind: str = "catmull-rom",
+        alpha: float = 0.5,
+        **fields,
+    ) -> "CopickFilament":
+        """A filament traced through ``control_points`` (``catmull-rom`` or ``linear``), with regenerated ``points``.
+
+        Args:
+            instance_id: Filament ID (>= 1).
+            control_points: (n, 3) control points in Angstrom, n >= 2, in order along the filament.
+            step: Arc-length spacing of the regenerated points, in Angstrom (usually the voxel spacing).
+            kind: ``"catmull-rom"`` or ``"linear"``; a ``bspline`` is made with ``from_curve``.
+            alpha: Catmull-Rom parameterisation.
+            **fields: Other ``CopickFilament`` fields.
+        """
+        if kind not in ("catmull-rom", "linear"):
+            raise ValueError(f"from_control_points makes catmull-rom or linear curves, not {kind!r}; use from_curve.")
+        curve = CopickFilamentCurve(
+            kind=kind,
+            control_points=_point_list(control_points),
+            step=step,
+            alpha=alpha if kind == "catmull-rom" else None,
+        )
+        return cls.from_curve(instance_id, curve, **fields)
+
+    def curve_is_current(self) -> bool:
+        """Whether the filament has a curve of a known kind that still describes its ``points``."""
+        return self.curve is not None and self.curve.is_current_for(self.points)
+
+    def with_control_points(self, control_points, step: Optional[float] = None) -> "CopickFilament":
+        """A copy with moved or new control points and regenerated ``points``, keeping the curve's kind.
+
+        A ``bspline`` keeps its degree and knots, so it needs as many control points as before. A filament without a
+        current curve of a known kind gets a ``catmull-rom`` curve.
+
+        Args:
+            control_points: The new (n, 3) control points in Angstrom.
+            step: Arc-length spacing of the regenerated points; default the curve's (or, without a curve, the median
+                spacing of ``points``).
+        """
+        control_points = _point_list(control_points)
+        if self.curve_is_current():
+            data = self.curve.model_dump()
+            if self.curve.kind == "bspline" and len(control_points) != len(self.curve.control_points):
+                raise ValueError(
+                    f"A bspline keeps its knots, so it needs {len(self.curve.control_points)} control points, got "
+                    f"{len(control_points)}. Convert it with editable_curve(kinds=('catmull-rom',)) to add or remove "
+                    "points.",
+                )
+            curve = {**data, "control_points": control_points, "step": step or self.curve.step}
+        else:
+            curve = {
+                "kind": "catmull-rom",
+                "alpha": 0.5,
+                "control_points": control_points,
+                "step": step or _default_step(self.points),
+            }
+        fields = self.model_dump(exclude={"instance_id", "points", "curve"})
+        return CopickFilament.from_curve(self.instance_id, CopickFilamentCurve.model_validate(curve), **fields)
+
+    def editable_curve(
+        self,
+        tolerance: Optional[float] = None,
+        step: Optional[float] = None,
+        kinds: Iterable[str] = CURVE_KINDS,
+    ) -> CopickFilamentCurve:
+        """The curve an editor should show: the filament's own if it is current and of one of ``kinds``, otherwise a
+        ``catmull-rom`` curve derived from ``points`` (``copick.util.filaments.control_points_from_polyline``).
+
+        Args:
+            tolerance: Largest distance of the derived curve from ``points``, in Angstrom; default half ``step``.
+            step: Spacing of the derived curve's points; default the median spacing of ``points``.
+            kinds: The curve kinds the editor supports.
+        """
+        if self.curve_is_current() and self.curve.kind in tuple(kinds):
+            return self.curve
+        step = step or _default_step(self.points)
+        control_points = control_points_from_polyline(self.points, tolerance or step / 2)
+        return CopickFilamentCurve(kind="catmull-rom", alpha=0.5, control_points=_point_list(control_points), step=step)
+
+    def editable_control_points(
+        self,
+        tolerance: Optional[float] = None,
+        step: Optional[float] = None,
+        kinds: Iterable[str] = CURVE_KINDS,
+    ) -> np.ndarray:
+        """The (n, 3) control points of ``editable_curve(...)``."""
+        return np.asarray(self.editable_curve(tolerance=tolerance, step=step, kinds=kinds).control_points, dtype=float)
+
+    def reversed(self) -> "CopickFilament":
+        """The filament traversed backwards: ``points`` and the curve both reversed."""
+        return CopickFilament.model_validate(
+            {
+                **self.model_dump(exclude={"curve"}),
+                "points": list(reversed(self.points)),
+                "curve": None if self.curve is None else self.curve.reversed(),
+            },
+        )
+
+
+def _point_list(points) -> List[Tuple[float, float, float]]:
+    return [tuple(map(float, p)) for p in np.asarray(points, dtype=float).reshape(-1, 3)]
+
+
+def _default_step(points) -> float:
+    spacing = median_spacing(points)
+    if spacing <= 0:
+        raise ValueError("Cannot derive a step from coincident points; pass step.")
+    return spacing
 
 
 class CopickFilamentsFile(BaseModel):
@@ -2642,9 +2913,32 @@ class CopickFilaments:
         return self.meta
 
     def store(self) -> None:
-        """Store the filaments."""
+        """Store the filaments. A curve of a known kind that no longer describes its filament's ``points`` is dropped,
+        with a warning, rather than stored."""
+        self._drop_stale_curves()
         self._store()
         self._loaded = True
+
+    def _drop_stale_curves(self) -> None:
+        stale = [
+            f.instance_id
+            for f in self.meta.filaments
+            if f.curve is not None and f.curve.is_known and not f.curve_is_current()
+        ]
+        if not stale:
+            return
+        logger.warning(
+            f"Dropping the curves of filaments {stale} of {self.pickable_object_name} ({self.user_id}/{self.session_id}): "
+            "their points were changed without regenerating them from the curve.",
+        )
+        self.meta = CopickFilamentsFile.model_validate(
+            {
+                **self.meta.model_dump(),
+                "filaments": [
+                    f.model_copy(update={"curve": None}) if f.instance_id in stale else f for f in self.meta.filaments
+                ],
+            },
+        )
 
     def refresh(self) -> None:
         """Reload the filaments from storage."""
@@ -2714,8 +3008,10 @@ class CopickFilaments:
         scores: Optional[List[float]] = None,
         radii: Optional[List[Optional[float]]] = None,
         voxel_spacing: Optional[float] = None,
+        metadata: Optional[List[Optional[Dict[str, Any]]]] = None,
     ) -> None:
-        """Set the filaments from (M, 3) arrays of ordered points in Angstrom, and store them.
+        """Set the filaments from (M, 3) arrays of ordered points in Angstrom, and store them. The filaments have no
+        curves; use ``from_control_points`` or ``from_curves`` for editable ones.
 
         Args:
             polylines: One (M, 3) array per filament, M >= 2, in order along the filament.
@@ -2724,30 +3020,71 @@ class CopickFilaments:
             scores: Per filament score. Default 1.0.
             radii: Per filament tube radius in Angstrom, or None.
             voxel_spacing: Voxel spacing the filaments were traced in, recorded in the file.
+            metadata: Per filament metadata, or None.
 
         Raises:
             ValueError: If the arguments' lengths differ or a filament is invalid.
         """
-        k = len(polylines)
-        for name, values in (
-            ("instance_ids", instance_ids),
-            ("polarity_known", polarity_known),
-            ("scores", scores),
-            ("radii", radii),
-        ):
-            if values is not None and len(values) != k:
-                raise ValueError(f"{name} must have one entry per filament ({k}), got {len(values)}.")
+        fields = _per_filament_fields(len(polylines), instance_ids, polarity_known, scores, radii, metadata)
+        filaments = [CopickFilament(points=_point_list(line), **f) for line, f in zip(polylines, fields, strict=True)]
+        self._set(filaments, voxel_spacing)
 
+    def from_curves(
+        self,
+        curves: List[CopickFilamentCurve],
+        instance_ids: Optional[List[int]] = None,
+        polarity_known: Optional[List[bool]] = None,
+        scores: Optional[List[float]] = None,
+        radii: Optional[List[Optional[float]]] = None,
+        voxel_spacing: Optional[float] = None,
+        metadata: Optional[List[Optional[Dict[str, Any]]]] = None,
+    ) -> None:
+        """Set the filaments from curves, regenerating their ``points``, and store them.
+
+        Args:
+            curves: One ``CopickFilamentCurve`` (or dict of its fields) per filament, of a known kind; for example
+                ``CopickFilamentCurve.from_tck(...)`` for a scipy spline fit.
+            instance_ids, polarity_known, scores, radii, voxel_spacing, metadata: As for ``from_numpy``.
+        """
+        fields = _per_filament_fields(len(curves), instance_ids, polarity_known, scores, radii, metadata)
+        filaments = [CopickFilament.from_curve(curve=curve, **f) for curve, f in zip(curves, fields, strict=True)]
+        self._set(filaments, voxel_spacing)
+
+    def from_control_points(
+        self,
+        control_points: List[np.ndarray],
+        instance_ids: Optional[List[int]] = None,
+        step: Optional[float] = None,
+        kind: str = "catmull-rom",
+        alpha: float = 0.5,
+        polarity_known: Optional[List[bool]] = None,
+        scores: Optional[List[float]] = None,
+        radii: Optional[List[Optional[float]]] = None,
+        voxel_spacing: Optional[float] = None,
+        metadata: Optional[List[Optional[Dict[str, Any]]]] = None,
+    ) -> None:
+        """Set the filaments from traced control points (``catmull-rom`` or ``linear`` curves), regenerating their
+        ``points``, and store them.
+
+        Args:
+            control_points: One (n, 3) array per filament, n >= 2, in order along the filament, in Angstrom.
+            instance_ids: Filament IDs (>= 1, unique). Default 1..K.
+            step: Arc-length spacing of the regenerated points; default ``voxel_spacing`` (or the file's).
+            kind: ``"catmull-rom"`` or ``"linear"``.
+            alpha: Catmull-Rom parameterisation.
+            polarity_known, scores, radii, voxel_spacing, metadata: As for ``from_numpy``.
+        """
+        step = step or voxel_spacing or self.meta.voxel_spacing
+        if not step:
+            raise ValueError("Pass step or voxel_spacing: the spacing of the regenerated points.")
+        fields = _per_filament_fields(len(control_points), instance_ids, polarity_known, scores, radii, metadata)
         filaments = [
-            CopickFilament(
-                instance_id=int(instance_ids[i]) if instance_ids is not None else i + 1,
-                points=[tuple(map(float, p)) for p in np.asarray(polylines[i], dtype=float).reshape(-1, 3)],
-                polarity_known=bool(polarity_known[i]) if polarity_known is not None else False,
-                score=float(scores[i]) if scores is not None else 1.0,
-                radius=None if radii is None or radii[i] is None else float(radii[i]),
-            )
-            for i in range(k)
+            CopickFilament.from_control_points(control_points=cps, step=step, kind=kind, alpha=alpha, **f)
+            for cps, f in zip(control_points, fields, strict=True)
         ]
+        self._set(filaments, voxel_spacing)
+
+    def _set(self, filaments: List[CopickFilament], voxel_spacing: Optional[float]) -> None:
         self.meta = CopickFilamentsFile.model_validate(
             {
                 **self.meta.model_dump(),
@@ -2757,6 +3094,60 @@ class CopickFilaments:
         )
         self._loaded = True
         self.store()
+
+    def control_points(self) -> List[Optional[np.ndarray]]:
+        """Per filament, in file order, the (n, 3) control points of its current curve, or None."""
+        return [
+            np.asarray(f.curve.control_points, dtype=float) if f.curve_is_current() else None for f in self.filaments
+        ]
+
+    def editable_curve(
+        self,
+        instance_id: int,
+        tolerance: Optional[float] = None,
+        kinds: Iterable[str] = CURVE_KINDS,
+    ) -> CopickFilamentCurve:
+        """``CopickFilament.editable_curve`` for one filament, deriving a curve at the file's voxel spacing: points
+        ``voxel_spacing`` apart, within half of it of the stored points.
+
+        Raises:
+            KeyError: If no filament has this ID.
+        """
+        filament = self.get(instance_id)
+        if filament is None:
+            raise KeyError(f"No filament with instance ID {instance_id}.")
+        step = self.voxel_spacing or None
+        return filament.editable_curve(tolerance=tolerance or (step / 2 if step else None), step=step, kinds=kinds)
+
+
+def _per_filament_fields(
+    k: int,
+    instance_ids: Optional[List[int]],
+    polarity_known: Optional[List[bool]],
+    scores: Optional[List[float]],
+    radii: Optional[List[Optional[float]]],
+    metadata: Optional[List[Optional[Dict[str, Any]]]],
+) -> List[Dict[str, Any]]:
+    """The per-filament fields of the ``CopickFilaments.from_*`` setters, checking each list has ``k`` entries."""
+    for name, values in (
+        ("instance_ids", instance_ids),
+        ("polarity_known", polarity_known),
+        ("scores", scores),
+        ("radii", radii),
+        ("metadata", metadata),
+    ):
+        if values is not None and len(values) != k:
+            raise ValueError(f"{name} must have one entry per filament ({k}), got {len(values)}.")
+    return [
+        {
+            "instance_id": int(instance_ids[i]) if instance_ids is not None else i + 1,
+            "polarity_known": bool(polarity_known[i]) if polarity_known is not None else False,
+            "score": float(scores[i]) if scores is not None else 1.0,
+            "radius": None if radii is None or radii[i] is None else float(radii[i]),
+            "metadata": {} if metadata is None or metadata[i] is None else dict(metadata[i]),
+        }
+        for i in range(k)
+    ]
 
 
 class CopickMeshMeta(BaseModel):
