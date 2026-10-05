@@ -56,13 +56,13 @@ def mv(
     """
     Move/rename copick objects by URI.
 
-    Renames or relocates picks, meshes, and segmentations within a project by
+    Renames or relocates picks, filaments, meshes, and segmentations within a project by
     rewriting their URI. A single concrete source/target pair renames one object,
     while a glob or regex source pattern combined with a templated target moves
     many objects at once. Each source object is deleted only after a successful
     copy to its target.
 
-    Picks and meshes are addressed as `object_name:user_id/session_id`, and
+    Picks, filaments and meshes are addressed as `object_name:user_id/session_id`, and
     segmentations append a voxel spacing as `name:user_id/session_id@voxel_spacing`.
     For pattern-based moves the target URI may use placeholders that are filled in
     from each matched source: `{object_name}`, `{name}`, `{user_id}`,
@@ -76,7 +76,7 @@ def mv(
     Arguments:
 
         \b
-        OBJECT_TYPE: Type of object to move (picks, mesh, or segmentation).
+        OBJECT_TYPE: Type of object to move (picks, filaments, mesh, or segmentation).
         SOURCE_URI: Source copick URI pattern (supports glob and regex).
         TARGET_URI: Target copick URI (use placeholders for pattern-based moves).
 
