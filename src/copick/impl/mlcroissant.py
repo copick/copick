@@ -67,6 +67,7 @@ from copick.models import (
 )
 from copick.util.log import get_logger
 from copick.util.ome import zarr_root_exists
+from copick.util.segmentation import list_segmentation_stores, segmentation_store_name
 from copick.util.store import copick_store
 
 if TYPE_CHECKING:
@@ -250,6 +251,38 @@ CSV_SCHEMA: Dict[str, Dict[str, Any]] = {
             "portal_annotation_file_id": "sc:Text",
         },
     },
+    # Instance segmentations get their own recordset, as they get their own directory: a reader that predates them
+    # never sees one, rather than reading instance IDs as a binary mask.
+    "copick/instance_segmentations": {
+        "csv_name": "instance_segmentations.csv",
+        "file_object_id": "instance-segmentations-csv",
+        "recordset_name": "instance_segmentations",
+        "columns": [
+            "run",
+            "voxel_size",
+            "user_id",
+            "session_id",
+            "name",
+            "url",
+            "portal_object_name",
+            "portal_session_id",
+            "portal_annotation_id",
+            "portal_annotation_file_id",
+        ],
+        "key_fields": ("run", "voxel_size", "user_id", "session_id", "name"),
+        "types": {
+            "run": "sc:Text",
+            "voxel_size": "sc:Float",
+            "user_id": "sc:Text",
+            "session_id": "sc:Text",
+            "name": "sc:Text",
+            "url": "sc:Text",
+            "portal_object_name": "sc:Text",
+            "portal_session_id": "sc:Text",
+            "portal_annotation_id": "sc:Text",
+            "portal_annotation_file_id": "sc:Text",
+        },
+    },
     "copick/objects": {
         "csv_name": "objects.csv",
         "file_object_id": "objects-csv",
@@ -269,6 +302,7 @@ RECORDSET_ORDER = [
     "copick/picks",
     "copick/meshes",
     "copick/segmentations",
+    "copick/instance_segmentations",
     "copick/objects",
 ]
 
@@ -409,6 +443,27 @@ def _sha256_path(fs: AbstractFileSystem, path: str) -> str:
     return h.hexdigest()
 
 
+_RECORDSET_BY_FILE_OBJECT = {schema["file_object_id"]: rs_id for rs_id, schema in CSV_SCHEMA.items()}
+
+
+def schema_field(recordset_id: str, column: str) -> Dict[str, Any]:
+    """The ``cr:Field`` declaring one CSV column of a recordset."""
+    schema = CSV_SCHEMA[recordset_id]
+    field = {
+        "@type": "cr:Field",
+        "@id": f"{recordset_id}/{column}",
+        "dataType": schema["types"][column],
+        "source": {
+            "fileObject": {"@id": schema["file_object_id"]},
+            "extract": {"column": column},
+        },
+    }
+    extras = (schema.get("field_extras", {}) or {}).get(column)
+    if extras:
+        field.update(extras)
+    return field
+
+
 def _coerce_cell(value: Any, type_hint: str) -> Any:
     """Coerce a CSV cell into the correct Python type for a given Field dataType."""
     if value is None:
@@ -460,6 +515,7 @@ class CroissantIndex:
     picks: List[Dict[str, Any]] = field(default_factory=list)
     meshes: List[Dict[str, Any]] = field(default_factory=list)
     segmentations: List[Dict[str, Any]] = field(default_factory=list)
+    instance_segmentations: List[Dict[str, Any]] = field(default_factory=list)
     objects: List[Dict[str, Any]] = field(default_factory=list)
 
     # Write-side state
@@ -591,6 +647,9 @@ class CroissantIndex:
                     key = prefix + col
                     raw = rec.get(key, None)
                     row[col] = _coerce_cell(raw, types[col])
+                    # A flag absent from an older Croissant (no column) is False, so row keys still match.
+                    if types[col] == "sc:Boolean" and row[col] is None:
+                        row[col] = False
                 if rs_id == "copick/runs":
                     if row.get("name"):
                         self.runs_by_name[row["name"]] = row
@@ -636,6 +695,7 @@ class CroissantIndex:
             "copick/picks": self.picks,
             "copick/meshes": self.meshes,
             "copick/segmentations": self.segmentations,
+            "copick/instance_segmentations": self.instance_segmentations,
             "copick/objects": self.objects,
         }[recordset_id]
 
@@ -726,6 +786,7 @@ class CroissantIndex:
             self.picks.clear()
             self.meshes.clear()
             self.segmentations.clear()
+            self.instance_segmentations.clear()
             self.objects.clear()
             self._dirty.clear()
             self._load_records()
@@ -747,6 +808,7 @@ class CroissantIndex:
             csv_bytes = self._serialize_csv(rs_id)
             self._atomic_write_bytes(csv_path, csv_bytes)
             new_sha[schema["file_object_id"]] = _sha256_bytes(csv_bytes)
+            self._declare_recordset(rs_id)
 
         # Patch metadata.json distribution sha256s
         for entry in self.doc.get("distribution", []):
@@ -759,6 +821,48 @@ class CroissantIndex:
         self._atomic_write_bytes(self._metadata_path, metadata_bytes)
 
         self._dirty.clear()
+
+    def _declare_recordset(self, recordset_id: str) -> None:
+        """Declare a rewritten recordset in ``self.doc``: its CSV file object, the recordset, and every column.
+
+        A Croissant written by an older copick lacks newer recordsets and columns; the rewritten CSV has them, and
+        readers only see what the document declares.
+        """
+        schema = CSV_SCHEMA[recordset_id]
+        distribution = self.doc.setdefault("distribution", [])
+        file_objects = [e for e in distribution if e.get("@type") == "cr:FileObject"]
+        if not any(e.get("@id") == schema["file_object_id"] for e in file_objects):
+            # Place the new CSV beside an existing copick CSV, addressed the same way.
+            for entry in file_objects:
+                sibling_rs = _RECORDSET_BY_FILE_OBJECT.get(entry.get("@id"))
+                sibling_csv = CSV_SCHEMA[sibling_rs]["csv_name"] if sibling_rs else None
+                if sibling_csv and str(entry.get("contentUrl", "")).endswith(sibling_csv):
+                    content_url = entry["contentUrl"][: -len(sibling_csv)] + schema["csv_name"]
+                    break
+            else:
+                raise ValueError(
+                    f"Cannot place {schema['csv_name']}: the Croissant declares no copick CSV to put it beside.",
+                )
+            distribution.append(
+                {
+                    "@type": "cr:FileObject",
+                    "@id": schema["file_object_id"],
+                    "name": schema["file_object_id"],
+                    "contentUrl": content_url,
+                    "encodingFormat": "text/csv",
+                    "sha256": "",
+                },
+            )
+        record_sets = self.doc.setdefault("recordSet", [])
+        record_set = next((r for r in record_sets if r.get("@id") == recordset_id), None)
+        if record_set is None:
+            record_set = {"@type": "cr:RecordSet", "@id": recordset_id, "name": schema["recordset_name"], "field": []}
+            record_sets.append(record_set)
+        fields = record_set.setdefault("field", [])
+        declared = {f.get("@id") for f in fields}
+        for column in schema["columns"]:
+            if f"{recordset_id}/{column}" not in declared:
+                fields.append(schema_field(recordset_id, column))
 
     def _serialize_csv(self, recordset_id: str) -> bytes:
         schema = CSV_SCHEMA[recordset_id]
@@ -1226,25 +1330,39 @@ class CopickSegmentationMLC(CopickSegmentationOverlay):
     def _index(self) -> CroissantIndex:
         return self.run.root.index
 
-    def _find_row(self) -> Optional[Dict[str, Any]]:
+    @property
+    def _recordset_id(self) -> str:
+        return "copick/instance_segmentations" if self.is_instance else "copick/segmentations"
+
+    def _row_key(self) -> Dict[str, Any]:
         key = {
             "run": self.run.name,
             "voxel_size": float(self.voxel_size),
             "user_id": self.user_id,
             "session_id": self.session_id,
             "name": self.name,
-            "is_multilabel": bool(self.is_multilabel),
         }
-        for row in self._index.segmentations:
+        if not self.is_instance:
+            key["is_multilabel"] = bool(self.is_multilabel)
+        return key
+
+    def _find_row(self) -> Optional[Dict[str, Any]]:
+        key = self._row_key()
+        for row in self._index._get_list_for(self._recordset_id):
             if all(row.get(k) == v for k, v in key.items()):
                 return row
         return None
 
     @property
     def filename(self) -> str:
-        if self.is_multilabel:
-            return f"{self.voxel_size:.3f}_{self.user_id}_{self.session_id}_{self.name}-multilabel.zarr"
-        return f"{self.voxel_size:.3f}_{self.user_id}_{self.session_id}_{self.name}.zarr"
+        return segmentation_store_name(
+            self.voxel_size,
+            self.user_id,
+            self.session_id,
+            self.name,
+            is_multilabel=self.is_multilabel,
+            is_instance=self.is_instance,
+        )
 
     @property
     def path(self) -> str:
@@ -1253,7 +1371,7 @@ class CopickSegmentationMLC(CopickSegmentationOverlay):
             if row is None:
                 raise FileNotFoundError(f"No Croissant row for segmentation {self}")
             return _join_url(self._index.base_url, row["url"])
-        return f"{self.run.overlay_path}/Segmentations/{self.filename}"
+        return f"{self.run.overlay_path}/{self.directory}/{self.filename}"
 
     @property
     def fs(self) -> AbstractFileSystem:
@@ -1273,16 +1391,7 @@ class CopickSegmentationMLC(CopickSegmentationOverlay):
         # Live-sync row (only on creation; subsequent writes reuse the row)
         if create and self.run.root.mode == "A":
             rel = self._relative_url()
-            row = {
-                "run": self.run.name,
-                "voxel_size": float(self.voxel_size),
-                "user_id": self.user_id,
-                "session_id": self.session_id,
-                "name": self.name,
-                "is_multilabel": bool(self.is_multilabel),
-                "url": rel,
-            }
-            self._index.add_row("copick/segmentations", row)
+            self._index.add_row(self._recordset_id, {**self._row_key(), "url": rel})
         return store
 
     def _delete_data(self) -> None:
@@ -1292,18 +1401,10 @@ class CopickSegmentationMLC(CopickSegmentationOverlay):
         else:
             raise FileNotFoundError(f"File not found: {self.path}")
         if self.run.root.mode == "A":
-            key = {
-                "run": self.run.name,
-                "voxel_size": float(self.voxel_size),
-                "user_id": self.user_id,
-                "session_id": self.session_id,
-                "name": self.name,
-                "is_multilabel": bool(self.is_multilabel),
-            }
-            self._index.remove_row("copick/segmentations", key)
+            self._index.remove_row(self._recordset_id, self._row_key())
 
     def _relative_url(self) -> str:
-        return f"ExperimentRuns/{self.run.name}/Segmentations/{self.filename}"
+        return f"ExperimentRuns/{self.run.name}/{self.directory}/{self.filename}"
 
 
 # -----------------------------------------------------------------------------
@@ -1934,84 +2035,40 @@ class CopickRunMLC(CopickRunOverlay):
         # so artifacts aren't returned twice.
         if self.static_is_overlay:
             return []
-        results = []
-        for row in self._index.segmentations:
-            if row.get("run") == self.name:
-                results.append(
-                    CopickSegmentationMLC(
-                        run=self,
-                        meta=CopickSegmentationMeta(
-                            is_multilabel=bool(row["is_multilabel"]),
-                            voxel_size=float(row["voxel_size"]),
-                            user_id=row["user_id"],
-                            session_id=row["session_id"],
-                            name=row["name"],
-                        ),
-                        read_only=True,
-                    ),
-                )
-        return results
+        return [CopickSegmentationMLC(run=self, meta=meta, read_only=True) for meta in self._index_segmentation_metas()]
 
-    def _query_overlay_segmentations(self) -> List[CopickSegmentationMLC]:
-        if self.root.mode == "A":
-            # Mode A: the Croissant index is the authoritative list of writable segmentations.
-            return [
-                CopickSegmentationMLC(
-                    run=self,
-                    meta=CopickSegmentationMeta(
-                        is_multilabel=bool(row["is_multilabel"]),
+    def _index_segmentation_metas(self) -> List[CopickSegmentationMeta]:
+        """This run's segmentations as the Croissant index lists them (both segmentation recordsets)."""
+        metas = []
+        for rows, is_instance in ((self._index.segmentations, False), (self._index.instance_segmentations, True)):
+            for row in rows:
+                if row.get("run") != self.name:
+                    continue
+                metas.append(
+                    CopickSegmentationMeta(
+                        is_multilabel=bool(row.get("is_multilabel")),
+                        is_instance=is_instance,
                         voxel_size=float(row["voxel_size"]),
                         user_id=row["user_id"],
                         session_id=row["session_id"],
                         name=row["name"],
                     ),
-                    read_only=False,
                 )
-                for row in self._index.segmentations
-                if row.get("run") == self.name
+        return metas
+
+    def _query_overlay_segmentations(self) -> List[CopickSegmentationMLC]:
+        if self.root.mode == "A":
+            # Mode A: the Croissant index is the authoritative list of writable segmentations.
+            return [
+                CopickSegmentationMLC(run=self, meta=meta, read_only=False) for meta in self._index_segmentation_metas()
             ]
         fs = self.fs_overlay
         if fs is None:
             return []
-        seg_loc = f"{self.overlay_path}/Segmentations/"
-        try:
-            paths = fs.glob(seg_loc + "*.zarr") + fs.glob(seg_loc + "*.zarr/")
-        except FileNotFoundError:
-            return []
-        paths = [p.rstrip("/") for p in paths if fs.isdir(p)]
-        names = [p.replace(seg_loc, "").replace(".zarr", "") for p in paths]
-        names = [n for n in names if not n.startswith(".")]
-        names = list(set(names))
-        result = []
-        for n in names:
-            parts = n.split("_", 3)
-            if len(parts) < 4:
-                continue
-            vs, u, s, rest = parts
-            try:
-                vs_f = float(vs)
-            except ValueError:
-                continue
-            if rest.endswith("-multilabel"):
-                nm = rest[: -len("-multilabel")]
-                ml = True
-            else:
-                nm = rest
-                ml = False
-            result.append(
-                CopickSegmentationMLC(
-                    run=self,
-                    meta=CopickSegmentationMeta(
-                        is_multilabel=ml,
-                        voxel_size=vs_f,
-                        user_id=u,
-                        session_id=s,
-                        name=nm,
-                    ),
-                    read_only=False,
-                ),
-            )
-        return result
+        return [
+            CopickSegmentationMLC(run=self, meta=CopickSegmentationMeta(**fields), read_only=False)
+            for fields in list_segmentation_stores(fs, self.overlay_path)
+        ]
 
     def ensure(self, create: bool = False) -> bool:
         exists = self.name in self._index.runs_by_name

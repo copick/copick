@@ -26,6 +26,17 @@ def _copy_segmentation_store(
         zarr.open_group(target_store, mode="r")
 
 
+def _keep_segmentation_type(source: CopickSegmentation, target_params: Dict[str, Any]) -> None:
+    """cp and mv keep a segmentation's type: a target URI may restate it, never change it."""
+    for flag, value in (("multilabel", source.is_multilabel), ("instance", source.is_instance)):
+        wanted = target_params.get(flag)
+        if wanted is not None and wanted != value:
+            raise ValueError(
+                f"The source is a {source.segmentation_type} segmentation; cp and mv do not convert segmentation "
+                "types.",
+            )
+
+
 def _validate_target_template(
     source_uri: str,
     target_uri: str,
@@ -253,12 +264,14 @@ def move_copick_objects(
                 if isinstance(voxel_spacing, str):
                     voxel_spacing = float(voxel_spacing)
 
+                _keep_segmentation_type(source_obj, target_params)
                 target_obj = source_obj.run.new_segmentation(
                     name=target_params["name"],
                     session_id=target_params["session_id"],
                     user_id=target_params["user_id"],
                     voxel_size=voxel_spacing,
                     is_multilabel=source_obj.is_multilabel,
+                    is_instance=source_obj.is_instance,
                     exist_ok=overwrite,
                 )
 
@@ -380,12 +393,14 @@ def copy_copick_objects(
                 if isinstance(voxel_spacing, str):
                     voxel_spacing = float(voxel_spacing)
 
+                _keep_segmentation_type(source_obj, target_params)
                 target_obj = source_obj.run.new_segmentation(
                     name=target_params["name"],
                     session_id=target_params["session_id"],
                     user_id=target_params["user_id"],
                     voxel_size=voxel_spacing,
                     is_multilabel=source_obj.is_multilabel,
+                    is_instance=source_obj.is_instance,
                     exist_ok=overwrite,
                 )
 
@@ -601,12 +616,14 @@ def move_copick_objects_per_run(
                     if isinstance(voxel_spacing, str):
                         voxel_spacing = float(voxel_spacing)
 
+                    _keep_segmentation_type(source_obj, target_params)
                     target_obj = source_obj.run.new_segmentation(
                         name=target_params["name"],
                         session_id=target_params["session_id"],
                         user_id=target_params["user_id"],
                         voxel_size=voxel_spacing,
                         is_multilabel=source_obj.is_multilabel,
+                        is_instance=source_obj.is_instance,
                         exist_ok=overwrite,
                     )
 
@@ -767,12 +784,14 @@ def copy_copick_objects_per_run(
                     if isinstance(voxel_spacing, str):
                         voxel_spacing = float(voxel_spacing)
 
+                    _keep_segmentation_type(source_obj, target_params)
                     target_obj = source_obj.run.new_segmentation(
                         name=target_params["name"],
                         session_id=target_params["session_id"],
                         user_id=target_params["user_id"],
                         voxel_size=voxel_spacing,
                         is_multilabel=source_obj.is_multilabel,
+                        is_instance=source_obj.is_instance,
                         exist_ok=overwrite,
                     )
 

@@ -529,8 +529,8 @@ def segmentations(
     `--config` is ignored and a temporary dataportal configuration is created.
 
     When specific segmentation names are requested, the matching pickable objects are
-    created in the target project before copying (non-multilabel segmentations require the
-    name to match a pickable object). Use `--exist-ok` to overwrite segmentations that
+    created in the target project before copying (binary and instance segmentations require
+    the name to match a pickable object). Use `--exist-ok` to overwrite segmentations that
     already exist in the target.
 
     Examples:
@@ -584,7 +584,7 @@ def segmentations(
 
     try:
         # For segmentations, ensure pickable objects exist if we have specific segmentation names
-        # (non-multilabel segmentations require the segmentation name to match a pickable object)
+        # (binary and instance segmentations require the segmentation name to match a pickable object)
         if source_names_list is not None:
             # Use segmentation names as pickable object names for validation
             target_names_for_objects = target_names_dict if target_names_dict else {}

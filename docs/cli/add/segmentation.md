@@ -17,8 +17,10 @@ copick add segmentation [OPTIONS] PATH
 
 Imports a single segmentation, or many at once via a glob pattern, into one or
 more runs. The file format is inferred from the extension unless `--file-type`
-is given. Segmentations are imported as multilabel volumes and may be tagged
-with a name, user ID, and session ID.
+is given. Segmentations are imported as multilabel volumes unless
+`--segmentation-type` says otherwise, and may be tagged with a name, user ID, and
+session ID. Binary and instance segmentations need NAME to be a pickable object.
+Integer labels keep their values: the stored dtype is chosen to hold them.
 
 ## Arguments
 
@@ -39,6 +41,7 @@ with a name, user ID, and session ID.
 | `--session-id` | text | `1` | Session ID for the annotation. |
 | `--user-id` | text | `copick` | User ID for the annotation. |
 | `--file-type` | choice (mrc \| zarr \| tiff \| em) | — | File type ('mrc', 'zarr', 'tiff', or 'em'). Will guess type based on extension if omitted. |
+| `--segmentation-type` | choice (multilabel \| binary \| instance) | `multilabel` | 'multilabel': voxel = an object's label; 'binary': voxel = 1 inside the object NAME; 'instance': voxel = the instance ID within the object NAME, 0 for background. |
 | `--max-workers` | integer | `4` | Maximum number of worker threads. |
 | `--flip` | text | — | Flip (reverse) volume along specified axes. Comma-separated axis indices, e.g., '0' to flip Z, '0,2' to flip Z and X. Default: no flipping. |
 | `--transpose` | text | — | Transpose volume axes. Specify target axis order, e.g., '2,1,0' to reverse all axes, '0,2,1' to swap Y and X. Default: no transposition. |
@@ -58,6 +61,10 @@ copick add segmentation "*.mrc" -c config.json --name membrane
 # Extract the run name from the filename with a regex
 copick add segmentation "TS*.mrc" -c config.json --name membrane \
     --run-regex "^(TS_\d+)"
+
+# Import a volume whose voxels hold microtubule instance IDs
+copick add segmentation filaments.tif -c config.json --run TS_001 --voxel-size 10.0 \
+    --name microtubule --segmentation-type instance
 ```
 
 ## See also

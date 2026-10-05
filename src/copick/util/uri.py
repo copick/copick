@@ -25,7 +25,7 @@ def parse_copick_uri(uri: str, object_type: str) -> Dict[str, Any]:
     URI Schemes:
     - Picks: object_name:user_id/session_id
     - Meshes: object_name:user_id/session_id
-    - Segmentations: name:user_id/session_id@voxel_spacing?multilabel=true
+    - Segmentations: name:user_id/session_id@voxel_spacing[?multilabel=true|?instance=true]
     - Tomogram: tomo_type@voxel_spacing
     - Feature: tomo_type@voxel_spacing:feature_type
 
@@ -127,12 +127,15 @@ def parse_copick_uri(uri: str, object_type: str) -> Dict[str, Any]:
             "session_id": session_id,
             "voxel_spacing": voxel_spacing,
             "multilabel": None,  # Default value (matches both multilabel and non-multilabel)
+            "instance": None,  # Default value (matches both instance and non-instance)
         }
 
-        # Check for multilabel parameter
-        if "multilabel" in query_params:
-            multilabel_val = query_params["multilabel"].lower()
-            result["multilabel"] = multilabel_val in ("true", "1", "yes")
+        # Check for the segmentation type parameters
+        for flag in ("multilabel", "instance"):
+            if flag in query_params:
+                result[flag] = str(query_params[flag]).lower() in ("true", "1", "yes")
+        if result["multilabel"] and result["instance"]:
+            raise ValueError(f"A segmentation is either multilabel or instance, not both: '{uri}'")
 
         return result
 
@@ -269,6 +272,7 @@ def expand_output_uri(
     input_session_id = input_params.get("session_id", "*")
     input_voxel_spacing = input_params.get("voxel_spacing")
     input_multilabel = input_params.get("multilabel")
+    input_instance = input_params.get("instance")
 
     # Determine if input uses patterns
     has_input_pattern = (
@@ -280,16 +284,23 @@ def expand_output_uri(
     )
 
     # Parse what we have in output_uri (might be partial)
-    output_parts = {"object_name": None, "user_id": None, "session_id": None, "voxel_spacing": None, "multilabel": None}
+    output_parts = {
+        "object_name": None,
+        "user_id": None,
+        "session_id": None,
+        "voxel_spacing": None,
+        "multilabel": None,
+        "instance": None,
+    }
 
     # Handle query parameters first (for segmentations)
     uri_to_parse = output_uri
     if "?" in uri_to_parse:
         uri_to_parse, query_string = uri_to_parse.split("?", 1)
         query_params = parse_qs(query_string)
-        if "multilabel" in query_params:
-            multilabel_val = query_params["multilabel"][0].lower()
-            output_parts["multilabel"] = multilabel_val in ("true", "1", "yes")
+        for flag in ("multilabel", "instance"):
+            if flag in query_params:
+                output_parts[flag] = query_params[flag][0].lower() in ("true", "1", "yes")
 
     # Extract voxel_spacing if present (segmentation only)
     if output_type == "segmentation" and "@" in uri_to_parse:
@@ -345,9 +356,12 @@ def expand_output_uri(
         elif isinstance(input_voxel_spacing, (int, float)):
             output_parts["voxel_spacing"] = str(input_voxel_spacing)
 
-    # 5. Multilabel (segmentation only)
-    if output_type == "segmentation" and output_parts["multilabel"] is None and input_multilabel is not None:
+    # 5. Segmentation type (segmentation only). An output that states a type does not inherit the other flag.
+    if output_type == "segmentation" and output_parts["multilabel"] is None and output_parts["instance"] is None:
         output_parts["multilabel"] = input_multilabel
+        output_parts["instance"] = input_instance
+    if output_parts["multilabel"] and output_parts["instance"]:
+        raise ValueError(f"A segmentation is either multilabel or instance, not both: '{output_uri}'")
 
     # Reconstruct the URI
     if output_type in ("picks", "filaments", "mesh"):
@@ -358,6 +372,8 @@ def expand_output_uri(
             expanded += f"@{output_parts['voxel_spacing']}"
         if output_parts["multilabel"]:
             expanded += "?multilabel=true"
+        elif output_parts["instance"]:
+            expanded += "?instance=true"
     else:
         raise ValueError(f"Unsupported output_type for expansion: {output_type}")
 
@@ -390,6 +406,8 @@ def serialize_copick_uri(
         uri = f"{obj.name}:{obj.user_id}/{obj.session_id}@{obj.voxel_size}"
         if obj.is_multilabel:
             uri += "?multilabel=true"
+        elif obj.is_instance:
+            uri += "?instance=true"
         return uri
 
     elif isinstance(obj, CopickTomogram):
@@ -412,6 +430,7 @@ def serialize_copick_uri_from_dict(
     voxel_spacing: Optional[float] = None,
     feature_type: Optional[str] = None,
     multilabel: Optional[bool] = None,
+    instance: Optional[bool] = None,
 ) -> str:
     """Serialize copick object parameters into a URI according to copick URI schemes.
 
@@ -425,6 +444,7 @@ def serialize_copick_uri_from_dict(
         voxel_spacing (float, optional): Voxel spacing for segmentations/tomograms/features
         feature_type (str, optional): Feature type for features
         multilabel (bool, optional): Whether segmentation is multilabel
+        instance (bool, optional): Whether segmentation is an instance segmentation
 
     Returns:
         str: The serialized copick URI
@@ -451,8 +471,12 @@ def serialize_copick_uri_from_dict(
         if not all([name, user_id, session_id, voxel_spacing is not None]):
             raise ValueError("Segmentations require name, user_id, session_id, and voxel_spacing")
         uri = f"{name}:{user_id}/{session_id}@{voxel_spacing}"
+        if multilabel is True and instance is True:
+            raise ValueError("A segmentation is either multilabel or instance, not both")
         if multilabel is True:
             uri += "?multilabel=true"
+        elif instance is True:
+            uri += "?instance=true"
         return uri
 
     elif object_type == "tomogram":
@@ -525,7 +549,7 @@ def get_copick_objects_by_type(
         run_name (str, optional): Specific run name to search in.
         **filters: Additional filters based on object type.
                   For picks/meshes: object_name, user_id, session_id
-                  For segmentations: name, user_id, session_id, voxel_spacing, multilabel
+                  For segmentations: name, user_id, session_id, voxel_spacing, multilabel, instance
                   For tomograms: tomo_type, voxel_spacing
                   For features: tomo_type, voxel_spacing, feature_type
 
@@ -761,7 +785,8 @@ def _get_segmentations_from_runs(
 
     Args:
         runs: List of runs to search.
-        filters: Filter dictionary with optional keys: name, user_id, session_id, voxel_spacing, multilabel, pattern_type.
+        filters: Filter dictionary with optional keys: name, user_id, session_id, voxel_spacing, multilabel, instance,
+            pattern_type.
 
     Returns:
         List of matching segmentations.
@@ -773,6 +798,7 @@ def _get_segmentations_from_runs(
     session_id = filters.get("session_id")
     voxel_spacing = filters.get("voxel_spacing")
     multilabel = filters.get("multilabel")
+    instance = filters.get("instance")
 
     # Check if we need pattern matching
     use_builtin = (
@@ -799,6 +825,7 @@ def _get_segmentations_from_runs(
                 session_id=None if session_id == "*" else session_id,
                 is_multilabel=multilabel,
                 voxel_size=vs_value,
+                is_instance=instance,
             )
             results.extend(segs)
     else:
@@ -811,6 +838,7 @@ def _get_segmentations_from_runs(
                     and (not session_id or _matches_pattern(seg.session_id, session_id, pattern_type))
                     and (not voxel_spacing or _matches_numeric_pattern(seg.voxel_size, voxel_spacing, pattern_type))
                     and (multilabel is None or seg.is_multilabel == multilabel)
+                    and (instance is None or seg.is_instance == instance)
                 ):
                     results.append(seg)
 

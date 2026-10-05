@@ -937,7 +937,7 @@ def export_run(
             for seg in segs_list:
                 filename = f"{seg.name}_{seg.user_id}_{seg.session_id}"
                 ext = {"mrc": ".mrc", "tiff": ".tiff", "zarr": ".zarr"}.get(output_format, ".zarr")
-                output_path = os.path.join(run_output_dir, "Segmentations", filename + ext)
+                output_path = os.path.join(run_output_dir, seg.directory, filename + ext)
 
                 export_segmentation(
                     seg,

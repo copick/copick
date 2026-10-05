@@ -223,6 +223,7 @@ def _sync_segmentations_worker(
                     session_id=segmentation.session_id,
                     voxel_size=segmentation.voxel_size,
                     is_multilabel=segmentation.is_multilabel,
+                    is_instance=segmentation.is_instance,
                     exist_ok=exist_ok,
                 )
 

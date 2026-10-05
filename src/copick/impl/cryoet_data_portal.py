@@ -39,6 +39,7 @@ from copick.models import (
 )
 from copick.util.log import get_logger
 from copick.util.ome import zarr_root_exists
+from copick.util.segmentation import list_segmentation_stores, segmentation_store_name
 from copick.util.store import copick_store
 
 # Don't import Geometry at runtime to keep CLI snappy
@@ -185,7 +186,7 @@ class PortalCache:
     """Cache for portal annotation data shared across all runs."""
 
     picks_files_by_run: Dict[int, List[Any]] = field(default_factory=dict)  # Point/OrientedPoint
-    seg_files_by_run: Dict[int, List[Any]] = field(default_factory=dict)  # SegmentationMask
+    seg_files_by_run: Dict[int, List[Any]] = field(default_factory=dict)  # SegmentationMask, InstanceSegmentationMask
     annotation_shapes: Dict[int, Any] = field(default_factory=dict)  # id -> shape
     annotations: Dict[int, Any] = field(default_factory=dict)  # id -> annotation
     author_names: Dict[int, List[str]] = field(default_factory=dict)  # annotation_id -> names
@@ -544,17 +545,21 @@ class CopickSegmentationCDP(CopickSegmentationOverlay):
 
     @property
     def filename(self) -> str:
-        if self.is_multilabel:
-            return f"{self.voxel_size:.3f}_{self.user_id}_{self.session_id}_{self.name}-multilabel.zarr"
-        else:
-            return f"{self.voxel_size:.3f}_{self.user_id}_{self.session_id}_{self.name}.zarr"
+        return segmentation_store_name(
+            self.voxel_size,
+            self.user_id,
+            self.session_id,
+            self.name,
+            is_multilabel=self.is_multilabel,
+            is_instance=self.is_instance,
+        )
 
     @property
     def path(self) -> str:
         if self.read_only:
             return self.meta.portal_annotation_file_path
         else:
-            return f"{self.run.overlay_path}/Segmentations/{self.filename}"
+            return f"{self.run.overlay_path}/{self.directory}/{self.filename}"
 
     @property
     def fs(self) -> AbstractFileSystem:
@@ -1143,6 +1148,8 @@ class CopickRunCDP(CopickRunOverlay):
 
             seg_meta = meta_clz(
                 is_multilabel=False,
+                # The portal's volumetric instance masks: one object, voxel = instance ID.
+                is_instance=shape.shape_type == "InstanceSegmentationMask",
                 voxel_size=vs.voxel_spacing if vs else 0.0,
                 user_id="data-portal",
                 session_id=str(af.id),
@@ -1155,50 +1162,10 @@ class CopickRunCDP(CopickRunOverlay):
         return segmentations
 
     def _query_overlay_segmentations(self) -> List[CopickSegmentationCDP]:
-        seg_loc = f"{self.overlay_path}/Segmentations/"
-        paths = self.fs_overlay.glob(seg_loc + "*.zarr") + self.fs_overlay.glob(seg_loc + "*.zarr/")
-        paths = [p.rstrip("/") for p in paths if self.fs_overlay.isdir(p)]
-        names = [n.replace(seg_loc, "").replace(".zarr", "") for n in paths]
-        # Remove any hidden files?
-        names = [n for n in names if not n.startswith(".")]
-
-        # Deduplicate
-        names = list(set(names))
-
-        # multilabel vs single label
-        metas = []
         clz, meta_clz = self._segmentation_factory()
-        for n in names:
-            if "multilabel" in n:
-                parts = n.split("_")
-                metas.append(
-                    meta_clz(
-                        is_multilabel=True,
-                        voxel_size=float(parts[0]),
-                        user_id=parts[1],
-                        session_id=parts[2],
-                        name=parts[3].replace("-multilabel", ""),
-                    ),
-                )
-            else:
-                parts = n.split("_")
-                metas.append(
-                    meta_clz(
-                        is_multilabel=False,
-                        voxel_size=float(parts[0]),
-                        user_id=parts[1],
-                        session_id=parts[2],
-                        name=parts[3],
-                    ),
-                )
-
         return [
-            clz(
-                run=self,
-                meta=m,
-                read_only=False,
-            )
-            for m in metas
+            clz(run=self, meta=meta_clz(**fields), read_only=False)
+            for fields in list_segmentation_stores(self.fs_overlay, self.overlay_path)
         ]
 
     def get_segmentations(
@@ -1210,6 +1177,8 @@ class CopickRunCDP(CopickRunOverlay):
         voxel_size: float = None,
         portal_meta_query: Dict[str, Any] = None,
         portal_author_query: List[str] = None,
+        *,
+        is_instance: bool = None,
         **kwargs,
     ) -> List["CopickSegmentationCDP"]:
         """Get segmentations by user_id, session_id, name, type or voxel_size (or combinations) and portal metadata and
@@ -1226,12 +1195,21 @@ class CopickRunCDP(CopickRunOverlay):
                 are the scalar fields of [cryoet_data_portal.Annotation](https://chanzuckerberg.github.io/cryoet-data-portal/python-api.html#annotation)
             portal_author_query: List of author names. Segmentations are included if this author is in the portal
                 annotation's author list.
+            is_instance: Whether the segmentation is an instance segmentation or not.
             **kwargs: Additional parameters passed to parent class.
 
         Returns:
             List[CopickSegmentation]: List of segmentations that match the search criteria.
         """
-        segmentations = super().get_segmentations(user_id, session_id, is_multilabel, name, voxel_size, **kwargs)
+        segmentations = super().get_segmentations(
+            user_id=user_id,
+            session_id=session_id,
+            is_multilabel=is_multilabel,
+            name=name,
+            voxel_size=voxel_size,
+            is_instance=is_instance,
+            **kwargs,
+        )
 
         # Just return the regular output if no additional conditions
         if portal_meta_query is None and portal_author_query is None:
@@ -1371,7 +1349,7 @@ class CopickRootCDP(CopickRoot):
         client = cdp.Client()
         go_map = self.go_map
         go_keys = list(go_map.keys())
-        shape_types = ["Point", "OrientedPoint", "SegmentationMask"]
+        shape_types = ["Point", "OrientedPoint", "SegmentationMask", "InstanceSegmentationMask"]
 
         # Fetch the run IDs for the configured datasets up front. Every query below is
         # batched over these run IDs (via _find_batched) so a large dataset is not pulled
@@ -1475,7 +1453,7 @@ class CopickRootCDP(CopickRoot):
                 if run_id not in cache.picks_files_by_run:
                     cache.picks_files_by_run[run_id] = []
                 cache.picks_files_by_run[run_id].append(af)
-            elif shape.shape_type == "SegmentationMask" and af.format == "zarr":
+            elif shape.shape_type in ("SegmentationMask", "InstanceSegmentationMask") and af.format == "zarr":
                 if run_id not in cache.seg_files_by_run:
                     cache.seg_files_by_run[run_id] = []
                 cache.seg_files_by_run[run_id].append(af)

@@ -377,13 +377,41 @@ Refer to the [API Reference](api_reference/base_classes/data_entity_models/Copic
 CopickFilaments API.
 
 #### Dense Segmentations
-Dense segmentations are stored as OME-NGFF files in the `Segmentations` directory of the run. Each can either contain a
-binary segmentation (values of 0 or 1) or a multilabel segmentation (where permissable labels are defined by the
-labels among the pickable objects). The filename of the zarr file allows relating the segmentation to the user or tool
-that created it, as well as the object that it represents.
+Dense segmentations are stored as OME-NGFF files in the run. The directory and the filename of the zarr file relate the
+segmentation to the user or tool that created it and to what it represents, and record which of three types it is:
+
+| Type | Directory | Name | Voxel values | Filename ends in |
+|---|---|---|---|---|
+| binary | `Segmentations` | a pickable object | 1 inside the object, 0 outside | `_[object_name].zarr` |
+| multilabel | `Segmentations` | any descriptive name | the `label` of the pickable object at that voxel, 0 for background | `_[name]-multilabel.zarr` |
+| instance | `InstanceSegmentations` | a pickable object | the ID of the object instance at that voxel, 0 for background | `_[object_name].zarr` |
+
+Types added after binary and multilabel live in their own directory, so copick versions and other clients that predate
+them never list them, instead of misreading their voxel values.
+
+An **instance segmentation** holds every instance of one object, for example every microtubule or every vesicle in a
+run, and tells them apart: voxel value `v > 0` belongs to the instance with `instance_id == v`. These are the same IDs
+that picks and [filaments](#filaments) carry, so picks or filaments describing the same instances (from the same
+user and session) use the same IDs. 0 is background, matching picks, where `instance_id` 0 means "no instance".
+
+```python
+seg = run.new_segmentation(10.0, "microtubule", "1", user_id="tracer", is_instance=True)
+seg.from_numpy(labels)              # integer volume, 0 = background, n = instance n
+seg.instance_ids()                  # array([1, 2, ...])
+run.get_segmentations(is_instance=True)
+```
+
+Segmentation URIs mark the type with `?multilabel=true` or `?instance=true`
+(`microtubule:tracer/1@10.0?instance=true`); a URI without either matches every type.
+
+!!! note "Data types"
+    Segmentation values are stored without loss. When no dtype is given, `from_numpy` chooses the smallest unsigned
+    integer type that holds every value: `uint8` and up for binary and multilabel segmentations, `uint16` and up for
+    instance segmentations. A value that does not fit a requested dtype raises an error instead of wrapping.
 
 !!! warning "Naming Conventions"
-    user_ids, session_ids, and object names should never contain underscores!
+    user_ids, session_ids, and object names should never contain underscores! Object names should also not end in
+    `-multilabel`, which marks a multilabel segmentation in a filename.
 
 ??? example "Example Code - Read a segmentation into a numpy array"
     ```python
@@ -414,7 +442,18 @@ that created it, as well as the object that it represents.
     arbitrary name that describes the segmentation. This is a multilabel segmentation, thus all objects in the project
     could be represented in this segmentation.
 
+    ```
+    InstanceSegmentations/10.000_tracer_1_microtubule.zarr
+    ```
 
+    An instance segmentation of the `microtubule` object by the tool `tracer` in session `1`: each microtubule's voxels
+    hold its instance ID.
+
+!!! note "cryoET Data Portal"
+    In data-portal projects, the portal's `SegmentationMask` annotations appear as binary segmentations and its
+    volumetric `InstanceSegmentationMask` annotations as instance segmentations (user `data-portal`, session = the
+    annotation file ID). The portal's point-based `InstanceSegmentation` annotations are not segmentations and are not
+    shown.
 
 ## On-disk Data Model
 
@@ -444,9 +483,12 @@ The on-disk data model of copick is as follows:
       │  └─ 📄 [user_id | tool_name]_[session_id | 0]_[object_name].glb
       ├─ 📁 Filaments/
       │  └─ 📄 [user_id | tool_name]_[session_id | 0]_[object_name].json
-      └─ 📁 Segmentations/
-         ├─ 📁 [xx.yyy]_[user_id | tool_name]_[session_id | 0]_[object_name].zarr
-         │   └─ [OME-NGFF spec at 100% scale, 50% and 25% scale]
-         └─ 📁 [xx.yyy]_[user_id | tool_name]_[session_id | 0]_[name]-multilabel.zarr
+      ├─ 📁 Segmentations/
+      │  ├─ 📁 [xx.yyy]_[user_id | tool_name]_[session_id | 0]_[object_name].zarr
+      │  │   └─ [OME-NGFF spec at 100% scale, 50% and 25% scale]
+      │  └─ 📁 [xx.yyy]_[user_id | tool_name]_[session_id | 0]_[name]-multilabel.zarr
+      │      └─ [OME-NGFF spec at 100% scale, 50% and 25% scale]
+      └─ 📁 InstanceSegmentations/
+         └─ 📁 [xx.yyy]_[user_id | tool_name]_[session_id | 0]_[object_name].zarr
              └─ [OME-NGFF spec at 100% scale, 50% and 25% scale]
 ```

@@ -22,8 +22,8 @@ or more CryoET Data Portal datasets via `--source-dataset-ids`, in which case
 `--config` is ignored and a temporary dataportal configuration is created.
 
 When specific segmentation names are requested, the matching pickable objects are
-created in the target project before copying (non-multilabel segmentations require the
-name to match a pickable object). Use `--exist-ok` to overwrite segmentations that
+created in the target project before copying (binary and instance segmentations require
+the name to match a pickable object). Use `--exist-ok` to overwrite segmentations that
 already exist in the target.
 
 ## Options

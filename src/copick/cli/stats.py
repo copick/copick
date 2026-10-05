@@ -302,6 +302,11 @@ def meshes(
     help="Filter by multilabel status.",
 )
 @click.option(
+    "--instance/--no-instance",
+    default=None,
+    help="Filter by instance status (instance segmentations: voxel = instance ID of one object).",
+)
+@click.option(
     "--parallel/--no-parallel",
     default=True,
     help="Enable parallel processing.",
@@ -330,6 +335,7 @@ def segmentations(
     name,
     voxel_size,
     multilabel,
+    instance,
     parallel,
     workers,
     output,
@@ -340,10 +346,10 @@ def segmentations(
 
     Aggregates segmentation annotations across the project and reports the total
     number of segmentations, their distribution by user, session, name, voxel size,
-    and multilabel status, plus the most frequent session/user/voxel-spacing/multilabel
-    combinations. Results can be filtered to specific runs, users, sessions, names,
-    voxel sizes, or multilabel status, and printed as a human-readable table or as
-    JSON.
+    multilabel status and type (binary, multilabel or instance), plus the most frequent
+    session/user/voxel-spacing/multilabel combinations. Results can be filtered to specific
+    runs, users, sessions, names, voxel sizes, multilabel or instance status, and printed
+    as a human-readable table or as JSON.
 
     Examples:
 
@@ -358,6 +364,10 @@ def segmentations(
         \b
         # Restrict to multilabel segmentations only
         copick stats segmentations --config config.json --multilabel
+
+        \b
+        # Restrict to instance segmentations only
+        copick stats segmentations --config config.json --instance
 
         \b
         # Run in parallel and emit JSON
@@ -395,6 +405,7 @@ def segmentations(
         parallel=parallel,
         workers=workers,
         show_progress=True,
+        is_instance=instance,
     )
 
     if output == "json":
@@ -490,6 +501,11 @@ def _print_segmentations_table(stats_data: dict):
         click.echo("\nDistribution by multilabel:")
         for multilabel, count in stats_data["distribution_by_multilabel"].items():
             click.echo(f"  {multilabel}: {count}")
+
+    if stats_data.get("distribution_by_type"):
+        click.echo("\nDistribution by type:")
+        for seg_type, count in stats_data["distribution_by_type"].items():
+            click.echo(f"  {seg_type}: {count}")
 
     if stats_data["session_user_voxelspacing_multilabel_combinations"]:
         click.echo("\nFrequent session_user_voxelspacing_multilabel combinations:")
