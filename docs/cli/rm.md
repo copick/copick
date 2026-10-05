@@ -15,12 +15,12 @@ copick rm [OPTIONS] {picks|filaments|mesh|segmentation|tomogram|feature} URI
 
 ## Description
 
-Deletes picks, meshes, segmentations, tomograms, or features that match a
+Deletes picks, filaments, meshes, segmentations, tomograms, or features that match a
 copick URI. A URI may target a single object or many at once via glob (`*`)
 wildcards or a regular expression prefixed with `re:`. The command operates
 across every run by default, or on a single run when `--run` is given.
 
-The URI shape depends on the object type: picks and meshes use
+The URI shape depends on the object type: picks, filaments and meshes use
 `object_name:user_id/session_id`; segmentations use
 `name:user_id/session_id@voxel_spacing`; tomograms use
 `tomo_type@voxel_spacing`; and features use `tomo_type@voxel_spacing:feature_type`.
@@ -33,7 +33,7 @@ without deleting anything.
 
 | Argument | Description |
 |----------|-------------|
-| `OBJECT_TYPE` | Type of object to remove (picks, mesh, segmentation, tomogram, or feature). |
+| `OBJECT_TYPE` | Type of object to remove (picks, filaments, mesh, segmentation, tomogram, or feature). |
 | `URI` | Copick URI selecting the objects to remove; supports glob wildcards and `re:` regex patterns. |
 
 ## Options
