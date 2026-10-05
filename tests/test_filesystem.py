@@ -2186,9 +2186,10 @@ def test_segmentation_listing_skips_unparsable_stores(test_payload: Dict[str, An
     if not hasattr(run, "overlay_path") or _croissant_mode_a(root):
         pytest.skip("needs a globbed overlay")
     fs = run.fs_overlay
+    # A file in each store, as object stores have no empty directories
     for bad in ("garbage.zarr", "1.0_too_few.zarr", "abc_user_session_name.zarr"):
-        fs.makedirs(f"{run.overlay_path}/Segmentations/{bad}", exist_ok=True)
-    fs.makedirs(f"{run.overlay_path}/Segmentations/10.000_multilabel-tool_1_ribosome.zarr", exist_ok=True)
+        fs.pipe(f"{run.overlay_path}/Segmentations/{bad}/.zgroup", b"{}")
+    fs.pipe(f"{run.overlay_path}/Segmentations/10.000_multilabel-tool_1_ribosome.zarr/.zgroup", b"{}")
 
     fresh = copick.from_file(test_payload["cfg_file"]).get_run("TS_001")
     by_user = {s.user_id: s for s in fresh.segmentations}
