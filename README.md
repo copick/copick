@@ -46,7 +46,8 @@ pip install "copick[all]"
 
 ## Example dataset
 
-An example dataset can be obtained from [Zenodo](https://doi.org/10.5281/zenodo.19686100).
+An example dataset can be obtained from [Zenodo](https://doi.org/10.5281/zenodo.23171726). It also holds a Zarr v3 copy of the
+project for copick 2.0 (the `*_v3` paths), which copick 1.x does not read.
 
 To test with the example dataset:
 
