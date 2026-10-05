@@ -14,6 +14,7 @@ from zarr.storage import LocalStore
 
 from copick.util.log import get_logger
 from copick.util.ome import get_level_path, write_single_level_ome_zarr
+from copick.util.segmentation import PANOPTIC_CHANNELS
 from copick.util.zarr_copy import copy_zarr_store, zarr_store_is_empty
 
 if TYPE_CHECKING:
@@ -630,6 +631,7 @@ def export_segmentation(
     compression: Optional[str] = None,
     copy_all_levels: bool = True,
     log: bool = False,
+    channel: Optional[str] = None,
 ) -> str:
     """Export a segmentation to an external format.
 
@@ -641,22 +643,43 @@ def export_segmentation(
         compression: Compression method for TIFF output.
         copy_all_levels: Copy all pyramid levels for Zarr output.
         log: Log the operation.
+        channel: Panoptic segmentations only: the channel ("label" or "instance") to write to MRC, TIFF or EM,
+            which hold one volume each. Zarr output keeps both channels.
 
     Returns:
         Path to the created output file.
     """
     output_format = output_format.lower()
 
-    if output_format == "mrc":
-        return _export_segmentation_mrc(segmentation, output_path, level, log=log)
-    elif output_format == "tiff":
-        return _export_segmentation_tiff(segmentation, output_path, level, compression, log=log)
-    elif output_format == "zarr":
+    if output_format == "zarr":
+        if channel is not None:
+            raise ValueError("Zarr output keeps every channel; channel applies to MRC, TIFF and EM output.")
         return _export_segmentation_zarr(segmentation, output_path, copy_all_levels, log=log)
-    elif output_format == "em":
-        return _export_segmentation_em(segmentation, output_path, level, log=log)
-    else:
+    if output_format not in ("mrc", "tiff", "em"):
         raise ValueError(f"Unsupported output format: {output_format}")
+
+    volume = _segmentation_volume(segmentation, level, channel)
+    if output_format == "mrc":
+        return _export_segmentation_mrc(segmentation, output_path, level, log=log, volume=volume)
+    elif output_format == "tiff":
+        return _export_segmentation_tiff(segmentation, output_path, level, compression, log=log, volume=volume)
+    return _export_segmentation_em(segmentation, output_path, level, log=log, volume=volume)
+
+
+def _segmentation_volume(segmentation: "CopickSegmentation", level: int, channel: Optional[str]) -> np.ndarray:
+    """The single volume an MRC, TIFF or EM file holds: the segmentation, or one channel of a panoptic one."""
+    if segmentation.is_panoptic:
+        if channel is None:
+            raise ValueError(
+                "A panoptic segmentation has two channels; pass channel='label' or 'instance' (CLI: --channel) to "
+                "write one to MRC, TIFF or EM, or export to Zarr.",
+            )
+        zarr_group = zarr.open(segmentation.zarr(), mode="r")
+        return segmentation.numpy(zarr_group=get_level_path(zarr_group, level), channel=channel)
+    if channel is not None:
+        raise ValueError(f"{segmentation} is a {segmentation.segmentation_type} segmentation; it has no channels.")
+    zarr_group = zarr.open(segmentation.zarr(), mode="r")
+    return np.array(zarr_group[get_level_path(zarr_group, level)])
 
 
 # float32 holds every integer up to 2**24 exactly; past that, labels would merge.
@@ -706,6 +729,7 @@ def _export_segmentation_mrc(
     output_path: str,
     level: int = 0,
     log: bool = False,
+    volume: Optional[np.ndarray] = None,
 ) -> str:
     """Export segmentation to MRC format.
 
@@ -721,8 +745,8 @@ def _export_segmentation_mrc(
     import mrcfile
 
     # Get the data
-    zarr_group = zarr.open(segmentation.zarr(), mode="r")
-    volume = np.array(zarr_group[get_level_path(zarr_group, level)])
+    if volume is None:
+        volume = _segmentation_volume(segmentation, level, None)
 
     # Get voxel size (scales with pyramid level)
     voxel_size = segmentation.voxel_size * (2**level)
@@ -745,6 +769,7 @@ def _export_segmentation_tiff(
     level: int = 0,
     compression: Optional[str] = None,
     log: bool = False,
+    volume: Optional[np.ndarray] = None,
 ) -> str:
     """Export segmentation to TIFF stack format.
 
@@ -761,8 +786,8 @@ def _export_segmentation_tiff(
     from copick.util.formats import write_tiff_volume
 
     # Get the data
-    zarr_group = zarr.open(segmentation.zarr(), mode="r")
-    volume = np.array(zarr_group[get_level_path(zarr_group, level)])
+    if volume is None:
+        volume = _segmentation_volume(segmentation, level, None)
 
     # Write TIFF file
     os.makedirs(os.path.dirname(output_path) or ".", exist_ok=True)
@@ -779,6 +804,7 @@ def _export_segmentation_em(
     output_path: str,
     level: int = 0,
     log: bool = False,
+    volume: Optional[np.ndarray] = None,
 ) -> str:
     """Export segmentation to TOM toolbox EM format.
 
@@ -794,8 +820,8 @@ def _export_segmentation_em(
     from copick.util.formats import write_em_volume
 
     # Get the data
-    zarr_group = zarr.open(segmentation.zarr(), mode="r")
-    volume = np.array(zarr_group[get_level_path(zarr_group, level)])
+    if volume is None:
+        volume = _segmentation_volume(segmentation, level, None)
 
     # Write EM file
     os.makedirs(os.path.dirname(output_path) or ".", exist_ok=True)
@@ -867,6 +893,7 @@ def export_run(
     tilt_series_pixel_size: Optional[float] = None,
     tomograms_star: Optional[str] = None,
     filament_columns: str = "auto",
+    channel: Optional[str] = None,
 ) -> Dict[str, int]:
     """Export data from a single run.
 
@@ -886,6 +913,8 @@ def export_run(
         tilt_series_pixel_size: STAR only: tilt-series pixel size in Angstrom.
         tomograms_star: STAR only: RELION tomograms.star with the runs' tomograms.
         filament_columns: STAR only: "on", "off", or "auto" (filament columns for objects declared a filament).
+        channel: Panoptic segmentations only: the channel ("label" or "instance") to write to MRC, TIFF or EM.
+            Without one, each channel goes to its own file (``<name>_label``, ``<name>_instance``).
 
     Returns:
         Dictionary with counts of exported items.
@@ -937,16 +966,23 @@ def export_run(
             for seg in segs_list:
                 filename = f"{seg.name}_{seg.user_id}_{seg.session_id}"
                 ext = {"mrc": ".mrc", "tiff": ".tiff", "zarr": ".zarr"}.get(output_format, ".zarr")
-                output_path = os.path.join(run_output_dir, seg.directory, filename + ext)
+                # A panoptic segmentation goes to MRC, TIFF or EM one file per channel, unless one is chosen.
+                channels = [None]
+                if seg.is_panoptic and output_format != "zarr":
+                    channels = [channel] if channel else list(PANOPTIC_CHANNELS)
+                for seg_channel in channels:
+                    suffix = f"_{seg_channel}" if seg_channel else ""
+                    output_path = os.path.join(run_output_dir, seg.directory, filename + suffix + ext)
 
-                export_segmentation(
-                    seg,
-                    output_path,
-                    output_format,
-                    level=level,
-                    compression=compression,
-                    log=log,
-                )
+                    export_segmentation(
+                        seg,
+                        output_path,
+                        output_format,
+                        level=level,
+                        compression=compression,
+                        log=log,
+                        channel=seg_channel,
+                    )
                 results["segmentations"] += 1
         except Exception as e:
             results["errors"].append(f"Error exporting segmentations: {e}")
@@ -998,6 +1034,7 @@ def export(
     tilt_series_pixel_size: Optional[float] = None,
     tomograms_star: Optional[str] = None,
     filament_columns: str = "auto",
+    channel: Optional[str] = None,
 ) -> None:
     """Export data from a copick project.
 
@@ -1019,6 +1056,7 @@ def export(
         tilt_series_pixel_size: STAR only: tilt-series pixel size in Angstrom.
         tomograms_star: STAR only: RELION tomograms.star with the runs' tomograms.
         filament_columns: STAR only: "on", "off", or "auto" (filament columns for objects declared a filament).
+        channel: Panoptic segmentations only: the channel ("label" or "instance") to write to MRC, TIFF or EM.
     """
     import copick
     from copick.ops.run import map_runs
@@ -1045,6 +1083,7 @@ def export(
             "tilt_series_pixel_size": tilt_series_pixel_size,
             "tomograms_star": tomograms_star,
             "filament_columns": filament_columns,
+            "channel": channel,
         }
         for _ in runs
     ]

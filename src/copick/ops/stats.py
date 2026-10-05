@@ -158,6 +158,7 @@ def segmentations_stats(
     workers: Optional[int] = 8,
     show_progress: bool = True,
     is_instance: Optional[bool] = False,
+    is_panoptic: Optional[bool] = False,
 ) -> Dict[str, Union[int, Dict[str, int]]]:
     """Generate statistics for segmentations in a Copick project.
 
@@ -173,7 +174,8 @@ def segmentations_stats(
         workers: The number of workers to use. Default is `8`.
         show_progress: Whether to show progress. Default is `True`.
         is_instance: Whether to query instance segmentations. Default `False`: binary and multilabel segmentations
-            only. If `None`, query any type.
+            only (with `is_panoptic=False`). If `None`, query any type.
+        is_panoptic: Whether to query panoptic segmentations. Default `False`. If `None`, query any type.
 
     Returns:
         A dictionary containing segmentation count and frequency statistics.
@@ -190,6 +192,7 @@ def segmentations_stats(
         workers=workers,
         show_progress=show_progress,
         is_instance=is_instance,
+        is_panoptic=is_panoptic,
     )
 
     if not segmentations_list:

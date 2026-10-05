@@ -157,7 +157,8 @@ def segmentation_pyramid(
     """Create an image pyramid by downsampling without interpolation.
 
     Args:
-        segmentation: The segmentation to downsample.
+        segmentation: The segmentation to downsample, ``(Z, Y, X)`` or channel-first ``(C, Z, Y, X)``. Each channel
+            is downsampled on the same grid, so values that belong together at a voxel stay together.
         voxel_size: The voxel size of the input segmentation.
         levels: The number of levels in the pyramid.
         dtype: The data type of the output arrays. ``None`` keeps the input dtype. A value the cast would change
@@ -172,6 +173,9 @@ def segmentation_pyramid(
     from copick.util.segmentation import checked_label_cast
 
     base = checked_label_cast(segmentation, dtype)
+    if base.ndim == 4:
+        channels = [segmentation_pyramid(channel, voxel_size, levels) for channel in base]
+        return {vs: np.stack([channel[vs] for channel in channels]) for vs in channels[0]}
     dtype = base.dtype
     pyramid = {voxel_size: base}
     vs = voxel_size

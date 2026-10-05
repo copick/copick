@@ -158,6 +158,7 @@ def segmentation_to_md(segmentation: CopickSegmentation) -> str:
     md += f"* Type: {segmentation.segmentation_type}\n"
     md += f"* is_multilabel: {segmentation.is_multilabel}\n"
     md += f"* is_instance: {segmentation.is_instance}\n"
+    md += f"* is_panoptic: {segmentation.is_panoptic}\n"
     col = segmentation.color
     md += f"* Color: {col} | #{col[0]:02x}{col[1]:02x}{col[2]:02x}{col[3]:02x}\n"
 

@@ -32,9 +32,12 @@ from copick.util.ome import (
 )
 from copick.util.relion import picks_to_df_relion, relion_df_to_picks
 from copick.util.segmentation import (
+    PANOPTIC_CHANNELS,
     RESERVED_NAME_SUFFIXES,
+    check_panoptic_values,
     checked_label_cast,
     label_dtype,
+    panoptic_channel_index,
     segmentation_directory,
     segmentation_type,
 )
@@ -1257,7 +1260,7 @@ class CopickRun:
         if self.root.config.user_id is None:
             return [s for s in self.segmentations if s.from_user]
         else:
-            return self.get_segmentations(user_id=self.root.config.user_id, is_instance=None)
+            return self.get_segmentations(user_id=self.root.config.user_id, is_instance=None, is_panoptic=None)
 
     def tool_segmentations(self) -> List["CopickSegmentation"]:
         """Get all tool generated segmentations (i.e. segmentations that have `CopickSegmentation.session_id == 0`).
@@ -1276,13 +1279,14 @@ class CopickRun:
         voxel_size: Union[float, Iterable[float]] = None,
         *,
         is_instance: Optional[bool] = False,
+        is_panoptic: Optional[bool] = False,
         **kwargs,
     ) -> List["CopickSegmentation"]:
         """Get segmentations by user_id, session_id, name, type or voxel_size (or combinations).
 
         Without a type, this selects binary and multilabel segmentations, the types every client reads: pass
-        ``is_instance=True`` for instance segmentations, or ``is_instance=None`` for any type. ``segmentations``
-        lists all of them.
+        ``is_instance=True`` or ``is_panoptic=True`` for the other types, or ``is_instance=None, is_panoptic=None`` for
+        any type. ``segmentations`` lists all of them.
 
         Args:
             user_id: User ID to search for.
@@ -1291,7 +1295,9 @@ class CopickRun:
             name: Name of the segmentation to search for.
             voxel_size: Voxel size to search for.
             is_instance: Whether to select instance segmentations (True) or not (False, the default); None selects any
-                type. Binary segmentations are ``is_multilabel=False, is_instance=False``.
+                type. Binary segmentations are ``is_multilabel=False, is_instance=False, is_panoptic=False``.
+            is_panoptic: Whether to select panoptic segmentations (True) or not (False, the default); None selects any
+                type.
             **kwargs: Additional parameters for subclass implementations.
 
         Returns:
@@ -1312,6 +1318,9 @@ class CopickRun:
 
         if is_instance is not None:
             ret = [s for s in ret if s.is_instance == is_instance]
+
+        if is_panoptic is not None:
+            ret = [s for s in ret if s.is_panoptic == is_panoptic]
 
         if name is not None:
             name = [name] if isinstance(name, str) else name
@@ -1585,6 +1594,7 @@ class CopickRun:
         exist_ok: bool = False,
         *,
         is_instance: bool = False,
+        is_panoptic: bool = False,
         **kwargs,
     ) -> "CopickSegmentation":
         """Create a new segmentation object.
@@ -1597,6 +1607,7 @@ class CopickRun:
             user_id: User ID for the segmentation.
             exist_ok: Whether to raise an error if the segmentation already exists.
             is_instance: Whether the segmentation is an instance segmentation (one object, voxel = instance ID).
+            is_panoptic: Whether the segmentation is a panoptic segmentation (channels: object label, instance ID).
             **kwargs: Additional keyword arguments for the segmentation metadata.
 
         Returns:
@@ -1613,8 +1624,8 @@ class CopickRun:
         if user_id is not None:
             user_id = sanitize_name(user_id)
 
-        seg_type = segmentation_type(is_multilabel, is_instance)
-        if not is_multilabel and name not in [o.name for o in self.root.config.pickable_objects]:
+        seg_type = segmentation_type(is_multilabel, is_instance, is_panoptic)
+        if seg_type in ("binary", "instance") and name not in [o.name for o in self.root.config.pickable_objects]:
             raise ValueError(
                 f"Object name {name} not found in pickable objects ({seg_type} segmentations are named after one).",
             )
@@ -1634,6 +1645,7 @@ class CopickRun:
             is_multilabel=is_multilabel,
             voxel_size=voxel_size,
             is_instance=is_instance,
+            is_panoptic=is_panoptic,
         ):
             if exist_ok:
                 seg = seg[0]
@@ -1648,6 +1660,7 @@ class CopickRun:
             sm = meta_clz(
                 is_multilabel=is_multilabel,
                 is_instance=is_instance,
+                is_panoptic=is_panoptic,
                 voxel_size=voxel_size,
                 user_id=uid,
                 session_id=session_id,
@@ -1729,7 +1742,7 @@ class CopickRun:
         self.delete_voxel_spacings()
         self.delete_picks()
         self.delete_meshes()
-        self.delete_segmentations(is_instance=None)
+        self.delete_segmentations(is_instance=None, is_panoptic=None)
         self.delete_filaments()
         self._delete_data()
 
@@ -1789,6 +1802,7 @@ class CopickRun:
         voxel_size: float = None,
         *,
         is_instance: Optional[bool] = False,
+        is_panoptic: Optional[bool] = False,
     ) -> None:
         """Delete segmentation by name, user_id or session_id (or combinations). Like ``get_segmentations``, without a
         type this deletes binary and multilabel segmentations only.
@@ -1801,6 +1815,8 @@ class CopickRun:
             voxel_size: Voxel size to delete.
             is_instance: Whether to delete instance segmentations (True) or not (False, the default); None deletes any
                 type.
+            is_panoptic: Whether to delete panoptic segmentations (True) or not (False, the default); None deletes any
+                type.
         """
         for s in list(
             self.get_segmentations(
@@ -1810,6 +1826,7 @@ class CopickRun:
                 name=name,
                 voxel_size=voxel_size,
                 is_instance=is_instance,
+                is_panoptic=is_panoptic,
             ),
         ):
             self._segmentations.remove(s)
@@ -3423,9 +3440,11 @@ class CopickSegmentationMeta(BaseModel):
             an object's ``label``.
         is_instance: Flag to indicate if this is an instance segmentation: one object (``name``), each voxel
             holding the ID of the instance it belongs to, 0 for background.
+        is_panoptic: Flag to indicate if this is a panoptic segmentation: two channels, each voxel's object
+            ``label`` (channel 0) and its instance ID within that object (channel 1).
         voxel_size: Voxel size in angstrom of the tomogram this segmentation belongs to. Rounded to the third decimal.
 
-    A segmentation with neither flag is binary: one object (``name``), 1 inside, 0 outside.
+    A segmentation with no flag is binary: one object (``name``), 1 inside, 0 outside. At most one flag is set.
     """
 
     user_id: str
@@ -3433,11 +3452,12 @@ class CopickSegmentationMeta(BaseModel):
     name: str
     is_multilabel: bool
     is_instance: bool = False
+    is_panoptic: bool = False
     voxel_size: float
 
     @model_validator(mode="after")
     def _one_type(self) -> "CopickSegmentationMeta":
-        segmentation_type(self.is_multilabel, self.is_instance)
+        segmentation_type(self.is_multilabel, self.is_instance, self.is_panoptic)
         return self
 
 
@@ -3457,7 +3477,9 @@ class CopickSegmentation:
         is_multilabel (bool): Flag to indicate if this is a multilabel segmentation.
         is_instance (bool): Flag to indicate if this is an instance segmentation: voxel values are instance IDs of
             the object ``name``, 0 for background.
-        segmentation_type (str): ``"binary"``, ``"multilabel"`` or ``"instance"``.
+        is_panoptic (bool): Flag to indicate if this is a panoptic segmentation: a ``(2, Z, Y, X)`` volume holding
+            each voxel's object ``label`` and its instance ID within that object.
+        segmentation_type (str): ``"binary"``, ``"multilabel"``, ``"instance"`` or ``"panoptic"``.
         directory (str): The run-level directory holding the store.
         voxel_size (float): Voxel size of the tomogram this segmentation belongs to.
         name (str): Pickable Object name or multilabel name of the segmentation.
@@ -3506,14 +3528,18 @@ class CopickSegmentation:
         return self.meta.is_instance
 
     @property
-    def segmentation_type(self) -> Literal["binary", "multilabel", "instance"]:
-        return segmentation_type(self.is_multilabel, self.is_instance)
+    def is_panoptic(self) -> bool:
+        return self.meta.is_panoptic
+
+    @property
+    def segmentation_type(self) -> Literal["binary", "multilabel", "instance", "panoptic"]:
+        return segmentation_type(self.is_multilabel, self.is_instance, self.is_panoptic)
 
     @property
     def directory(self) -> str:
         """The run-level directory holding this segmentation's store (``Segmentations`` for binary and multilabel,
-        ``InstanceSegmentations`` for instance segmentations)."""
-        return segmentation_directory(self.is_multilabel, self.is_instance)
+        ``InstanceSegmentations`` and ``PanopticSegmentations`` for the newer types)."""
+        return segmentation_directory(self.is_multilabel, self.is_instance, self.is_panoptic)
 
     @property
     def voxel_size(self) -> float:
@@ -3525,7 +3551,7 @@ class CopickSegmentation:
 
     @property
     def color(self):
-        if self.is_multilabel:
+        if self.is_multilabel or self.is_panoptic:
             return [128, 128, 128, 0]
         obj = self.run.root.get_object(self.name)
         # A store whose name is not (or no longer) a pickable object still lists; it just has no colour of its own.
@@ -3554,6 +3580,7 @@ class CopickSegmentation:
         x: slice = slice(None, None),
         y: slice = slice(None, None),
         z: slice = slice(None, None),
+        channel: Optional[Union[str, int]] = None,
     ) -> np.ndarray:
         """Returns the content of the Zarr-File for this segmentation as a numpy array. Multiscale group and slices are
         supported.
@@ -3563,6 +3590,8 @@ class CopickSegmentation:
             x: Slice for the x-axis.
             y: Slice for the y-axis.
             z: Slice for the z-axis.
+            channel: Panoptic segmentations only: ``"label"`` (0) or ``"instance"`` (1) returns that channel as a
+                ``(Z, Y, X)`` array; ``None`` returns both, ``(2, Z, Y, X)``.
 
         Returns:
             np.ndarray: The segmentation as a numpy array.
@@ -3570,6 +3599,15 @@ class CopickSegmentation:
 
         loc = self.zarr()
         group = _open_zarr_array(loc, zarr_group, mode="r")
+
+        if self.is_panoptic:
+            c = slice(None) if channel is None else panoptic_channel_index(channel)
+            fits, req, avail = fits_in_memory(group, (c if isinstance(c, slice) else slice(c, c + 1), z, y, x))
+            if not fits:
+                raise ValueError(f"Requested region does not fit in memory. Requested: {req}, Available: {avail}.")
+            return np.array(group[c, z, y, x])
+        if channel is not None:
+            raise ValueError(f"{self} is a {self.segmentation_type} segmentation; only panoptic ones have channels.")
 
         fits, req, avail = fits_in_memory(group, (x, y, z))
         if not fits:
@@ -3587,17 +3625,43 @@ class CopickSegmentation:
         for segmentations.
 
         Args:
-            data: The segmentation as a numpy array.
+            data: The segmentation as a numpy array: ``(Z, Y, X)``, or ``(2, Z, Y, X)`` for a panoptic segmentation
+                (``np.stack([labels, instance_ids])``).
             levels: Number of levels in the multiscale pyramid.
             dtype: Data type of the segmentation. ``None`` (the default) chooses the smallest unsigned integer type
-                that holds every value, starting at ``np.uint8`` (``np.uint16`` for instance segmentations). A value
-                that would not survive the cast raises ``ValueError``; nothing is wrapped or truncated.
+                that holds every value, starting at ``np.uint8`` (``np.uint16`` for instance and panoptic
+                segmentations). A value that would not survive the cast raises ``ValueError``; nothing is wrapped or
+                truncated.
+
+        Raises:
+            ValueError: For a panoptic segmentation, also if the shape is not ``(2, Z, Y, X)``, a label is neither 0
+                nor a pickable object's label, or a background voxel carries an instance ID.
         """
+        multichannel = self.is_panoptic
+        if multichannel:
+            data = np.asarray(data)
+            if data.ndim != 4 or data.shape[0] != 2:
+                raise ValueError(
+                    f"A panoptic segmentation is a (2, Z, Y, X) array (channels {PANOPTIC_CHANNELS}), not {data.shape}.",
+                )
         if dtype is None:
-            dtype = label_dtype(data, floor=np.uint16 if self.is_instance else np.uint8)
+            dtype = label_dtype(data, floor=np.uint16 if (self.is_instance or multichannel) else np.uint8)
+        if multichannel:
+            data = checked_label_cast(data, dtype)
+            check_panoptic_values(data[0], data[1], self._object_labels())
         loc = self.zarr()
         pyramid = segmentation_pyramid(data, self.voxel_size, levels, dtype=dtype)
-        write_ome_zarr_3d(loc, pyramid)
+        if multichannel:
+            # A leading channel axis, one channel per inner chunk; the scale defaults to [1, vs, vs, vs].
+            write_ome_zarr(
+                loc,
+                pyramid,
+                [{"name": "c", "type": "channel"}, *ome_zarr_axes()],
+                (1, *DEFAULT_SPATIAL_CHUNKS),
+                metadata={"copick": {"segmentation_type": "panoptic", "channels": list(PANOPTIC_CHANNELS)}},
+            )
+        else:
+            write_ome_zarr_3d(loc, pyramid)
 
     def set_region(
         self,
@@ -3606,6 +3670,7 @@ class CopickSegmentation:
         x: slice = slice(None, None),
         y: slice = slice(None, None),
         z: slice = slice(None, None),
+        channel: Optional[Union[str, int]] = None,
     ) -> None:
         """Set a region of the segmentation from a numpy array.
 
@@ -3616,40 +3681,119 @@ class CopickSegmentation:
             x: Slice for the x-axis.
             y: Slice for the y-axis.
             z: Slice for the z-axis.
+            channel: Panoptic segmentations only: write just this channel (``"label"`` or ``"instance"``); ``None``
+                writes both from a ``(2, z, y, x)`` array. The result is checked like ``from_numpy``'s.
         """
         loc = self.zarr()
         array = _open_zarr_array(loc, zarr_group, mode="r+")
+        if self.is_panoptic:
+            if channel is None:
+                data = checked_label_cast(data, array.dtype)
+                if data.ndim != 4 or data.shape[0] != 2:
+                    raise ValueError(f"A panoptic region is a (2, z, y, x) array, not {data.shape}.")
+                check_panoptic_values(data[0], data[1], self._object_labels())
+                array[:, z, y, x] = data
+                return
+            index = panoptic_channel_index(channel)
+            other = np.asarray(array[1 - index, z, y, x])
+            data = np.broadcast_to(checked_label_cast(data, array.dtype), other.shape)
+            labels, instances = (data, other) if index == 0 else (other, data)
+            check_panoptic_values(labels, instances, self._object_labels())
+            array[index, z, y, x] = data
+            return
+        if channel is not None:
+            raise ValueError(f"{self} is a {self.segmentation_type} segmentation; only panoptic ones have channels.")
         array[z, y, x] = checked_label_cast(data, array.dtype)
 
-    def instance_ids(self, zarr_group: Optional[str] = None) -> np.ndarray:
-        """The instance IDs present in an instance segmentation: its unique non-zero values.
+    def _object_labels(self) -> List[int]:
+        return [o.label for o in self.run.root.config.pickable_objects]
+
+    def _object_label(self, object_name: str) -> int:
+        obj = self.run.root.get_object(object_name)
+        if obj is None:
+            raise ValueError(f"Object name {object_name} not found in pickable objects.")
+        return obj.label
+
+    def instance_ids(self, zarr_group: Optional[str] = None, object_name: Optional[str] = None) -> np.ndarray:
+        """The instance IDs present: the unique non-zero values of an instance segmentation, or of a panoptic
+        segmentation's instance channel where the label is ``object_name``'s.
 
         The volume is read one chunk at a time, so memory stays bounded by the chunk size.
 
         Args:
             zarr_group: Explicit Zarr array path. By default, resolve level 0 (which holds every instance) from OME
                 metadata.
+            object_name: Required for a panoptic segmentation, whose instance IDs are per object.
 
         Returns:
             Sorted ``int64`` array of instance IDs.
 
         Raises:
-            ValueError: If this is not an instance segmentation.
+            ValueError: If this is neither an instance nor a panoptic segmentation, or ``object_name`` is missing
+                (panoptic) or another object than this instance segmentation's.
         """
-        if not self.is_instance:
-            raise ValueError(
-                f"{self} is a {self.segmentation_type} segmentation; instance_ids() needs an instance one.",
-            )
         array = _open_zarr_array(self.zarr(), zarr_group, mode="r")
         found = np.zeros(0, dtype=array.dtype)
-        cz, cy, cx = array.chunks
-        nz, ny, nx = array.shape
-        for z0 in range(0, nz, cz):
-            for y0 in range(0, ny, cy):
-                for x0 in range(0, nx, cx):
-                    block = array[z0 : z0 + cz, y0 : y0 + cy, x0 : x0 + cx]
-                    found = np.union1d(found, np.unique(block))
+        if self.is_instance:
+            if object_name not in (None, self.name):
+                raise ValueError(f"{self} holds instances of {self.name}, not {object_name}.")
+            for block in _spatial_blocks(array):
+                found = np.union1d(found, np.unique(array[block]))
+        elif self.is_panoptic:
+            if object_name is None:
+                raise ValueError("Instance IDs of a panoptic segmentation are per object; pass object_name.")
+            label = self._object_label(object_name)
+            for block in _spatial_blocks(array):
+                labels, instances = array[(slice(None), *block)]
+                found = np.union1d(found, np.unique(instances[labels == label]))
+        else:
+            raise ValueError(
+                f"{self} is a {self.segmentation_type} segmentation; instance_ids() needs an instance or panoptic one.",
+            )
         return found[found != 0].astype(np.int64)
+
+    def segments(self, zarr_group: Optional[str] = None) -> List[Tuple[str, int]]:
+        """The segments of a panoptic segmentation: each ``(object_name, instance_id)`` present, where instance 0
+        is a region of that object not split into instances.
+
+        Args:
+            zarr_group: Explicit Zarr array path. By default, resolve level 0 from OME metadata.
+
+        Raises:
+            ValueError: If this is not a panoptic segmentation.
+        """
+        if not self.is_panoptic:
+            raise ValueError(f"{self} is a {self.segmentation_type} segmentation; segments() needs a panoptic one.")
+        array = _open_zarr_array(self.zarr(), zarr_group, mode="r")
+        pairs = set()
+        for block in _spatial_blocks(array):
+            labels, instances = array[(slice(None), *block)]
+            inside = labels != 0
+            if inside.any():
+                rows = np.unique(np.stack([labels[inside], instances[inside]], axis=1), axis=0)
+                pairs.update((int(label), int(instance)) for label, instance in rows)
+        names = {o.label: o.name for o in self.run.root.config.pickable_objects}
+        return sorted((names.get(label, str(label)), instance) for label, instance in pairs)
+
+    def label_volume(self, zarr_group: Optional[str] = None) -> np.ndarray:
+        """A panoptic segmentation's label channel: the multilabel segmentation it contains."""
+        return self.numpy(zarr_group=zarr_group, channel="label")
+
+    def instance_volume(self, object_name: str, zarr_group: Optional[str] = None) -> np.ndarray:
+        """A panoptic segmentation's instances of one object: the instance segmentation it contains for
+        ``object_name`` (instance IDs where the label is that object's, 0 elsewhere)."""
+        labels, instances = self.numpy(zarr_group=zarr_group)
+        return np.where(labels == self._object_label(object_name), instances, 0)
+
+
+def _spatial_blocks(array: zarr.Array) -> Iterable[Tuple[slice, slice, slice]]:
+    """The ``(z, y, x)`` slices of an array's chunk grid over its trailing three (spatial) axes."""
+    cz, cy, cx = array.chunks[-3:]
+    nz, ny, nx = array.shape[-3:]
+    for z0 in range(0, nz, cz):
+        for y0 in range(0, ny, cy):
+            for x0 in range(0, nx, cx):
+                yield slice(z0, z0 + cz), slice(y0, y0 + cy), slice(x0, x0 + cx)
 
 
 COPICK_TYPES = (

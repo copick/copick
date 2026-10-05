@@ -5,7 +5,7 @@ import numpy as np
 import pytest
 import zarr
 from copick.models import CopickPicksFile
-from copick.util.ome import get_level_path, write_ome_zarr_3d
+from copick.util.ome import get_level_path, get_multiscales, write_ome_zarr_3d
 from scipy.spatial.transform import Rotation
 from trimesh.parent import Geometry
 
@@ -2245,7 +2245,7 @@ def test_instance_segmentation_rules(test_payload: Dict[str, Any]):
     from copick.models import CopickSegmentationMeta
 
     run = test_payload["root"].get_run("TS_001")
-    with pytest.raises(ValueError, match="multilabel or instance"):
+    with pytest.raises(ValueError, match="one type"):
         run.new_segmentation(10.0, "ribosome", "x", user_id="u", is_multilabel=True, is_instance=True)
     with pytest.raises(ValueError, match="instance segmentations are named after one"):
         run.new_segmentation(10.0, "not-an-object", "x", user_id="u", is_instance=True)
@@ -2261,7 +2261,7 @@ def test_instance_segmentation_rules(test_payload: Dict[str, Any]):
 
     binary = run.new_segmentation(10.0, "ribosome", "x", user_id="u")
     binary.from_numpy(np.ones((4, 4, 4), dtype=np.uint8))
-    with pytest.raises(ValueError, match="needs an instance one"):
+    with pytest.raises(ValueError, match="needs an instance or panoptic one"):
         binary.instance_ids()
 
 
@@ -2318,3 +2318,105 @@ def test_object_name_with_type_suffix_warns(test_payload: Dict[str, Any], caplog
     with caplog.at_level("WARNING"):
         root.new_object(name="vesicle-multilabel", is_particle=False)
     assert "segmentation type suffix" in caplog.text
+
+
+def _panoptic_volume() -> np.ndarray:
+    """Ribosome (label 2) instances 1 and 2, membrane (label 3) as an unsplit region plus its own instance 1."""
+    labels = np.zeros((16, 16, 16), dtype=np.int64)
+    instances = np.zeros_like(labels)
+    labels[0:4, 0:4, 0:4], instances[0:4, 0:4, 0:4] = 2, 1
+    labels[6:10, 6:10, 6:10], instances[6:10, 6:10, 6:10] = 2, 2
+    labels[12:16, :, :] = 3
+    labels[12:16, 0:4, 12:16], instances[12:16, 0:4, 12:16] = 3, 1
+    return np.stack([labels, instances])
+
+
+def test_panoptic_segmentation_round_trip(test_payload: Dict[str, Any]):
+    root = test_payload["root"]
+    run = root.get_run("TS_001")
+    multilabel = run.new_segmentation(10.0, "cells", "1", user_id="pan", is_multilabel=True)
+    multilabel.from_numpy(_panoptic_volume()[0])
+    seg = run.new_segmentation(10.0, "cells", "1", user_id="pan", is_panoptic=True)
+    seg.from_numpy(_panoptic_volume(), levels=2)
+
+    assert seg.is_panoptic and seg.segmentation_type == "panoptic" and seg.directory == "PanopticSegmentations"
+    assert seg.color == [128, 128, 128, 0]
+    if hasattr(seg, "filename"):
+        assert seg.filename == "10.000_pan_1_cells.zarr" and "/PanopticSegmentations/" in seg.path
+    group = zarr.open(seg.zarr(), mode="r")
+    multiscales = get_multiscales(group)[0]
+    assert multiscales["axes"][0] == {"name": "c", "type": "channel"}
+    assert multiscales["datasets"][0]["coordinateTransformations"][0]["scale"] == [1.0, 10.0, 10.0, 10.0]
+    assert multiscales["metadata"]["copick"]["channels"] == ["label", "instance"]
+    level0, level1 = group[get_level_path(group, 0)], group[get_level_path(group, 1)]
+    assert level0.dtype == np.uint16 and level1.shape == (2, 8, 8, 8)
+    # Each level keeps (label, instance) pairs that exist at full resolution
+    pairs = {tuple(p) for p in _panoptic_volume().reshape(2, -1).T.tolist()}
+    assert {tuple(p) for p in np.asarray(level1).reshape(2, -1).T.tolist()} <= pairs
+
+    fresh = copick.from_file(test_payload["cfg_file"]).get_run("TS_001")
+    (pan,) = fresh.get_segmentations(user_id="pan", is_panoptic=True)
+    assert [s.segmentation_type for s in fresh.get_segmentations(user_id="pan")] == ["multilabel"]  # untyped
+    every = fresh.get_segmentations(user_id="pan", is_instance=None, is_panoptic=None)
+    assert sorted(s.segmentation_type for s in every) == ["multilabel", "panoptic"]
+    assert np.array_equal(pan.numpy(), _panoptic_volume())
+    assert np.array_equal(pan.numpy(channel="label"), _panoptic_volume()[0])
+    assert np.array_equal(pan.label_volume(), _panoptic_volume()[0])
+    assert pan.numpy(channel="instance", z=slice(0, 4), y=slice(0, 4), x=slice(0, 4)).max() == 1
+    assert pan.instance_ids(object_name="ribosome").tolist() == [1, 2]
+    assert pan.instance_ids(object_name="membrane").tolist() == [1]
+    assert pan.segments() == [("membrane", 0), ("membrane", 1), ("ribosome", 1), ("ribosome", 2)]
+    ribosomes = pan.instance_volume("ribosome")
+    assert set(np.unique(ribosomes)) == {0, 1, 2} and ribosomes[12, 0, 12] == 0
+
+
+def test_panoptic_segmentation_rules(test_payload: Dict[str, Any]):
+    run = test_payload["root"].get_run("TS_001")
+    with pytest.raises(ValueError, match="one type"):
+        run.new_segmentation(10.0, "cells", "x", user_id="u", is_instance=True, is_panoptic=True)
+    seg = run.new_segmentation(10.0, "cells", "x", user_id="u", is_panoptic=True)
+    with pytest.raises(ValueError, match=r"\(2, Z, Y, X\)"):
+        seg.from_numpy(_panoptic_volume()[0])
+    unknown = _panoptic_volume()
+    unknown[0, 0, 0, 0] = 9
+    with pytest.raises(ValueError, match=r"\[9\]"):
+        seg.from_numpy(unknown)
+    stray = _panoptic_volume()
+    stray[1, 5, 5, 5] = 4
+    with pytest.raises(ValueError, match="background voxels"):
+        seg.from_numpy(stray)
+
+    seg.from_numpy(_panoptic_volume())
+    with pytest.raises(ValueError, match="per object"):
+        seg.instance_ids()
+    # A channel written alone is checked against the other one
+    with pytest.raises(ValueError, match="background voxels"):
+        seg.set_region(np.full((2, 2, 2), 7), z=slice(4, 6), y=slice(4, 6), x=slice(4, 6), channel="instance")
+    seg.set_region(np.full((2, 2, 2), 1), z=slice(4, 6), y=slice(4, 6), x=slice(4, 6), channel="label")
+    seg.set_region(np.full((2, 2, 2), 7), z=slice(4, 6), y=slice(4, 6), x=slice(4, 6), channel="instance")
+    assert seg.instance_ids(object_name="proteasome").tolist() == [7]
+
+    binary = run.new_segmentation(10.0, "ribosome", "x", user_id="u")
+    binary.from_numpy(np.ones((4, 4, 4), dtype=np.uint8))
+    with pytest.raises(ValueError, match="only panoptic ones have channels"):
+        binary.numpy(channel="label")
+
+
+def test_panoptic_segmentation_copy_keeps_type(test_payload: Dict[str, Any]):
+    from copick.ops.manage import copy_copick_objects
+
+    root = test_payload["root"]
+    root.get_run("TS_001").new_segmentation(10.0, "cells", "3", user_id="pan", is_panoptic=True).from_numpy(
+        _panoptic_volume(),
+    )
+    result = copy_copick_objects(
+        root,
+        "segmentation",
+        "cells:pan/3@10.0?panoptic=true",
+        "cells:copied/3@10.0",
+        run_name="TS_001",
+    )
+    assert result["errors"] == [] and result["copied"] == 1, result
+    copied_run = copick.from_file(test_payload["cfg_file"]).get_run("TS_001")
+    (copied,) = copied_run.get_segmentations(user_id="copied", is_panoptic=True)
+    assert copied.is_panoptic and np.array_equal(copied.numpy(), _panoptic_volume())

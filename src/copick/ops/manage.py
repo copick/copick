@@ -28,7 +28,11 @@ def _copy_segmentation_store(
 
 def _keep_segmentation_type(source: CopickSegmentation, target_params: Dict[str, Any]) -> None:
     """cp and mv keep a segmentation's type: a target URI may restate it, never change it."""
-    for flag, value in (("multilabel", source.is_multilabel), ("instance", source.is_instance)):
+    for flag, value in (
+        ("multilabel", source.is_multilabel),
+        ("instance", source.is_instance),
+        ("panoptic", source.is_panoptic),
+    ):
         wanted = target_params.get(flag)
         if wanted is not None and wanted != value:
             raise ValueError(
@@ -272,6 +276,7 @@ def move_copick_objects(
                     voxel_size=voxel_spacing,
                     is_multilabel=source_obj.is_multilabel,
                     is_instance=source_obj.is_instance,
+                    is_panoptic=source_obj.is_panoptic,
                     exist_ok=overwrite,
                 )
 
@@ -401,6 +406,7 @@ def copy_copick_objects(
                     voxel_size=voxel_spacing,
                     is_multilabel=source_obj.is_multilabel,
                     is_instance=source_obj.is_instance,
+                    is_panoptic=source_obj.is_panoptic,
                     exist_ok=overwrite,
                 )
 
@@ -624,6 +630,7 @@ def move_copick_objects_per_run(
                         voxel_size=voxel_spacing,
                         is_multilabel=source_obj.is_multilabel,
                         is_instance=source_obj.is_instance,
+                        is_panoptic=source_obj.is_panoptic,
                         exist_ok=overwrite,
                     )
 
@@ -792,6 +799,7 @@ def copy_copick_objects_per_run(
                         voxel_size=voxel_spacing,
                         is_multilabel=source_obj.is_multilabel,
                         is_instance=source_obj.is_instance,
+                        is_panoptic=source_obj.is_panoptic,
                         exist_ok=overwrite,
                     )
 

@@ -303,7 +303,10 @@ def meshes(
 )
 @click.option(
     "--segmentation-type",
-    type=click.Choice(["binary", "multilabel", "instance", "all"], case_sensitive=False),  # SEGMENTATION_TYPE_FILTERS
+    type=click.Choice(  # SEGMENTATION_TYPE_FILTERS
+        ["binary", "multilabel", "instance", "panoptic", "all"],
+        case_sensitive=False,
+    ),
     default=None,
     help="Segmentation type to summarize; 'all' for every type. Default: binary and multilabel segmentations.",
 )
@@ -347,15 +350,15 @@ def segmentations(
 
     Aggregates segmentation annotations across the project and reports the total
     number of segmentations, their distribution by user, session, name, voxel size,
-    multilabel status and type (binary, multilabel or instance), plus the most frequent
-    session/user/voxel-spacing/multilabel combinations. Results can be filtered to specific
-    runs, users, sessions, names, voxel sizes, multilabel or instance status, and printed
-    as a human-readable table or as JSON.
+    multilabel status and type (binary, multilabel, instance or panoptic), plus the most
+    frequent session/user/voxel-spacing/multilabel combinations. Results can be filtered to
+    specific runs, users, sessions, names, voxel sizes, multilabel status or segmentation
+    type (binary and multilabel by default), and printed as a human-readable table or as JSON.
 
     Examples:
 
         \b
-        # Summarize every segmentation in the project
+        # Summarize the project's binary and multilabel segmentations
         copick stats segmentations --config config.json
 
         \b
@@ -367,8 +370,9 @@ def segmentations(
         copick stats segmentations --config config.json --multilabel
 
         \b
-        # Instance segmentations only, or every type
+        # Instance or panoptic segmentations only, or every type
         copick stats segmentations --config config.json --segmentation-type instance
+        copick stats segmentations --config config.json --segmentation-type panoptic
         copick stats segmentations --config config.json --segmentation-type all
 
         \b
@@ -411,6 +415,7 @@ def segmentations(
         workers=workers,
         show_progress=True,
         is_instance=type_query["is_instance"],
+        is_panoptic=type_query["is_panoptic"],
     )
 
     if output == "json":

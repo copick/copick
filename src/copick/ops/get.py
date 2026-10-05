@@ -22,6 +22,7 @@ def _segmentation_query(
     name: Union[str, Iterable[str], None] = None,
     voxel_size: Union[float, Iterable[float], None] = None,
     is_instance: Optional[bool] = False,
+    is_panoptic: Optional[bool] = False,
 ) -> List[CopickSegmentation]:
     return run.get_segmentations(
         user_id=user_id,
@@ -30,6 +31,7 @@ def _segmentation_query(
         name=name,
         voxel_size=voxel_size,
         is_instance=is_instance,
+        is_panoptic=is_panoptic,
     )
 
 
@@ -45,6 +47,7 @@ def get_segmentations(
     workers: Optional[int] = 8,
     show_progress: bool = True,
     is_instance: Optional[bool] = False,
+    is_panoptic: Optional[bool] = False,
 ) -> Union[List[CopickSegmentation], None]:
     """Query segmentations from a Copick project.
 
@@ -60,7 +63,8 @@ def get_segmentations(
         workers: The number of workers to use. Default is `8`.
         show_progress: Whether to show progress. Default is `True`.
         is_instance: Whether to query instance segmentations. Default `False`: binary and multilabel segmentations
-            only. If `None`, query any type.
+            only (with `is_panoptic=False`). If `None`, query any type.
+        is_panoptic: Whether to query panoptic segmentations. Default `False`. If `None`, query any type.
     """
 
     if isinstance(root, str):
@@ -85,6 +89,7 @@ def get_segmentations(
             name=name,
             voxel_size=voxel_size,
             is_instance=is_instance,
+            is_panoptic=is_panoptic,
             show_progress=show_progress,
         )
         return [seg for seglist in res.values() for seg in seglist]
@@ -100,6 +105,7 @@ def get_segmentations(
             name=name,
             voxel_size=voxel_size,
             is_instance=is_instance,
+            is_panoptic=is_panoptic,
             show_progress=show_progress,
         )
         return [seg for seglist in res.values() for seg in seglist]
