@@ -2064,3 +2064,97 @@ def test_filaments_static_are_read_only(test_payload: Dict[str, Any]):
     assert len(run.filaments) == 1, "files whose names are not user_session_object are skipped"
     with pytest.raises(PermissionError):
         found[0].store()
+
+
+def _labels_volume() -> np.ndarray:
+    data = np.zeros((16, 16, 16), dtype=np.int64)
+    data[2:6, 2:6, 2:6] = 300
+    data[8:12, 8:12, 8:12] = 70000
+    return data
+
+
+def test_segmentation_values_never_narrowed(test_payload: Dict[str, Any]):
+    run = test_payload["root"].get_run("TS_001")
+    seg = run.new_segmentation(
+        name="labels",
+        user_id="dtype",
+        session_id="1",
+        is_multilabel=True,
+        voxel_size=10.000,
+    )
+
+    # Labels above 255 (and above 65535) survive the default dtype and every pyramid level
+    seg.from_numpy(_labels_volume(), levels=3)
+    group = zarr.open(seg.zarr(), mode="r")
+    for level in range(3):
+        assert group[get_level_path(group, level)].dtype == np.uint32
+        assert set(np.unique(group[get_level_path(group, level)][:])) <= {0, 300, 70000}
+    assert set(np.unique(group[get_level_path(group, 0)][:])) == {0, 300, 70000}
+
+    # Values that fit stay uint8, as before
+    seg.from_numpy((_labels_volume() > 0).astype(np.int64))
+    group = zarr.open(seg.zarr(), mode="r")
+    assert group[get_level_path(group, 0)].dtype == np.uint8
+
+    # An explicit dtype that cannot hold the values raises instead of wrapping
+    with pytest.raises(ValueError, match="do not fit uint8"):
+        seg.from_numpy(_labels_volume(), dtype=np.uint8)
+    with pytest.raises(ValueError, match="non-negative"):
+        seg.from_numpy(-_labels_volume())
+    with pytest.raises(ValueError, match="integers"):
+        seg.from_numpy(np.full((4, 4, 4), 0.5))
+
+    # set_region checks the stored dtype
+    seg.from_numpy(np.ones((16, 16, 16), dtype=np.uint8))
+    with pytest.raises(ValueError, match="do not fit uint8"):
+        seg.set_region(np.full((4, 4, 4), 300), x=slice(0, 4), y=slice(0, 4), z=slice(0, 4))
+    seg.set_region(np.full((4, 4, 4), 7), x=slice(0, 4), y=slice(0, 4), z=slice(0, 4))
+    assert seg.numpy()[0, 0, 0] == 7
+
+
+def test_segmentation_color_without_object(test_payload: Dict[str, Any]):
+    from copick.models import CopickSegmentationMeta
+
+    run = test_payload["root"].get_run("TS_001")
+    existing = run.segmentations[0]
+    meta = CopickSegmentationMeta(
+        user_id="someone",
+        session_id="1",
+        name="not-an-object",
+        is_multilabel=False,
+        voxel_size=10.0,
+    )
+    assert type(existing)(run, meta).color == [128, 128, 128, 0]
+
+
+def test_segmentation_copy_and_move_keep_dtype_and_levels(test_payload: Dict[str, Any]):
+    from copick.ops.manage import copy_copick_objects, move_copick_objects
+
+    root = test_payload["root"]
+    run = root.get_run("TS_001")
+    seg = run.new_segmentation(name="labels", user_id="dtype", session_id="2", is_multilabel=True, voxel_size=10.0)
+    seg.from_numpy(_labels_volume(), levels=2)
+
+    result = copy_copick_objects(
+        root,
+        "segmentation",
+        "labels:dtype/2@10.0?multilabel=true",
+        "labels:copied/2@10.0?multilabel=true",
+        run_name="TS_001",
+    )
+    assert result["errors"] == [] and result["copied"] == 1, result
+    result = move_copick_objects(
+        root,
+        "segmentation",
+        "labels:copied/2@10.0?multilabel=true",
+        "labels:moved/2@10.0?multilabel=true",
+        run_name="TS_001",
+    )
+    assert result["errors"] == [] and result["moved"] == 1, result
+
+    fresh = copick.from_file(test_payload["cfg_file"]).get_run("TS_001")
+    assert fresh.get_segmentations(user_id="copied") == []
+    moved = fresh.get_segmentations(user_id="moved", session_id="2", is_multilabel=True)[0]
+    group = zarr.open(moved.zarr(), mode="r")
+    assert group[get_level_path(group, 0)].dtype == np.uint32 and get_level_path(group, 1) in group
+    assert np.array_equal(group[get_level_path(group, 0)][:], _labels_volume())

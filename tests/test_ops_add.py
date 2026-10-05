@@ -550,3 +550,28 @@ class TestAddPicks:
         fake_file.write_text("some data")
         with pytest.raises(ValueError, match="Could not determine file type"):
             add_picks(root, "TS_001", str(fake_file), "ribosome", "user", "1", voxel_spacing=10.0)
+
+
+def test_add_segmentation_from_tiff_keeps_labels_above_255(test_payload, tmp_path):
+    from copick.ops.add import add_segmentation_from_file
+    from copick.util.formats import write_tiff_volume
+
+    volume = np.zeros((4, 6, 8), dtype=np.uint16)
+    volume[1, 2, 3] = 300
+    path = str(tmp_path / "labels.tif")
+    write_tiff_volume(path, volume)
+
+    seg = add_segmentation_from_file(
+        test_payload["root"],
+        "TS_001",
+        path,
+        10.0,
+        "labels",
+        "test-user",
+        "tiff-1",
+        exist_ok=True,
+    )
+    group = zarr.open(seg.zarr(), mode="r")
+    stored = group[get_level_path(group, 0)]
+    assert stored.dtype == np.uint16
+    assert stored[1, 2, 3] == 300

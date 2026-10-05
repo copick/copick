@@ -438,3 +438,49 @@ class TestExportPicksCombined:
                 output_format="star",
                 voxel_spacing=None,
             )
+
+
+class TestExportSegmentationLabels:
+    """Labels survive export, or the export refuses."""
+
+    @staticmethod
+    def _segmentation(test_payload, value):
+        import numpy as np
+
+        run = test_payload["root"].get_run("TS_001")
+        seg = run.new_segmentation(
+            name="labels",
+            user_id="export",
+            session_id=str(value),
+            is_multilabel=True,
+            voxel_size=10.0,
+            exist_ok=True,
+        )
+        data = np.zeros((4, 4, 4), dtype=np.int64)
+        data[1, 1, 1] = value
+        seg.from_numpy(data)
+        return seg
+
+    @pytest.mark.parametrize(
+        "value,dtype",
+        [(300, "int16"), (40000, "uint16"), (70000, "float32")],
+    )
+    def test_mrc_keeps_labels(self, test_payload, tmp_path, value, dtype):
+        seg = self._segmentation(test_payload, value)
+        path = export_segmentation(seg, str(tmp_path / "seg.mrc"), "mrc")
+        with mrcfile.open(path) as mrc:
+            assert mrc.data.dtype == dtype
+            assert mrc.data[1, 1, 1] == value
+
+    def test_mrc_refuses_inexact_labels(self, test_payload, tmp_path):
+        seg = self._segmentation(test_payload, 2**24 + 1)
+        with pytest.raises(ValueError, match="cannot be written to MRC"):
+            export_segmentation(seg, str(tmp_path / "seg.mrc"), "mrc")
+
+    def test_em_keeps_large_labels(self, test_payload, tmp_path):
+        import emfile
+
+        seg = self._segmentation(test_payload, 2**24 + 1)
+        path = export_segmentation(seg, str(tmp_path / "seg.em"), "em")
+        _, data = emfile.read(path)
+        assert data.dtype == "int32" and data.max() == 2**24 + 1

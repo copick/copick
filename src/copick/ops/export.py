@@ -659,6 +659,48 @@ def export_segmentation(
         raise ValueError(f"Unsupported output format: {output_format}")
 
 
+# float32 holds every integer up to 2**24 exactly; past that, labels would merge.
+_FLOAT32_EXACT = 2**24
+
+
+def _label_range(volume: np.ndarray) -> Tuple[int, int]:
+    return (int(volume.min()), int(volume.max())) if volume.size else (0, 0)
+
+
+def _segmentation_volume_for_mrc(volume: np.ndarray) -> np.ndarray:
+    """Cast a segmentation for MRC, which has no 32-bit integer mode, without changing any label."""
+    if volume.dtype.kind == "f":
+        return volume.astype(np.float32)
+    lo, hi = _label_range(volume)
+    if lo >= -32768 and hi <= 32767:
+        return volume.astype(np.int16)
+    if lo >= 0 and hi <= 65535:
+        return volume.astype(np.uint16)
+    if -_FLOAT32_EXACT <= lo and hi <= _FLOAT32_EXACT:
+        logger.warning(f"Segmentation values up to {hi} exceed MRC's integer modes; writing float32 (exact).")
+        return volume.astype(np.float32)
+    raise ValueError(
+        f"Segmentation values in [{lo}, {hi}] cannot be written to MRC without changing labels; "
+        "export to TIFF or Zarr instead.",
+    )
+
+
+def _segmentation_em_dtype(volume: np.ndarray) -> np.dtype:
+    """The EM dtype for a segmentation: float32 as before while it is exact, int32 above that."""
+    if volume.dtype.kind == "f":
+        return np.dtype(np.float32)
+    lo, hi = _label_range(volume)
+    if -_FLOAT32_EXACT <= lo and hi <= _FLOAT32_EXACT:
+        return np.dtype(np.float32)
+    info = np.iinfo(np.int32)
+    if info.min <= lo and hi <= info.max:
+        return np.dtype(np.int32)
+    raise ValueError(
+        f"Segmentation values in [{lo}, {hi}] cannot be written to EM without changing labels; "
+        "export to TIFF or Zarr instead.",
+    )
+
+
 def _export_segmentation_mrc(
     segmentation: "CopickSegmentation",
     output_path: str,
@@ -688,11 +730,7 @@ def _export_segmentation_mrc(
     # Write MRC file
     os.makedirs(os.path.dirname(output_path) or ".", exist_ok=True)
     with mrcfile.new(output_path, overwrite=True) as mrc:
-        # Cast to appropriate type for segmentation
-        if volume.dtype in [np.float32, np.float64]:
-            mrc.set_data(volume.astype(np.float32))
-        else:
-            mrc.set_data(volume.astype(np.int16))
+        mrc.set_data(_segmentation_volume_for_mrc(volume))
         mrc.voxel_size = voxel_size
 
     if log:
@@ -761,7 +799,7 @@ def _export_segmentation_em(
 
     # Write EM file
     os.makedirs(os.path.dirname(output_path) or ".", exist_ok=True)
-    write_em_volume(output_path, volume)
+    write_em_volume(output_path, volume, dtype=_segmentation_em_dtype(volume))
 
     if log:
         logging.info(f"Exported segmentation to EM: {output_path}")
