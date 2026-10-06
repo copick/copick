@@ -21,6 +21,8 @@ contributed by installed plugins.
 
 | Command | Description |
 |---------|-------------|
+| [`fil2picks`](fil2picks.md) | Sample picks along filaments. |
+| [`fil2seg`](fil2seg.md) | Paint tubes around filaments into an instance segmentation. |
 | [`mesh2caps`](mesh2caps.md) | Extract the top/bottom surfaces (caps) of a slab box mesh. |
 | [`mesh2picks`](mesh2picks.md) | Convert meshes to picks using different sampling strategies. |
 | [`mesh2seg`](mesh2seg.md) | Convert meshes to segmentation volumes. |
@@ -32,6 +34,7 @@ contributed by installed plugins.
 | [`picks2slab`](picks2slab.md) | Fit spline surfaces to two pick sets and create a slab mesh. |
 | [`picks2sphere`](picks2sphere.md) | Convert picks to sphere meshes. |
 | [`picks2surface`](picks2surface.md) | Convert picks to 2D surface meshes. |
+| [`seg2fil`](seg2fil.md) | Trace filaments in segmentations. |
 | [`seg2mesh`](seg2mesh.md) | Convert segmentation volumes to meshes using marching cubes. |
 | [`seg2picks`](seg2picks.md) | Convert segmentation to picks. |
 | [`seg2slab`](seg2slab.md) | Fit parallel planes to a segmentation and create a slab mesh. |

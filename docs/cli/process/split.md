@@ -52,10 +52,15 @@ config. Pass --labels with an explicit 'name:value,...' map when the segmentatio
 values do not match the config object labels; only the listed values are then split. The
 input URI must name an exact segmentation (no wildcards) and include a voxel spacing.
 
+A panoptic segmentation (input URI ending in `?panoptic=true`) is split per object: the
+voxels with an instance ID become an instance segmentation of that object (keeping the
+IDs), and its voxels without one become a binary segmentation.
+
 ## URI Format
 
 ```text
     Segmentations: name:user_id/session_id@voxel_spacing
+    Panoptic input: append ?panoptic=true
 
 Label-to-Object Mapping:
 
@@ -71,14 +76,14 @@ Label-to-Object Mapping:
 | Option | Type | Default | Description |
 |--------|------|---------|-------------|
 | `-c, --config` | path | — | Path to the configuration file. |
+| `--run-names, -r` | text · multiple | — | Specific run names to process (default: all runs). Repeatable; pass -r once per run. |
 | `--debug / --no-debug` | boolean flag | `False` | Enable debug logging. |
 
 ### Input Options
 
 | Option | Type | Default | Description |
 |--------|------|---------|-------------|
-| `--run-names, -r` | text · multiple | — | Specific run names to process (default: all runs). |
-| `--input, -i` | COPICK_URI | **required** | Input segmentation URI (format: name:user_id/session_id@voxel_spacing). Supports glob patterns. |
+| `--input, -i` | COPICK_URI | **required** | Input segmentation URI (format: name:user_id/session_id@voxel_spacing). Supports glob patterns. Append ?instance=true or ?panoptic=true to read those segmentation types. |
 
 ### Tool Options
 
@@ -107,6 +112,9 @@ copick process split -i "labels:curator/manual@10.0" --run-names TS_001 --run-na
 
 # Split only specific label values with an explicit name:value map
 copick process split -i "predictions:model/run-001@10.0" --labels "sample:1,vacuum:2"
+
+# Split a panoptic segmentation into instance and binary segmentations per object
+copick process split -i "cell:combine/0@10.0?panoptic=true"
 ```
 
 ## See also

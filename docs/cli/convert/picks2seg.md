@@ -61,13 +61,13 @@ Segmentations: name:user_id/session_id@voxel_spacing
 | Option | Type | Default | Description |
 |--------|------|---------|-------------|
 | `-c, --config` | path | — | Path to the configuration file. |
+| `--run-names, -r` | text · multiple | — | Specific run names to process (default: all runs). Repeatable; pass -r once per run. |
 | `--debug / --no-debug` | boolean flag | `False` | Enable debug logging. |
 
 ### Input Options
 
 | Option | Type | Default | Description |
 |--------|------|---------|-------------|
-| `--run-names, -r` | text · multiple | — | Specific run names to process (default: all runs). |
 | `--input, -i` | COPICK_URI | **required** | Input picks URI (format: object_name:user_id/session_id). Supports glob patterns. |
 
 ### Tool Options
@@ -82,7 +82,7 @@ Segmentations: name:user_id/session_id@voxel_spacing
 
 | Option | Type | Default | Description |
 |--------|------|---------|-------------|
-| `--output, -o` | COPICK_URI | **required** | Output segmentation URI. Supports smart defaults (e.g., "membrane", "membrane/my-session", or "/my-session"). Full format: object_name:user_id/session_id@voxel_spacing. |
+| `--output, -o` | COPICK_URI | **required** | Output segmentation URI. Supports smart defaults (e.g., "membrane", "membrane/my-session", or "/my-session"). Full format: object_name:user_id/session_id@voxel_spacing. Append ?instance=true or ?panoptic=true to write those segmentation types. |
 
 ## Examples
 

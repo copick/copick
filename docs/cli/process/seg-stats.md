@@ -29,11 +29,18 @@ the volume of each component (in voxels and cubic angstroms), grouped by label.
 Output can be a CSV file or a histogram plot, and you can choose the voxel
 connectivity (face, face-edge, or all) used to define components.
 
+An instance segmentation (`?instance=true`) gets one row per instance ID, and a panoptic
+segmentation (`?panoptic=true`) one row per (label, instance) segment, plus the connected
+components of regions without instances. Without a type flag, the URI matches binary and
+multilabel segmentations only. With `--skeleton`, each row also reports the component's
+skeleton length and label radius, for example to choose length thresholds for filaments.
+
 ## URI Format
 
 ```text
 Segmentations: name:user_id/session_id@voxel_spacing
 Voxel spacing is optional — omit to match all voxel spacings.
+Instance or panoptic segmentations: append ?instance=true or ?panoptic=true
 ```
 
 ## Options
@@ -41,14 +48,14 @@ Voxel spacing is optional — omit to match all voxel spacings.
 | Option | Type | Default | Description |
 |--------|------|---------|-------------|
 | `-c, --config` | path | — | Path to the configuration file. |
+| `--run-names, -r` | text · multiple | — | Specific run names to process (default: all runs). Repeatable; pass -r once per run. |
 | `--debug / --no-debug` | boolean flag | `False` | Enable debug logging. |
 
 ### Input Options
 
 | Option | Type | Default | Description |
 |--------|------|---------|-------------|
-| `--run-names, -r` | text · multiple | — | Specific run names to process (default: all runs). |
-| `--input, -i` | COPICK_URI | **required** | Input segmentation URI (format: name:user_id/session_id@voxel_spacing). Supports glob patterns. |
+| `--input, -i` | COPICK_URI | **required** | Input segmentation URI (format: name:user_id/session_id@voxel_spacing). Supports glob patterns. Append ?instance=true or ?panoptic=true to read those segmentation types. |
 
 ### Tool Options
 
@@ -56,6 +63,7 @@ Voxel spacing is optional — omit to match all voxel spacings.
 |--------|------|---------|-------------|
 | `--connectivity, -cn` | choice (face \| face-edge \| all) | `all` | Connectivity for connected components (face=6-connected, face-edge=18-connected, all=26-connected). |
 | `--include-background / --no-include-background` | boolean flag | `True` | Include background (label=0) connected component analysis in CSV output. Background components are never included in plots. |
+| `--skeleton / --no-skeleton` | boolean flag | `False` | Also skeletonize each component (or instance) and report its skeleton length, label radius (median distance from the skeleton to the background) and branch, junction and endpoint counts, in angstroms. |
 | `--workers, -w` | integer | `8` | Number of worker processes. |
 
 ### Output Options
@@ -82,6 +90,9 @@ copick process seg-stats -i "organelle:user1/pred@10.0" -f plot -op ./organelle_
 
 # Analyze specific runs and export as PNG
 copick process seg-stats -i "membrane:user1/auto-001@10.0" -f plot -op ./stats.png -r run1 -r run2
+
+# Per-instance volumes and skeleton lengths of a microtubule instance segmentation
+copick process seg-stats -i "microtubule:trace/1@10.0?instance=true" --skeleton -f csv -op ./mt.csv
 ```
 
 ## See also

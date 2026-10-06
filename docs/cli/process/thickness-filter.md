@@ -63,20 +63,20 @@ Segmentations: name:user_id/session_id@voxel_spacing
 | Option | Type | Default | Description |
 |--------|------|---------|-------------|
 | `-c, --config` | path | — | Path to the configuration file. |
+| `--run-names, -r` | text · multiple | — | Specific run names to process (default: all runs). Repeatable; pass -r once per run. |
 | `--debug / --no-debug` | boolean flag | `False` | Enable debug logging. |
 
 ### Input Options
 
 | Option | Type | Default | Description |
 |--------|------|---------|-------------|
-| `--run-names, -r` | text · multiple | — | Specific run names to process (default: all runs). |
-| `--input, -i` | COPICK_URI | **required** | Input segmentation URI (format: name:user_id/session_id@voxel_spacing). Supports glob patterns. |
+| `--input, -i` | COPICK_URI | **required** | Input segmentation URI (format: name:user_id/session_id@voxel_spacing). Supports glob patterns. Append ?instance=true or ?panoptic=true to read those segmentation types. |
 
 ### Tool Options
 
 | Option | Type | Default | Description |
 |--------|------|---------|-------------|
-| `--min-thickness, -t` | float | **required** | Minimum thickness (diameter) of structures to keep. Unit set by --thickness-unit. |
+| `--min-thickness, -mt` | float | — | Minimum thickness (diameter) of structures to keep. Unit set by --thickness-unit. |
 | `--thickness-unit` | choice (angstrom \| voxel) | `angstrom` | Unit for --min-thickness: 'angstrom' for Å, 'voxel' for voxel diameters. |
 | `--workers, -w` | integer | `8` | Number of worker processes. |
 
@@ -84,7 +84,7 @@ Segmentations: name:user_id/session_id@voxel_spacing
 
 | Option | Type | Default | Description |
 |--------|------|---------|-------------|
-| `--output, -o` | COPICK_URI | **required** | Output segmentation URI. Supports smart defaults (e.g., "membrane", "membrane/my-session", or "/my-session"). Full format: object_name:user_id/session_id@voxel_spacing. |
+| `--output, -o` | COPICK_URI | **required** | Output segmentation URI. Supports smart defaults (e.g., "membrane", "membrane/my-session", or "/my-session"). Full format: object_name:user_id/session_id@voxel_spacing. Append ?instance=true or ?panoptic=true to write those segmentation types. |
 
 ## Examples
 

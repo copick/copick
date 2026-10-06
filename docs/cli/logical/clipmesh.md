@@ -85,13 +85,13 @@ Tomograms: tomo_type@voxel_spacing
 | Option | Type | Default | Description |
 |--------|------|---------|-------------|
 | `-c, --config` | path | — | Path to the configuration file. |
+| `--run-names, -r` | text · multiple | — | Specific run names to process (default: all runs). Repeatable; pass -r once per run. |
 | `--debug / --no-debug` | boolean flag | `False` | Enable debug logging. |
 
 ### Input Options
 
 | Option | Type | Default | Description |
 |--------|------|---------|-------------|
-| `--run-names, -r` | text · multiple | — | Specific run names to process (default: all runs). |
 | `--input, -i` | COPICK_URI | **required** | Input mesh URI (format: object_name:user_id/session_id). Supports glob patterns. |
 
 ### Reference Options
@@ -99,7 +99,7 @@ Tomograms: tomo_type@voxel_spacing
 | Option | Type | Default | Description |
 |--------|------|---------|-------------|
 | `--ref-mesh, -rm` | COPICK_URI | — | Reference mesh URI (format: object_name:user_id/session_id). Supports glob patterns. |
-| `--ref-seg, -rs` | COPICK_URI | — | Reference segmentation URI (format: name:user_id/session_id@voxel_spacing). Supports glob patterns. |
+| `--ref-seg, -rs` | COPICK_URI | — | Reference segmentation URI (format: name:user_id/session_id@voxel_spacing). Supports glob patterns. Append ?instance=true or ?panoptic=true to use an instance or panoptic segmentation (any non-zero voxel of an instance segmentation, or of a panoptic one's label channel, counts). |
 | `--ref-tomogram, -rt` | COPICK_URI | — | Reference tomogram boundary URI (format: tomo_type@voxel_spacing). Uses tomogram volume boundaries as reference surface. Example: 'wbp@10.0' |
 
 ### Tool Options

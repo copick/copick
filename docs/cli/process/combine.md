@@ -50,11 +50,17 @@ integer label value.
 When multiple inputs overlap, the lowest label value wins. This resolution is
 deterministic and reproducible, and overlapping voxels are logged as warnings.
 
+With an output URI ending in `?panoptic=true`, the result is a panoptic segmentation
+instead: the inputs fill its label channel (regions without instances, such as
+membranes), and the instance segmentations given with `--instances` add their objects'
+labels and their instance IDs. An instance ID is kept where its object's label won.
+
 ## URI Format
 
 ```text
 Segmentations: name:user_id/session_id@voxel_spacing
 Use glob/regex patterns to match multiple segmentations per run.
+Panoptic output: append ?panoptic=true to the output URI
 ```
 
 ## Options
@@ -62,21 +68,22 @@ Use glob/regex patterns to match multiple segmentations per run.
 | Option | Type | Default | Description |
 |--------|------|---------|-------------|
 | `-c, --config` | path | — | Path to the configuration file. |
+| `--run-names, -r` | text · multiple | — | Specific run names to process (default: all runs). Repeatable; pass -r once per run. |
 | `--debug / --no-debug` | boolean flag | `False` | Enable debug logging. |
 
 ### Input Options
 
 | Option | Type | Default | Description |
 |--------|------|---------|-------------|
-| `--run-names, -r` | text · multiple | — | Specific run names to process (default: all runs). |
-| `--input, -i` | COPICK_URI | **required** | Input segmentation URI (format: name:user_id/session_id@voxel_spacing). Supports glob patterns. |
+| `--input, -i` | COPICK_URI | **required** | Input segmentation URI (format: name:user_id/session_id@voxel_spacing). Supports glob patterns. Append ?instance=true or ?panoptic=true to read those segmentation types. |
+| `--instances` | text | — | Instance segmentations to add to a panoptic output (-o ...?panoptic=true), e.g. "microtubule:trace/1@10.0" (patterns allowed; ?instance=true is implied). Each one adds its object's label and its instance IDs. |
 | `--workers, -w` | integer | `8` | Number of worker processes. |
 
 ### Output Options
 
 | Option | Type | Default | Description |
 |--------|------|---------|-------------|
-| `--output, -o` | COPICK_URI | **required** | Output segmentation URI. Supports smart defaults (e.g., "membrane", "membrane/my-session", or "/my-session"). Full format: object_name:user_id/session_id@voxel_spacing. |
+| `--output, -o` | COPICK_URI | **required** | Output segmentation URI. Supports smart defaults (e.g., "membrane", "membrane/my-session", or "/my-session"). Full format: object_name:user_id/session_id@voxel_spacing. Append ?instance=true or ?panoptic=true to write those segmentation types. |
 
 ## Examples
 
@@ -89,6 +96,10 @@ copick process combine -i "re:.*:napari/manual@20" -o "combined:combine/0"
 
 # Combine for specific runs
 copick process combine -r run1 -r run2 -i "*:user1/session@10.0" -o "labels:combine/0"
+
+# Membranes as regions plus microtubule instances, as one panoptic segmentation
+copick process combine -i "membrane:data-portal/*@10.0" --instances "microtubule:trace/1@10.0" \
+    -o "cell:combine/0@10.0?panoptic=true"
 ```
 
 ## See also
