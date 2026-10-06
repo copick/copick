@@ -25,6 +25,9 @@ OBJECTS: List[ObjectDef] = [
     ("point-blue", True, 26, (0, 117, 220, 255), 30.0),  # blue fitting-cloud markers (picks->shape)
     ("slab-top", True, 29, (240, 130, 40, 255), 26.0),  # picks2slab top boundary layer
     ("slab-bot", True, 30, (0, 117, 220, 255), 26.0),  # picks2slab bottom boundary layer
+    # filaments (picks objects declared filaments): segmentation, tubes and picks; tubes and
+    # picks of a filament are drawn in its instance colour, shared by all three commands.
+    ("microtubule", True, 32, (180, 90, 220, 255), 34.0),
     # --- volumetric / surface objects (seg + mesh) ---------------------------
     ("membrane", False, 10, (200, 200, 200, 255), 10.0),
     ("vesicle", False, 11, (0, 170, 210, 255), 10.0),
@@ -49,6 +52,9 @@ OBJECTS: List[ObjectDef] = [
 ]
 
 OBJECTS_BY_NAME: Dict[str, ObjectDef] = {o[0]: o for o in OBJECTS}
+
+# Objects declared filaments (``metadata["copick"]["filament"]`` in the config), with their spec.
+FILAMENT_OBJECTS: Dict[str, Dict[str, object]] = {"microtubule": {"polar": True}}
 
 
 def color_of(name: str) -> Tuple[int, int, int, int]:

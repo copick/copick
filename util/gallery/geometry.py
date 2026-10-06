@@ -7,6 +7,7 @@ native array/object for one entity kind:
 * segmentation  -> ``mask[z, y, x]`` uint8 (single-label: value 1; multilabel: object labels)
 * mesh          -> ``trimesh.Trimesh``
 * tomogram      -> ``volume[z, y, x]`` float32
+* filaments     -> ``(control_points: [ (n, 3) xyz angstrom per filament ], radii: [angstrom])``
 
 Conventions: shape is ``(nz, ny, nx)``; a voxel index ``(iz, iy, ix)`` maps to physical
 ``(x=ix*v, y=iy*v, z=iz*v)``. The box spans ``[0, n*v]`` per axis; its center is at
@@ -746,6 +747,64 @@ def nonconvex_mesh(rng, *, shape, voxel_size, **kw):
 
 
 # --------------------------------------------------------------------------- #
+# filaments (seg2fil / fil2picks / fil2seg)
+# --------------------------------------------------------------------------- #
+
+# Control points of a small filament network, as (x, y, z) fractions of the box: a high S-curve,
+# a long arc crossed near-perpendicularly by a second filament passing ~40 A above it (the tubes
+# fuse, and seg2fil keeps the two apart at the junction), and a shorter one rising in depth.
+# Listed longest first, as seg2fil numbers them, so a filament has the same ID (and colour) in
+# the traced set and in the fixture set of fil2picks / fil2seg. Deterministic (no rng), so the
+# segmentation and the filament set of the three filament commands show the same network.
+FILAMENT_CONTROLS = (
+    ((0.12, 0.62, 0.70), (0.35, 0.80, 0.75), (0.60, 0.68, 0.78), (0.88, 0.85, 0.72)),
+    ((0.48, 0.08, 0.45), (0.47, 0.33, 0.53), (0.42, 0.60, 0.61), (0.50, 0.90, 0.58)),
+    ((0.10, 0.36, 0.44), (0.40, 0.33, 0.50), (0.65, 0.32, 0.50), (0.90, 0.40, 0.42)),
+    ((0.80, 0.12, 0.20), (0.72, 0.30, 0.30), (0.75, 0.55, 0.25), (0.68, 0.72, 0.35)),
+)
+
+
+def _catmull_rom(ctrl: np.ndarray, n_per_span: int = 24) -> np.ndarray:
+    """Dense points along a centripetal Catmull-Rom curve through ``ctrl`` (n, 3)."""
+    pts = np.vstack([2 * ctrl[0] - ctrl[1], ctrl, 2 * ctrl[-1] - ctrl[-2]])
+    out = []
+    for i in range(1, len(pts) - 2):
+        p0, p1, p2, p3 = pts[i - 1 : i + 3]
+        t0 = 0.0
+        t1 = t0 + np.linalg.norm(p1 - p0) ** 0.5
+        t2 = t1 + np.linalg.norm(p2 - p1) ** 0.5
+        t3 = t2 + np.linalg.norm(p3 - p2) ** 0.5
+        for t in np.linspace(t1, t2, n_per_span, endpoint=False):
+            a1 = (t1 - t) / (t1 - t0) * p0 + (t - t0) / (t1 - t0) * p1
+            a2 = (t2 - t) / (t2 - t1) * p1 + (t - t1) / (t2 - t1) * p2
+            a3 = (t3 - t) / (t3 - t2) * p2 + (t - t2) / (t3 - t2) * p3
+            b1 = (t2 - t) / (t2 - t0) * a1 + (t - t0) / (t2 - t0) * a2
+            b2 = (t3 - t) / (t3 - t1) * a2 + (t - t1) / (t3 - t1) * a3
+            out.append((t2 - t) / (t2 - t1) * b1 + (t - t1) / (t2 - t1) * b2)
+    out.append(ctrl[-1])
+    return np.asarray(out)
+
+
+def filament_network(rng, *, shape, voxel_size, radius: float = 45.0, **kw):
+    """Control points (x, y, z angstrom) and tube radii of the ``FILAMENT_CONTROLS`` network."""
+    extent = np.array(shape[::-1], dtype=np.float64) * voxel_size  # (x, y, z) box size
+    controls = [np.asarray(c, dtype=np.float64) * extent for c in FILAMENT_CONTROLS]
+    return controls, [float(radius)] * len(controls)
+
+
+def filament_tubes(rng, *, shape, voxel_size, radius: float = 45.0, **kw) -> np.ndarray:
+    """A binary segmentation of solid tubes (``radius`` angstrom) around the filament network."""
+    mask = np.zeros(shape, dtype=np.uint8)
+    controls, _radii = filament_network(rng, shape=shape, voxel_size=voxel_size)
+    r = radius / voxel_size
+    for ctrl in controls:
+        pts = _catmull_rom(ctrl)[:, ::-1] / voxel_size  # (z, y, x) voxels
+        for i in range(len(pts) - 1):
+            _draw_segment(mask, pts[i], pts[i + 1], r, value=1)
+    return mask
+
+
+# --------------------------------------------------------------------------- #
 # registry + dispatch
 # --------------------------------------------------------------------------- #
 
@@ -779,6 +838,9 @@ RECIPES: Dict[str, Callable] = {
     "seg_box": seg_box,
     "tilted_slab": tilted_slab,
     "multilabel_boxes": multilabel_boxes,
+    "filament_tubes": filament_tubes,
+    # filaments
+    "filament_network": filament_network,
     # mesh
     "icosphere": icosphere,
     "box_mesh": box_mesh,

@@ -47,7 +47,8 @@ fabricate synthetic inputs (copick API)  ->  run the CLI command  ->  verify out
   cd copick && uv sync --extra docs
   UV_TORCH_BACKEND=cpu uv pip install copick-utils copick-torch
   ```
-* **ChimeraX** with the **chimerax-copick** (>= 1.9.0) and **ArtiaX** bundles installed.
+* **ChimeraX** with the **chimerax-copick** (>= 1.9.0; >= 1.15.0 with copick >= 1.28 for the
+  filament commands) and **ArtiaX** bundles installed.
   Set `$CHIMERAX` if it is not at `/Applications/ChimeraX.app/Contents/MacOS/ChimeraX`.
   Rendering needs a **GUI** session (a window opens) — `--offscreen`/`--nogui` do not
   work because `copick start` requires `session.ui.is_gui`.
@@ -90,5 +91,13 @@ re-render its single `.cxc` to iterate quickly.
   (`tomo-pyramid`) if it is reinstated later.
 * Inference commands (`membrain-seg`, `nnunet`) and info-only `seg-stats` are out of
   scope (trained models / no annotation output).
+* **Filaments** (`seg2fil`, `fil2picks`, `fil2seg`) share one network (`geometry.FILAMENT_CONTROLS`),
+  listed longest first as `seg2fil` numbers it, so a filament keeps its ID — and its instance
+  colour — across the traced set, the sampled picks and the painted instance segmentation.
+  Filament sets open as top-level tube models (`#3`, … after ArtiaX `#1` and copick's 2D
+  labels `#2`), ghosted with `transparency`. Instance segmentations are drawn as label
+  surfaces computed in a worker thread; a command script never delivers its result signal
+  (`wait N` only draws frames), so the emitted `.cxc` runs `cx_wait_label_surfaces.py` to spin
+  the Qt event loop until they are shown.
 * `separate-components` produces same-colored instances at the same positions; its
   before/after differ mainly in object count (a metadata change), so the pair is modest.

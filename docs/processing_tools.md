@@ -11,7 +11,7 @@ Convert one copick type to another.
 
 <div class="grid cards" markdown>
 
--   [![fil2picks](assets/tools/_placeholder.svg){ .tool-thumb }](cli/convert/fil2picks.md)
+-   <span class="before-after--card" markdown="span">[![fil2picks input](assets/tools/convert/fil2picks-before.png)](cli/convert/fil2picks.md)[![fil2picks output](assets/tools/convert/fil2picks-after.png)](cli/convert/fil2picks.md)</span>
 
     **[fil2picks](cli/convert/fil2picks.md)**
 
@@ -19,7 +19,7 @@ Convert one copick type to another.
 
     [:octicons-arrow-right-24: Details](cli/convert/fil2picks.md)
 
--   [![fil2seg](assets/tools/_placeholder.svg){ .tool-thumb }](cli/convert/fil2seg.md)
+-   <span class="before-after--card" markdown="span">[![fil2seg input](assets/tools/convert/fil2seg-before.png)](cli/convert/fil2seg.md)[![fil2seg output](assets/tools/convert/fil2seg-after.png)](cli/convert/fil2seg.md)</span>
 
     **[fil2seg](cli/convert/fil2seg.md)**
 
@@ -115,7 +115,7 @@ Convert one copick type to another.
 
     [:octicons-arrow-right-24: Details](cli/convert/picks2surface.md)
 
--   [![seg2fil](assets/tools/_placeholder.svg){ .tool-thumb }](cli/convert/seg2fil.md)
+-   <span class="before-after--card" markdown="span">[![seg2fil input](assets/tools/convert/seg2fil-before.png)](cli/convert/seg2fil.md)[![seg2fil output](assets/tools/convert/seg2fil-after.png)](cli/convert/seg2fil.md)</span>
 
     **[seg2fil](cli/convert/seg2fil.md)**
 

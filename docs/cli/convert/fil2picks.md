@@ -16,6 +16,24 @@
 
     See the [plugin system](../index.md#plugin-system) guide for details.
 
+<div class="before-after" markdown>
+
+<figure class="before-after__fig" markdown="span">
+![copick convert fil2picks input](../../assets/tools/convert/fil2picks-before.png)
+<figcaption>Input</figcaption>
+</figure>
+
+<p class="before-after__arrow" aria-hidden="true">→</p>
+
+<figure class="before-after__fig" markdown="span">
+![copick convert fil2picks output](../../assets/tools/convert/fil2picks-after.png)
+<figcaption>Output</figcaption>
+</figure>
+
+</div>
+
+<p class="before-after__caption">Sample picks along filaments.</p>
+
 ## Usage
 
 ```bash
