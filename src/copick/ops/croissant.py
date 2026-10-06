@@ -554,6 +554,7 @@ def _iter_segmentations_filtered(run, is_cdp, portal_meta, portal_author):
         yield from run.get_segmentations(
             portal_meta_query=portal_meta or None,
             portal_author_query=portal_author or None,
+            is_instance=None,
         )
     else:
         yield from run.segmentations

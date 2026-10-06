@@ -980,8 +980,9 @@ class TestInstanceSegmentationURI:
         run.new_segmentation(10.0, "ribosome", "77", user_id="tracer").from_numpy(np.ones((4, 4, 4), np.uint8))
 
         assert serialize_copick_uri(seg) == "ribosome:tracer/77@10.0?instance=true"
-        both = resolve_copick_objects("ribosome:tracer/77@10.0", root, "segmentation", "TS_001")
-        assert sorted(s.segmentation_type for s in both) == ["binary", "instance"]
+        # Untyped, the URI selects the binary segmentation only
+        (untyped,) = resolve_copick_objects("ribosome:tracer/77@10.0", root, "segmentation", "TS_001")
+        assert untyped.segmentation_type == "binary"
         (only,) = resolve_copick_objects("ribosome:tracer/77@10.0?instance=true", root, "segmentation", "TS_001")
         assert only.is_instance
         (pattern,) = resolve_copick_objects("ribo*:tracer/7*@*?instance=true", root, "segmentation", "TS_001")

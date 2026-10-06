@@ -2190,7 +2190,7 @@ def test_instance_segmentation_round_trip(test_payload: Dict[str, Any]):
 
     # A fresh root lists both, each with its own type, and the filters tell them apart
     fresh = copick.from_file(test_payload["cfg_file"]).get_run("TS_001")
-    found = fresh.get_segmentations(user_id="tracer", session_id="inst")
+    found = fresh.get_segmentations(user_id="tracer", session_id="inst", is_instance=None)
     assert sorted(s.segmentation_type for s in found) == ["binary", "instance"]
     (inst,) = fresh.get_segmentations(user_id="tracer", is_instance=True)
     assert inst.instance_ids().tolist() == [1, 2, 300]
@@ -2207,6 +2207,38 @@ def test_instance_segmentation_round_trip(test_payload: Dict[str, Any]):
     fresh.delete_segmentations(user_id="tracer", is_instance=True)
     again = copick.from_file(test_payload["cfg_file"]).get_run("TS_001")
     assert [s.segmentation_type for s in again.get_segmentations(user_id="tracer")] == ["binary"]
+
+
+def test_untyped_segmentation_queries_select_binary_and_multilabel(test_payload: Dict[str, Any]):
+    from copick.util.uri import resolve_copick_objects
+
+    root = test_payload["root"]
+    run = root.get_run("TS_001")
+    binary = run.new_segmentation(10.0, "ribosome", "untyped", user_id="tracer")
+    binary.from_numpy((_instance_volume() > 0).astype(np.uint8))
+    instance = run.new_segmentation(10.0, "ribosome", "untyped", user_id="tracer", is_instance=True)
+    instance.from_numpy(_instance_volume())
+    key = {"user_id": "tracer", "session_id": "untyped", "name": "ribosome", "voxel_size": 10.0}
+
+    fresh = copick.from_file(test_payload["cfg_file"])
+    run = fresh.get_run("TS_001")
+    # A caller that names a segmentation without a type gets the type every client reads
+    assert [s.segmentation_type for s in run.get_segmentations(**key)] == ["binary"]
+    assert [s.segmentation_type for s in run.get_segmentations(**key, is_instance=True)] == ["instance"]
+    assert sorted(s.segmentation_type for s in run.get_segmentations(**key, is_instance=None)) == ["binary", "instance"]
+    assert {"binary", "instance"} <= {s.segmentation_type for s in run.segmentations if s.session_id == "untyped"}
+
+    untyped = resolve_copick_objects("ribosome:tracer/untyped@10.0", fresh, "segmentation", "TS_001")
+    assert [s.segmentation_type for s in untyped] == ["binary"]
+    typed = resolve_copick_objects("ribosome:tracer/untyped@10.0?instance=true", fresh, "segmentation", "TS_001")
+    assert [s.segmentation_type for s in typed] == ["instance"]
+    pattern = resolve_copick_objects("ribo*:tracer/untyped@10.0", fresh, "segmentation", "TS_001")
+    assert [s.segmentation_type for s in pattern] == ["binary"]
+
+    # Deleting without a type leaves the instance segmentation
+    run.delete_segmentations(**key)
+    remaining = copick.from_file(test_payload["cfg_file"]).get_run("TS_001").get_segmentations(**key, is_instance=None)
+    assert [s.segmentation_type for s in remaining] == ["instance"]
 
 
 def test_instance_segmentation_rules(test_payload: Dict[str, Any]):
@@ -2266,7 +2298,8 @@ def test_instance_segmentation_copy_keeps_type(test_payload: Dict[str, Any]):
         run_name="TS_001",
     )
     assert result["errors"] == [] and result["copied"] == 1, result
-    (copied,) = copick.from_file(test_payload["cfg_file"]).get_run("TS_001").get_segmentations(user_id="copied")
+    copied_run = copick.from_file(test_payload["cfg_file"]).get_run("TS_001")
+    (copied,) = copied_run.get_segmentations(user_id="copied", is_instance=True)
     assert copied.is_instance and copied.instance_ids().tolist() == [1, 2, 300]
 
     # cp does not convert types

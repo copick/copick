@@ -3,12 +3,14 @@
 import numpy as np
 import pytest
 from copick.util.segmentation import (
+    SEGMENTATION_TYPE_FILTERS,
     checked_label_cast,
     label_dtype,
     parse_segmentation_store_name,
     segmentation_directory,
     segmentation_store_name,
     segmentation_type,
+    segmentation_type_query,
 )
 
 
@@ -95,3 +97,32 @@ def test_checked_label_cast():
     with pytest.raises(ValueError, match="do not fit bool"):
         checked_label_cast(np.array([0, 2]), bool)
     assert checked_label_cast(data, None) is data
+
+
+@pytest.mark.parametrize(
+    "kind,query",
+    [
+        (None, {"is_multilabel": None, "is_instance": False}),
+        ("binary", {"is_multilabel": False, "is_instance": False}),
+        ("multilabel", {"is_multilabel": True, "is_instance": False}),
+        ("instance", {"is_multilabel": False, "is_instance": True}),
+        ("all", {"is_multilabel": None, "is_instance": None}),
+    ],
+)
+def test_segmentation_type_query(kind, query):
+    assert segmentation_type_query(kind) == query
+
+
+def test_segmentation_type_query_refuses_unknown_types():
+    with pytest.raises(ValueError, match="Unknown segmentation type"):
+        segmentation_type_query("instances")
+
+
+def test_cli_type_filters_match():
+    """The CLI keeps its choices inline (to stay light to import); they must be the filters."""
+    from copick.cli.stats import segmentations as stats_segmentations
+    from copick.cli.sync import segmentations as sync_segmentations
+
+    for command in (stats_segmentations, sync_segmentations):
+        (option,) = [p for p in command.params if p.name == "segmentation_type"]
+        assert tuple(option.type.choices) == SEGMENTATION_TYPE_FILTERS

@@ -496,6 +496,8 @@ def test_export_run_keeps_segmentation_types_apart(test_payload, tmp_path):
         np.full((4, 4, 4), 3, dtype=np.uint16),
     )
     results = export_run(run, str(tmp_path), segmentation_uri="ribosome:exp/88@10.0", output_format="tiff")
-    assert results["segmentations"] == 2, results
+    assert results["segmentations"] == 1, results  # an untyped URI selects the binary one
+    uri = "ribosome:exp/88@10.0?instance=true"
+    assert export_run(run, str(tmp_path), segmentation_uri=uri, output_format="tiff")["segmentations"] == 1
     assert os.path.exists(tmp_path / "TS_001" / "Segmentations" / "ribosome_exp_88.tiff")
     assert os.path.exists(tmp_path / "TS_001" / "InstanceSegmentations" / "ribosome_exp_88.tiff")

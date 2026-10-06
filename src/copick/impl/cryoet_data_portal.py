@@ -1178,7 +1178,7 @@ class CopickRunCDP(CopickRunOverlay):
         portal_meta_query: Dict[str, Any] = None,
         portal_author_query: List[str] = None,
         *,
-        is_instance: bool = None,
+        is_instance: Optional[bool] = False,
         **kwargs,
     ) -> List["CopickSegmentationCDP"]:
         """Get segmentations by user_id, session_id, name, type or voxel_size (or combinations) and portal metadata and
@@ -1195,7 +1195,8 @@ class CopickRunCDP(CopickRunOverlay):
                 are the scalar fields of [cryoet_data_portal.Annotation](https://chanzuckerberg.github.io/cryoet-data-portal/python-api.html#annotation)
             portal_author_query: List of author names. Segmentations are included if this author is in the portal
                 annotation's author list.
-            is_instance: Whether the segmentation is an instance segmentation or not.
+            is_instance: Whether to select instance segmentations (True) or not (False, the default); None selects any
+                type.
             **kwargs: Additional parameters passed to parent class.
 
         Returns:

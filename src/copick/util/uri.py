@@ -25,7 +25,8 @@ def parse_copick_uri(uri: str, object_type: str) -> Dict[str, Any]:
     URI Schemes:
     - Picks: object_name:user_id/session_id
     - Meshes: object_name:user_id/session_id
-    - Segmentations: name:user_id/session_id@voxel_spacing[?multilabel=true|?instance=true]
+    - Segmentations: name:user_id/session_id@voxel_spacing[?multilabel=true|?instance=true]; without a type, binary
+      and multilabel segmentations
     - Tomogram: tomo_type@voxel_spacing
     - Feature: tomo_type@voxel_spacing:feature_type
 
@@ -126,8 +127,10 @@ def parse_copick_uri(uri: str, object_type: str) -> Dict[str, Any]:
             "user_id": user_id,
             "session_id": session_id,
             "voxel_spacing": voxel_spacing,
-            "multilabel": None,  # Default value (matches both multilabel and non-multilabel)
-            "instance": None,  # Default value (matches both instance and non-instance)
+            # None: not given. Resolving an untyped URI selects binary and multilabel segmentations; an untyped output
+            # URI keeps the type of its input.
+            "multilabel": None,
+            "instance": None,
         }
 
         # Check for the segmentation type parameters
@@ -799,6 +802,9 @@ def _get_segmentations_from_runs(
     voxel_spacing = filters.get("voxel_spacing")
     multilabel = filters.get("multilabel")
     instance = filters.get("instance")
+    if instance is None:
+        # An untyped URI selects binary and multilabel segmentations, as CopickRun.get_segmentations does
+        instance = False
 
     # Check if we need pattern matching
     use_builtin = (

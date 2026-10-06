@@ -401,8 +401,12 @@ seg.instance_ids()                  # array([1, 2, ...])
 run.get_segmentations(is_instance=True)
 ```
 
-Segmentation URIs mark the type with `?multilabel=true` or `?instance=true`
-(`microtubule:tracer/1@10.0?instance=true`); a URI without either matches every type.
+Queries that do not name a type select binary and multilabel segmentations, the types every client reads:
+`get_segmentations(...)` and `delete_segmentations(...)` default to `is_instance=False` (pass `is_instance=None` for any
+type), and `run.segmentations` lists all of them. Segmentation URIs mark the type with `?multilabel=true` or
+`?instance=true` (`microtubule:tracer/1@10.0?instance=true`); a URI without either selects binary and multilabel
+segmentations, so `copick cp`, `mv`, `rm` and `export` do too. `copick sync segmentations` and
+`copick stats segmentations` take `--segmentation-type binary|multilabel|instance|all`.
 
 !!! note "Data types"
     Segmentation values are stored without loss. When no dtype is given, `from_numpy` chooses the smallest unsigned

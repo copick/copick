@@ -40,6 +40,7 @@ already exist in the target.
 | `--target-names` | text | `""` | Comma-separated mapping of source segmentation names to target names (e.g. 'seg1:target1,seg2:target2'). If not specified, source names will be used. |
 | `--source-users` | text | `""` | Comma-separated list of source user IDs to synchronize. If not specified, all users will be synced. |
 | `--target-users` | text | `""` | Comma-separated mapping of source user IDs to target user IDs (e.g. 'user1:target1,user2:target2'). If not specified, source user IDs will be used. |
+| `--segmentation-type` | choice (binary \| multilabel \| instance \| all) | — | Segmentation type to synchronize; 'all' for every type. Default: binary and multilabel segmentations. |
 | `--exist-ok / --no-exist-ok` | boolean flag | `False` | Allow overwriting existing segmentations in the target project. |
 | `--max-workers` | integer | `4` | Maximum number of worker threads to use for synchronization. |
 | `--log / --no-log` | boolean flag | `False` | Enable verbose logging of the synchronization process. |
