@@ -5282,6 +5282,34 @@
   
   
     <li class="md-nav__item">
+      <a href="../../../api_reference/base_classes/data_entity_models/CopickFilaments/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    CopickFilaments
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
       <a href="../../../api_reference/base_classes/data_entity_models/CopickMesh/" class="md-nav__link">
         
   
@@ -5454,6 +5482,34 @@
   
   
     <li class="md-nav__item">
+      <a href="../../../api_reference/base_classes/metadata_models/FilamentSpec/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    FilamentSpec
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
       <a href="../../../api_reference/base_classes/metadata_models/CopickPicksFile/" class="md-nav__link">
         
   
@@ -5462,6 +5518,90 @@
     
   
     CopickPicksFile
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../api_reference/base_classes/metadata_models/CopickFilamentsFile/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    CopickFilamentsFile
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../api_reference/base_classes/metadata_models/CopickFilament/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    CopickFilament
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../api_reference/base_classes/metadata_models/CopickFilamentCurve/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    CopickFilamentCurve
   
 
     
@@ -6640,6 +6780,14 @@ single file. Combined EM/Dynamo export requires <code>--index-map</code> to assi
 tomogram index to each run; per-run EM/Dynamo default to index 1 unless an
 index map is supplied, and STAR/CSV reference runs by name. For coordinate
 and Euler-angle conventions, see the docstrings in <code>copick.util.formats</code>.</p>
+<p>STAR files carry <code>rlnTomoName</code> and coordinates centred on each tomogram (from
+<code>--tomograms-star</code>, or the copick tomogram at <code>--voxel-size</code>). With
+<code>--tilt-series-pixel-size</code> (or a tomograms.star) they also carry
+<code>rlnCoordinateX/Y/Z</code> in tilt-series pixels and the optics table RELION
+requires. Picks of objects declared a filament get RELION's filament
+columns (<code>--filament-columns</code>): the frame in <code>rlnTomoSubtomogram*</code>,
+<code>rlnAngleTilt</code> and its prior at 90, <code>rlnHelicalTubeID</code> from the instance
+ID, and <code>rlnHelicalTrackLengthAngst</code>.</p>
 <h2 id="options">Options</h2>
 <table>
 <thead>
@@ -6704,6 +6852,24 @@ and Euler-angle conventions, see the docstrings in <code>copick.util.formats</co
 <td>boolean flag</td>
 <td><code>True</code></td>
 <td>Include optics group in STAR file output.</td>
+</tr>
+<tr>
+<td><code>--tilt-series-pixel-size</code></td>
+<td>float</td>
+<td>—</td>
+<td>STAR only: tilt-series pixel size in Angstrom. Adds rlnCoordinateX/Y/Z in tilt-series pixels and an optics table with rlnTomoTiltSeriesPixelSize, which RELION requires.</td>
+</tr>
+<tr>
+<td><code>--tomograms-star</code></td>
+<td>file</td>
+<td>—</td>
+<td>STAR only: RELION tomograms.star giving each tomogram's centre, tilt-series pixel size and CTF parameters (takes precedence over the copick tomograms).</td>
+</tr>
+<tr>
+<td><code>--filament-columns</code></td>
+<td>choice (auto | on | off)</td>
+<td><code>auto</code></td>
+<td>STAR only: RELION's filament columns (rlnHelicalTubeID, track length, subtomogram frame, priors) for objects declared a filament ('auto'), always ('on'), or never ('off').</td>
 </tr>
 <tr>
 <td><code>--max-workers</code></td>

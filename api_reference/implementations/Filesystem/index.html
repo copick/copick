@@ -5167,6 +5167,34 @@
   
   
     <li class="md-nav__item">
+      <a href="../../base_classes/data_entity_models/CopickFilaments/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    CopickFilaments
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
       <a href="../../base_classes/data_entity_models/CopickMesh/" class="md-nav__link">
         
   
@@ -5339,6 +5367,34 @@
   
   
     <li class="md-nav__item">
+      <a href="../../base_classes/metadata_models/FilamentSpec/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    FilamentSpec
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
       <a href="../../base_classes/metadata_models/CopickPicksFile/" class="md-nav__link">
         
   
@@ -5347,6 +5403,90 @@
     
   
     CopickPicksFile
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../base_classes/metadata_models/CopickFilamentsFile/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    CopickFilamentsFile
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../base_classes/metadata_models/CopickFilament/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    CopickFilament
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../base_classes/metadata_models/CopickFilamentCurve/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    CopickFilamentCurve
   
 
     
@@ -5838,6 +5978,17 @@
     <span class="md-ellipsis">
       
         <code class="doc-symbol doc-symbol-toc doc-symbol-class"></code>&nbsp;CopickPicksFSSpec
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#copick.impl.filesystem.CopickFilamentsFSSpec" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        <code class="doc-symbol doc-symbol-toc doc-symbol-class"></code>&nbsp;CopickFilamentsFSSpec
       
     </span>
   </a>
@@ -6914,6 +7065,17 @@
 </li>
       
         <li class="md-nav__item">
+  <a href="#copick.impl.filesystem.CopickFilamentsFSSpec" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        <code class="doc-symbol doc-symbol-toc doc-symbol-class"></code>&nbsp;CopickFilamentsFSSpec
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
   <a href="#copick.impl.filesystem.CopickMeshFSSpec" class="md-nav__link">
     <span class="md-ellipsis">
       
@@ -7644,6 +7806,88 @@ filesystem if it does not.</p>
           –
           <div class="doc-md-description">
             <p>The filesystem containing the picks file.</p>
+          </div>
+        </li>
+    </ul>
+
+
+
+
+
+
+
+
+
+
+
+<div class="doc doc-children">
+
+
+
+
+
+
+
+
+
+
+
+
+  </div>
+
+    </div>
+
+</div><hr />
+<p><a href="" id="CopickFilamentsFSSpec"></a>
+</p>
+
+
+<div class="doc doc-object doc-class">
+
+
+
+<h2 id="copick.impl.filesystem.CopickFilamentsFSSpec" class="doc doc-heading">
+<code class="doc-symbol doc-symbol-heading doc-symbol-class"></code>            <span class="doc doc-object-name doc-class-name">copick.impl.filesystem.CopickFilamentsFSSpec</span>
+
+
+</h2>
+
+
+    <div class="doc doc-contents first">
+            <p class="doc doc-class-bases">
+              Bases: <code><a class="autorefs autorefs-internal" title="&lt;code class=&quot;doc-symbol doc-symbol-heading doc-symbol-class&quot;&gt;&lt;/code&gt;            &lt;span class=&quot;doc doc-object-name doc-class-name&quot;&gt;copick.impl.overlay.CopickFilamentsOverlay&lt;/span&gt;" href="../Overlay/#copick.impl.overlay.CopickFilamentsOverlay">CopickFilamentsOverlay</a></code></p>
+
+
+
+        <p>CopickFilaments class backed by fsspec storage, at <code>{run}/Filaments/{user}_{session}_{object}.json</code>.</p>
+<p>Works with any run that has <code>static_path</code>/<code>fs_static</code> and <code>overlay_path</code>/<code>fs_overlay</code> (the filesystem,
+data-portal and Croissant backends).</p>
+
+
+<p><span class="doc-section-title">Attributes:</span></p>
+    <ul>
+        <li class="doc-section-item field-body">
+          <b><code><span title="copick.impl.filesystem.CopickFilamentsFSSpec.path">path</span></code></b>
+              (<code><span title="str">str</span></code>)
+          –
+          <div class="doc-md-description">
+            <p>The path to the filaments file.</p>
+          </div>
+        </li>
+        <li class="doc-section-item field-body">
+          <b><code><span title="copick.impl.filesystem.CopickFilamentsFSSpec.directory">directory</span></code></b>
+              (<code><span title="str">str</span></code>)
+          –
+          <div class="doc-md-description">
+            <p>The directory containing the filaments file.</p>
+          </div>
+        </li>
+        <li class="doc-section-item field-body">
+          <b><code><span title="copick.impl.filesystem.CopickFilamentsFSSpec.fs">fs</span></code></b>
+              (<code><span title="fsspec.AbstractFileSystem">AbstractFileSystem</span></code>)
+          –
+          <div class="doc-md-description">
+            <p>The filesystem containing the filaments file.</p>
           </div>
         </li>
     </ul>

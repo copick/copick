@@ -5293,6 +5293,34 @@
   
   
     <li class="md-nav__item">
+      <a href="../../../api_reference/base_classes/data_entity_models/CopickFilaments/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    CopickFilaments
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
       <a href="../../../api_reference/base_classes/data_entity_models/CopickMesh/" class="md-nav__link">
         
   
@@ -5465,6 +5493,34 @@
   
   
     <li class="md-nav__item">
+      <a href="../../../api_reference/base_classes/metadata_models/FilamentSpec/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    FilamentSpec
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
       <a href="../../../api_reference/base_classes/metadata_models/CopickPicksFile/" class="md-nav__link">
         
   
@@ -5473,6 +5529,90 @@
     
   
     CopickPicksFile
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../api_reference/base_classes/metadata_models/CopickFilamentsFile/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    CopickFilamentsFile
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../api_reference/base_classes/metadata_models/CopickFilament/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    CopickFilament
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../api_reference/base_classes/metadata_models/CopickFilamentCurve/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    CopickFilamentCurve
   
 
     
@@ -6654,8 +6794,12 @@
 <h2 id="description">Description</h2>
 <p>Imports a single segmentation, or many at once via a glob pattern, into one or
 more runs. The file format is inferred from the extension unless <code>--file-type</code>
-is given. Segmentations are imported as multilabel volumes and may be tagged
-with a name, user ID, and session ID.</p>
+is given. Segmentations are imported as multilabel volumes unless
+<code>--segmentation-type</code> says otherwise, and may be tagged with a name, user ID, and
+session ID. Binary and instance segmentations need NAME to be a pickable object.
+Integer labels keep their values: the stored dtype is chosen to hold them. A panoptic
+segmentation is read from a two-channel TIFF or Zarr; <code>--transpose</code> and <code>--flip</code> then
+apply to its spatial axes.</p>
 <h2 id="arguments">Arguments</h2>
 <table>
 <thead>
@@ -6737,6 +6881,12 @@ with a name, user ID, and session ID.</p>
 <td>File type ('mrc', 'zarr', 'tiff', or 'em'). Will guess type based on extension if omitted.</td>
 </tr>
 <tr>
+<td><code>--segmentation-type</code></td>
+<td>choice (multilabel | binary | instance | panoptic)</td>
+<td><code>multilabel</code></td>
+<td>'multilabel': voxel = an object's label; 'binary': voxel = 1 inside the object NAME; 'instance': voxel = the instance ID within the object NAME, 0 for background; 'panoptic': a two-channel (2, Z, Y, X) TIFF or Zarr, channel 0 object labels and channel 1 instance IDs within each object.</td>
+</tr>
+<tr>
 <td><code>--max-workers</code></td>
 <td>integer</td>
 <td><code>4</code></td>
@@ -6784,6 +6934,10 @@ with a name, user ID, and session ID.</p>
 </span><span id="__span-1-7"><a id="__codelineno-1-7" name="__codelineno-1-7" href="#__codelineno-1-7"></a><span class="c1"># Extract the run name from the filename with a regex</span>
 </span><span id="__span-1-8"><a id="__codelineno-1-8" name="__codelineno-1-8" href="#__codelineno-1-8"></a>copick<span class="w"> </span>add<span class="w"> </span>segmentation<span class="w"> </span><span class="s2">&quot;TS*.mrc&quot;</span><span class="w"> </span>-c<span class="w"> </span>config.json<span class="w"> </span>--name<span class="w"> </span>membrane<span class="w"> </span><span class="se">\</span>
 </span><span id="__span-1-9"><a id="__codelineno-1-9" name="__codelineno-1-9" href="#__codelineno-1-9"></a><span class="w">    </span>--run-regex<span class="w"> </span><span class="s2">&quot;^(TS_\d+)&quot;</span>
+</span><span id="__span-1-10"><a id="__codelineno-1-10" name="__codelineno-1-10" href="#__codelineno-1-10"></a>
+</span><span id="__span-1-11"><a id="__codelineno-1-11" name="__codelineno-1-11" href="#__codelineno-1-11"></a><span class="c1"># Import a volume whose voxels hold microtubule instance IDs</span>
+</span><span id="__span-1-12"><a id="__codelineno-1-12" name="__codelineno-1-12" href="#__codelineno-1-12"></a>copick<span class="w"> </span>add<span class="w"> </span>segmentation<span class="w"> </span>filaments.tif<span class="w"> </span>-c<span class="w"> </span>config.json<span class="w"> </span>--run<span class="w"> </span>TS_001<span class="w"> </span>--voxel-size<span class="w"> </span><span class="m">10</span>.0<span class="w"> </span><span class="se">\</span>
+</span><span id="__span-1-13"><a id="__codelineno-1-13" name="__codelineno-1-13" href="#__codelineno-1-13"></a><span class="w">    </span>--name<span class="w"> </span>microtubule<span class="w"> </span>--segmentation-type<span class="w"> </span>instance
 </span></code></pre></div>
 <h2 id="see-also">See also</h2>
 <ul>

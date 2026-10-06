@@ -5282,6 +5282,34 @@
   
   
     <li class="md-nav__item">
+      <a href="../../../api_reference/base_classes/data_entity_models/CopickFilaments/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    CopickFilaments
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
       <a href="../../../api_reference/base_classes/data_entity_models/CopickMesh/" class="md-nav__link">
         
   
@@ -5454,6 +5482,34 @@
   
   
     <li class="md-nav__item">
+      <a href="../../../api_reference/base_classes/metadata_models/FilamentSpec/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    FilamentSpec
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
       <a href="../../../api_reference/base_classes/metadata_models/CopickPicksFile/" class="md-nav__link">
         
   
@@ -5462,6 +5518,90 @@
     
   
     CopickPicksFile
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../api_reference/base_classes/metadata_models/CopickFilamentsFile/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    CopickFilamentsFile
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../api_reference/base_classes/metadata_models/CopickFilament/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    CopickFilament
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../api_reference/base_classes/metadata_models/CopickFilamentCurve/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    CopickFilamentCurve
   
 
     
@@ -6635,7 +6775,9 @@
 writes each label map to the chosen format under <code>--output-dir</code>. For MRC,
 TIFF, and EM the <code>--level</code> pyramid level is exported and TIFF supports
 <code>--compression</code>; for Zarr, <code>--copy-all-levels</code> writes the full multiscale
-pyramid. Restrict the export to specific runs with <code>--run-names</code>.</p>
+pyramid. Restrict the export to specific runs with <code>--run-names</code>. A panoptic
+segmentation keeps both channels in Zarr; in MRC, TIFF and EM each channel is
+written to its own file, or only the one chosen with <code>--channel</code>.</p>
 <h2 id="options">Options</h2>
 <table>
 <thead>
@@ -6694,6 +6836,12 @@ pyramid. Restrict the export to specific runs with <code>--run-names</code>.</p>
 <td>integer</td>
 <td><code>0</code></td>
 <td>Pyramid level to export (for MRC and TIFF).</td>
+</tr>
+<tr>
+<td><code>--channel</code></td>
+<td>choice (label | instance)</td>
+<td>—</td>
+<td>Panoptic segmentations only: the channel to write to MRC, TIFF or EM. Without it, each channel is written to its own file (<name>_label, <name>_instance).</td>
 </tr>
 <tr>
 <td><code>--max-workers</code></td>

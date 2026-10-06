@@ -5282,6 +5282,34 @@
   
   
     <li class="md-nav__item">
+      <a href="../../../api_reference/base_classes/data_entity_models/CopickFilaments/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    CopickFilaments
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
       <a href="../../../api_reference/base_classes/data_entity_models/CopickMesh/" class="md-nav__link">
         
   
@@ -5454,6 +5482,34 @@
   
   
     <li class="md-nav__item">
+      <a href="../../../api_reference/base_classes/metadata_models/FilamentSpec/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    FilamentSpec
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
       <a href="../../../api_reference/base_classes/metadata_models/CopickPicksFile/" class="md-nav__link">
         
   
@@ -5462,6 +5518,90 @@
     
   
     CopickPicksFile
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../api_reference/base_classes/metadata_models/CopickFilamentsFile/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    CopickFilamentsFile
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../api_reference/base_classes/metadata_models/CopickFilament/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    CopickFilament
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../api_reference/base_classes/metadata_models/CopickFilamentCurve/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    CopickFilamentCurve
   
 
     
@@ -6660,9 +6800,9 @@ attached to the object.</p>
 </tr>
 <tr>
 <td><code>--object-type</code></td>
-<td>choice (particle | segmentation)</td>
+<td>choice (particle | segmentation | filament)</td>
 <td><code>particle</code></td>
-<td>Type of object: 'particle' for point annotations or 'segmentation' for mask annotations.</td>
+<td>Type of object: 'particle' for point annotations, 'segmentation' for mask annotations, or 'filament' for point annotations ordered along filaments (e.g. microtubules, actin).</td>
 </tr>
 <tr>
 <td><code>--label</code></td>
@@ -6704,7 +6844,25 @@ attached to the object.</p>
 <td><code>--radius</code></td>
 <td>float</td>
 <td><code>50</code></td>
-<td>Radius of the particle, when displaying as a sphere.</td>
+<td>Radius of the particle, when displaying as a sphere. For a filament, the tube radius.</td>
+</tr>
+<tr>
+<td><code>--polar / --apolar</code></td>
+<td>boolean flag</td>
+<td>—</td>
+<td>Filaments only: whether the structure has a polarity (microtubules and actin do). Not stated by default.</td>
+</tr>
+<tr>
+<td><code>--helical-rise</code></td>
+<td>float</td>
+<td>—</td>
+<td>Filaments only: axial rise per subunit in Angstrom. Descriptive only; never used as a sampling default.</td>
+</tr>
+<tr>
+<td><code>--helical-twist</code></td>
+<td>float</td>
+<td>—</td>
+<td>Filaments only: twist per subunit in degrees. Descriptive only.</td>
 </tr>
 <tr>
 <td><code>--metadata</code></td>
@@ -6756,6 +6914,10 @@ attached to the object.</p>
 </span><span id="__span-1-9"><a id="__codelineno-1-9" name="__codelineno-1-9" href="#__codelineno-1-9"></a><span class="c1"># Add a segmentation object with an explicit label</span>
 </span><span id="__span-1-10"><a id="__codelineno-1-10" name="__codelineno-1-10" href="#__codelineno-1-10"></a>copick<span class="w"> </span>add<span class="w"> </span>object<span class="w"> </span>-c<span class="w"> </span>config.json<span class="w"> </span>--name<span class="w"> </span>membrane<span class="w"> </span>--object-type<span class="w"> </span>segmentation<span class="w"> </span><span class="se">\</span>
 </span><span id="__span-1-11"><a id="__codelineno-1-11" name="__codelineno-1-11" href="#__codelineno-1-11"></a><span class="w">    </span>--label<span class="w"> </span><span class="m">1</span><span class="w"> </span>--color<span class="w"> </span><span class="s2">&quot;0,255,0,128&quot;</span>
+</span><span id="__span-1-12"><a id="__codelineno-1-12" name="__codelineno-1-12" href="#__codelineno-1-12"></a>
+</span><span id="__span-1-13"><a id="__codelineno-1-13" name="__codelineno-1-13" href="#__codelineno-1-13"></a><span class="c1"># Add a polar filament with its tube radius</span>
+</span><span id="__span-1-14"><a id="__codelineno-1-14" name="__codelineno-1-14" href="#__codelineno-1-14"></a>copick<span class="w"> </span>add<span class="w"> </span>object<span class="w"> </span>-c<span class="w"> </span>config.json<span class="w"> </span>--name<span class="w"> </span>microtubule<span class="w"> </span>--object-type<span class="w"> </span>filament<span class="w"> </span><span class="se">\</span>
+</span><span id="__span-1-15"><a id="__codelineno-1-15" name="__codelineno-1-15" href="#__codelineno-1-15"></a><span class="w">    </span>--radius<span class="w"> </span><span class="m">120</span><span class="w"> </span>--polar
 </span></code></pre></div>
 <h2 id="see-also">See also</h2>
 <ul>

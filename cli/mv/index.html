@@ -5291,6 +5291,34 @@
   
   
     <li class="md-nav__item">
+      <a href="../../api_reference/base_classes/data_entity_models/CopickFilaments/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    CopickFilaments
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
       <a href="../../api_reference/base_classes/data_entity_models/CopickMesh/" class="md-nav__link">
         
   
@@ -5463,6 +5491,34 @@
   
   
     <li class="md-nav__item">
+      <a href="../../api_reference/base_classes/metadata_models/FilamentSpec/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    FilamentSpec
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
       <a href="../../api_reference/base_classes/metadata_models/CopickPicksFile/" class="md-nav__link">
         
   
@@ -5471,6 +5527,90 @@
     
   
     CopickPicksFile
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../api_reference/base_classes/metadata_models/CopickFilamentsFile/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    CopickFilamentsFile
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../api_reference/base_classes/metadata_models/CopickFilament/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    CopickFilament
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../api_reference/base_classes/metadata_models/CopickFilamentCurve/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    CopickFilamentCurve
   
 
     
@@ -6647,15 +6787,15 @@
 <p><span class="source-badge source-badge--core" title="Part of copick core">core</span></p>
 <p><em>Move/rename copick objects by URI.</em></p>
 <h2 id="usage">Usage</h2>
-<div class="language-bash highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a>copick<span class="w"> </span>mv<span class="w"> </span><span class="o">[</span>OPTIONS<span class="o">]</span><span class="w"> </span><span class="o">{</span>picks<span class="p">|</span>mesh<span class="p">|</span>segmentation<span class="o">}</span><span class="w"> </span>URI<span class="w"> </span>URI
+<div class="language-bash highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a>copick<span class="w"> </span>mv<span class="w"> </span><span class="o">[</span>OPTIONS<span class="o">]</span><span class="w"> </span><span class="o">{</span>picks<span class="p">|</span>filaments<span class="p">|</span>mesh<span class="p">|</span>segmentation<span class="o">}</span><span class="w"> </span>URI<span class="w"> </span>URI
 </span></code></pre></div>
 <h2 id="description">Description</h2>
-<p>Renames or relocates picks, meshes, and segmentations within a project by
+<p>Renames or relocates picks, filaments, meshes, and segmentations within a project by
 rewriting their URI. A single concrete source/target pair renames one object,
 while a glob or regex source pattern combined with a templated target moves
 many objects at once. Each source object is deleted only after a successful
 copy to its target.</p>
-<p>Picks and meshes are addressed as <code>object_name:user_id/session_id</code>, and
+<p>Picks, filaments and meshes are addressed as <code>object_name:user_id/session_id</code>, and
 segmentations append a voxel spacing as <code>name:user_id/session_id@voxel_spacing</code>.
 For pattern-based moves the target URI may use placeholders that are filled in
 from each matched source: <code>{object_name}</code>, <code>{name}</code>, <code>{user_id}</code>,
@@ -6675,7 +6815,7 @@ operation to a single run.</p>
 <tbody>
 <tr>
 <td><code>OBJECT_TYPE</code></td>
-<td>Type of object to move (picks, mesh, or segmentation).</td>
+<td>Type of object to move (picks, filaments, mesh, or segmentation).</td>
 </tr>
 <tr>
 <td><code>SOURCE_URI</code></td>

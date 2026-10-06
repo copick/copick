@@ -5293,6 +5293,34 @@
   
   
     <li class="md-nav__item">
+      <a href="../../../api_reference/base_classes/data_entity_models/CopickFilaments/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    CopickFilaments
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
       <a href="../../../api_reference/base_classes/data_entity_models/CopickMesh/" class="md-nav__link">
         
   
@@ -5465,6 +5493,34 @@
   
   
     <li class="md-nav__item">
+      <a href="../../../api_reference/base_classes/metadata_models/FilamentSpec/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    FilamentSpec
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
       <a href="../../../api_reference/base_classes/metadata_models/CopickPicksFile/" class="md-nav__link">
         
   
@@ -5473,6 +5529,90 @@
     
   
     CopickPicksFile
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../api_reference/base_classes/metadata_models/CopickFilamentsFile/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    CopickFilamentsFile
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../api_reference/base_classes/metadata_models/CopickFilament/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    CopickFilament
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../api_reference/base_classes/metadata_models/CopickFilamentCurve/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    CopickFilamentCurve
   
 
     
@@ -6659,6 +6799,13 @@ into one or more runs. The format is inferred from the extension unless
 files (.csv). A voxel size is required for the EM, STAR, and Dynamo formats so
 coordinates can be converted; CSV files carry a <code>run_name</code> column and are
 grouped automatically.</p>
+<p>STAR files are read as RELION does: centred coordinates
+(<code>rlnCenteredCoordinate*Angst</code>) relative to the tomogram centre when it is
+known (from <code>--tomograms-star</code> or the run's copick tomogram), otherwise
+<code>rlnCoordinateX/Y/Z</code> in tilt-series pixels (<code>--tilt-series-pixel-size</code>, or the
+file's optics table), otherwise in pixels of <code>--voxel-size</code>. Subtomogram
+orientations (<code>rlnTomoSubtomogram*</code>) and shifts (<code>rlnOrigin*Angst</code>) are
+applied.</p>
 <p>For batch imports from a single file that spans many tomograms, use the
 dedicated commands <code>copick add picks-em</code>, <code>copick add picks-dynamo</code>, or
 <code>copick add picks-relion</code> instead. For format-specific conventions (coordinate
@@ -6735,7 +6882,19 @@ systems, Euler angle conventions), see the docstrings in <code>copick.util.forma
 <td><code>--voxel-size</code></td>
 <td>float</td>
 <td>—</td>
-<td>Voxel size in Angstrom (required for EM, STAR, and Dynamo formats for coordinate conversion).</td>
+<td>Voxel size in Angstrom (required for EM and Dynamo formats for coordinate conversion; for STAR, required only when the file's coordinates are tomogram pixels, i.e. no tilt-series pixel size is known).</td>
+</tr>
+<tr>
+<td><code>--tilt-series-pixel-size</code></td>
+<td>float</td>
+<td>—</td>
+<td>STAR only: tilt-series pixel size in Angstrom, the unit RELION 4/5 use for rlnCoordinateX/Y/Z. Read from the file's optics table (rlnTomoTiltSeriesPixelSize) when omitted.</td>
+</tr>
+<tr>
+<td><code>--tomograms-star</code></td>
+<td>file</td>
+<td>—</td>
+<td>STAR only: RELION tomograms.star giving each tomogram's centre (for rlnCenteredCoordinate*Angst) and tilt-series pixel size.</td>
 </tr>
 <tr>
 <td><code>--file-type</code></td>

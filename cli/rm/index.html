@@ -5291,6 +5291,34 @@
   
   
     <li class="md-nav__item">
+      <a href="../../api_reference/base_classes/data_entity_models/CopickFilaments/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    CopickFilaments
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
       <a href="../../api_reference/base_classes/data_entity_models/CopickMesh/" class="md-nav__link">
         
   
@@ -5463,6 +5491,34 @@
   
   
     <li class="md-nav__item">
+      <a href="../../api_reference/base_classes/metadata_models/FilamentSpec/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    FilamentSpec
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
       <a href="../../api_reference/base_classes/metadata_models/CopickPicksFile/" class="md-nav__link">
         
   
@@ -5471,6 +5527,90 @@
     
   
     CopickPicksFile
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../api_reference/base_classes/metadata_models/CopickFilamentsFile/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    CopickFilamentsFile
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../api_reference/base_classes/metadata_models/CopickFilament/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    CopickFilament
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../api_reference/base_classes/metadata_models/CopickFilamentCurve/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    CopickFilamentCurve
   
 
     
@@ -6647,14 +6787,14 @@
 <p><span class="source-badge source-badge--core" title="Part of copick core">core</span></p>
 <p><em>Remove copick objects by URI.</em></p>
 <h2 id="usage">Usage</h2>
-<div class="language-bash highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a>copick<span class="w"> </span>rm<span class="w"> </span><span class="o">[</span>OPTIONS<span class="o">]</span><span class="w"> </span><span class="o">{</span>picks<span class="p">|</span>mesh<span class="p">|</span>segmentation<span class="p">|</span>tomogram<span class="p">|</span>feature<span class="o">}</span><span class="w"> </span>URI
+<div class="language-bash highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a>copick<span class="w"> </span>rm<span class="w"> </span><span class="o">[</span>OPTIONS<span class="o">]</span><span class="w"> </span><span class="o">{</span>picks<span class="p">|</span>filaments<span class="p">|</span>mesh<span class="p">|</span>segmentation<span class="p">|</span>tomogram<span class="p">|</span>feature<span class="o">}</span><span class="w"> </span>URI
 </span></code></pre></div>
 <h2 id="description">Description</h2>
-<p>Deletes picks, meshes, segmentations, tomograms, or features that match a
+<p>Deletes picks, filaments, meshes, segmentations, tomograms, or features that match a
 copick URI. A URI may target a single object or many at once via glob (<code>*</code>)
 wildcards or a regular expression prefixed with <code>re:</code>. The command operates
 across every run by default, or on a single run when <code>--run</code> is given.</p>
-<p>The URI shape depends on the object type: picks and meshes use
+<p>The URI shape depends on the object type: picks, filaments and meshes use
 <code>object_name:user_id/session_id</code>; segmentations use
 <code>name:user_id/session_id@voxel_spacing</code>; tomograms use
 <code>tomo_type@voxel_spacing</code>; and features use <code>tomo_type@voxel_spacing:feature_type</code>.</p>
@@ -6672,7 +6812,7 @@ without deleting anything.</p>
 <tbody>
 <tr>
 <td><code>OBJECT_TYPE</code></td>
-<td>Type of object to remove (picks, mesh, segmentation, tomogram, or feature).</td>
+<td>Type of object to remove (picks, filaments, mesh, segmentation, tomogram, or feature).</td>
 </tr>
 <tr>
 <td><code>URI</code></td>
