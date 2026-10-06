@@ -110,6 +110,7 @@ dataset API.
 
 - :fontawesome-solid-code: [__Repository__](https://github.com/copick/copick-easymode)
 - :fontawesome-solid-circle-info: [__Tutorial__](examples/tutorials/easymode.md)
+- :fontawesome-solid-circle-info: [__Microtubule tracing__](examples/tutorials/microtubule_tracing.md)
 - :fontawesome-solid-code: [__easymode__](https://github.com/mgflast/easymode)
 - :fontawesome-solid-book: [__Preprint__](https://www.biorxiv.org/content/10.64898/2026.05.19.726344v1)
 
@@ -164,6 +165,7 @@ curation. The plugin is available in the ChimeraX Toolshed and can be installed 
 
 - :fontawesome-solid-code: [__Repository__](https://github.com/copick/chimerax-copick)
 - :fontawesome-solid-circle-info: [__Tutorial__](examples/tutorials/chimerax.md)
+- :fontawesome-solid-circle-info: [__Filament tracing__](examples/tutorials/chimerax_filaments.md)
 - :fontawesome-solid-globe: __Website__
 - :fontawesome-solid-question: __Docs__
 
@@ -182,8 +184,8 @@ A [Napari](https://napari.org/) plugin for visualizing **copick** datasets and p
 
 <div class="grid cards" markdown>
 
-- :fontawesome-solid-code: [__Repository__](https://github.com/kephale/napari-copick)
-- :fontawesome-solid-circle-info: __Tutorial__
+- :fontawesome-solid-code: [__Repository__](https://github.com/copick/napari-copick)
+- :fontawesome-solid-circle-info: [__Tutorial__](examples/tutorials/napari_filaments.md)
 - :fontawesome-solid-globe: __Website__
 - :fontawesome-solid-question: __Docs__
 
