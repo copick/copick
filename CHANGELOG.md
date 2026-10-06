@@ -1,5 +1,14 @@
 # Changelog
 
+## [1.28.1](https://github.com/copick/copick/compare/copick-v1.28.0...copick-v1.28.1) (2026-10-06)
+
+
+### 🐞 Bug Fixes
+
+* Bump multidict from 6.7.1 to 6.9.1 ([#497](https://github.com/copick/copick/issues/497)) ([6fd11d2](https://github.com/copick/copick/commit/6fd11d21e349874c2cfa8a39db65b87714f34a4c))
+* Bump urllib3 from 2.7.0 to 2.8.0 ([#499](https://github.com/copick/copick/issues/499)) ([95acca2](https://github.com/copick/copick/commit/95acca2826aafd3e4b5fe111f297eb603be01627))
+* Bump werkzeug from 3.1.7 to 3.1.9 ([#498](https://github.com/copick/copick/issues/498)) ([52522f9](https://github.com/copick/copick/commit/52522f90d2efb074253c42ffaa4834b67208c0d5))
+
 ## [1.28.0](https://github.com/copick/copick/compare/copick-v1.27.0...copick-v1.28.0) (2026-10-06)
 
 
