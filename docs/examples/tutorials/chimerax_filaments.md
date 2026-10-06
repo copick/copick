@@ -180,14 +180,17 @@ its ID, for example every 82 Å (one tubulin dimer) for subtomogram averaging:
 ### Step 8: Curate automatic traces
 
 Filament sets from `copick convert seg2fil` open like any other: double-click `microtubule:seg2fil/1` in the
-**Filaments** tab and click it to make it active. Traced filaments are B-splines with many control points, which can
-be moved but not added or removed. To edit them freely, convert a filament with **→ Catmull-Rom** in the Annotate
-window. Cut and join work on B-splines directly and turn the pieces they produce into Catmull-Rom curves. Save the result under a new session so the automatic traces stay
-as they are.
+**Filaments** tab and click it to make it active. The traces are Catmull-Rom curves, so their control points can be
+added, moved and removed like those of a filament traced by hand, and cut and join work as above. Save the result under
+a new session so the automatic traces stay as they are.
+
+Filaments stored as B-splines (`seg2fil --curve bspline`, or traces from copick-utils 1.9) can be moved and cut but not
+edited point by point: convert one with **→ Catmull-Rom** in the Annotate window first.
 
 <figure markdown="span">
   ![Curating seg2fil traces](../../assets/chimerax_filaments/curate_seg2fil.png){ width="100%" }
-  <figcaption>The three filaments traced by <code>seg2fil</code> in run 35962, with filament #2 active.</figcaption>
+  <figcaption>The three filaments traced by <code>seg2fil</code> in run 35962, with filament #2 active: right-click and
+drag one of its control points to move it.</figcaption>
 </figure>
 
 ### Quick reference

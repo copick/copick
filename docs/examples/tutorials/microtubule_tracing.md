@@ -38,12 +38,12 @@ easymode's 10 Å working resolution).
 
 ### Step 0: Prerequisites
 
-You need copick ≥ 1.28 (filament objects and the Filaments entity), copick-utils ≥ 1.9 (the tracing commands) and
+You need copick ≥ 1.28 (filament objects and the Filaments entity), copick-utils ≥ 1.10 (the tracing commands) and
 copick-easymode. easymode itself is installed from GitHub with `--no-deps`; see the
 [easymode tutorial](easymode.md#step-0-prerequisites) for why.
 
 ```bash
-pip install "copick[all]>=1.28" "copick-utils>=1.9"
+pip install "copick[all]>=1.28" "copick-utils>=1.10"
 pip install git+https://github.com/copick/copick-easymode.git
 pip install --no-deps git+https://github.com/mgflast/easymode.git
 ```
@@ -132,8 +132,8 @@ copick convert seg2fil -c config.json \
 
 For each run, this writes the filament set `microtubule:seg2fil/1` and, through `--instances`, an instance
 segmentation of the traced microtubules whose voxel values are the filament IDs. `--min-length 1000` rejects pieces
-shorter than 100 nm (lengths are in Å by default). Filaments are numbered 1, 2, … by length, longest first, and every
-filament is stored as an exact B-spline that editors can reopen.
+shorter than 100 nm (lengths are in Å by default). Filaments are numbered 1, 2, … by length, longest first. Each is
+stored as an editable Catmull-Rom curve through its fitted spline, within half a voxel of the fit.
 
 ??? note "How tracing works"
     Each connected component of the mask is skeletonized and split into branches between ends and junctions. Before
@@ -143,7 +143,7 @@ filament is stored as an exact B-spline that editors can reopen.
     45° by default) are joined, so two crossing microtubules stay two filaments. Free ends are extended to the edge of
     the segmentation, since thinning shortens each end by about one radius. Finally, filaments that are shorter than
     `--min-length`, shorter than `--min-aspect` label diameters (blobs) or thinner than `--min-radius` (slivers of
-    noise, a third of the object's radius by default) are rejected, and a smoothing B-spline is fitted to the rest.
+    noise, a third of the object's radius by default) are rejected, and a smoothing B-spline is fitted to the rest and stored as a Catmull-Rom curve through it.
 
 <div class="side-by-side" markdown>
 <div markdown>
@@ -170,6 +170,8 @@ minutes on a laptop: 83 microtubules with a total length of 33 µm, after reject
       object's radius or the label's own thickness. `copick process seg-stats --skeleton` reports each component's
       skeleton length and label radius, which helps to choose them for a new dataset.
     - `--length-unit voxel` switches all lengths to voxels.
+    - `--curve bspline` stores the exact B-spline fit instead of a Catmull-Rom curve through it. Editors can move a
+      B-spline's control points but not add or remove them until it is converted.
     - An instance segmentation can be traced too (append `?instance=true` to `-i`); each instance is traced on its
       own and keeps its ID. Use this to re-trace a segmentation you have corrected by hand.
 
@@ -186,10 +188,9 @@ points towards the plus end, or trace microtubules the network missed:
 - [Tracing filaments in ChimeraX](chimerax_filaments.md)
 - [Tracing filaments in napari](napari_filaments.md)
 
-Traced filaments are B-splines with many control points. To add or remove points by hand, first convert a filament
-to an editable Catmull-Rom curve (**→ Catmull-Rom** in ChimeraX, **Convert to Catmull-Rom** in napari); moving its
-points works either way. Save the curated set under a new session, for example `microtubule:bob/curated`, so the
-automatic result stays untouched.
+The traced filaments are Catmull-Rom curves, so you can add, move and remove their control points right away, just as
+for a filament traced by hand. Save the curated set under a new session, for example `microtubule:bob/curated`, so
+the automatic result stays untouched.
 
 ### Step 5: Sample picks along the filaments
 
@@ -234,7 +235,7 @@ Use `--filament-columns off` to leave them out, or `on` to add them for any obje
 ??? example "Full pipeline (copy/paste)"
     ```bash
     # 1. install
-    pip install "copick[all]>=1.28" "copick-utils>=1.9"
+    pip install "copick[all]>=1.28" "copick-utils>=1.10"
     pip install git+https://github.com/copick/copick-easymode.git
     pip install --no-deps git+https://github.com/mgflast/easymode.git
 

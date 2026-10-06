@@ -140,6 +140,9 @@ filaments** is ticked for sets opened from an editable file; untick it to keep a
 
 ### Curating automatic traces
 
-Filaments from `copick convert seg2fil` are B-splines with many control points, which can be moved but not added or
-removed. To edit one freely, click **Convert to Catmull-Rom** in the tracer panel; join works on B-splines directly.
-Save the curated set under a new session so the automatic traces stay as they are.
+Filaments from `copick convert seg2fil` are Catmull-Rom curves, so their control points can be added, moved and
+removed like those of a filament traced by hand. Save the curated set under a new session so the automatic traces stay
+as they are.
+
+Filaments stored as B-splines (`seg2fil --curve bspline`, or traces from copick-utils 1.9) can be moved but not edited
+point by point: click **Convert to Catmull-Rom** in the tracer panel first.
