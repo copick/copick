@@ -43,9 +43,9 @@ copick convert seg2fil [OPTIONS]
 ## Description
 
 Traces the centreline of every filament (e.g. microtubules or actin) in a segmentation and
-stores it as a copick Filaments entry: the filament's fitted B-spline (an exact `bspline`
-curve that editors can reopen) and the centreline points copick regenerates from it.
-Filaments are numbered 1, 2, ... by length, longest first.
+stores it as a copick Filaments entry: an editable Catmull-Rom curve through the filament's
+fitted spline (`--curve bspline` stores the fit itself) and the centreline points copick
+regenerates from it. Filaments are numbered 1, 2, ... by length, longest first.
 
 Each connected component is skeletonized and split into branches between ends and junctions.
 Holes up to `--fill-lumen` are filled first, so a tube labelled by its wall alone traces as one
@@ -108,6 +108,7 @@ Filaments: object_name:user_id/session_id
 |--------|------|---------|-------------|
 | `--output, -o` | COPICK_URI | **required** | Output filaments URI. Supports smart defaults (e.g., "microtubule", "microtubule/my-session", or "/my-session"). Full format: object_name:user_id/session_id. |
 | `--instances, -oi` | COPICK_URI | — | Also write the instance segmentation of the traced filaments (each voxel holds the ID of its filament, the same IDs as the filaments). Smart defaults as for -o; ?instance=true is implied. |
+| `--curve` | choice (catmull-rom \| bspline) | `catmull-rom` | Curve stored for each filament: 'catmull-rom' control points through the fitted spline (within half a voxel of it), which ChimeraX-copick and napari-copick edit freely; 'bspline' the exact fit, whose control points can be moved but not added or removed. |
 
 ## Examples
 

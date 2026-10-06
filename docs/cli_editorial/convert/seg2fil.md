@@ -2,8 +2,9 @@
 
 Filaments are traced once and sampled as often as needed. Three commands share one set of IDs:
 
-- `copick convert seg2fil` traces a segmentation into a **Filaments** entry: one editable curve per filament (the fitted
-  B-spline, stored exactly) and the centreline copick evaluates from it. With `--instances` it also writes the
+- `copick convert seg2fil` traces a segmentation into a **Filaments** entry: one editable Catmull-Rom curve per filament,
+  through its fitted spline and within half a voxel of it (`--curve bspline` stores the fit itself), and the
+  centreline copick evaluates from it. With `--instances` it also writes the
   instance segmentation of the traced filaments, whose voxel values are the filament IDs.
 - `copick convert fil2picks --spacing` samples picks along each curve, ordered along the filament and grouped by its
   ID, with each pick's +Z along the filament. Sampling at another spacing needs no new trace.
