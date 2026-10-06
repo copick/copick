@@ -5,7 +5,7 @@
 
 <span class="source-badge source-badge--torch" title="Provided by the copick-torch plugin">torch</span>
 
-*Runs the membrane segmentation command.*
+*Segment membranes in tomograms with MemBrain-seg.*
 
 ??? info "Plugin command — copick-torch"
     This command is provided by the **[copick-torch](https://pypi.org/project/copick-torch/)** plugin, not copick core. Install it to make this command available:
@@ -22,15 +22,67 @@
 copick inference membrain-seg [OPTIONS]
 ```
 
+## Description
+
+For every run in the project (or only the runs given by --run-names/-r), queries
+the tomogram of the given algorithm at the
+requested voxel spacing, runs the MemBrain-seg model with sliding-window inference
+(using test-time augmentation and input normalization), and writes the resulting
+membrane segmentation back into the project. Runs are processed in parallel on a
+GPU pool.
+
+A `threshold` of 0 stores the raw membrane probability map, while a positive
+threshold binarizes the prediction. The model weights are downloaded automatically
+on first use if they are not already cached. The output is saved as a segmentation
+named `membranes`.
+
+## URI Format
+
+```text
+Segmentations: name:user_id/session_id@voxel_spacing
+```
+
 ## Options
 
 | Option | Type | Default | Description |
 |--------|------|---------|-------------|
-| `--config` | text | **required** | Path to Copick Config for Processing Data |
-| `--tomo-alg` | text | **required** | Tomogram Algorithm to use |
-| `--voxel-size` | float | `10` | Voxel Size to Query the Data |
-| `--session-id` | text | `1` | Session ID for the Saved Membrane Segmentation |
-| `--user-id` | text | `membrain-seg` | User ID for the Saved Membrane Segmentation |
-| `--threshold` | float | `0` | Segmentation Threshold for Membrane Segmentation |
+| `-c, --config` | path | — | Path to the configuration file. |
+| `--run-names, -r` | text · multiple | — | Specific run names to process (default: all runs). Repeatable; pass -r once per run. |
+| `--debug / --no-debug` | boolean flag | `False` | Enable debug logging. |
+
+### Input Options
+
+| Option | Type | Default | Description |
+|--------|------|---------|-------------|
+| `--tomo-alg, -ta` | text | **required** | Tomogram algorithm/type to query and segment (e.g. 'wbp'). |
+| `--voxel-size, -vs` | float | `10.0` | Voxel spacing to query, in angstroms. |
+
+### Tool Options
+
+| Option | Type | Default | Description |
+|--------|------|---------|-------------|
+| `--threshold, -t` | float | `0.0` | Segmentation threshold for the membrane probability map (0 keeps the raw map). |
+
+### Output Options
+
+| Option | Type | Default | Description |
+|--------|------|---------|-------------|
+| `--user-id, -u` | text | `membrain-seg` | User ID for the saved membrane segmentation. |
+| `--session-id, -s` | text | `1` | Session ID for the saved membrane segmentation. |
+
+## Examples
+
+```bash
+# Segment membranes in wbp tomograms at 10 A
+copick inference membrain-seg -c config.json --tomo-alg wbp --voxel-size 10.0
+
+# Binarize the prediction and tag the output user/session
+copick inference membrain-seg -c config.json --tomo-alg wbp --voxel-size 10.0 \
+    --threshold 0.5 --user-id membrain-seg --session-id 1
+```
+
+## See also
+
+- [`copick process downsample`](../process/downsample.md) — downsample tomograms before segmentation
 
 --8<-- "docs/cli_editorial/inference/membrain-seg.md"

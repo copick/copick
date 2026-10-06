@@ -5,7 +5,7 @@
 
 <span class="source-badge source-badge--torch" title="Provided by the copick-torch plugin">torch</span>
 
-*Downsample tomograms with Fourier Re-Scaling.*
+*Downsample tomograms via Fourier rescaling.*
 
 ??? info "Plugin command — copick-torch"
     This command is provided by the **[copick-torch](https://pypi.org/project/copick-torch/)** plugin, not copick core. Install it to make this command available:
@@ -22,12 +22,57 @@
 copick process downsample [OPTIONS]
 ```
 
+## Description
+
+Downsample tomograms on the GPU with Fourier rescaling.
+
+For every run in the project (or only the runs given by --run-names/-r), queries
+the input tomogram, Fourier-rescales it to the output voxel spacing on the GPU, and
+writes the downsampled tomogram back into the project. The output voxel spacing (and
+optional rename) is taken from -o/--output. Runs are processed in parallel on a GPU pool.
+
+## URI Format
+
+```text
+Tomograms: tomo_type@voxel_spacing
+```
+
 ## Options
 
 | Option | Type | Default | Description |
 |--------|------|---------|-------------|
-| `--config` | text | **required** | Path to Copick Config for Processing Data |
-| `--tomo-alg` | text | **required** | Tomogram Algorithm to use |
-| `--voxel-size` | float | `10` | Voxel Size to Query the Data |
-| `--target-resolution` | float | `10` | Target Resolution to Downsample to |
-| `--delete-source` | boolean | `False` | Delete the source tomograms after downsampling |
+| `-c, --config` | path | — | Path to the configuration file. |
+| `--run-names, -r` | text · multiple | — | Specific run names to process (default: all runs). Repeatable; pass -r once per run. |
+| `--debug / --no-debug` | boolean flag | `False` | Enable debug logging. |
+
+### Input Options
+
+| Option | Type | Default | Description |
+|--------|------|---------|-------------|
+| `--input, -i` | COPICK_URI | — | Input tomogram URI (format: tomo_type@voxel_spacing). Supports glob patterns. |
+
+### Output Options
+
+| Option | Type | Default | Description |
+|--------|------|---------|-------------|
+| `--output, -o` | COPICK_URI | — | Output tomogram URI (format: tomo_type@voxel_spacing). Example: 'wbp@20.0'. |
+
+### Tool Options
+
+| Option | Type | Default | Description |
+|--------|------|---------|-------------|
+| `--delete-source / --keep-source` | boolean flag | `False` | Delete the source tomograms after downsampling. |
+
+## Examples
+
+```bash
+# Downsample wbp tomograms from 10 A to 20 A
+copick process downsample -c config.json -i wbp@10.0 -o wbp@20.0
+
+# Downsample and rename the output, then delete the source tomograms
+copick process downsample -c config.json -i wbp@10.0 -o wbp-bin2@20.0 --delete-source
+```
+
+## See also
+
+- [`copick process bandpass`](bandpass.md) — band-pass filter tomograms without resampling
