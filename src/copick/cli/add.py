@@ -633,6 +633,14 @@ def tomogram_from_star(
     show_default=True,
     help="File type ('mrc', 'zarr', 'tiff', or 'em'). Will guess type based on extension if omitted.",
 )
+@click.option(
+    "--segmentation-type",
+    type=click.Choice(["multilabel", "binary", "instance"], case_sensitive=False),
+    default="multilabel",
+    show_default=True,
+    help="'multilabel': voxel = an object's label; 'binary': voxel = 1 inside the object NAME; 'instance': voxel = "
+    "the instance ID within the object NAME, 0 for background.",
+)
 @add_max_workers_option
 @add_volume_transform_options
 @add_create_overwrite_options
@@ -655,6 +663,7 @@ def segmentation(
     user_id: str,
     session_id: str,
     file_type: str,
+    segmentation_type: str,
     max_workers: int,
     transpose: str,
     flip: str,
@@ -668,8 +677,10 @@ def segmentation(
 
     Imports a single segmentation, or many at once via a glob pattern, into one or
     more runs. The file format is inferred from the extension unless `--file-type`
-    is given. Segmentations are imported as multilabel volumes and may be tagged
-    with a name, user ID, and session ID.
+    is given. Segmentations are imported as multilabel volumes unless
+    `--segmentation-type` says otherwise, and may be tagged with a name, user ID, and
+    session ID. Binary and instance segmentations need NAME to be a pickable object.
+    Integer labels keep their values: the stored dtype is chosen to hold them.
 
     Arguments:
 
@@ -690,6 +701,11 @@ def segmentation(
         # Extract the run name from the filename with a regex
         copick add segmentation "TS*.mrc" -c config.json --name membrane \\
             --run-regex "^(TS_\\d+)"
+
+        \b
+        # Import a volume whose voxels hold microtubule instance IDs
+        copick add segmentation filaments.tif -c config.json --run TS_001 --voxel-size 10.0 \\
+            --name microtubule --segmentation-type instance
 
     See Also:
 
@@ -738,7 +754,8 @@ def segmentation(
                 user_id=user_id,
                 session_id=session_id,
                 file_type=file_type,
-                multilabel=True,
+                multilabel=segmentation_type.lower() == "multilabel",
+                instance=segmentation_type.lower() == "instance",
                 transpose=transpose,
                 flip=flip,
                 create=create,

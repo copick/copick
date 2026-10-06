@@ -155,7 +155,9 @@ def segmentation_to_md(segmentation: CopickSegmentation) -> str:
     md += f"* Name: {segmentation.name}\n"
     md += f"* User/Tool: {segmentation.user_id}\n"
     md += f"* Session: {segmentation.session_id}\n"
+    md += f"* Type: {segmentation.segmentation_type}\n"
     md += f"* is_multilabel: {segmentation.is_multilabel}\n"
+    md += f"* is_instance: {segmentation.is_instance}\n"
     col = segmentation.color
     md += f"* Color: {col} | #{col[0]:02x}{col[1]:02x}{col[2]:02x}{col[3]:02x}\n"
 

@@ -302,6 +302,12 @@ def meshes(
     help="Filter by multilabel status.",
 )
 @click.option(
+    "--segmentation-type",
+    type=click.Choice(["binary", "multilabel", "instance", "all"], case_sensitive=False),  # SEGMENTATION_TYPE_FILTERS
+    default=None,
+    help="Segmentation type to summarize; 'all' for every type. Default: binary and multilabel segmentations.",
+)
+@click.option(
     "--parallel/--no-parallel",
     default=True,
     help="Enable parallel processing.",
@@ -330,6 +336,7 @@ def segmentations(
     name,
     voxel_size,
     multilabel,
+    segmentation_type,
     parallel,
     workers,
     output,
@@ -340,10 +347,10 @@ def segmentations(
 
     Aggregates segmentation annotations across the project and reports the total
     number of segmentations, their distribution by user, session, name, voxel size,
-    and multilabel status, plus the most frequent session/user/voxel-spacing/multilabel
-    combinations. Results can be filtered to specific runs, users, sessions, names,
-    voxel sizes, or multilabel status, and printed as a human-readable table or as
-    JSON.
+    multilabel status and type (binary, multilabel or instance), plus the most frequent
+    session/user/voxel-spacing/multilabel combinations. Results can be filtered to specific
+    runs, users, sessions, names, voxel sizes, multilabel or instance status, and printed
+    as a human-readable table or as JSON.
 
     Examples:
 
@@ -360,6 +367,11 @@ def segmentations(
         copick stats segmentations --config config.json --multilabel
 
         \b
+        # Instance segmentations only, or every type
+        copick stats segmentations --config config.json --segmentation-type instance
+        copick stats segmentations --config config.json --segmentation-type all
+
+        \b
         # Run in parallel and emit JSON
         copick stats segmentations --config config.json --parallel --output json
 
@@ -369,6 +381,8 @@ def segmentations(
         copick stats picks: summarize pick annotations in the project
         copick stats meshes: summarize mesh annotations in the project
     """
+    from copick.util.segmentation import segmentation_type_query
+
     logger = get_logger(__name__, debug)
 
     if config is None:
@@ -383,18 +397,20 @@ def segmentations(
     session_id_param = list(session_id) if session_id else None
     name_param = list(name) if name else None
     voxel_size_param = list(voxel_size) if voxel_size else None
+    type_query = segmentation_type_query(segmentation_type)
 
     stats_data = segmentations_stats(
         root=root,
         runs=runs_param,
         user_id=user_id_param,
         session_id=session_id_param,
-        is_multilabel=multilabel,
+        is_multilabel=multilabel if multilabel is not None else type_query["is_multilabel"],
         name=name_param,
         voxel_size=voxel_size_param,
         parallel=parallel,
         workers=workers,
         show_progress=True,
+        is_instance=type_query["is_instance"],
     )
 
     if output == "json":
@@ -490,6 +506,11 @@ def _print_segmentations_table(stats_data: dict):
         click.echo("\nDistribution by multilabel:")
         for multilabel, count in stats_data["distribution_by_multilabel"].items():
             click.echo(f"  {multilabel}: {count}")
+
+    if stats_data.get("distribution_by_type"):
+        click.echo("\nDistribution by type:")
+        for seg_type, count in stats_data["distribution_by_type"].items():
+            click.echo(f"  {seg_type}: {count}")
 
     if stats_data["session_user_voxelspacing_multilabel_combinations"]:
         click.echo("\nFrequent session_user_voxelspacing_multilabel combinations:")

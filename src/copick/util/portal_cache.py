@@ -38,7 +38,7 @@ logger = get_logger(__name__)
 
 # Shape types fetched for the annotation cache. Defined here (not in the portal impl) so the
 # fingerprint and the portal fetch share a single source of truth without a circular import.
-SHAPE_TYPES = ["Point", "OrientedPoint", "SegmentationMask"]
+SHAPE_TYPES = ["Point", "OrientedPoint", "SegmentationMask", "InstanceSegmentationMask"]
 
 # Bump when the on-disk document layout changes; a mismatch invalidates old caches.
 SCHEMA_VERSION = 1

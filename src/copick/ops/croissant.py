@@ -29,9 +29,11 @@ from copick.impl.mlcroissant import (
     SPLITS_RECORDSET_ID,
     STANDARD_SPLIT_URIS,
     _fs_for_url,
+    schema_field,
 )
 from copick.models import CopickRoot
 from copick.util.log import get_logger
+from copick.util.segmentation import segmentation_store_name
 from copick.util.uri import resolve_copick_objects
 
 logger = get_logger(__name__)
@@ -273,24 +275,7 @@ def _serialize_csv(recordset_id: str, rows: List[Dict[str, Any]]) -> bytes:
 
 
 def _build_field_list(recordset_id: str) -> List[Dict[str, Any]]:
-    schema = CSV_SCHEMA[recordset_id]
-    field_extras = schema.get("field_extras", {}) or {}
-    fields = []
-    for col in schema["columns"]:
-        field = {
-            "@type": "cr:Field",
-            "@id": f"{recordset_id}/{col}",
-            "dataType": schema["types"][col],
-            "source": {
-                "fileObject": {"@id": schema["file_object_id"]},
-                "extract": {"column": col},
-            },
-        }
-        extras = field_extras.get(col)
-        if extras:
-            field.update(extras)
-        fields.append(field)
-    return fields
+    return [schema_field(recordset_id, col) for col in CSV_SCHEMA[recordset_id]["columns"]]
 
 
 def export_croissant(
@@ -569,6 +554,7 @@ def _iter_segmentations_filtered(run, is_cdp, portal_meta, portal_author):
         yield from run.get_segmentations(
             portal_meta_query=portal_meta or None,
             portal_author_query=portal_author or None,
+            is_instance=None,
         )
     else:
         yield from run.segmentations
@@ -647,6 +633,7 @@ def _walk_project(
                 s.session_id,
                 s.name,
                 bool(s.is_multilabel),
+                bool(s.is_instance),
             ),
         )
 
@@ -781,6 +768,7 @@ def _walk_project(
                 seg.session_id,
                 seg.name,
                 bool(seg.is_multilabel),
+                bool(seg.is_instance),
             )
             if allowed_segs is not None and key not in allowed_segs:
                 continue
@@ -814,7 +802,11 @@ def _walk_project(
             }
             if is_cdp:
                 seg_row.update(_portal_annotation_fields(seg))
-            rows["copick/segmentations"].append(seg_row)
+            if seg.is_instance:
+                seg_row.pop("is_multilabel")
+                rows["copick/instance_segmentations"].append(seg_row)
+            else:
+                rows["copick/segmentations"].append(seg_row)
 
     # Object density maps. The filter targets pickable-object names; the
     # ``copick:config.pickable_objects`` blob is NOT filtered here so picks/
@@ -950,11 +942,15 @@ def _seg_url(run, seg, base_url: str, is_cdp: bool) -> str:
         if url:
             rel = _relpath(base_url, url)
             return rel or url
-    if seg.is_multilabel:
-        fname = f"{seg.voxel_size:.3f}_{seg.user_id}_{seg.session_id}_{seg.name}-multilabel.zarr"
-    else:
-        fname = f"{seg.voxel_size:.3f}_{seg.user_id}_{seg.session_id}_{seg.name}.zarr"
-    return f"ExperimentRuns/{run.name}/Segmentations/{fname}"
+    fname = segmentation_store_name(
+        seg.voxel_size,
+        seg.user_id,
+        seg.session_id,
+        seg.name,
+        is_multilabel=seg.is_multilabel,
+        is_instance=seg.is_instance,
+    )
+    return f"ExperimentRuns/{run.name}/{seg.directory}/{fname}"
 
 
 def _object_url(obj, base_url: str, is_cdp: bool) -> str:

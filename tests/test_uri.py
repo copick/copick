@@ -913,3 +913,77 @@ def test_filaments_uri():
         serialize_copick_uri_from_dict("filaments", object_name="microtubule", user_id="tracer", session_id="1")
         == "microtubule:tracer/1"
     )
+
+
+class TestInstanceSegmentationURI:
+    """``?instance=true`` marks an instance segmentation, like ``?multilabel=true`` marks a multilabel one."""
+
+    def test_parse(self):
+        result = parse_copick_uri("microtubule:tracer/7@10.0?instance=true", "segmentation")
+        assert result["instance"] is True and result["multilabel"] is None
+        assert parse_copick_uri("microtubule:tracer/7@10.0", "segmentation")["instance"] is None
+        with pytest.raises(ValueError, match="multilabel or instance"):
+            parse_copick_uri("microtubule:tracer/7@10.0?multilabel=true&instance=true", "segmentation")
+
+    def test_serialize_from_dict(self):
+        uri = serialize_copick_uri_from_dict(
+            "segmentation",
+            name="microtubule",
+            user_id="tracer",
+            session_id="7",
+            voxel_spacing=10.0,
+            instance=True,
+        )
+        assert uri == "microtubule:tracer/7@10.0?instance=true"
+        with pytest.raises(ValueError):
+            serialize_copick_uri_from_dict(
+                "segmentation",
+                name="m",
+                user_id="u",
+                session_id="s",
+                voxel_spacing=1.0,
+                multilabel=True,
+                instance=True,
+            )
+
+    def test_expand_inherits_instance(self):
+        result = expand_output_uri(
+            output_uri="/new-session",
+            input_uri="microtubule:tracer/7@10.0?instance=true",
+            input_type="segmentation",
+            output_type="segmentation",
+            command_name="cmd",
+            individual_outputs=False,
+        )
+        assert result.endswith("?instance=true")
+
+    def test_expand_stated_type_is_not_mixed_with_inherited(self):
+        result = expand_output_uri(
+            output_uri="microtubule?multilabel=true",
+            input_uri="microtubule:tracer/7@10.0?instance=true",
+            input_type="segmentation",
+            output_type="segmentation",
+            command_name="cmd",
+            individual_outputs=False,
+        )
+        assert result.endswith("?multilabel=true") and "instance" not in result
+
+    @pytest.mark.parametrize("case", pytest.common_cases)
+    def test_resolve_and_serialize(self, case, request):
+        import numpy as np
+
+        fixture = request.getfixturevalue(case)
+        root = copick.from_file(str(fixture["cfg_file"]))
+        run = root.get_run("TS_001")
+        seg = run.new_segmentation(10.0, "ribosome", "77", user_id="tracer", is_instance=True)
+        seg.from_numpy(np.ones((4, 4, 4), dtype=np.uint16))
+        run.new_segmentation(10.0, "ribosome", "77", user_id="tracer").from_numpy(np.ones((4, 4, 4), np.uint8))
+
+        assert serialize_copick_uri(seg) == "ribosome:tracer/77@10.0?instance=true"
+        # Untyped, the URI selects the binary segmentation only
+        (untyped,) = resolve_copick_objects("ribosome:tracer/77@10.0", root, "segmentation", "TS_001")
+        assert untyped.segmentation_type == "binary"
+        (only,) = resolve_copick_objects("ribosome:tracer/77@10.0?instance=true", root, "segmentation", "TS_001")
+        assert only.is_instance
+        (pattern,) = resolve_copick_objects("ribo*:tracer/7*@*?instance=true", root, "segmentation", "TS_001")
+        assert pattern.is_instance

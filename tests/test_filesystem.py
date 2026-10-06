@@ -2013,3 +2013,255 @@ def test_filaments_static_are_read_only(test_payload: Dict[str, Any]):
     assert len(run.filaments) == 1, "files whose names are not user_session_object are skipped"
     with pytest.raises(PermissionError):
         found[0].store()
+
+
+def _labels_volume() -> np.ndarray:
+    data = np.zeros((16, 16, 16), dtype=np.int64)
+    data[2:6, 2:6, 2:6] = 300
+    data[8:12, 8:12, 8:12] = 70000
+    return data
+
+
+def test_segmentation_values_never_narrowed(test_payload: Dict[str, Any]):
+    run = test_payload["root"].get_run("TS_001")
+    seg = run.new_segmentation(
+        name="labels",
+        user_id="dtype",
+        session_id="1",
+        is_multilabel=True,
+        voxel_size=10.000,
+    )
+
+    # Labels above 255 (and above 65535) survive the default dtype and every pyramid level
+    seg.from_numpy(_labels_volume(), levels=3)
+    group = zarr.open(seg.zarr(), "r")
+    for level in ("0", "1", "2"):
+        assert group[level].dtype == np.uint32
+        assert set(np.unique(group[level][:])) <= {0, 300, 70000}
+    assert set(np.unique(group["0"][:])) == {0, 300, 70000}
+
+    # Values that fit stay uint8, as before
+    seg.from_numpy((_labels_volume() > 0).astype(np.int64))
+    assert zarr.open(seg.zarr(), "r")["0"].dtype == np.uint8
+
+    # An explicit dtype that cannot hold the values raises instead of wrapping
+    with pytest.raises(ValueError, match="do not fit uint8"):
+        seg.from_numpy(_labels_volume(), dtype=np.uint8)
+    with pytest.raises(ValueError, match="non-negative"):
+        seg.from_numpy(-_labels_volume())
+    with pytest.raises(ValueError, match="integers"):
+        seg.from_numpy(np.full((4, 4, 4), 0.5))
+
+    # set_region checks the stored dtype
+    seg.from_numpy(np.ones((16, 16, 16), dtype=np.uint8))
+    with pytest.raises(ValueError, match="do not fit uint8"):
+        seg.set_region(np.full((4, 4, 4), 300), x=slice(0, 4), y=slice(0, 4), z=slice(0, 4))
+    seg.set_region(np.full((4, 4, 4), 7), x=slice(0, 4), y=slice(0, 4), z=slice(0, 4))
+    assert seg.numpy()[0, 0, 0] == 7
+
+
+def test_segmentation_color_without_object(test_payload: Dict[str, Any]):
+    from copick.models import CopickSegmentationMeta
+
+    run = test_payload["root"].get_run("TS_001")
+    existing = run.segmentations[0]
+    meta = CopickSegmentationMeta(
+        user_id="someone",
+        session_id="1",
+        name="not-an-object",
+        is_multilabel=False,
+        voxel_size=10.0,
+    )
+    assert type(existing)(run, meta).color == [128, 128, 128, 0]
+
+
+def test_segmentation_copy_and_move_keep_dtype_and_levels(test_payload: Dict[str, Any]):
+    from copick.ops.manage import copy_copick_objects, move_copick_objects
+
+    root = test_payload["root"]
+    run = root.get_run("TS_001")
+    seg = run.new_segmentation(name="labels", user_id="dtype", session_id="2", is_multilabel=True, voxel_size=10.0)
+    seg.from_numpy(_labels_volume(), levels=2)
+
+    result = copy_copick_objects(
+        root,
+        "segmentation",
+        "labels:dtype/2@10.0?multilabel=true",
+        "labels:copied/2@10.0?multilabel=true",
+        run_name="TS_001",
+    )
+    assert result["errors"] == [] and result["copied"] == 1, result
+    result = move_copick_objects(
+        root,
+        "segmentation",
+        "labels:copied/2@10.0?multilabel=true",
+        "labels:moved/2@10.0?multilabel=true",
+        run_name="TS_001",
+    )
+    assert result["errors"] == [] and result["moved"] == 1, result
+
+    fresh = copick.from_file(test_payload["cfg_file"]).get_run("TS_001")
+    assert fresh.get_segmentations(user_id="copied") == []
+    moved = fresh.get_segmentations(user_id="moved", session_id="2", is_multilabel=True)[0]
+    group = zarr.open(moved.zarr(), "r")
+    assert group["0"].dtype == np.uint32 and "1" in group
+    assert np.array_equal(group["0"][:], _labels_volume())
+
+
+def _instance_volume() -> np.ndarray:
+    data = np.zeros((16, 16, 16), dtype=np.int64)
+    data[1:4, 1:4, 1:4] = 1
+    data[6:9, 6:9, 6:9] = 2
+    data[11:14, 11:14, 11:14] = 300
+    return data
+
+
+def test_instance_segmentation_round_trip(test_payload: Dict[str, Any]):
+    root = test_payload["root"]
+    run = root.get_run("TS_001")
+    binary = run.new_segmentation(10.0, "ribosome", "inst", user_id="tracer")
+    binary.from_numpy((_instance_volume() > 0).astype(np.uint8))
+    seg = run.new_segmentation(10.0, "ribosome", "inst", user_id="tracer", is_instance=True)
+    seg.from_numpy(_instance_volume(), levels=2)
+
+    assert seg.is_instance and not seg.is_multilabel
+    assert seg.segmentation_type == "instance" and binary.segmentation_type == "binary"
+    assert seg.color == root.get_object("ribosome").color
+    assert seg.directory == "InstanceSegmentations" and binary.directory == "Segmentations"
+    if hasattr(seg, "filename"):
+        # Its own directory, so the store name needs no type mark and older clients never list it
+        assert seg.filename == binary.filename == "10.000_tracer_inst_ribosome.zarr"
+        assert "/InstanceSegmentations/" in seg.path
+    assert zarr.open(seg.zarr(), "r")["0"].dtype == np.uint16
+    assert seg.instance_ids().tolist() == [1, 2, 300]
+
+    # A fresh root lists both, each with its own type, and the filters tell them apart
+    fresh = copick.from_file(test_payload["cfg_file"]).get_run("TS_001")
+    found = fresh.get_segmentations(user_id="tracer", session_id="inst", is_instance=None)
+    assert sorted(s.segmentation_type for s in found) == ["binary", "instance"]
+    (inst,) = fresh.get_segmentations(user_id="tracer", is_instance=True)
+    assert inst.instance_ids().tolist() == [1, 2, 300]
+    assert np.array_equal(inst.numpy(), _instance_volume())
+    (only_binary,) = fresh.get_segmentations(user_id="tracer", is_multilabel=False, is_instance=False)
+    assert only_binary.segmentation_type == "binary"
+
+    # Creating the same instance segmentation again is refused; exist_ok returns it
+    with pytest.raises(ValueError, match="instance segmentation"):
+        fresh.new_segmentation(10.0, "ribosome", "inst", user_id="tracer", is_instance=True)
+    assert fresh.new_segmentation(10.0, "ribosome", "inst", user_id="tracer", is_instance=True, exist_ok=True)
+
+    # Deleting by type leaves the binary one
+    fresh.delete_segmentations(user_id="tracer", is_instance=True)
+    again = copick.from_file(test_payload["cfg_file"]).get_run("TS_001")
+    assert [s.segmentation_type for s in again.get_segmentations(user_id="tracer")] == ["binary"]
+
+
+def test_untyped_segmentation_queries_select_binary_and_multilabel(test_payload: Dict[str, Any]):
+    from copick.util.uri import resolve_copick_objects
+
+    root = test_payload["root"]
+    run = root.get_run("TS_001")
+    binary = run.new_segmentation(10.0, "ribosome", "untyped", user_id="tracer")
+    binary.from_numpy((_instance_volume() > 0).astype(np.uint8))
+    instance = run.new_segmentation(10.0, "ribosome", "untyped", user_id="tracer", is_instance=True)
+    instance.from_numpy(_instance_volume())
+    key = {"user_id": "tracer", "session_id": "untyped", "name": "ribosome", "voxel_size": 10.0}
+
+    fresh = copick.from_file(test_payload["cfg_file"])
+    run = fresh.get_run("TS_001")
+    # A caller that names a segmentation without a type gets the type every client reads
+    assert [s.segmentation_type for s in run.get_segmentations(**key)] == ["binary"]
+    assert [s.segmentation_type for s in run.get_segmentations(**key, is_instance=True)] == ["instance"]
+    assert sorted(s.segmentation_type for s in run.get_segmentations(**key, is_instance=None)) == ["binary", "instance"]
+    assert {"binary", "instance"} <= {s.segmentation_type for s in run.segmentations if s.session_id == "untyped"}
+
+    untyped = resolve_copick_objects("ribosome:tracer/untyped@10.0", fresh, "segmentation", "TS_001")
+    assert [s.segmentation_type for s in untyped] == ["binary"]
+    typed = resolve_copick_objects("ribosome:tracer/untyped@10.0?instance=true", fresh, "segmentation", "TS_001")
+    assert [s.segmentation_type for s in typed] == ["instance"]
+    pattern = resolve_copick_objects("ribo*:tracer/untyped@10.0", fresh, "segmentation", "TS_001")
+    assert [s.segmentation_type for s in pattern] == ["binary"]
+
+    # Deleting without a type leaves the instance segmentation
+    run.delete_segmentations(**key)
+    remaining = copick.from_file(test_payload["cfg_file"]).get_run("TS_001").get_segmentations(**key, is_instance=None)
+    assert [s.segmentation_type for s in remaining] == ["instance"]
+
+
+def test_instance_segmentation_rules(test_payload: Dict[str, Any]):
+    from copick.models import CopickSegmentationMeta
+
+    run = test_payload["root"].get_run("TS_001")
+    with pytest.raises(ValueError, match="multilabel or instance"):
+        run.new_segmentation(10.0, "ribosome", "x", user_id="u", is_multilabel=True, is_instance=True)
+    with pytest.raises(ValueError, match="instance segmentations are named after one"):
+        run.new_segmentation(10.0, "not-an-object", "x", user_id="u", is_instance=True)
+    with pytest.raises(ValueError):
+        CopickSegmentationMeta(
+            user_id="u",
+            session_id="x",
+            name="n",
+            is_multilabel=True,
+            is_instance=True,
+            voxel_size=1,
+        )
+
+    binary = run.new_segmentation(10.0, "ribosome", "x", user_id="u")
+    binary.from_numpy(np.ones((4, 4, 4), dtype=np.uint8))
+    with pytest.raises(ValueError, match="needs an instance one"):
+        binary.instance_ids()
+
+
+def test_segmentation_listing_skips_unparsable_stores(test_payload: Dict[str, Any]):
+    root = test_payload["root"]
+    run = root.get_run("TS_001")
+    if not hasattr(run, "overlay_path") or _croissant_mode_a(root):
+        pytest.skip("needs a globbed overlay")
+    fs = run.fs_overlay
+    # A file in each store, as object stores have no empty directories
+    for bad in ("garbage.zarr", "1.0_too_few.zarr", "abc_user_session_name.zarr"):
+        fs.pipe(f"{run.overlay_path}/Segmentations/{bad}/.zgroup", b"{}")
+    fs.pipe(f"{run.overlay_path}/Segmentations/10.000_multilabel-tool_1_ribosome.zarr/.zgroup", b"{}")
+
+    fresh = copick.from_file(test_payload["cfg_file"]).get_run("TS_001")
+    by_user = {s.user_id: s for s in fresh.segmentations}
+    # "multilabel" inside a user name no longer makes a segmentation multilabel
+    assert by_user["multilabel-tool"].segmentation_type == "binary"
+    assert "too" not in by_user and "user" not in by_user
+
+
+def test_instance_segmentation_copy_keeps_type(test_payload: Dict[str, Any]):
+    from copick.ops.manage import copy_copick_objects
+
+    root = test_payload["root"]
+    run = root.get_run("TS_001")
+    run.new_segmentation(10.0, "ribosome", "5", user_id="tracer", is_instance=True).from_numpy(_instance_volume())
+
+    result = copy_copick_objects(
+        root,
+        "segmentation",
+        "ribosome:tracer/5@10.0?instance=true",
+        "ribosome:copied/5@10.0",
+        run_name="TS_001",
+    )
+    assert result["errors"] == [] and result["copied"] == 1, result
+    copied_run = copick.from_file(test_payload["cfg_file"]).get_run("TS_001")
+    (copied,) = copied_run.get_segmentations(user_id="copied", is_instance=True)
+    assert copied.is_instance and copied.instance_ids().tolist() == [1, 2, 300]
+
+    # cp does not convert types
+    result = copy_copick_objects(
+        root,
+        "segmentation",
+        "ribosome:tracer/5@10.0?instance=true",
+        "ribosome:other/5@10.0?multilabel=true",
+        run_name="TS_001",
+    )
+    assert result["copied"] == 0 and "do not convert" in result["errors"][0]
+
+
+def test_object_name_with_type_suffix_warns(test_payload: Dict[str, Any], caplog):
+    root = test_payload["root"]
+    with caplog.at_level("WARNING"):
+        root.new_object(name="vesicle-multilabel", is_particle=False)
+    assert "segmentation type suffix" in caplog.text
