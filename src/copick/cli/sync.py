@@ -483,6 +483,12 @@ def meshes(
     show_default=True,
 )
 @click.option(
+    "--segmentation-type",
+    type=click.Choice(["binary", "multilabel", "instance", "all"], case_sensitive=False),  # SEGMENTATION_TYPE_FILTERS
+    default=None,
+    help="Segmentation type to synchronize; 'all' for every type. Default: binary and multilabel segmentations.",
+)
+@click.option(
     "--exist-ok/--no-exist-ok",
     is_flag=True,
     help="Allow overwriting existing segmentations in the target project.",
@@ -515,6 +521,7 @@ def segmentations(
     target_names,
     source_users,
     target_users,
+    segmentation_type,
     exist_ok,
     max_workers,
     log,
@@ -529,8 +536,8 @@ def segmentations(
     `--config` is ignored and a temporary dataportal configuration is created.
 
     When specific segmentation names are requested, the matching pickable objects are
-    created in the target project before copying (non-multilabel segmentations require the
-    name to match a pickable object). Use `--exist-ok` to overwrite segmentations that
+    created in the target project before copying (binary and instance segmentations require
+    the name to match a pickable object). Use `--exist-ok` to overwrite segmentations that
     already exist in the target.
 
     Examples:
@@ -556,6 +563,8 @@ def segmentations(
         copick sync meshes: synchronize meshes between projects
         copick sync tomograms: synchronize tomograms between projects
     """
+    from copick.util.segmentation import segmentation_type_query
+
     logger = get_logger(__name__, debug=debug)
 
     # Parse arguments
@@ -584,7 +593,7 @@ def segmentations(
 
     try:
         # For segmentations, ensure pickable objects exist if we have specific segmentation names
-        # (non-multilabel segmentations require the segmentation name to match a pickable object)
+        # (binary and instance segmentations require the segmentation name to match a pickable object)
         if source_names_list is not None:
             # Use segmentation names as pickable object names for validation
             target_names_for_objects = target_names_dict if target_names_dict else {}
@@ -611,6 +620,7 @@ def segmentations(
             exist_ok=exist_ok,
             max_workers=max_workers,
             log=log,
+            **segmentation_type_query(segmentation_type),
         )
 
         logger.info("Segmentations synchronization completed successfully.")

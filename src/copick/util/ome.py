@@ -4,7 +4,7 @@ import math
 import tempfile
 import warnings
 from collections.abc import Mapping
-from typing import Any, Dict, Iterator, List, Tuple, Union
+from typing import Any, Dict, Iterator, List, Optional, Tuple, Union
 
 import numpy as np
 import psutil
@@ -152,7 +152,7 @@ def segmentation_pyramid(
     segmentation: np.ndarray,
     voxel_size: float,
     levels: int,
-    dtype: np.dtype = np.int8,
+    dtype: Optional[np.dtype] = None,
 ) -> Dict[float, np.ndarray]:
     """Create an image pyramid by downsampling without interpolation.
 
@@ -160,7 +160,8 @@ def segmentation_pyramid(
         segmentation: The segmentation to downsample.
         voxel_size: The voxel size of the input segmentation.
         levels: The number of levels in the pyramid.
-        dtype: The data type of the output arrays.
+        dtype: The data type of the output arrays. ``None`` keeps the input dtype. A value the cast would change
+            raises ``ValueError`` instead of wrapping.
 
     Returns:
         A dictionary containing the pyramid with the voxel size as the key.
@@ -168,7 +169,11 @@ def segmentation_pyramid(
     # This is a super heavy import, so we do it here to avoid loading it before it's needed.
     from skimage.transform import rescale
 
-    pyramid = {voxel_size: segmentation.astype(dtype)}
+    from copick.util.segmentation import checked_label_cast
+
+    base = checked_label_cast(segmentation, dtype)
+    dtype = base.dtype
+    pyramid = {voxel_size: base}
     vs = voxel_size
 
     for _ in range(1, levels):

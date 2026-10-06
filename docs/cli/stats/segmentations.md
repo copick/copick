@@ -17,22 +17,23 @@ copick stats segmentations [OPTIONS]
 
 Aggregates segmentation annotations across the project and reports the total
 number of segmentations, their distribution by user, session, name, voxel size,
-and multilabel status, plus the most frequent session/user/voxel-spacing/multilabel
-combinations. Results can be filtered to specific runs, users, sessions, names,
-voxel sizes, or multilabel status, and printed as a human-readable table or as
-JSON.
+multilabel status and type (binary, multilabel or instance), plus the most frequent
+session/user/voxel-spacing/multilabel combinations. Results can be filtered to specific
+runs, users, sessions, names, voxel sizes, multilabel or instance status, and printed
+as a human-readable table or as JSON.
 
 ## Options
 
 | Option | Type | Default | Description |
 |--------|------|---------|-------------|
 | `-c, --config` | path | — | Path to the configuration file. |
-| `--runs` | text · multiple | — | Specific run names to analyze. Can be specified multiple times. |
+| `--run-names, -r` | text · multiple | — | Specific run names to process (default: all runs). Repeatable; pass -r once per run. |
 | `--user-id` | text · multiple | — | Filter by user ID. Can be specified multiple times. |
 | `--session-id` | text · multiple | — | Filter by session ID. Can be specified multiple times. |
 | `--name` | text · multiple | — | Filter by segmentation name. Can be specified multiple times. |
 | `--voxel-size` | float · multiple | — | Filter by voxel size. Can be specified multiple times. |
 | `--multilabel / --no-multilabel` | boolean flag | — | Filter by multilabel status. |
+| `--segmentation-type` | choice (binary \| multilabel \| instance \| all) | — | Segmentation type to summarize; 'all' for every type. Default: binary and multilabel segmentations. |
 | `--parallel / --no-parallel` | boolean flag | `True` | Enable parallel processing. |
 | `--workers` | integer | `8` | Number of workers for parallel processing. |
 | `--output` | choice (json \| table) | `table` | Output format. |
@@ -49,6 +50,10 @@ copick stats segmentations --config config.json --name membrane --voxel-size 10.
 
 # Restrict to multilabel segmentations only
 copick stats segmentations --config config.json --multilabel
+
+# Instance segmentations only, or every type
+copick stats segmentations --config config.json --segmentation-type instance
+copick stats segmentations --config config.json --segmentation-type all
 
 # Run in parallel and emit JSON
 copick stats segmentations --config config.json --parallel --output json

@@ -964,16 +964,21 @@ def read_em_volume(path: str) -> np.ndarray:
     return data
 
 
-def write_em_volume(path: str, volume: np.ndarray) -> None:
+def write_em_volume(path: str, volume: np.ndarray, dtype: np.dtype = np.float32) -> None:
     """Write a TOM toolbox EM volume file.
 
     Args:
         path: Output path for the EM file.
         volume: 3D numpy array with volume data.
+        dtype: Data type written to the file. EM supports int8, int16, int32 and float32.
     """
     import emfile
 
-    emfile.write(path, volume.astype(np.float32))
+    data = volume.astype(dtype)
+    if data.dtype.kind == "i" and data.dtype.itemsize == 4:
+        # emfile looks types up by character code and knows int32 only as "i" (C int); Windows spells it "l".
+        data = data.view(np.intc)
+    emfile.write(path, data)
 
 
 def em_to_copick_transform(

@@ -32,6 +32,7 @@ from copick.models import (
 )
 from copick.util.log import get_logger
 from copick.util.ome import zarr_root_exists
+from copick.util.segmentation import list_segmentation_stores, segmentation_store_name
 from copick.util.store import copick_store
 
 # Don't import Geometry at runtime to keep CLI snappy
@@ -263,17 +264,21 @@ class CopickSegmentationFSSpec(CopickSegmentationOverlay):
 
     @property
     def filename(self) -> str:
-        if self.is_multilabel:
-            return f"{self.voxel_size:.3f}_{self.user_id}_{self.session_id}_{self.name}-multilabel.zarr"
-        else:
-            return f"{self.voxel_size:.3f}_{self.user_id}_{self.session_id}_{self.name}.zarr"
+        return segmentation_store_name(
+            self.voxel_size,
+            self.user_id,
+            self.session_id,
+            self.name,
+            is_multilabel=self.is_multilabel,
+            is_instance=self.is_instance,
+        )
 
     @property
     def path(self) -> str:
         if self.read_only:
-            return f"{self.run.static_path}/Segmentations/{self.filename}"
+            return f"{self.run.static_path}/{self.directory}/{self.filename}"
         else:
-            return f"{self.run.overlay_path}/Segmentations/{self.filename}"
+            return f"{self.run.overlay_path}/{self.directory}/{self.filename}"
 
     @property
     def fs(self) -> AbstractFileSystem:
@@ -779,95 +784,15 @@ class CopickRunFSSpec(CopickRunOverlay):
         if self.static_is_overlay:
             return []
 
-        seg_loc = f"{self.static_path}/Segmentations/"
-        paths = self.fs_static.glob(seg_loc + "*.zarr") + self.fs_static.glob(seg_loc + "*.zarr/")
-        paths = [p.rstrip("/") for p in paths if self.fs_static.isdir(p)]
-        names = [n.replace(seg_loc, "").replace(".zarr", "") for n in paths]
-        # Remove any hidden files?
-        names = [n for n in names if not n.startswith(".")]
-
-        # Deduplicate
-        names = list(set(names))
-
-        # multilabel vs single label
-        metas = []
-        for n in names:
-            if "multilabel" in n:
-                parts = n.split("_")
-                metas.append(
-                    CopickSegmentationMeta(
-                        is_multilabel=True,
-                        voxel_size=float(parts[0]),
-                        user_id=parts[1],
-                        session_id=parts[2],
-                        name=parts[3].replace("-multilabel", ""),
-                    ),
-                )
-            else:
-                parts = n.split("_")
-                metas.append(
-                    CopickSegmentationMeta(
-                        is_multilabel=False,
-                        voxel_size=float(parts[0]),
-                        user_id=parts[1],
-                        session_id=parts[2],
-                        name=parts[3],
-                    ),
-                )
-
         return [
-            CopickSegmentationFSSpec(
-                run=self,
-                meta=m,
-                read_only=True,
-            )
-            for m in metas
+            CopickSegmentationFSSpec(run=self, meta=CopickSegmentationMeta(**fields), read_only=True)
+            for fields in list_segmentation_stores(self.fs_static, self.static_path)
         ]
 
     def _query_overlay_segmentations(self) -> List[CopickSegmentationFSSpec]:
-        seg_loc = f"{self.overlay_path}/Segmentations/"
-        paths = self.fs_overlay.glob(seg_loc + "*.zarr") + self.fs_overlay.glob(seg_loc + "*.zarr/")
-        paths = [p.rstrip("/") for p in paths if self.fs_overlay.isdir(p)]
-        names = [n.replace(seg_loc, "").replace(".zarr", "") for n in paths]
-        # Remove any hidden files?
-        names = [n for n in names if not n.startswith(".")]
-
-        # Deduplicate
-        names = list(set(names))
-
-        # multilabel vs single label
-        metas = []
-        for n in names:
-            if "multilabel" in n:
-                parts = n.split("_")
-                metas.append(
-                    CopickSegmentationMeta(
-                        is_multilabel=True,
-                        voxel_size=float(parts[0]),
-                        user_id=parts[1],
-                        session_id=parts[2],
-                        name=parts[3].replace("-multilabel", ""),
-                    ),
-                )
-            else:
-                parts = n.split("_")
-                metas.append(
-                    CopickSegmentationMeta(
-                        is_multilabel=False,
-                        voxel_size=float(parts[0]),
-                        user_id=parts[1],
-                        session_id=parts[2],
-                        name=parts[3],
-                    ),
-                )
-
         return [
-            CopickSegmentationFSSpec(
-                run=self,
-                meta=m,
-                read_only=False,
-            )
-            for m in metas
+            CopickSegmentationFSSpec(run=self, meta=CopickSegmentationMeta(**fields), read_only=False)
+            for fields in list_segmentation_stores(self.fs_overlay, self.overlay_path)
         ]
 
     def ensure(self, create: bool = False) -> bool:

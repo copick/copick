@@ -92,6 +92,8 @@ def copick_to_label(entity: _copick_types, include_metadata: bool = True) -> Tex
         colorbox = Text("  ", style=f"on rgb({color[0]},{color[1]},{color[2]})")
         if entity.is_multilabel:
             colorbox = Text("🌈")
+        elif entity.is_instance:
+            colorbox = Text("🧩")
         label = Text.assemble(
             Text(ICONS["segmentation"] + " "),
             colorbox,

@@ -1717,3 +1717,49 @@ def test_export_cdp_pick_uses_portal_metadata_voxel_spacing():
     # Non-CDP path with voxel_spacing set → that value
     pick2.meta.voxel_spacing = 7.84
     assert _pick_voxel_size(pick2, is_cdp=False) == 7.84
+
+
+def test_instance_segmentations_in_an_older_croissant(tiny_filesystem_project):
+    """A Croissant written before instance segmentations loads, and gains their recordset when one is written."""
+    import copick
+    import numpy as np
+    from copick.ops.croissant import export_croissant
+
+    proj = tiny_filesystem_project
+    root = copick.from_file(str(proj / "filesystem.json"))
+    root.get_run("run_001").new_segmentation(10.0, "ribosome", "1", user_id="alice").from_numpy(
+        np.ones((4, 4, 4), dtype=np.uint8),
+    )
+    export_croissant(root, project_root=str(proj), base_url=f"file://{proj}")
+
+    # Make it look like a Croissant from before instance segmentations: no recordset, no file object, no CSV
+    meta_path = proj / "Croissant" / "metadata.json"
+    doc = json.loads(meta_path.read_text())
+    doc["recordSet"] = [r for r in doc["recordSet"] if r["@id"] != "copick/instance_segmentations"]
+    doc["distribution"] = [e for e in doc["distribution"] if e.get("@id") != "instance-segmentations-csv"]
+    meta_path.write_text(json.dumps(doc))
+    (proj / "Croissant" / "instance_segmentations.csv").unlink()
+
+    old = copick.from_croissant(str(meta_path))
+    run = old.get_run("run_001")
+    assert [s.segmentation_type for s in run.segmentations] == ["binary"]
+
+    # Writing an instance segmentation (Mode A) declares the recordset and its CSV, so it reloads as one
+    run.new_segmentation(10.0, "ribosome", "1", user_id="alice", is_instance=True).from_numpy(
+        np.array([[[0, 1], [2, 3]]], dtype=np.uint16),
+    )
+    doc = json.loads(meta_path.read_text())
+    assert any(r["@id"] == "copick/instance_segmentations" for r in doc["recordSet"])
+    file_object = next(e for e in doc["distribution"] if e.get("@id") == "instance-segmentations-csv")
+    assert file_object["contentUrl"].endswith("Croissant/instance_segmentations.csv") and file_object["sha256"]
+    # The binary row stays in segmentations.csv, which older readers understand
+    assert (
+        "ExperimentRuns/run_001/InstanceSegmentations/"
+        in (proj / "Croissant" / "instance_segmentations.csv").read_text()
+    )
+    assert "InstanceSegmentations" not in (proj / "Croissant" / "segmentations.csv").read_text()
+
+    fresh = copick.from_croissant(str(meta_path)).get_run("run_001")
+    assert sorted(s.segmentation_type for s in fresh.segmentations) == ["binary", "instance"]
+    (inst,) = fresh.get_segmentations(is_instance=True)
+    assert inst.instance_ids().tolist() == [1, 2, 3]
