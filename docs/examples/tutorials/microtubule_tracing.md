@@ -10,7 +10,7 @@
   ![tutorial-goal](../../assets/mt_tracing_goal_light.png#only-light)
   ![tutorial-goal](../../assets/mt_tracing_goal_dark.png#only-dark)
   <figcaption>The goal: turn easymode's microtubule segmentation (left, yellow) into one traced filament per
-microtubule (right, coloured by filament ID, arrowheads show each filament's direction). Shown on
+microtubule (right, coloured by filament ID; arrowheads show each filament's direction, a first guess, see Step 3). Shown on
 <a href="https://cryoetdataportal.czscience.com/runs/35962">run 35962</a> of
 <a href="https://cryoetdataportal.czscience.com/datasets/10521">dataset 10521</a>
 (<em>Mus musculus</em>, cryo-FIB-milled NIH/3T3 fibroblasts).</figcaption>
@@ -163,6 +163,15 @@ stored as an editable Catmull-Rom curve through its fitted spline, within half a
 The crossing near the top of run 35962 is resolved into two filaments, and the microtubule running alongside keeps
 its own ID along its whole length. Run without `-r`, the same command traces all 58 tomograms of the dataset in a few
 minutes on a laptop: 83 microtubules with a total length of 33 µm, after rejecting 786 short pieces.
+
+!!! warning "Filament directions are a first guess"
+    `seg2fil` cannot tell a microtubule's plus end from its minus end. It orders each filament's points from one end
+    to the other, and the arrowheads (and the orientation of the picks sampled in Step 5) follow that order, so the
+    direction is a first guess and is likely wrong for many filaments (on average half of them). The filaments are
+    stored with `polarity_known` set to false, and the STAR export in Step 6 marks their direction as unknown
+    (`rlnAnglePsiFlipRatio` 0.5), so that RELION can determine it during refinement. Where you know a filament's
+    polarity, reverse it in [ChimeraX](chimerax_filaments.md#step-5-join-cut-and-reverse) or
+    [napari](napari_filaments.md#step-4-trace).
 
 !!! note "Useful options"
     - `--min-length` has no default: set it to the shortest microtubule you want to keep.
