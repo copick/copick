@@ -34,15 +34,9 @@ napari-copick run -c config.json
 
 !!! warning "napari 0.9: set a slice thickness"
     Since napari 0.9, points (and therefore filaments and picks) are drawn only within the *thickness* of the current
-    slice, and the default thickness is zero, so traces may look like isolated dots. Until napari-copick sets it for
-    you, open napari's console (the `>_` button at the bottom left) and run
-
-    ```python
-    viewer.dims.thickness = (120, 0, 0)
-    ```
-
-    to show everything within 60 Å of the slice. With a thickness, the tomogram is shown as the mean over that slab,
-    which also makes filaments easier to see.
+    slice, and the default thickness is zero, so traces may look like isolated dots. napari-copick 1.10.0 does not set
+    it yet: right-click the slice slider below the view and set a thickness of about the filament diameter (for
+    microtubules, 120 Å), or run `viewer.dims.thickness = (120, 0, 0)` in napari's console (`>_`, bottom left).
 
 ### Step 1: Declare a filament object
 
