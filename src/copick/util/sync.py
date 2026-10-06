@@ -162,6 +162,7 @@ def ensure_pickable_objects(
                 identifier=source_obj_def.identifier,
                 map_threshold=source_obj_def.map_threshold,
                 radius=source_obj_def.radius,
+                metadata=source_obj_def.metadata,
                 exist_ok=True,
             )
 

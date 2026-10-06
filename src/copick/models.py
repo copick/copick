@@ -3,7 +3,7 @@ from typing import TYPE_CHECKING, Any, Dict, Iterable, List, Literal, MutableMap
 
 import numpy as np
 import zarr
-from pydantic import AliasChoices, BaseModel, Field, field_validator
+from pydantic import AliasChoices, BaseModel, ConfigDict, Field, field_validator, model_validator
 
 from copick.util.escape import sanitize_name
 from copick.util.ome import fits_in_memory, segmentation_pyramid, volume_pyramid, write_ome_zarr_3d
@@ -13,6 +13,61 @@ from copick.util.relion import picks_to_df_relion, relion_df_to_picks
 if TYPE_CHECKING:
     import pandas as pd
     from trimesh.parent import Geometry
+
+
+#: Key in ``PickableObject.metadata`` reserved for copick's own extensions of the object spec.
+COPICK_METADATA_NAMESPACE = "copick"
+#: Key in the reserved namespace that declares an object to be a filament (see ``FilamentSpec``).
+FILAMENT_METADATA_KEY = "filament"
+
+
+class FilamentSpec(BaseModel):
+    """Declares a pickable object to be a filament: a continuous, typically helical or tubular assembly
+    (e.g. microtubules, actin) that is annotated with ordered points along its axis.
+
+    Stored on the object as ``metadata["copick"]["filament"]`` (plain JSON), so clients that do not know
+    filaments read the object as an ordinary particle and preserve the declaration when they rewrite a
+    configuration. Picks of a filament object follow the filament pick conventions: ``instance_id`` is the
+    filament ID (starting at 1, 0 = unassigned), points are grouped by filament and ordered along it, and
+    the transform's +Z axis is the local tangent in point order.
+
+    Attributes:
+        polar: Whether the structure has a polarity (True for microtubules and actin). None if not stated.
+        helical_rise_a: Axial rise per subunit in Angstrom. Descriptive only: it is never used as a default
+            sampling distance along the filament.
+        helical_twist_deg: Twist per subunit in degrees. Descriptive only.
+    """
+
+    model_config = ConfigDict(extra="allow")
+
+    polar: Optional[bool] = None
+    helical_rise_a: Optional[float] = Field(None, gt=0)
+    helical_twist_deg: Optional[float] = None
+
+
+def _metadata_with_filament(
+    metadata: Optional[Dict[str, Any]],
+    filament: Union["FilamentSpec", Dict[str, Any], None],
+) -> Dict[str, Any]:
+    """Return a copy of ``metadata`` with ``filament`` stored under the reserved key, or removed if None."""
+    metadata = dict(metadata or {})
+    namespace = metadata.get(COPICK_METADATA_NAMESPACE, {})
+    if not isinstance(namespace, dict):
+        raise ValueError(
+            f"metadata[{COPICK_METADATA_NAMESPACE!r}] holds a non-dict value; copick reserves this key for its own "
+            "object spec extensions.",
+        )
+    namespace = dict(namespace)
+    if filament is None:
+        namespace.pop(FILAMENT_METADATA_KEY, None)
+    else:
+        spec = filament if isinstance(filament, FilamentSpec) else FilamentSpec.model_validate(filament)
+        namespace[FILAMENT_METADATA_KEY] = spec.model_dump(exclude_none=True)
+    if namespace:
+        metadata[COPICK_METADATA_NAMESPACE] = namespace
+    else:
+        metadata.pop(COPICK_METADATA_NAMESPACE, None)
+    return metadata
 
 
 class PickableObject(BaseModel):
@@ -29,8 +84,10 @@ class PickableObject(BaseModel):
             (GO, UniProtKB, CHEBI, PDB [dash separator, e.g. ``PDB-1BXN``], UBERON, CL, or CDPO).
             When using the data portal, this must match the annotation ``object_id`` exactly.
         map_threshold: Threshold to apply to the map when rendering the isosurface.
-        radius: Radius of the particle, when displaying as a sphere.
-        metadata: Additional metadata for the object (user-defined contents).
+        radius: Radius of the particle, when displaying as a sphere. For a filament, the tube radius.
+        metadata: Additional metadata for the object (user-defined contents). The key ``"copick"`` is reserved
+            for copick's own extensions of the object spec; ``metadata["copick"]["filament"]`` declares the
+            object a filament (see ``FilamentSpec``) and is validated when present.
     """
 
     name: str
@@ -79,6 +136,55 @@ class PickableObject(BaseModel):
     @classmethod
     def none_to_empty_dict(cls, v):
         return {} if v is None else v
+
+    @model_validator(mode="after")
+    def validate_filament_spec(self) -> "PickableObject":
+        """Validate and normalise ``metadata["copick"]["filament"]`` when it is present.
+
+        Only that key is checked: any other content of the metadata, including a non-dict value under
+        ``"copick"`` written before the key was reserved, is left as it is.
+        """
+        namespace = self.metadata.get(COPICK_METADATA_NAMESPACE)
+        if not isinstance(namespace, dict) or namespace.get(FILAMENT_METADATA_KEY) is None:
+            return self
+        spec = FilamentSpec.model_validate(namespace[FILAMENT_METADATA_KEY])
+        if not self.is_particle:
+            raise ValueError(
+                f"Object '{self.name}' is declared a filament but is_particle is False; filaments are annotated "
+                "with points, so is_particle must be True.",
+            )
+        self.metadata = {
+            **self.metadata,
+            COPICK_METADATA_NAMESPACE: {**namespace, FILAMENT_METADATA_KEY: spec.model_dump(exclude_none=True)},
+        }
+        return self
+
+    @property
+    def filament(self) -> Optional[FilamentSpec]:
+        """The filament declaration of this object, or None if it is not a filament."""
+        namespace = self.metadata.get(COPICK_METADATA_NAMESPACE)
+        if isinstance(namespace, dict) and namespace.get(FILAMENT_METADATA_KEY) is not None:
+            return FilamentSpec.model_validate(namespace[FILAMENT_METADATA_KEY])
+        return None
+
+    @property
+    def is_filament(self) -> bool:
+        """Whether this object is declared a filament."""
+        return self.filament is not None
+
+    def set_filament(self, filament: Union[FilamentSpec, Dict[str, Any], None]) -> None:
+        """Declare this object a filament, update its declaration, or remove it (``filament=None``).
+
+        Args:
+            filament: The filament spec, as a ``FilamentSpec`` or a dict of its fields, or None.
+
+        Raises:
+            ValueError: If the spec is invalid, the object is not a particle, or ``metadata["copick"]`` holds a
+                non-dict value.
+        """
+        metadata = _metadata_with_filament(self.metadata, filament)
+        validated = type(self).model_validate({**self.model_dump(), "metadata": metadata})
+        self.metadata = validated.metadata
 
 
 class CopickConfig(BaseModel):
@@ -160,9 +266,11 @@ class CopickPoint(BaseModel):
     """Point in 3D space with an associated orientation, score value and instance ID.
 
     Attributes:
-        location (CopickLocation): Location in 3D space.
-        transformation: Transformation matrix.
-        instance_id: Instance ID.
+        location (CopickLocation): Location in 3D space, in Angstrom.
+        transformation: Transformation matrix from object space to tomogram space. Its translation is a shift in
+            Angstrom added to the location: the particle centre is ``location + transformation[:3, 3]``.
+        instance_id: Instance ID. For points of a filament object, the filament ID (starting at 1; 0 means
+            unassigned).
         score: Score value.
     """
 
@@ -290,6 +398,16 @@ class CopickObject:
     @property
     def metadata(self) -> Dict[str, Any]:
         return self.meta.metadata
+
+    @property
+    def filament(self) -> Optional[FilamentSpec]:
+        """The filament declaration of this object, or None if it is not a filament."""
+        return self.meta.filament
+
+    @property
+    def is_filament(self) -> bool:
+        """Whether this object is declared a filament."""
+        return self.meta.is_filament
 
     def zarr(self) -> Union[None, MutableMapping]:
         """Override this method to return a zarr store for this object. Should return None if
@@ -590,6 +708,7 @@ class CopickRoot:
         radius: Optional[float] = None,
         metadata: Optional[Dict[str, Any]] = None,
         exist_ok: bool = False,
+        filament: Union[FilamentSpec, Dict[str, Any], None] = None,
     ) -> "CopickObject":
         """Create a new pickable object and add it to the configuration.
 
@@ -607,12 +726,15 @@ class CopickRoot:
             radius: Radius of the particle, when displaying as a sphere.
             metadata: Additional metadata for the object (user-defined contents).
             exist_ok: Whether existing objects with the same name should be overwritten..
+            filament: Declare the object a filament (see ``FilamentSpec``); stored as
+                ``metadata["copick"]["filament"]``. Requires ``is_particle=True``. None leaves the metadata as given.
 
         Returns:
             CopickObject: The newly created object.
 
         Raises:
-            ValueError: If an object with the given name already exists and exist_ok is False.
+            ValueError: If an object with the given name already exists and exist_ok is False, or if the
+                resulting object definition is invalid.
         """
         sane_name = sanitize_name(name)
 
@@ -628,15 +750,26 @@ class CopickRoot:
             raise ValueError(f"Object name {name} already exists.")
 
         if obj:
-            obj.meta.is_particle = is_particle
-            obj.meta.label = label if label else obj.label
-            obj.meta.color = color if color else obj.color
-            obj.meta.emdb_id = emdb_id if emdb_id else obj.emdb_id
-            obj.meta.pdb_id = pdb_id if pdb_id else obj.pdb_id
-            obj.meta.identifier = identifier if identifier else obj.identifier
-            obj.meta.map_threshold = map_threshold if map_threshold else obj.map_threshold
-            obj.meta.radius = radius if radius else obj.radius
-            obj.meta.metadata = metadata if metadata else obj.metadata
+            updated_metadata = metadata if metadata else obj.metadata
+            if filament is not None:
+                updated_metadata = _metadata_with_filament(updated_metadata, filament)
+            updated = {
+                **obj.meta.model_dump(),
+                "is_particle": is_particle,
+                "label": label if label else obj.label,
+                "color": color if color else obj.color,
+                "emdb_id": emdb_id if emdb_id else obj.emdb_id,
+                "pdb_id": pdb_id if pdb_id else obj.pdb_id,
+                "identifier": identifier if identifier else obj.identifier,
+                "map_threshold": map_threshold if map_threshold else obj.map_threshold,
+                "radius": radius if radius else obj.radius,
+                "metadata": updated_metadata,
+            }
+            # Validate the updated definition as a whole before changing the object in place, so an invalid
+            # update raises instead of leaving a half-updated object in the configuration.
+            validated = type(obj.meta).model_validate(updated)
+            for field_name in type(obj.meta).model_fields:
+                setattr(obj.meta, field_name, getattr(validated, field_name))
         else:
             # Check for duplicate label BEFORE auto-assignment
             if label is not None:
@@ -665,7 +798,7 @@ class CopickRoot:
                 identifier=identifier,
                 map_threshold=map_threshold,
                 radius=radius,
-                metadata=metadata if metadata else {},
+                metadata=_metadata_with_filament(metadata, filament) if filament is not None else (metadata or {}),
             )
 
             # Add to configuration
@@ -2146,8 +2279,36 @@ class CopickPicks:
 
         return points, transforms
 
-    def from_numpy(self, positions: np.ndarray, transforms: Optional[np.ndarray] = None) -> None:
-        """Set the points and transforms from numpy arrays.
+    def instance_ids(self) -> np.ndarray:
+        """Return the instance IDs of the points as a [N] integer array.
+
+        For filament objects the instance ID is the filament ID (starting at 1; 0 means unassigned).
+        """
+        return np.array([0 if p.instance_id is None else p.instance_id for p in self.points], dtype=np.int64)
+
+    def scores(self) -> np.ndarray:
+        """Return the scores of the points as a [N] float array (1.0 where a point has no score)."""
+        return np.array([1.0 if p.score is None else p.score for p in self.points], dtype=float)
+
+    def full_positions(self) -> np.ndarray:
+        """Return the particle centres as a [N, 3] array in Angstrom: each point's location plus the translation
+        of its transform, which holds shifts such as those refined during subtomogram averaging.
+
+        Use this, not the locations returned by ``numpy()``, wherever a particle is placed, drawn or extracted.
+        """
+        points, transforms = self.numpy()
+        if len(points) == 0:
+            return points
+        return points + transforms[:, :3, 3]
+
+    def from_numpy(
+        self,
+        positions: np.ndarray,
+        transforms: Optional[np.ndarray] = None,
+        instance_ids: Optional[np.ndarray] = None,
+        scores: Optional[np.ndarray] = None,
+    ) -> None:
+        """Set the points and transforms from numpy arrays, and store them.
 
         Args:
             positions: [N, 3] numpy array of positions (N, [x, y, z]).
@@ -2159,34 +2320,74 @@ class CopickPicks:
                  [rzx, rzy, rzz, tz],
                  [  0,   0,   0,  1]]
                 ```
+            instance_ids: [N] integer array of instance IDs (>= 0). For filament objects, the filament ID of each
+                point (starting at 1). If None, every point gets 0.
+            scores: [N] array of finite scores. If None, every point gets 1.0.
 
+        Raises:
+            ValueError: If the array lengths differ, an instance ID is negative or not an integer, or a score is not
+                finite.
         """
+        positions = np.asarray(positions)
+        n = positions.shape[0]
 
-        if transforms is not None and positions.shape[0] != transforms.shape[0]:
+        if transforms is not None and n != transforms.shape[0]:
             raise ValueError("Number of positions and transforms must be the same.")
+
+        if instance_ids is not None:
+            instance_ids = np.asarray(instance_ids)
+            if instance_ids.shape != (n,):
+                raise ValueError(f"instance_ids must have shape ({n},), got {instance_ids.shape}.")
+            if instance_ids.size and (
+                not np.all(np.isfinite(instance_ids.astype(float)))
+                or not np.all(np.equal(np.mod(instance_ids.astype(float), 1), 0))
+            ):
+                raise ValueError("instance_ids must be integers.")
+            instance_ids = instance_ids.astype(np.int64)
+            if instance_ids.size and instance_ids.min() < 0:
+                raise ValueError("instance_ids must be >= 0.")
+
+        if scores is not None:
+            scores = np.asarray(scores, dtype=float)
+            if scores.shape != (n,):
+                raise ValueError(f"scores must have shape ({n},), got {scores.shape}.")
+            if not np.all(np.isfinite(scores)):
+                raise ValueError("scores must be finite.")
 
         points = []
 
-        for i in range(positions.shape[0]):
+        for i in range(n):
             p = CopickPoint(location=CopickLocation(x=positions[i, 0], y=positions[i, 1], z=positions[i, 2]))
             if transforms is not None:
                 p.transformation = transforms[i, :, :]
+            if instance_ids is not None:
+                p.instance_id = int(instance_ids[i])
+            if scores is not None:
+                p.score = float(scores[i])
             points.append(p)
 
         self.points = points
         self.store()
 
-    def df(self, format: str = "relion") -> "pd.DataFrame":
-        """Returns the points as a pandas DataFrame with columns based on the format."""
+    def df(self, format: str = "relion", **kwargs) -> "pd.DataFrame":
+        """Returns the points as a pandas DataFrame with columns based on the format.
+
+        For ``format="relion"``, keyword arguments go to ``copick.util.relion.picks_to_df_relion``
+        (``voxel_spacing``, ``tilt_series_pixel_size``, ``tomogram_center``).
+        """
         if format == "relion":
-            return picks_to_df_relion(self)
+            return picks_to_df_relion(self, **kwargs)
         else:
             raise ValueError(f"Format {format} is not supported.")
 
-    def from_df(self, df: "pd.DataFrame", format: str = "relion") -> None:
-        """Set the points from a pandas DataFrame with columns based on the format."""
+    def from_df(self, df: "pd.DataFrame", format: str = "relion", **kwargs) -> None:
+        """Set the points from a pandas DataFrame with columns based on the format.
+
+        For ``format="relion"``, keyword arguments go to ``copick.util.relion.relion_df_to_picks`` (``optics``,
+        ``tilt_series_pixel_size``, ``tomogram_center``, ``relion_version``).
+        """
         if format == "relion":
-            relion_df_to_picks(self, df)
+            relion_df_to_picks(self, df, **kwargs)
         else:
             raise ValueError(f"Format {format} is not supported.")
 
@@ -2491,7 +2692,7 @@ class CopickSegmentation:
 
 
 COPICK_TYPES = (
-    CopickRun,
+    CopickRoot,
     CopickRun,
     CopickVoxelSpacing,
     CopickTomogram,
