@@ -1214,7 +1214,7 @@ class CopickRun:
         if self.root.config.user_id is None:
             return [s for s in self.segmentations if s.from_user]
         else:
-            return self.get_segmentations(user_id=self.root.config.user_id)
+            return self.get_segmentations(user_id=self.root.config.user_id, is_instance=None)
 
     def tool_segmentations(self) -> List["CopickSegmentation"]:
         """Get all tool generated segmentations (i.e. segmentations that have `CopickSegmentation.session_id == 0`).
@@ -1232,10 +1232,14 @@ class CopickRun:
         name: Union[str, Iterable[str]] = None,
         voxel_size: Union[float, Iterable[float]] = None,
         *,
-        is_instance: bool = None,
+        is_instance: Optional[bool] = False,
         **kwargs,
     ) -> List["CopickSegmentation"]:
         """Get segmentations by user_id, session_id, name, type or voxel_size (or combinations).
+
+        Without a type, this selects binary and multilabel segmentations, the types every client reads: pass
+        ``is_instance=True`` for instance segmentations, or ``is_instance=None`` for any type. ``segmentations``
+        lists all of them.
 
         Args:
             user_id: User ID to search for.
@@ -1243,8 +1247,8 @@ class CopickRun:
             is_multilabel: Whether the segmentation is multilabel or not.
             name: Name of the segmentation to search for.
             voxel_size: Voxel size to search for.
-            is_instance: Whether the segmentation is an instance segmentation or not. Binary segmentations are
-                ``is_multilabel=False, is_instance=False``.
+            is_instance: Whether to select instance segmentations (True) or not (False, the default); None selects any
+                type. Binary segmentations are ``is_multilabel=False, is_instance=False``.
             **kwargs: Additional parameters for subclass implementations.
 
         Returns:
@@ -1682,7 +1686,7 @@ class CopickRun:
         self.delete_voxel_spacings()
         self.delete_picks()
         self.delete_meshes()
-        self.delete_segmentations()
+        self.delete_segmentations(is_instance=None)
         self.delete_filaments()
         self._delete_data()
 
@@ -1741,9 +1745,10 @@ class CopickRun:
         name: str = None,
         voxel_size: float = None,
         *,
-        is_instance: bool = None,
+        is_instance: Optional[bool] = False,
     ) -> None:
-        """Delete segmentation by name, user_id or session_id (or combinations).
+        """Delete segmentation by name, user_id or session_id (or combinations). Like ``get_segmentations``, without a
+        type this deletes binary and multilabel segmentations only.
 
         Args:
             user_id: User ID to delete.
@@ -1751,7 +1756,8 @@ class CopickRun:
             is_multilabel: Whether the segmentation is multilabel or not.
             name: Name of the segmentation to delete.
             voxel_size: Voxel size to delete.
-            is_instance: Whether the segmentation is an instance segmentation or not.
+            is_instance: Whether to delete instance segmentations (True) or not (False, the default); None deletes any
+                type.
         """
         for s in list(
             self.get_segmentations(

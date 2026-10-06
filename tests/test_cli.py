@@ -647,7 +647,7 @@ class TestCLIAdd:
         assert result.exit_code == 0, f"Command failed: {result.output}"
 
         run = copick.from_file(config_file).get_run("TS_001")
-        (seg,) = run.get_segmentations(user_id="tracer", session_id="9")
+        (seg,) = run.get_segmentations(user_id="tracer", session_id="9", is_instance=True)
         assert seg.is_instance and seg.instance_ids().tolist() == [1, 400]
 
 

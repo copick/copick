@@ -172,6 +172,8 @@ def _sync_segmentations_worker(
     target_users: Optional[Dict[str, str]],
     exist_ok: bool,
     log: bool,
+    is_multilabel: Optional[bool] = None,
+    is_instance: Optional[bool] = False,
 ) -> Dict[str, Any]:
     """Worker function for syncing segmentations from one run to another.
 
@@ -186,6 +188,8 @@ def _sync_segmentations_worker(
         target_users: Dictionary mapping source user IDs to target user IDs.
         exist_ok: Whether to overwrite existing segmentations in the target project.
         log: Whether to log the synchronization process.
+        is_multilabel: Whether to sync multilabel segmentations (True), binary ones (False), or both (None).
+        is_instance: Whether to sync instance segmentations (True) or not (False, the default); None syncs any type.
 
     Returns:
         A dictionary with the number of processed segmentations and any errors encountered.
@@ -194,7 +198,11 @@ def _sync_segmentations_worker(
 
     try:
         target_run = target_root.get_run(target_run_name)
-        source_segmentations = run.get_segmentations(voxel_size=voxel_spacings)
+        source_segmentations = run.get_segmentations(
+            voxel_size=voxel_spacings,
+            is_multilabel=is_multilabel,
+            is_instance=is_instance,
+        )
 
         for segmentation in source_segmentations:
             try:
@@ -439,9 +447,12 @@ def sync_segmentations(
     exist_ok: bool = False,
     max_workers: int = 4,
     log: bool = False,
+    is_multilabel: Optional[bool] = None,
+    is_instance: Optional[bool] = False,
 ) -> None:
     """
-    Synchronize segmentations between two Copick projects.
+    Synchronize segmentations between two Copick projects. Without a type, binary and multilabel segmentations are
+    synced.
 
     Args:
         source_root: The source Copick project root.
@@ -456,6 +467,8 @@ def sync_segmentations(
         exist_ok: Whether to overwrite existing segmentations in the target project.
         max_workers: The maximum number of worker threads to use for synchronization.
         log: Whether to log the synchronization process.
+        is_multilabel: Whether to sync multilabel segmentations (True), binary ones (False), or both (None).
+        is_instance: Whether to sync instance segmentations (True) or not (False, the default); None syncs any type.
 
     """
     # Get runs to process
@@ -489,6 +502,8 @@ def sync_segmentations(
             "target_users": target_users,
             "exist_ok": exist_ok,
             "log": log,
+            "is_multilabel": is_multilabel,
+            "is_instance": is_instance,
         }
         for run_name in source_runs
     ]

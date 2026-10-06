@@ -33,7 +33,7 @@ as a human-readable table or as JSON.
 | `--name` | text · multiple | — | Filter by segmentation name. Can be specified multiple times. |
 | `--voxel-size` | float · multiple | — | Filter by voxel size. Can be specified multiple times. |
 | `--multilabel / --no-multilabel` | boolean flag | — | Filter by multilabel status. |
-| `--instance / --no-instance` | boolean flag | — | Filter by instance status (instance segmentations: voxel = instance ID of one object). |
+| `--segmentation-type` | choice (binary \| multilabel \| instance \| all) | — | Segmentation type to summarize; 'all' for every type. Default: binary and multilabel segmentations. |
 | `--parallel / --no-parallel` | boolean flag | `True` | Enable parallel processing. |
 | `--workers` | integer | `8` | Number of workers for parallel processing. |
 | `--output` | choice (json \| table) | `table` | Output format. |
@@ -51,8 +51,9 @@ copick stats segmentations --config config.json --name membrane --voxel-size 10.
 # Restrict to multilabel segmentations only
 copick stats segmentations --config config.json --multilabel
 
-# Restrict to instance segmentations only
-copick stats segmentations --config config.json --instance
+# Instance segmentations only, or every type
+copick stats segmentations --config config.json --segmentation-type instance
+copick stats segmentations --config config.json --segmentation-type all
 
 # Run in parallel and emit JSON
 copick stats segmentations --config config.json --parallel --output json

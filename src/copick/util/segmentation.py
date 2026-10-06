@@ -150,6 +150,26 @@ def segmentation_directory(is_multilabel: bool = False, is_instance: bool = Fals
     return SEGMENTATION_DIRECTORIES[segmentation_type(is_multilabel, is_instance)]
 
 
+#: Values of the ``--segmentation-type`` filter of the CLI: one type, or ``all``. Without it, commands select binary
+#: and multilabel segmentations, as ``CopickRun.get_segmentations`` and an untyped URI do.
+SEGMENTATION_TYPE_FILTERS = ("binary", "multilabel", "instance", "all")
+
+
+def segmentation_type_query(segmentation_type: Optional[str] = None) -> Dict[str, Optional[bool]]:
+    """The ``get_segmentations`` type arguments that select ``segmentation_type`` (one of ``SEGMENTATION_TYPE_FILTERS``).
+
+    ``None`` selects binary and multilabel segmentations, ``"all"`` every type.
+    """
+    if segmentation_type is None:
+        return {"is_multilabel": None, "is_instance": False}
+    kind = segmentation_type.lower()
+    if kind == "all":
+        return {"is_multilabel": None, "is_instance": None}
+    if kind not in SEGMENTATION_TYPES:
+        raise ValueError(f"Unknown segmentation type {segmentation_type!r}; use one of {SEGMENTATION_TYPE_FILTERS}.")
+    return {"is_multilabel": kind == "multilabel", "is_instance": kind == "instance"}
+
+
 def segmentation_store_name(
     voxel_size: float,
     user_id: str,

@@ -483,6 +483,12 @@ def meshes(
     show_default=True,
 )
 @click.option(
+    "--segmentation-type",
+    type=click.Choice(["binary", "multilabel", "instance", "all"], case_sensitive=False),  # SEGMENTATION_TYPE_FILTERS
+    default=None,
+    help="Segmentation type to synchronize; 'all' for every type. Default: binary and multilabel segmentations.",
+)
+@click.option(
     "--exist-ok/--no-exist-ok",
     is_flag=True,
     help="Allow overwriting existing segmentations in the target project.",
@@ -515,6 +521,7 @@ def segmentations(
     target_names,
     source_users,
     target_users,
+    segmentation_type,
     exist_ok,
     max_workers,
     log,
@@ -556,6 +563,8 @@ def segmentations(
         copick sync meshes: synchronize meshes between projects
         copick sync tomograms: synchronize tomograms between projects
     """
+    from copick.util.segmentation import segmentation_type_query
+
     logger = get_logger(__name__, debug=debug)
 
     # Parse arguments
@@ -611,6 +620,7 @@ def segmentations(
             exist_ok=exist_ok,
             max_workers=max_workers,
             log=log,
+            **segmentation_type_query(segmentation_type),
         )
 
         logger.info("Segmentations synchronization completed successfully.")

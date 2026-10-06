@@ -302,9 +302,10 @@ def meshes(
     help="Filter by multilabel status.",
 )
 @click.option(
-    "--instance/--no-instance",
+    "--segmentation-type",
+    type=click.Choice(["binary", "multilabel", "instance", "all"], case_sensitive=False),  # SEGMENTATION_TYPE_FILTERS
     default=None,
-    help="Filter by instance status (instance segmentations: voxel = instance ID of one object).",
+    help="Segmentation type to summarize; 'all' for every type. Default: binary and multilabel segmentations.",
 )
 @click.option(
     "--parallel/--no-parallel",
@@ -335,7 +336,7 @@ def segmentations(
     name,
     voxel_size,
     multilabel,
-    instance,
+    segmentation_type,
     parallel,
     workers,
     output,
@@ -366,8 +367,9 @@ def segmentations(
         copick stats segmentations --config config.json --multilabel
 
         \b
-        # Restrict to instance segmentations only
-        copick stats segmentations --config config.json --instance
+        # Instance segmentations only, or every type
+        copick stats segmentations --config config.json --segmentation-type instance
+        copick stats segmentations --config config.json --segmentation-type all
 
         \b
         # Run in parallel and emit JSON
@@ -379,6 +381,8 @@ def segmentations(
         copick stats picks: summarize pick annotations in the project
         copick stats meshes: summarize mesh annotations in the project
     """
+    from copick.util.segmentation import segmentation_type_query
+
     logger = get_logger(__name__, debug)
 
     if config is None:
@@ -393,19 +397,20 @@ def segmentations(
     session_id_param = list(session_id) if session_id else None
     name_param = list(name) if name else None
     voxel_size_param = list(voxel_size) if voxel_size else None
+    type_query = segmentation_type_query(segmentation_type)
 
     stats_data = segmentations_stats(
         root=root,
         runs=runs_param,
         user_id=user_id_param,
         session_id=session_id_param,
-        is_multilabel=multilabel,
+        is_multilabel=multilabel if multilabel is not None else type_query["is_multilabel"],
         name=name_param,
         voxel_size=voxel_size_param,
         parallel=parallel,
         workers=workers,
         show_progress=True,
-        is_instance=instance,
+        is_instance=type_query["is_instance"],
     )
 
     if output == "json":
