@@ -72,6 +72,20 @@ def export(ctx):
     show_default=True,
     help="Include optics group in STAR file output.",
 )
+@click.option(
+    "--tilt-series-pixel-size",
+    type=float,
+    default=None,
+    help="STAR only: tilt-series pixel size in Angstrom. Adds rlnCoordinateX/Y/Z in tilt-series pixels and an optics "
+    "table with rlnTomoTiltSeriesPixelSize, which RELION requires.",
+)
+@click.option(
+    "--tomograms-star",
+    type=click.Path(exists=True, file_okay=True, dir_okay=False),
+    default=None,
+    help="STAR only: RELION tomograms.star giving each tomogram's centre, tilt-series pixel size and CTF parameters "
+    "(takes precedence over the copick tomograms).",
+)
 @add_max_workers_option
 @add_debug_option
 @click.pass_context
@@ -86,6 +100,8 @@ def picks(
     voxel_size: float,
     index_map: str,
     include_optics: bool,
+    tilt_series_pixel_size: float,
+    tomograms_star: str,
     max_workers: int,
     debug: bool,
 ):
@@ -103,6 +119,12 @@ def picks(
     tomogram index to each run; per-run EM/Dynamo default to index 1 unless an
     index map is supplied, and STAR/CSV reference runs by name. For coordinate
     and Euler-angle conventions, see the docstrings in `copick.util.formats`.
+
+    STAR files carry `rlnTomoName` and coordinates centred on each tomogram (from
+    `--tomograms-star`, or the copick tomogram at `--voxel-size`). With
+    `--tilt-series-pixel-size` (or a tomograms.star) they also carry
+    `rlnCoordinateX/Y/Z` in tilt-series pixels and the optics table RELION
+    requires.
 
     Examples:
 
@@ -175,6 +197,8 @@ def picks(
                 run_to_index=run_to_index,
                 include_optics=include_optics,
                 log=debug,
+                tilt_series_pixel_size=tilt_series_pixel_size,
+                tomograms_star=tomograms_star,
             )
         else:
             # Per-run export mode
@@ -189,6 +213,8 @@ def picks(
                 run_to_index=run_to_index,
                 n_workers=max_workers,
                 log=debug,
+                tilt_series_pixel_size=tilt_series_pixel_size,
+                tomograms_star=tomograms_star,
             )
         logger.info("Export completed successfully.")
     except Exception as e:

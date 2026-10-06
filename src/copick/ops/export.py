@@ -41,6 +41,8 @@ def export_picks(
     run_name: Optional[str] = None,
     tomogram_index: int = 1,
     log: bool = False,
+    tilt_series_pixel_size: Optional[float] = None,
+    tomograms_star: Optional[str] = None,
 ) -> str:
     """Export picks to an external format.
 
@@ -53,6 +55,10 @@ def export_picks(
         run_name: Run name for CSV output (uses picks.run.name if not provided).
         tomogram_index: Tomogram index for EM/Dynamo formats (default: 1).
         log: Log the operation.
+        tilt_series_pixel_size: STAR only: tilt-series pixel size in Angstrom; adds rlnCoordinateX/Y/Z in
+            tilt-series pixels and an optics table.
+        tomograms_star: STAR only: RELION tomograms.star giving the tomogram's centre, tilt-series pixel size and
+            CTF parameters (takes precedence over the copick tomogram).
 
     Returns:
         Path to the created output file.
@@ -71,7 +77,15 @@ def export_picks(
             log=log,
         )
     elif output_format == "star":
-        return _export_picks_star(picks, output_path, voxel_spacing, include_optics, log=log)
+        return _export_picks_star(
+            picks,
+            output_path,
+            voxel_spacing,
+            include_optics,
+            log=log,
+            tilt_series_pixel_size=tilt_series_pixel_size,
+            tomograms_star=tomograms_star,
+        )
     elif output_format == "dynamo":
         return _export_picks_dynamo(picks, output_path, voxel_spacing, tomogram_index=tomogram_index, log=log)
     elif output_format == "csv":
@@ -100,7 +114,7 @@ def _export_picks_em(
     Returns:
         Path to the created output file.
     """
-    from copick.util.formats import copick_to_em_transform, write_em_motivelist
+    from copick.util.handlers.picks.em import em_picks_handler
 
     if voxel_spacing is None:
         raise ValueError("voxel_spacing is required for EM export.")
@@ -108,19 +122,14 @@ def _export_picks_em(
     # Get points and transforms
     points, transforms = picks.numpy()
 
-    # Convert to EM format
-    positions_px, eulers_deg = copick_to_em_transform(
+    # Write EM file (transform translations become the motivelist shifts)
+    os.makedirs(os.path.dirname(output_path) or ".", exist_ok=True)
+    em_picks_handler.write(
+        output_path,
         points,
         transforms,
         voxel_spacing,
-    )
-
-    # Write EM file
-    os.makedirs(os.path.dirname(output_path) or ".", exist_ok=True)
-    write_em_motivelist(
-        output_path,
-        positions_px,
-        eulers_deg,
+        scores=picks.scores(),
         tomogram_index=tomogram_index,
     )
 
@@ -136,46 +145,60 @@ def _export_picks_star(
     voxel_spacing: float,
     include_optics: bool = True,
     log: bool = False,
+    tilt_series_pixel_size: Optional[float] = None,
+    tomograms_star: Optional[str] = None,
 ) -> str:
     """Export picks to RELION STAR format.
+
+    The file carries rlnTomoName, angles, centred coordinates relative to the tomogram centre (from
+    ``tomograms_star`` or the copick tomogram at ``voxel_spacing``) and, when the tilt-series pixel size is known,
+    rlnCoordinateX/Y/Z in tilt-series pixels with an optics table (see ``copick.util.formats.build_relion_star_tables``).
 
     Args:
         picks: The CopickPicks object to export.
         output_path: Path for the output STAR file.
-        voxel_spacing: Voxel spacing in Angstrom.
+        voxel_spacing: Voxel spacing in Angstrom; selects the copick tomogram that defines the centre.
         include_optics: Include optics group in output.
         log: Log the operation.
+        tilt_series_pixel_size: Tilt-series pixel size in Angstrom.
+        tomograms_star: RELION tomograms.star with this run's tomogram.
 
     Returns:
         Path to the created output file.
     """
-    from copick.util.formats import write_star_particles
-    from copick.util.relion import picks_to_df_relion
+    from copick.util.formats import read_relion_tomograms
+    from copick.util.handlers.picks.star import star_handler
+    from copick.util.relion import copick_tomogram_center
 
     if voxel_spacing is None:
         raise ValueError("voxel_spacing is required for STAR export.")
 
-    # Convert to RELION DataFrame
-    df = picks_to_df_relion(picks)
+    run_name = picks.run.name
+    tomogram = None
+    if tomograms_star:
+        tomogram = read_relion_tomograms(tomograms_star).get(run_name)
+        if tomogram is None:
+            logging.warning(f"{run_name} is not in {tomograms_star}; using the copick tomogram for its centre.")
+    center = tomogram.center_angstrom if tomogram is not None else copick_tomogram_center(picks, voxel_spacing)
 
-    # Create optics group if requested
-    optics_group = None
-    if include_optics:
-        optics_group = {
-            "rlnOpticsGroupName": "opticsGroup1",
-            "rlnOpticsGroup": 1,
-            "rlnImagePixelSize": voxel_spacing,
-            "rlnVoltage": 300.0,
-            "rlnSphericalAberration": 2.7,
-            "rlnAmplitudeContrast": 0.1,
-        }
+    points, transforms = picks.numpy()
 
     # Write STAR file
     os.makedirs(os.path.dirname(output_path) or ".", exist_ok=True)
-    write_star_particles(output_path, df, optics_group)
+    star_handler.write(
+        output_path,
+        points,
+        transforms,
+        voxel_spacing,
+        include_optics,
+        tomo_name=run_name,
+        tomogram_center=center,
+        tilt_series_pixel_size=tilt_series_pixel_size,
+        tomogram=tomogram,
+    )
 
     if log:
-        logging.info(f"Exported {len(df)} picks to STAR file: {output_path}")
+        logging.info(f"Exported {len(points)} picks to STAR file: {output_path}")
 
     return output_path
 
@@ -199,7 +222,7 @@ def _export_picks_dynamo(
     Returns:
         Path to the created output file.
     """
-    from copick.util.formats import copick_to_dynamo_transform, write_dynamo_table
+    from copick.util.handlers.picks.dynamo import dynamo_handler
 
     if voxel_spacing is None:
         raise ValueError("voxel_spacing is required for Dynamo export.")
@@ -207,20 +230,14 @@ def _export_picks_dynamo(
     # Get points and transforms
     points, transforms = picks.numpy()
 
-    # Convert to Dynamo format
-    positions_px, eulers_deg, shifts_px = copick_to_dynamo_transform(
+    # Write Dynamo table (transform translations become the table shifts)
+    os.makedirs(os.path.dirname(output_path) or ".", exist_ok=True)
+    dynamo_handler.write(
+        output_path,
         points,
         transforms,
         voxel_spacing,
-    )
-
-    # Write Dynamo table
-    os.makedirs(os.path.dirname(output_path) or ".", exist_ok=True)
-    write_dynamo_table(
-        output_path,
-        positions_px,
-        eulers_deg,
-        shifts_px,
+        scores=picks.scores(),
         tomogram_index=tomogram_index,
     )
 
@@ -284,6 +301,8 @@ def export_picks_combined(
     run_to_index: Optional[Dict[str, int]] = None,
     include_optics: bool = True,
     log: bool = False,
+    tilt_series_pixel_size: Optional[float] = None,
+    tomograms_star: Optional[str] = None,
 ) -> str:
     """Export picks from multiple runs to a single combined file.
 
@@ -300,6 +319,9 @@ def export_picks_combined(
         run_to_index: Mapping from run name to tomogram index (required for em/dynamo).
         include_optics: Include optics group in STAR file output.
         log: Log the operation.
+        tilt_series_pixel_size: STAR only: tilt-series pixel size in Angstrom for every run.
+        tomograms_star: STAR only: RELION tomograms.star giving each run's tomogram centre, tilt-series pixel size
+            and CTF parameters (takes precedence over the copick tomograms).
 
     Returns:
         Path to the created output file.
@@ -334,6 +356,7 @@ def export_picks_combined(
 
     # Collect picks from all runs
     grouped_data: Dict[str, Tuple[np.ndarray, np.ndarray, Optional[np.ndarray]]] = {}
+    grouped_instance_ids: Dict[str, np.ndarray] = {}
     total_particles = 0
 
     for run in runs:
@@ -348,6 +371,7 @@ def export_picks_combined(
                 scores = None
                 if picks.points:
                     scores = np.array([p.score for p in picks.points])
+                instance_ids = picks.instance_ids()
 
                 # Accumulate data for this run
                 if run.name in grouped_data:
@@ -363,6 +387,10 @@ def export_picks_combined(
                     )
                 else:
                     grouped_data[run.name] = (points, transforms, scores)
+                if run.name in grouped_instance_ids:
+                    grouped_instance_ids[run.name] = np.concatenate([grouped_instance_ids[run.name], instance_ids])
+                else:
+                    grouped_instance_ids[run.name] = instance_ids
                 total_particles += len(points)
         except Exception as e:
             if log:
@@ -370,6 +398,17 @@ def export_picks_combined(
 
     if not grouped_data:
         raise ValueError("No picks found to export")
+
+    # STAR: tomogram centres and pixel sizes per run
+    star_kwargs = {}
+    if output_format == "star":
+        from copick.util.formats import get_tomogram_centers_from_copick, read_relion_tomograms
+
+        star_kwargs = {
+            "tomogram_centers": get_tomogram_centers_from_copick(root, list(grouped_data), voxel_spacing),
+            "tilt_series_pixel_size": tilt_series_pixel_size,
+            "tomograms": read_relion_tomograms(tomograms_star) if tomograms_star else None,
+        }
 
     # Create output directory if needed
     os.makedirs(os.path.dirname(output_file) or ".", exist_ok=True)
@@ -381,6 +420,8 @@ def export_picks_combined(
         voxel_spacing=voxel_spacing or 1.0,
         run_to_index=run_to_index,
         include_optics=include_optics,
+        grouped_instance_ids=grouped_instance_ids,
+        **star_kwargs,
     )
 
     if log:
@@ -752,6 +793,8 @@ def export_run(
     include_optics: bool = True,
     run_to_index: Optional[Dict[str, int]] = None,
     log: bool = False,
+    tilt_series_pixel_size: Optional[float] = None,
+    tomograms_star: Optional[str] = None,
 ) -> Dict[str, int]:
     """Export data from a single run.
 
@@ -768,6 +811,8 @@ def export_run(
         include_optics: Include optics in STAR exports.
         run_to_index: Optional mapping from run name to tomogram index for EM/Dynamo.
         log: Log operations.
+        tilt_series_pixel_size: STAR only: tilt-series pixel size in Angstrom.
+        tomograms_star: STAR only: RELION tomograms.star with the runs' tomograms.
 
     Returns:
         Dictionary with counts of exported items.
@@ -802,6 +847,8 @@ def export_run(
                     run_name=run.name,
                     tomogram_index=tomogram_index,
                     log=log,
+                    tilt_series_pixel_size=tilt_series_pixel_size,
+                    tomograms_star=tomograms_star,
                 )
                 results["picks"] += 1
         except Exception as e:
@@ -874,6 +921,8 @@ def export(
     run_to_index: Optional[Dict[str, int]] = None,
     n_workers: int = 8,
     log: bool = False,
+    tilt_series_pixel_size: Optional[float] = None,
+    tomograms_star: Optional[str] = None,
 ) -> None:
     """Export data from a copick project.
 
@@ -892,6 +941,8 @@ def export(
         run_to_index: Optional mapping from run name to tomogram index for EM/Dynamo.
         n_workers: Number of parallel workers.
         log: Log operations.
+        tilt_series_pixel_size: STAR only: tilt-series pixel size in Angstrom.
+        tomograms_star: STAR only: RELION tomograms.star with the runs' tomograms.
     """
     import copick
     from copick.ops.run import map_runs
@@ -915,6 +966,8 @@ def export(
             "include_optics": include_optics,
             "run_to_index": run_to_index,
             "log": log,
+            "tilt_series_pixel_size": tilt_series_pixel_size,
+            "tomograms_star": tomograms_star,
         }
         for _ in runs
     ]
