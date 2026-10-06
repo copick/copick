@@ -19,6 +19,7 @@ from typing import Dict, List, Optional
 
 from . import palette
 from .schema import (
+    FILAMENTS,
     MESH,
     PICKS,
     SEGMENTATION,
@@ -31,7 +32,18 @@ from .schema import (
 )
 
 # chimerax-copick verb per entity kind.
-_KIND_VERB = {PICKS: "picks", SEGMENTATION: "segmentation", MESH: "mesh"}
+_KIND_VERB = {PICKS: "picks", SEGMENTATION: "segmentation", MESH: "mesh", FILAMENTS: "filaments"}
+
+# Filament sets (tubes in instance colours) and instance / panoptic segmentations (one label
+# surface per instance) are top-level models after ArtiaX (#1) and copick's 2D labels (#2):
+# #3, #4, ... in open order.
+FIRST_TOP_LEVEL_ID = 3
+
+# Label surfaces are computed in a worker thread and arrive by a Qt signal, which a command
+# script never delivers (``wait N`` only draws frames): this helper spins the event loop until
+# they are shown.
+WAIT_HELPER = os.path.join(os.path.dirname(os.path.abspath(__file__)), "cx_wait_label_surfaces.py")
+LABEL_SURFACE_WAIT = f'runscript "{WAIT_HELPER}"'
 
 # Model spec of the reference tomogram loaded by ``copick open run``. In a fresh session
 # ArtiaX is ``#1`` with manager groups Tomograms ``#1.1`` / Particle Lists ``#1.2`` /
@@ -65,6 +77,10 @@ def _entity_uri(ent: EntitySpec) -> str:
             uri += "?multilabel=true"
         return uri
     return f"{ent.object_name}:{ent.user_id}/{ent.session_id}"
+
+
+def _is_label_map(kind: str, uri: str) -> bool:
+    return kind == SEGMENTATION and ("instance=true" in uri or "panoptic=true" in uri)
 
 
 def _open(kind: str, uri: str) -> str:
@@ -234,9 +250,10 @@ class CxcEmitter:
         lines += self._establish_view(spec)
         lines += self._stage_tomo(spec)
 
-        # Track ArtiaX model ids of derived inputs so subjects can be ghosted in the after
-        # (#1.1.1 = ref tomo; seg inputs -> #1.1.2+, picks inputs -> #1.2.1+, in open order).
-        seg_n, pl_n = 1, 0
+        # Track model ids of derived inputs so subjects can be ghosted in the after
+        # (#1.1.1 = ref tomo; seg inputs -> #1.1.2+, picks inputs -> #1.2.1+, in open order;
+        # filament sets -> top-level #3+).
+        seg_n, pl_n, top_n = 1, 0, FIRST_TOP_LEVEL_ID - 1
         ghost_id: Dict[str, str] = {}
         derive = not spec.before_show
         inputs_in_order = [e for e in spec.inputs.values() if e.kind != TOMOGRAM]
@@ -245,7 +262,7 @@ class CxcEmitter:
         # BEFORE: shared inputs (subjects + references).
         lines.append("# --- before ---")
         for s in self._before_shows(spec):
-            lines.append(_open(s.kind, s.uri))
+            lines += self._open_lines(s.kind, s.uri)
         if derive:
             for e in inputs_in_order:  # same order as the derived before-shows
                 if e.kind == SEGMENTATION:
@@ -254,6 +271,9 @@ class CxcEmitter:
                 elif e.kind == PICKS:
                     pl_n += 1
                     ghost_id[_entity_uri(e)] = f"#1.2.{pl_n}"
+                elif e.kind == FILAMENTS:
+                    top_n += 1
+                    ghost_id[_entity_uri(e)] = f"#{top_n}"
         lines += self._restore(spec)
         lines += self._clip_lines(spec, spec.before_clip)
         lines.append(self._save(before_png, v.width, v.height, v.supersample))
@@ -270,6 +290,8 @@ class CxcEmitter:
                     lines.append(f"transparency {g} {e.ghost_transparency} target a")
                 elif e.kind == SEGMENTATION and g:
                     lines.append(f"volume {g} transparency 0.7")
+                elif e.kind == FILAMENTS and g:
+                    lines.append(f"transparency {g} {e.ghost_transparency} target s")
                 # MESH: no robust id -> translucency comes from a *-faint config alpha
             else:
                 lines.append(_hide(e.kind, uri))
@@ -280,7 +302,7 @@ class CxcEmitter:
                 lines.append(_hide(s.kind, s.uri))
             shows = self._produced_shows(produces, override)
             for s in shows:
-                lines.append(_open(s.kind, s.uri))
+                lines += self._open_lines(s.kind, s.uri)
                 if s.colorize and s.colorize_colors and s.kind == SEGMENTATION:
                     first = 2 + n_before_segs  # ref=#1.1.1, then before-seg inputs, then produced
                     for i, col in enumerate(s.colorize_colors):
@@ -298,6 +320,13 @@ class CxcEmitter:
         lines.append("close session")
         lines.append("")
         return "\n".join(lines)
+
+    @staticmethod
+    def _open_lines(kind: str, uri: str) -> List[str]:
+        lines = [_open(kind, uri)]
+        if _is_label_map(kind, uri):
+            lines.append(LABEL_SURFACE_WAIT)
+        return lines
 
     def _emit_tomo_pyramid(self, spec: RenderSpec) -> str:
         """Render a tomogram subject at two pyramid levels (full vs coarse) — kept for a

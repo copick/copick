@@ -16,6 +16,7 @@ from typing import Dict, List
 
 from .schema import (
     DEFAULT_VOXEL,
+    FILAMENTS,
     MESH,
     PICKS,
     SEGMENTATION,
@@ -57,6 +58,18 @@ def tomo(obj, recipe, voxel=V, **kw):
     return EntitySpec(TOMOGRAM, obj, recipe, kw, voxel_size=voxel)
 
 
+def fils(obj, recipe, role="subject", ghost=False, ghost_transparency=70, **kw):
+    return EntitySpec(
+        FILAMENTS,
+        obj,
+        recipe,
+        kw,
+        role=role,
+        ghost_in_after=ghost,
+        ghost_transparency=ghost_transparency,
+    )
+
+
 # --- produced constructors ------------------------------------------------- #
 def _session_of(uri: str):
     """Literal session id from a copick URI, or None when it is a glob/template (so
@@ -72,7 +85,7 @@ def out_picks(obj, user, uri, min_count=1):
     return ProducedSpec(PICKS, uri, object_name=obj, user_id=user, session_id=_session_of(uri), min_count=min_count)
 
 
-def out_seg(obj, user, uri, multilabel=False):
+def out_seg(obj, user, uri, multilabel=False, instance=False):
     return ProducedSpec(
         SEGMENTATION,
         uri,
@@ -80,11 +93,16 @@ def out_seg(obj, user, uri, multilabel=False):
         user_id=user,
         session_id=_session_of(uri),
         is_multilabel=multilabel,
+        is_instance=instance,
     )
 
 
 def out_mesh(obj, user, uri, min_count=4):
     return ProducedSpec(MESH, uri, object_name=obj, user_id=user, session_id=_session_of(uri), min_count=min_count)
+
+
+def out_fils(obj, user, uri, min_count=1):
+    return ProducedSpec(FILAMENTS, uri, object_name=obj, user_id=user, session_id=_session_of(uri), min_count=min_count)
 
 
 # Common CLI prefix for copick-utils commands. Uses the long ``--run-names`` form: every
@@ -519,6 +537,36 @@ SPECS: List[RenderSpec] = [
             ),
         ],
         notes="Keep only the top/bottom cap surfaces of a closed slab box mesh (drop the side walls).",
+    ),
+    # Filaments: one network (geometry.FILAMENT_CONTROLS) traced from a segmentation, sampled
+    # into picks and painted back into an instance segmentation. Tubes, picks and instances
+    # share each filament's instance colour.
+    RenderSpec(
+        group="convert",
+        command="seg2fil",
+        run_name="seg2fil",
+        inputs={"seg": seg("microtubule", "filament_tubes", ghost=True)},
+        cli=_c("-i", "microtubule:gallery/0@10.0", "-o", "microtubule:seg2fil/0", "--workers", "1"),
+        produces=[out_fils("microtubule", "seg2fil", "microtubule:seg2fil/0", min_count=4)],
+        notes="Trace each filament's centreline (crossing filaments stay two) inside the ghosted segmentation.",
+    ),
+    RenderSpec(
+        group="convert",
+        command="fil2picks",
+        run_name="fil2picks",
+        inputs={"fils": fils("microtubule", "filament_network", ghost=True, ghost_transparency=75)},
+        cli=_c("-i", "microtubule:gallery/0", "-o", "microtubule:fil2picks/0", "--spacing", "100", "--workers", "1"),
+        produces=[out_picks("microtubule", "fil2picks", "microtubule:fil2picks/0", min_count=20)],
+        notes="Oriented picks every 100 A along each filament (+Z along the filament), in its colour.",
+    ),
+    RenderSpec(
+        group="convert",
+        command="fil2seg",
+        run_name="fil2seg",
+        inputs={"fils": fils("microtubule", "filament_network")},
+        cli=_c("-i", "microtubule:gallery/0", "-o", "microtubule:fil2seg/0@10.0?instance=true", "--workers", "1"),
+        produces=[out_seg("microtubule", "fil2seg", "microtubule:fil2seg/0@10.0?instance=true", instance=True)],
+        notes="Paint a tube of each filament's radius into an instance segmentation (same IDs, same colours).",
     ),
     # ===================== process ===================== #
     RenderSpec(

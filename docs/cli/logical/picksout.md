@@ -47,6 +47,11 @@ via `--ref-mesh` or `--ref-seg`). Each input pick is tested against the volume a
 whose coordinates fall outside it are written to the output. This is the inverse of
 `copick logical picksin`, which keeps the picks that fall inside the volume instead.
 
+Each pick is tested at its particle centre (its location plus the shift stored in its
+transform). Kept picks are written unchanged and in their original order, so their
+orientations, instance IDs (e.g. filament IDs) and scores survive. If no pick is kept, an
+empty pick set is written.
+
 ## URI Format
 
 ```text
@@ -60,13 +65,13 @@ Segmentations: name:user_id/session_id@voxel_spacing
 | Option | Type | Default | Description |
 |--------|------|---------|-------------|
 | `-c, --config` | path | — | Path to the configuration file. |
+| `--run-names, -r` | text · multiple | — | Specific run names to process (default: all runs). Repeatable; pass -r once per run. |
 | `--debug / --no-debug` | boolean flag | `False` | Enable debug logging. |
 
 ### Input Options
 
 | Option | Type | Default | Description |
 |--------|------|---------|-------------|
-| `--run-names, -r` | text · multiple | — | Specific run names to process (default: all runs). |
 | `--input, -i` | COPICK_URI | **required** | Input picks URI (format: object_name:user_id/session_id). Supports glob patterns. |
 
 ### Reference Options
@@ -74,7 +79,7 @@ Segmentations: name:user_id/session_id@voxel_spacing
 | Option | Type | Default | Description |
 |--------|------|---------|-------------|
 | `--ref-mesh, -rm` | COPICK_URI | — | Reference mesh URI (format: object_name:user_id/session_id). Supports glob patterns. |
-| `--ref-seg, -rs` | COPICK_URI | — | Reference segmentation URI (format: name:user_id/session_id@voxel_spacing). Supports glob patterns. |
+| `--ref-seg, -rs` | COPICK_URI | — | Reference segmentation URI (format: name:user_id/session_id@voxel_spacing). Supports glob patterns. Append ?instance=true or ?panoptic=true to use an instance or panoptic segmentation (any non-zero voxel of an instance segmentation, or of a panoptic one's label channel, counts). |
 
 ### Tool Options
 

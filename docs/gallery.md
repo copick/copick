@@ -18,6 +18,40 @@ hide:
 
 <div class="ba-slider" data-ba style="--pos:50%" markdown>
 
+![fil2picks input](assets/tools/convert/fil2picks-before.png){ .ba-slider__img .ba-slider__before }
+![fil2picks output](assets/tools/convert/fil2picks-after.png){ .ba-slider__img .ba-slider__after }
+
+</div>
+
+<span class="source-badge source-badge--utils" title="Provided by the copick-utils plugin">utils</span>
+
+**[fil2picks](cli/convert/fil2picks.md)**
+
+Sample picks along filaments.
+
+</div>
+
+<div class="cmd-card" markdown>
+
+<div class="ba-slider" data-ba style="--pos:50%" markdown>
+
+![fil2seg input](assets/tools/convert/fil2seg-before.png){ .ba-slider__img .ba-slider__before }
+![fil2seg output](assets/tools/convert/fil2seg-after.png){ .ba-slider__img .ba-slider__after }
+
+</div>
+
+<span class="source-badge source-badge--utils" title="Provided by the copick-utils plugin">utils</span>
+
+**[fil2seg](cli/convert/fil2seg.md)**
+
+Paint tubes around filaments into an instance segmentation.
+
+</div>
+
+<div class="cmd-card" markdown>
+
+<div class="ba-slider" data-ba style="--pos:50%" markdown>
+
 ![mesh2caps input](assets/tools/convert/mesh2caps-before.png){ .ba-slider__img .ba-slider__before }
 ![mesh2caps output](assets/tools/convert/mesh2caps-after.png){ .ba-slider__img .ba-slider__after }
 
@@ -181,6 +215,23 @@ Convert picks to sphere meshes.
 **[picks2surface](cli/convert/picks2surface.md)**
 
 Convert picks to 2D surface meshes.
+
+</div>
+
+<div class="cmd-card" markdown>
+
+<div class="ba-slider" data-ba style="--pos:50%" markdown>
+
+![seg2fil input](assets/tools/convert/seg2fil-before.png){ .ba-slider__img .ba-slider__before }
+![seg2fil output](assets/tools/convert/seg2fil-after.png){ .ba-slider__img .ba-slider__after }
+
+</div>
+
+<span class="source-badge source-badge--utils" title="Provided by the copick-utils plugin">utils</span>
+
+**[seg2fil](cli/convert/seg2fil.md)**
+
+Trace filaments in segmentations.
 
 </div>
 

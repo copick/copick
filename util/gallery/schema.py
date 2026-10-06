@@ -22,6 +22,7 @@ PICKS = "picks"
 SEGMENTATION = "segmentation"
 MESH = "mesh"
 TOMOGRAM = "tomogram"
+FILAMENTS = "filaments"
 
 
 @dataclass
@@ -36,7 +37,7 @@ class EntitySpec:
     """
 
     kind: str
-    object_name: str  # pickable-object / single-label seg name / mesh object (dashes only)
+    object_name: str  # pickable-object / single-label seg name / mesh / filament object (dashes only)
     recipe: str
     recipe_kwargs: Dict[str, Any] = field(default_factory=dict)
     user_id: str = "gallery"
@@ -46,10 +47,10 @@ class EntitySpec:
     role: str = "subject"  # subject | reference | context
     # Keep an opaque subject input visible-but-translucent in the AFTER frame (instead of
     # hidden), to show the transform in place. picks: per-frame transparency on the markers
-    # (axes stay opaque); seg: volume transparency; mesh: must carry low config alpha
-    # (no robust model id) — use a *-faint object instead.
+    # (axes stay opaque); seg: volume transparency; filaments: transparency on the tubes;
+    # mesh: must carry low config alpha (no robust model id) — use a *-faint object instead.
     ghost_in_after: bool = False
-    ghost_transparency: int = 70  # ChimeraX 'transparency' % for a ghosted PICKS input
+    ghost_transparency: int = 70  # ChimeraX 'transparency' % for a ghosted PICKS / FILAMENTS input
 
 
 @dataclass
@@ -67,7 +68,8 @@ class ProducedSpec:
     session_id: Optional[str] = None  # may be a glob/regex for {instance_id} outputs
     voxel_size: Optional[float] = None
     is_multilabel: bool = False
-    min_count: int = 1  # picks: >= N points; seg: > 0 voxels; mesh: >= N faces
+    is_instance: bool = False  # an instance segmentation (``?instance=true`` in the URI)
+    min_count: int = 1  # picks: >= N points; seg: > 0 voxels; mesh: >= N faces; filaments: >= N filaments
     colorize: bool = False  # color each produced model distinctly (e.g. separate-components)
     colorize_colors: List[str] = field(default_factory=list)  # explicit per-model colors
 

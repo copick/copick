@@ -3,7 +3,7 @@
 The "after" render must never show a stale/empty result, so a variant is only included
 in ``verified_keys`` once every one of its ``ProducedSpec`` is found via the copick API
 with non-trivial content (picks >= min_count points, segmentation has foreground voxels,
-mesh has faces). The emitter renders only verified variants.
+mesh has faces, filament sets have filaments). The emitter renders only verified variants.
 """
 
 from __future__ import annotations
@@ -13,7 +13,7 @@ import subprocess
 from dataclasses import dataclass
 from typing import List, Optional, Set
 
-from .schema import MESH, PICKS, SEGMENTATION, TOMOGRAM, ProducedSpec, RenderSpec
+from .schema import FILAMENTS, MESH, PICKS, SEGMENTATION, TOMOGRAM, ProducedSpec, RenderSpec
 
 
 @dataclass
@@ -112,7 +112,9 @@ class CommandRunner:
             return False, f"picks {ps.object_name}:{ps.user_id}/{sid} < {ps.min_count} pts"
 
         if ps.kind == SEGMENTATION:
-            for s in run.get_segmentations(name=ps.object_name, user_id=ps.user_id, session_id=sid):
+            # Instance segmentations are only listed on request (copick >= 1.28).
+            typed = {"is_instance": True} if ps.is_instance else {}
+            for s in run.get_segmentations(name=ps.object_name, user_id=ps.user_id, session_id=sid, **typed):
                 try:
                     if int(np.count_nonzero(s.numpy())) > 0:
                         return True, "seg ok"
@@ -128,6 +130,15 @@ class CommandRunner:
                 except Exception:  # noqa: BLE001
                     continue
             return False, f"mesh {ps.object_name}:{ps.user_id}/{sid} < {ps.min_count} faces"
+
+        if ps.kind == FILAMENTS:
+            for f in run.get_filaments(object_name=ps.object_name, user_id=ps.user_id, session_id=sid):
+                try:
+                    if len(f.filaments) >= ps.min_count:
+                        return True, f"filaments ok ({len(f.filaments)})"
+                except Exception:  # noqa: BLE001
+                    continue
+            return False, f"filaments {ps.object_name}:{ps.user_id}/{sid} < {ps.min_count} filaments"
 
         if ps.kind == TOMOGRAM:
             return True, "tomogram (not verified)"

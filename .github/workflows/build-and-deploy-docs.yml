@@ -35,7 +35,7 @@ jobs:
           UV_TORCH_BACKEND: cpu
         # Pin minimum versions to the releases that ship the normalized command docstrings, so the
         # rendered CLI reference can't regress to an older (pre-normalization) plugin.
-        run: uv pip install "copick>=1.24.1" "copick-utils>=1.7.1" "copick-torch>=1.1.1" "copick-mcp>=0.6.0"
+        run: uv pip install "copick>=1.24.1" "copick-utils>=1.10.0" "copick-torch>=1.1.1" "copick-mcp>=0.6.0"
 
       # copick-easymode is git-only (not on PyPI) and its CLI module defers all heavy imports
       # (easymode/TensorFlow), so a --no-deps install is enough for make_cli_docs to introspect

@@ -11,6 +11,22 @@ Convert one copick type to another.
 
 <div class="grid cards" markdown>
 
+-   <span class="before-after--card" markdown="span">[![fil2picks input](assets/tools/convert/fil2picks-before.png)](cli/convert/fil2picks.md)[![fil2picks output](assets/tools/convert/fil2picks-after.png)](cli/convert/fil2picks.md)</span>
+
+    **[fil2picks](cli/convert/fil2picks.md)**
+
+    Sample picks along filaments.
+
+    [:octicons-arrow-right-24: Details](cli/convert/fil2picks.md)
+
+-   <span class="before-after--card" markdown="span">[![fil2seg input](assets/tools/convert/fil2seg-before.png)](cli/convert/fil2seg.md)[![fil2seg output](assets/tools/convert/fil2seg-after.png)](cli/convert/fil2seg.md)</span>
+
+    **[fil2seg](cli/convert/fil2seg.md)**
+
+    Paint tubes around filaments into an instance segmentation.
+
+    [:octicons-arrow-right-24: Details](cli/convert/fil2seg.md)
+
 -   <span class="before-after--card" markdown="span">[![mesh2caps input](assets/tools/convert/mesh2caps-before.png)](cli/convert/mesh2caps.md)[![mesh2caps output](assets/tools/convert/mesh2caps-after.png)](cli/convert/mesh2caps.md)</span>
 
     **[mesh2caps](cli/convert/mesh2caps.md)**
@@ -98,6 +114,14 @@ Convert one copick type to another.
     Convert picks to 2D surface meshes.
 
     [:octicons-arrow-right-24: Details](cli/convert/picks2surface.md)
+
+-   <span class="before-after--card" markdown="span">[![seg2fil input](assets/tools/convert/seg2fil-before.png)](cli/convert/seg2fil.md)[![seg2fil output](assets/tools/convert/seg2fil-after.png)](cli/convert/seg2fil.md)</span>
+
+    **[seg2fil](cli/convert/seg2fil.md)**
+
+    Trace filaments in segmentations.
+
+    [:octicons-arrow-right-24: Details](cli/convert/seg2fil.md)
 
 -   <span class="before-after--card" markdown="span">[![seg2mesh input](assets/tools/convert/seg2mesh-before.png)](cli/convert/seg2mesh.md)[![seg2mesh output](assets/tools/convert/seg2mesh-after.png)](cli/convert/seg2mesh.md)</span>
 

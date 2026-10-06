@@ -15,8 +15,8 @@ import os
 import numpy as np
 
 from . import geometry
-from .palette import OBJECTS
-from .schema import MESH, PICKS, SEGMENTATION, TOMOGRAM, EntitySpec, RenderSpec
+from .palette import FILAMENT_OBJECTS, OBJECTS
+from .schema import FILAMENTS, MESH, PICKS, SEGMENTATION, TOMOGRAM, EntitySpec, RenderSpec
 
 USER_ID = "gallery"
 
@@ -31,6 +31,7 @@ def build_config(project_dir: str) -> str:
             "label": label,
             "color": list(color),
             "radius": radius,
+            **({"metadata": {"copick": {"filament": FILAMENT_OBJECTS[name]}}} if name in FILAMENT_OBJECTS else {}),
         }
         for (name, is_particle, label, color, radius) in OBJECTS
     ]
@@ -137,6 +138,18 @@ class FixtureBuilder:
             mesh.mesh = tmesh
             mesh.store()
             self._log(f"  mesh {ent.object_name}:{ent.user_id}/{ent.session_id} ({len(tmesh.faces)} faces)")
+
+        elif ent.kind == FILAMENTS:
+            controls, radii = geometry.build(
+                ent.recipe,
+                rng,
+                shape=spec.tomo_shape,
+                voxel_size=spec.voxel_size,
+                **ent.recipe_kwargs,
+            )
+            filaments = run.new_filaments(ent.object_name, ent.session_id, user_id=ent.user_id, exist_ok=True)
+            filaments.from_control_points(controls, radii=radii, voxel_spacing=spec.voxel_size)
+            self._log(f"  filaments {ent.object_name}:{ent.user_id}/{ent.session_id} ({len(controls)} filaments)")
 
         elif ent.kind == TOMOGRAM:
             vol = geometry.build(

@@ -42,13 +42,22 @@ copick process fit-spline [OPTIONS]
 
 ## Description
 
-Fits regularized 3D parametric splines to skeletonized segmentation volumes and samples
-points along each spline at a regular interval, producing picks. Orientations are computed
-from the local spline direction when `--compute-transforms` is enabled.
+Fits a smoothing 3D spline to every filament of a skeleton (or segmentation) volume and
+samples points along each spline exactly `--spacing-distance` voxels apart, producing picks.
+The skeleton is split into filaments between ends and junctions, continuing straight
+through junctions, so crossing or separate filaments each get their own spline. All picks go
+into one pick set: grouped by filament, in order along it, with the filament's number
+(1, 2, ... by length) as the pick's instance ID. With `--compute-transforms`, each pick's
++Z axis follows the spline's direction, and the rotation about it changes as little as
+possible along the filament.
 
-Curvature-based outlier removal is applied iteratively to discard skeleton points that
-produce unrealistically sharp bends, while the connectivity radius controls how skeleton
-voxels are joined into a connected curve before fitting.
+Where a spline turns more sharply than `--curvature-threshold` between samples, its
+smoothing is increased (up to `--max-iterations` times). `--filaments` also stores the
+fitted splines as copick Filaments.
+
+For new work, `copick convert seg2fil` (tracing, with an instance segmentation and
+thickness-based filters) and `copick convert fil2picks` (sampling in angstroms) separate
+tracing from sampling.
 
 ## URI Format
 
@@ -62,48 +71,49 @@ Picks: object_name:user_id/session_id
 | Option | Type | Default | Description |
 |--------|------|---------|-------------|
 | `-c, --config` | path | — | Path to the configuration file. |
+| `--run-names, -r` | text · multiple | — | Specific run names to process (default: all runs). Repeatable; pass -r once per run. |
 | `--debug / --no-debug` | boolean flag | `False` | Enable debug logging. |
 
 ### Input Options
 
 | Option | Type | Default | Description |
 |--------|------|---------|-------------|
-| `--run-names` | text · multiple | — | Specific run names to process (default: all runs). |
-| `--input, -i` | COPICK_URI | **required** | Input segmentation URI (format: name:user_id/session_id@voxel_spacing). Supports glob patterns. |
-| `--voxel-spacing, -vs` | float | **required** | Voxel spacing for coordinate scaling. |
+| `--input, -i` | COPICK_URI | **required** | Input segmentation URI (format: name:user_id/session_id@voxel_spacing). Supports glob patterns. Append ?instance=true or ?panoptic=true to read those segmentation types. |
 
 ### Tool Options
 
 | Option | Type | Default | Description |
 |--------|------|---------|-------------|
-| `--spacing-distance` | float | **required** | Distance between consecutive sampled points along the spline. |
-| `--smoothing-factor` | float | — | Smoothing parameter for spline fitting (auto if not provided). |
+| `--spacing-distance` | float | **required** | Distance between consecutive sampled points along each spline, in voxels. |
+| `--smoothing-factor` | float | — | Smoothing parameter for spline fitting (scipy's s, in voxels squared; auto if not provided). |
 | `--degree` | integer | `3` | Degree of the spline (1-5). |
-| `--connectivity-radius` | float | `2.0` | Maximum distance to consider skeleton points as connected. |
 | `--compute-transforms / --no-compute-transforms` | boolean flag | `True` | Whether to compute orientations for picks. |
-| `--curvature-threshold` | float | `0.2` | Maximum allowed curvature before outlier removal. |
-| `--max-iterations` | integer | `5` | Maximum number of outlier removal iterations. |
-| `--workers` | integer | `8` | Number of worker processes. |
+| `--curvature-threshold` | float | `0.2` | Largest sine of the turning angle between consecutive sampled points; a spline that turns more sharply is smoothed further. |
+| `--max-iterations` | integer | `5` | Maximum number of smoothing increases. |
+| `--label` | integer | — | Label to fit in a multilabel segmentation (default: every non-zero voxel). |
+| `--workers, -w` | integer | `8` | Number of worker processes. |
 
 ### Output Options
 
 | Option | Type | Default | Description |
 |--------|------|---------|-------------|
 | `--output, -o` | COPICK_URI | **required** | Output picks URI. Supports smart defaults (e.g., "ribosome", "ribosome/my-session", or "/my-session"). Full format: object_name:user_id/session_id. |
+| `--filaments, -of` | COPICK_URI | — | Also store the fitted splines as copick Filaments (exact B-spline curves) under this URI. |
 
 ## Examples
 
 ```bash
-# Fit splines to skeletonized components
-copick process fit_spline -i "skeleton:skel/inst-.*@10.0" \
-    -o "skeleton:spline/spline-{input_session_id}" --spacing-distance 4.4 --voxel-spacing 10.0
+# Fit splines to skeletonized components (voxel spacing from the @10.0 in -i)
+copick process fit-spline -i "skeleton:skel/inst-.*@10.0" \
+    -o "skeleton:spline/spline-{input_session_id}" --spacing-distance 4.4
 
 # Process a single skeleton component
-copick process fit_spline -i "skeleton:skel/skel-0@10.0" \
-    -o "skeleton:spline/spline-0" --spacing-distance 2.0 --voxel-spacing 10.0
+copick process fit-spline -i "skeleton:skel/skel-0@10.0" \
+    -o "skeleton:spline/spline-0" --spacing-distance 2.0
 ```
 
 ## See also
 
+- [`copick convert seg2fil`](../convert/seg2fil.md) — trace filaments in a segmentation (Filaments and an instance segmentation)
+- [`copick convert fil2picks`](../convert/fil2picks.md) — sample picks along filaments, in angstroms
 - [`copick process skeletonize`](skeletonize.md) — produce the skeleton segmentations fed to this command
-- `copick process separate_components` — split a segmentation into per-instance skeletons first
