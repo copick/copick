@@ -761,3 +761,36 @@ class TestFilamentSpec:
             ["-c", test_payload["cfg_file"], "--name", "membrane", "--object-type", "segmentation", "--polar"],
         )
         assert result.exit_code != 0
+
+
+class TestFilamentsModel:
+    """The traced-filaments file format."""
+
+    def test_filament_needs_two_finite_points_and_a_positive_id(self):
+        from copick.models import CopickFilament
+
+        CopickFilament(instance_id=1, points=[(0, 0, 0), (1, 0, 0)])
+        for bad in (
+            {"instance_id": 1, "points": [(0, 0, 0)]},
+            {"instance_id": 0, "points": [(0, 0, 0), (1, 0, 0)]},
+            {"instance_id": 1, "points": [(0, 0, 0), (float("nan"), 0, 0)]},
+            {"instance_id": 1, "points": [(0, 0, 0), (1, 0, 0)], "radius": 0},
+        ):
+            with pytest.raises(ValueError):
+                CopickFilament(**bad)
+
+    def test_file_ids_are_unique_and_versioned(self):
+        from copick.models import CopickFilamentsFile
+
+        f = CopickFilamentsFile(pickable_object_name="mt", user_id="u", session_id="1")
+        assert f.version == 1 and f.unit == "angstrom" and f.filaments == []
+        with pytest.raises(ValueError, match="unique"):
+            CopickFilamentsFile(
+                pickable_object_name="mt",
+                user_id="u",
+                session_id="1",
+                filaments=[
+                    {"instance_id": 1, "points": [(0, 0, 0), (1, 0, 0)]},
+                    {"instance_id": 1, "points": [(0, 0, 0), (2, 0, 0)]},
+                ],
+            )
