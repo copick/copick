@@ -1,5 +1,12 @@
 # Changelog
 
+## [2.0.0-alpha.3](https://github.com/copick/copick/compare/copick-v2.0.0-alpha.2...copick-v2.0.0-alpha.3) (2026-10-06)
+
+
+### 🐞 Bug Fixes
+
+* bump the version of prereleases in src/copick/__init__.py ([#500](https://github.com/copick/copick/issues/500)) ([c7dbc6e](https://github.com/copick/copick/commit/c7dbc6e99540dd0343cbc691da1597c9918b71a8))
+
 ## [2.0.0-alpha.2](https://github.com/copick/copick/compare/copick-v2.0.0-alpha.1...copick-v2.0.0-alpha.2) (2026-10-06)
 
 
