@@ -283,6 +283,37 @@ CSV_SCHEMA: Dict[str, Dict[str, Any]] = {
             "portal_annotation_file_id": "sc:Text",
         },
     },
+    # Panoptic segmentations likewise.
+    "copick/panoptic_segmentations": {
+        "csv_name": "panoptic_segmentations.csv",
+        "file_object_id": "panoptic-segmentations-csv",
+        "recordset_name": "panoptic_segmentations",
+        "columns": [
+            "run",
+            "voxel_size",
+            "user_id",
+            "session_id",
+            "name",
+            "url",
+            "portal_object_name",
+            "portal_session_id",
+            "portal_annotation_id",
+            "portal_annotation_file_id",
+        ],
+        "key_fields": ("run", "voxel_size", "user_id", "session_id", "name"),
+        "types": {
+            "run": "sc:Text",
+            "voxel_size": "sc:Float",
+            "user_id": "sc:Text",
+            "session_id": "sc:Text",
+            "name": "sc:Text",
+            "url": "sc:Text",
+            "portal_object_name": "sc:Text",
+            "portal_session_id": "sc:Text",
+            "portal_annotation_id": "sc:Text",
+            "portal_annotation_file_id": "sc:Text",
+        },
+    },
     "copick/objects": {
         "csv_name": "objects.csv",
         "file_object_id": "objects-csv",
@@ -303,6 +334,7 @@ RECORDSET_ORDER = [
     "copick/meshes",
     "copick/segmentations",
     "copick/instance_segmentations",
+    "copick/panoptic_segmentations",
     "copick/objects",
 ]
 
@@ -446,6 +478,15 @@ def _sha256_path(fs: AbstractFileSystem, path: str) -> str:
 _RECORDSET_BY_FILE_OBJECT = {schema["file_object_id"]: rs_id for rs_id, schema in CSV_SCHEMA.items()}
 
 
+def segmentation_recordset(seg_type: str) -> str:
+    """The recordset that lists segmentations of a type: binary and multilabel share ``copick/segmentations``,
+    newer types each have their own, which readers that predate them ignore."""
+    return {
+        "instance": "copick/instance_segmentations",
+        "panoptic": "copick/panoptic_segmentations",
+    }.get(seg_type, "copick/segmentations")
+
+
 def schema_field(recordset_id: str, column: str) -> Dict[str, Any]:
     """The ``cr:Field`` declaring one CSV column of a recordset."""
     schema = CSV_SCHEMA[recordset_id]
@@ -516,6 +557,7 @@ class CroissantIndex:
     meshes: List[Dict[str, Any]] = field(default_factory=list)
     segmentations: List[Dict[str, Any]] = field(default_factory=list)
     instance_segmentations: List[Dict[str, Any]] = field(default_factory=list)
+    panoptic_segmentations: List[Dict[str, Any]] = field(default_factory=list)
     objects: List[Dict[str, Any]] = field(default_factory=list)
 
     # Write-side state
@@ -696,6 +738,7 @@ class CroissantIndex:
             "copick/meshes": self.meshes,
             "copick/segmentations": self.segmentations,
             "copick/instance_segmentations": self.instance_segmentations,
+            "copick/panoptic_segmentations": self.panoptic_segmentations,
             "copick/objects": self.objects,
         }[recordset_id]
 
@@ -787,6 +830,7 @@ class CroissantIndex:
             self.meshes.clear()
             self.segmentations.clear()
             self.instance_segmentations.clear()
+            self.panoptic_segmentations.clear()
             self.objects.clear()
             self._dirty.clear()
             self._load_records()
@@ -1332,7 +1376,7 @@ class CopickSegmentationMLC(CopickSegmentationOverlay):
 
     @property
     def _recordset_id(self) -> str:
-        return "copick/instance_segmentations" if self.is_instance else "copick/segmentations"
+        return segmentation_recordset(self.segmentation_type)
 
     def _row_key(self) -> Dict[str, Any]:
         key = {
@@ -1342,7 +1386,7 @@ class CopickSegmentationMLC(CopickSegmentationOverlay):
             "session_id": self.session_id,
             "name": self.name,
         }
-        if not self.is_instance:
+        if self._recordset_id == "copick/segmentations":
             key["is_multilabel"] = bool(self.is_multilabel)
         return key
 
@@ -1362,6 +1406,7 @@ class CopickSegmentationMLC(CopickSegmentationOverlay):
             self.name,
             is_multilabel=self.is_multilabel,
             is_instance=self.is_instance,
+            is_panoptic=self.is_panoptic,
         )
 
     @property
@@ -2040,14 +2085,19 @@ class CopickRunMLC(CopickRunOverlay):
     def _index_segmentation_metas(self) -> List[CopickSegmentationMeta]:
         """This run's segmentations as the Croissant index lists them (both segmentation recordsets)."""
         metas = []
-        for rows, is_instance in ((self._index.segmentations, False), (self._index.instance_segmentations, True)):
+        for rows, seg_type in (
+            (self._index.segmentations, None),
+            (self._index.instance_segmentations, "instance"),
+            (self._index.panoptic_segmentations, "panoptic"),
+        ):
             for row in rows:
                 if row.get("run") != self.name:
                     continue
                 metas.append(
                     CopickSegmentationMeta(
                         is_multilabel=bool(row.get("is_multilabel")),
-                        is_instance=is_instance,
+                        is_instance=seg_type == "instance",
+                        is_panoptic=seg_type == "panoptic",
                         voxel_size=float(row["voxel_size"]),
                         user_id=row["user_id"],
                         session_id=row["session_id"],

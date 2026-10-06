@@ -7,7 +7,11 @@ beside new ``*_v3`` project, overlay, and configuration paths.
 Usage:
     python tests/scripts/build_v3_twin.py SOURCE --output sample_project.zip
 
-``SOURCE`` may be the extracted archive root or the legacy zip itself.
+``SOURCE`` may be the extracted archive root or the legacy zip itself, as written by
+``regenerate_sample_zip.py`` on the 1.x line. Channel-first (4D) stores, such as
+panoptic segmentations, keep their channel axis with one channel per chunk. The
+build refuses to pack if a metadata file names a local path or a config's
+storage root is not the placeholder.
 """
 
 from __future__ import annotations
@@ -30,10 +34,16 @@ from ome_zarr_models.v05.image import Image
 from zarr.codecs import Shuffle, ZstdCodec
 from zarr.storage import LocalStore
 
-EXPECTED_STORES = 23
-EXPECTED_ARRAYS = 61
+EXPECTED_STORES = 25
+EXPECTED_ARRAYS = 67
 SPATIAL_CHUNKS = (128, 128, 128)
 ZIP_TIMESTAMP = (1980, 1, 1, 0, 0, 0)
+
+# Shipped configs' storage roots (the test fixtures replace them) and the metadata files checked for local paths.
+PLACEHOLDER_ROOT = "local:///PATH/TO/EXTRACTED"
+TEXT_SUFFIXES = {".json", ".csv", ".md", ".txt", ".yaml", ".yml", ".star", ".tsv"}
+ZARR_METADATA = {".zattrs", ".zarray", ".zgroup", ".zmetadata", "zarr.json"}
+LOCAL_PATH_MARKERS = ("/hpc/", "/home/", "/Users/", "/tmp/", "/scratch/", "/mnt/", "file://", "C:\\")
 
 
 def _digest(path: Path, algorithm: str = "sha256") -> str:
@@ -134,8 +144,8 @@ def _convert_store(source_path: Path, target_path: Path) -> int:
     attributes = []
     for dataset in datasets:
         array = source[dataset["path"]]
-        if array.ndim != 3:
-            raise ValueError(f"Legacy corpus array {source_path / dataset['path']} is not 3D")
+        if array.ndim not in (3, 4):
+            raise ValueError(f"Legacy corpus array {source_path / dataset['path']} is neither 3D nor channel-first 4D")
         arrays.append(np.asarray(array))
         attributes.append(dict(array.attrs))
 
@@ -149,6 +159,7 @@ def _convert_store(source_path: Path, target_path: Path) -> int:
         array_attributes=attributes,
         multiscale_metadata=multiscale.get("metadata"),
         name=multiscale.get("name"),
+        feature_major=arrays[0].ndim == 4,
     )
     for level, expected in enumerate(arrays):
         np.testing.assert_array_equal(target[str(level)][:], expected)
@@ -205,6 +216,26 @@ def _non_zarr_files(root: Path) -> dict[str, str]:
         if path.is_file() and not any(part.endswith(".zarr") for part in path.relative_to(root).parts):
             result[path.relative_to(root).as_posix()] = _digest(path)
     return result
+
+
+def _local_paths(root: Path, forbidden: list[str]) -> list[str]:
+    """Metadata files under ``root`` that name a local path, or configs whose storage roots are not the placeholder."""
+    hits = []
+    for path in sorted(root.rglob("*")):
+        if not path.is_file() or not (path.suffix in TEXT_SUFFIXES or path.name in ZARR_METADATA):
+            continue
+        text = path.read_text(errors="replace")
+        found = [marker for marker in (*forbidden, *LOCAL_PATH_MARKERS) if marker and marker in text]
+        if path.parent == root and path.name.startswith("filesystem") and path.suffix == ".json":
+            config = json.loads(text)
+            found += [
+                f"{key}={config[key]}"
+                for key in ("static_root", "overlay_root")
+                if key in config and not str(config[key]).startswith(PLACEHOLDER_ROOT)
+            ]
+        if found:
+            hits.append(f"{path.relative_to(root)}: {sorted(set(found))}")
+    return hits
 
 
 def _pack(source: Path, output: Path) -> None:
@@ -266,6 +297,9 @@ def build(source: Path, output: Path) -> dict:
             built_root / "filesystem_overlay_only.json",
             built_root / "filesystem_overlay_only_v3.json",
         )
+        hits = _local_paths(built_root, [str(workspace), str(Path.home())])
+        if hits:
+            raise ValueError("Local paths in the corpus:\n  " + "\n  ".join(hits))
         _pack(built_root, output)
 
     return {

@@ -437,6 +437,7 @@ def add_segmentation(
     session_id: str,
     multilabel: bool = False,
     instance: bool = False,
+    panoptic: bool = False,
     transpose: Optional[str] = None,
     flip: Optional[str] = None,
     create: bool = True,
@@ -459,6 +460,9 @@ def add_segmentation(
         transpose (str, optional): Transpose axes. E.g., '2,1,0' to reverse all axes. Default: None.
         flip (str, optional): Flip axes. E.g., '0' to flip Z, '0,2' to flip Z and X. Default: None.
     """
+
+    if panoptic:
+        raise ValueError("MRC holds no channels; import a panoptic segmentation from a two-channel TIFF or Zarr.")
 
     # Read the Segmentation Mask
     if mask_path.endswith(".mrc"):
@@ -487,6 +491,7 @@ def add_segmentation(
         user_id=user_id,
         is_multilabel=multilabel,
         is_instance=instance,
+        is_panoptic=panoptic,
         voxel_size=voxel_spacing,
         session_id=session_id,
         exist_ok=exist_ok,
@@ -1367,6 +1372,7 @@ def _add_segmentation_from_array(
     session_id: str,
     multilabel: bool = False,
     instance: bool = False,
+    panoptic: bool = False,
     transpose: Optional[str] = None,
     flip: Optional[str] = None,
     create: bool = True,
@@ -1386,6 +1392,8 @@ def _add_segmentation_from_array(
         session_id: Session ID for the segmentation.
         multilabel: Whether this is a multilabel segmentation.
         instance: Whether this is an instance segmentation (voxel = instance ID of the object `name`).
+        panoptic: Whether this is a panoptic segmentation: a two-channel (2, Z, Y, X) volume of object labels and
+            instance IDs.
         transpose: Transpose axes. E.g., '2,1,0' to reverse all axes. Default: None.
         flip: Flip axes. E.g., '0' to flip Z, '0,2' to flip Z and X. Default: None.
         create: Create run if it doesn't exist.
@@ -1396,14 +1404,17 @@ def _add_segmentation_from_array(
     Returns:
         The created CopickSegmentation object.
     """
+    # Transpose and flip address the spatial axes; a panoptic volume's leading channel axis stays first.
+    offset = 1 if panoptic else 0
+
     # Apply transpose if specified
     if transpose:
-        axes = tuple(int(x.strip()) for x in transpose.split(","))
-        volume = np.transpose(volume, axes)
+        axes = tuple(int(x.strip()) + offset for x in transpose.split(","))
+        volume = np.transpose(volume, tuple(range(offset)) + axes)
 
     # Apply flip if specified (after transpose)
     if flip:
-        flip_axes = tuple(int(x.strip()) for x in flip.split(","))
+        flip_axes = tuple(int(x.strip()) + offset for x in flip.split(","))
         for axis in flip_axes:
             volume = np.flip(volume, axis=axis)
 
@@ -1414,6 +1425,7 @@ def _add_segmentation_from_array(
         user_id=user_id,
         is_multilabel=multilabel,
         is_instance=instance,
+        is_panoptic=panoptic,
         voxel_size=voxel_spacing,
         session_id=session_id,
         exist_ok=exist_ok,
@@ -1438,6 +1450,7 @@ def _add_segmentation_tiff(
     session_id: str,
     multilabel: bool = False,
     instance: bool = False,
+    panoptic: bool = False,
     transpose: Optional[str] = None,
     flip: Optional[str] = None,
     create: bool = True,
@@ -1457,6 +1470,8 @@ def _add_segmentation_tiff(
         session_id: Session ID for the segmentation.
         multilabel: Whether this is a multilabel segmentation.
         instance: Whether this is an instance segmentation (voxel = instance ID of the object `name`).
+        panoptic: Whether this is a panoptic segmentation: a two-channel (2, Z, Y, X) volume of object labels and
+            instance IDs.
         transpose: Transpose axes. E.g., '2,1,0' to reverse all axes. Default: None.
         flip: Flip axes. E.g., '0' to flip Z, '0,2' to flip Z and X. Default: None.
         create: Create run if it doesn't exist.
@@ -1487,6 +1502,7 @@ def _add_segmentation_tiff(
         session_id=session_id,
         multilabel=multilabel,
         instance=instance,
+        panoptic=panoptic,
         transpose=transpose,
         flip=flip,
         create=create,
@@ -1506,6 +1522,7 @@ def _add_segmentation_em(
     session_id: str,
     multilabel: bool = False,
     instance: bool = False,
+    panoptic: bool = False,
     transpose: Optional[str] = None,
     flip: Optional[str] = None,
     create: bool = True,
@@ -1525,6 +1542,8 @@ def _add_segmentation_em(
         session_id: Session ID for the segmentation.
         multilabel: Whether this is a multilabel segmentation.
         instance: Whether this is an instance segmentation (voxel = instance ID of the object `name`).
+        panoptic: Whether this is a panoptic segmentation: a two-channel (2, Z, Y, X) volume of object labels and
+            instance IDs.
         transpose: Transpose axes. E.g., '2,1,0' to reverse all axes. Default: None.
         flip: Flip axes. E.g., '0' to flip Z, '0,2' to flip Z and X. Default: None.
         create: Create run if it doesn't exist.
@@ -1536,6 +1555,9 @@ def _add_segmentation_em(
         The created CopickSegmentation object.
     """
     from copick.util.formats import read_em_volume
+
+    if panoptic:
+        raise ValueError("EM holds no channels; import a panoptic segmentation from a two-channel TIFF or Zarr.")
 
     if voxel_spacing is None:
         e = ValueError("voxel_spacing must be provided for EM import.")
@@ -1555,6 +1577,7 @@ def _add_segmentation_em(
         session_id=session_id,
         multilabel=multilabel,
         instance=instance,
+        panoptic=panoptic,
         transpose=transpose,
         flip=flip,
         create=create,
@@ -1774,6 +1797,7 @@ def add_segmentation_from_file(
     file_type: Optional[str] = None,
     multilabel: Optional[bool] = None,
     instance: bool = False,
+    panoptic: bool = False,
     transpose: Optional[str] = None,
     flip: Optional[str] = None,
     create: bool = True,
@@ -1797,8 +1821,10 @@ def add_segmentation_from_file(
         file_type: File type override (e.g., 'mrc', 'tiff', 'em').
                    If None, auto-detected from file extension.
         multilabel: Whether this is a multilabel segmentation. ``None`` (the default) means multilabel unless
-            ``instance`` is set.
+            ``instance`` or ``panoptic`` is set.
         instance: Whether this is an instance segmentation (voxel = instance ID of the object `name`).
+        panoptic: Whether this is a panoptic segmentation: a two-channel (2, Z, Y, X) volume of object labels and
+            instance IDs.
         transpose: Transpose axes. E.g., '2,1,0' to reverse all axes.
         flip: Flip axes. E.g., '0' to flip Z, '0,2' to flip Z and X.
         create: Create run if it doesn't exist.
@@ -1815,12 +1841,18 @@ def add_segmentation_from_file(
     from copick.util.handlers import FormatRegistry
 
     if multilabel is None:
-        multilabel = not instance
+        multilabel = not (instance or panoptic)
 
     # Get handler
     handler = FormatRegistry.get_volume_handler(file_type or file_path)
     if handler is None:
         raise ValueError(f"Unsupported volume format for: {file_path}")
+
+    if panoptic and handler.format_name in ("mrc", "em"):
+        raise ValueError(
+            f"{handler.format_name.upper()} holds no channels; import a panoptic segmentation from a two-channel "
+            "TIFF or Zarr.",
+        )
 
     # Read volume
     volume, file_voxel_size = handler.read(file_path)
@@ -1843,6 +1875,7 @@ def add_segmentation_from_file(
         session_id=session_id,
         multilabel=multilabel,
         instance=instance,
+        panoptic=panoptic,
         transpose=transpose,
         flip=flip,
         create=create,

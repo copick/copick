@@ -173,6 +173,7 @@ def _sync_segmentations_worker(
     log: bool,
     is_multilabel: Optional[bool] = None,
     is_instance: Optional[bool] = False,
+    is_panoptic: Optional[bool] = False,
 ) -> Dict[str, Any]:
     """Worker function for syncing segmentations from one run to another.
 
@@ -189,6 +190,7 @@ def _sync_segmentations_worker(
         log: Whether to log the synchronization process.
         is_multilabel: Whether to sync multilabel segmentations (True), binary ones (False), or both (None).
         is_instance: Whether to sync instance segmentations (True) or not (False, the default); None syncs any type.
+        is_panoptic: Whether to sync panoptic segmentations (True) or not (False, the default); None syncs any type.
 
     Returns:
         A dictionary with the number of processed segmentations and any errors encountered.
@@ -201,6 +203,7 @@ def _sync_segmentations_worker(
             voxel_size=voxel_spacings,
             is_multilabel=is_multilabel,
             is_instance=is_instance,
+            is_panoptic=is_panoptic,
         )
 
         for segmentation in source_segmentations:
@@ -232,6 +235,7 @@ def _sync_segmentations_worker(
                     voxel_size=segmentation.voxel_size,
                     is_multilabel=segmentation.is_multilabel,
                     is_instance=segmentation.is_instance,
+                    is_panoptic=segmentation.is_panoptic,
                     exist_ok=exist_ok,
                 )
 
@@ -456,6 +460,7 @@ def sync_segmentations(
     log: bool = False,
     is_multilabel: Optional[bool] = None,
     is_instance: Optional[bool] = False,
+    is_panoptic: Optional[bool] = False,
 ) -> None:
     """
     Synchronize segmentations between two Copick projects. Without a type, binary and multilabel segmentations are
@@ -476,6 +481,7 @@ def sync_segmentations(
         log: Whether to log the synchronization process.
         is_multilabel: Whether to sync multilabel segmentations (True), binary ones (False), or both (None).
         is_instance: Whether to sync instance segmentations (True) or not (False, the default); None syncs any type.
+        is_panoptic: Whether to sync panoptic segmentations (True) or not (False, the default); None syncs any type.
 
     """
     # Get runs to process
@@ -511,6 +517,7 @@ def sync_segmentations(
             "log": log,
             "is_multilabel": is_multilabel,
             "is_instance": is_instance,
+            "is_panoptic": is_panoptic,
         }
         for run_name in source_runs
     ]

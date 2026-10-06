@@ -209,6 +209,7 @@ def deposit_run(
                         seg.name,
                         is_multilabel=seg.is_multilabel,
                         is_instance=seg.is_instance,
+                        is_panoptic=seg.is_panoptic,
                     )
                     target = run_dir / seg.directory / filename
                     _create_symlink(source, str(target))

@@ -271,6 +271,7 @@ class CopickSegmentationFSSpec(CopickSegmentationOverlay):
             self.name,
             is_multilabel=self.is_multilabel,
             is_instance=self.is_instance,
+            is_panoptic=self.is_panoptic,
         )
 
     @property

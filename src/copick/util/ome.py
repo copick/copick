@@ -157,7 +157,8 @@ def segmentation_pyramid(
     """Create an image pyramid by downsampling without interpolation.
 
     Args:
-        segmentation: The segmentation to downsample.
+        segmentation: The segmentation to downsample, ``(Z, Y, X)`` or channel-first ``(C, Z, Y, X)``. Each channel
+            is downsampled on the same grid, so values that belong together at a voxel stay together.
         voxel_size: The voxel size of the input segmentation.
         levels: The number of levels in the pyramid.
         dtype: The data type of the output arrays. ``None`` keeps the input dtype. A value the cast would change
@@ -172,6 +173,9 @@ def segmentation_pyramid(
     from copick.util.segmentation import checked_label_cast
 
     base = checked_label_cast(segmentation, dtype)
+    if base.ndim == 4:
+        channels = [segmentation_pyramid(channel, voxel_size, levels) for channel in base]
+        return {vs: np.stack([channel[vs] for channel in channels]) for vs in channels[0]}
     dtype = base.dtype
     pyramid = {voxel_size: base}
     vs = voxel_size
@@ -507,10 +511,12 @@ def get_voxel_size_from_zarr(zarr_group: zarr.Group) -> float:
     first_dataset = datasets[0]
     coord_transforms = first_dataset["coordinateTransformations"]
 
-    # Find the scale transformation
+    # Find the scale transformation. Spatial axes come last in OME-NGFF, so a leading channel axis (scale 1) is
+    # skipped by reading the first of the trailing three.
     for transform in coord_transforms:
         if transform["type"] == "scale":
-            scale_value = float(transform["scale"][0])
+            scale = transform["scale"]
+            scale_value = float(scale[len(scale) - 3] if len(scale) >= 3 else scale[0])
 
             # Handle unit conversion
             conversion_factor = UNITFACTOR.get(unit, 1.0)  # Default to 1.0 if unknown unit

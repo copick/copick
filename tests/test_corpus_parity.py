@@ -151,7 +151,7 @@ def test_v3_corpus_matches_every_legacy_store_and_array(local_path):
     legacy_project = local_path / "sample_project"
     v3_project = local_path / "sample_project_v3"
     legacy_stores = sorted(path for path in legacy_project.rglob("*.zarr") if path.is_dir())
-    assert len(legacy_stores) == 23
+    assert len(legacy_stores) == 25
 
     array_count = 0
     for legacy_path in legacy_stores:
@@ -177,7 +177,7 @@ def test_v3_corpus_matches_every_legacy_store_and_array(local_path):
             )
             array_count += 1
 
-    assert array_count == 61
+    assert array_count == 67
     assert _non_zarr_files(v3_project) == _non_zarr_files(legacy_project)
 
     feature_stores = sorted(local_path.glob("*_multifeature_features.zarr"))
