@@ -6,6 +6,7 @@ import time
 import uuid
 from importlib import util as importlib_util
 from pathlib import Path, PurePath
+from typing import Dict, List, Tuple
 
 import fsspec
 import pooch
@@ -274,54 +275,46 @@ if BACKEND in ("all", "mlcroissant") or not RUN_ALL:
 
 
 if BACKEND in ("all", "s3") and importlib_util.find_spec("s3fs") and RUN_ALL:
+    # The mock S3 server (ThreadedMotoServer) runs in this process and serves moto's in-memory backend, so the
+    # fixtures write and delete their objects there directly. Through its HTTP interface, seeding cost about 1 s per
+    # project (one request per file), most of the time of an S3 test.
+    _SEED_FILES: Dict[str, List[Tuple[str, bytes]]] = {}
 
-    def _seed_s3(local_dir: Path, s3_prefix: str, endpoint_url: str):
-        """Seed mock S3 with test data using boto3 (no subprocess overhead)."""
-        import boto3
+    def _s3_backend():
+        from moto.core import DEFAULT_ACCOUNT_ID
+        from moto.s3.models import s3_backends
 
-        parts = s3_prefix.replace("s3://", "").rstrip("/").split("/", 1)
-        bucket = parts[0]
-        key_prefix = (parts[1] + "/") if len(parts) > 1 else ""
+        return s3_backends[DEFAULT_ACCOUNT_ID]["global"]
 
-        s3 = boto3.client(
-            "s3",
-            endpoint_url=endpoint_url,
-            aws_access_key_id="test",
-            aws_secret_access_key="test",
-            region_name="us-west-2",
-        )
-
-        try:
-            s3.head_bucket(Bucket=bucket)
-        except Exception:
-            s3.create_bucket(
-                Bucket=bucket,
-                CreateBucketConfiguration={"LocationConstraint": "us-west-2"},
-            )
-
-        for root, _dirs, files in os.walk(local_dir):
-            for fname in files:
-                local_file = Path(root) / fname
-                rel = str(local_file.relative_to(local_dir))
-                s3.upload_file(str(local_file), bucket, key_prefix + rel)
-
-    def _delete_s3_prefix(s3_prefix: str, endpoint_url: str):
-        """Delete everything under a test's prefix. The mock S3 server keeps every object in memory for the whole
-        session, so a project left behind by each test adds up to more than a CI runner has."""
-        import boto3
-
+    def _split_s3_prefix(s3_prefix: str) -> Tuple[str, str]:
         bucket, _, key_prefix = s3_prefix.replace("s3://", "").partition("/")
-        s3 = boto3.client(
-            "s3",
-            endpoint_url=endpoint_url,
-            aws_access_key_id="test",
-            aws_secret_access_key="test",
-            region_name="us-west-2",
-        )
-        for page in s3.get_paginator("list_objects_v2").paginate(Bucket=bucket, Prefix=key_prefix):
-            keys = [{"Key": item["Key"]} for item in page.get("Contents", [])]
-            if keys:
-                s3.delete_objects(Bucket=bucket, Delete={"Objects": keys, "Quiet": True})
+        return bucket, key_prefix
+
+    def _seed_s3(local_dir: Path, s3_prefix: str):
+        """Copy ``local_dir`` to ``s3_prefix`` on the mock server. Each directory is read from disk once per worker."""
+        bucket, key_prefix = _split_s3_prefix(s3_prefix)
+        backend = _s3_backend()
+        if bucket not in backend.buckets:
+            backend.create_bucket(bucket, "us-west-2")
+
+        files = _SEED_FILES.get(str(local_dir))
+        if files is None:
+            files = [
+                ((Path(root) / name).relative_to(local_dir).as_posix(), (Path(root) / name).read_bytes())
+                for root, _dirs, names in os.walk(local_dir)
+                for name in names
+            ]
+            _SEED_FILES[str(local_dir)] = files
+        for relative, data in files:
+            backend.put_object(bucket, key_prefix + relative, data)
+
+    def _delete_s3_prefix(s3_prefix: str):
+        """Delete everything under a test's prefix. The mock server keeps every object in memory for the whole session,
+        so a project left behind by each test adds up to more than a CI runner has."""
+        bucket, key_prefix = _split_s3_prefix(s3_prefix)
+        backend = _s3_backend()
+        for key in [k for k in backend.get_bucket(bucket).keys if k.startswith(key_prefix)]:
+            backend.delete_object(bucket, key)
 
     @pytest.fixture(scope="session")
     def s3_container(worker_id):
@@ -345,7 +338,7 @@ if BACKEND in ("all", "s3") and importlib_util.find_spec("s3fs") and RUN_ALL:
 
         # To ensure that each test has a unique project directory, generate UUID names
         project_directory = f"{s3_prefix}sample_project_overlay_only_{uuid.uuid1()}/"
-        _seed_s3(base_project_directory, project_directory, endpoint_url)
+        _seed_s3(base_project_directory, project_directory)
 
         # Open baseline config
         with open(base_config_overlay_only, "r") as f:
@@ -376,7 +369,7 @@ if BACKEND in ("all", "s3") and importlib_util.find_spec("s3fs") and RUN_ALL:
 
         if CLEANUP:
             shutil.rmtree(temp_dir)
-            _delete_s3_prefix(project_directory, endpoint_url)
+            _delete_s3_prefix(project_directory)
 
     @pytest.fixture
     def s3(s3_container, base_project_directory, base_overlay_directory, base_config_overlay_only):
@@ -388,10 +381,10 @@ if BACKEND in ("all", "s3") and importlib_util.find_spec("s3fs") and RUN_ALL:
 
         # To ensure that each test has a unique project directory, generate UUID names
         project_directory = f"{s3_prefix}sample_project_{uuid.uuid1()}/"
-        _seed_s3(base_project_directory, project_directory, endpoint_url)
+        _seed_s3(base_project_directory, project_directory)
 
         overlay_directory = f"{s3_prefix}sample_overlay_{uuid.uuid1()}/"
-        _seed_s3(base_overlay_directory, overlay_directory, endpoint_url)
+        _seed_s3(base_overlay_directory, overlay_directory)
 
         # Open baseline config
         with open(base_config_overlay_only, "r") as f:
@@ -431,8 +424,8 @@ if BACKEND in ("all", "s3") and importlib_util.find_spec("s3fs") and RUN_ALL:
 
         if CLEANUP:
             shutil.rmtree(temp_dir)
-            _delete_s3_prefix(project_directory, endpoint_url)
-            _delete_s3_prefix(overlay_directory, endpoint_url)
+            _delete_s3_prefix(project_directory)
+            _delete_s3_prefix(overlay_directory)
 
     COMMON_CASES.extend(["s3_overlay_only", "s3"])
 
