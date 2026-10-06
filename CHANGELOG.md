@@ -1,5 +1,17 @@
 # Changelog
 
+## [1.29.0](https://github.com/copick/copick/compare/copick-v1.28.1...copick-v1.29.0) (2026-10-06)
+
+
+### ✨ Features
+
+* Add filament tracing tutorials ([#503](https://github.com/copick/copick/issues/503)) ([aea28fa](https://github.com/copick/copick/commit/aea28fa9a0ee110f1f886061feceda5c7c807a44))
+
+
+### 📝 Documentation
+
+* filament tracing commands in the CLI reference ([#496](https://github.com/copick/copick/issues/496)) ([9c88950](https://github.com/copick/copick/commit/9c889501b8259e38bbbaa298685fbdb5a3fbf9ee))
+
 ## [1.28.1](https://github.com/copick/copick/compare/copick-v1.28.0...copick-v1.28.1) (2026-10-06)
 
 
