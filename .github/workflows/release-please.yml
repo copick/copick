@@ -89,6 +89,19 @@ jobs:
         run: |
           uv build
 
+      # release-please's own Python updater misses a version with a dotted prerelease suffix (2.0.0-alpha.1), so
+      # src/copick/__init__.py carries an x-release-please-version marker; refuse to upload if it was still missed.
+      - name: Check the built version is the release's
+        env:
+          RELEASE_VERSION: ${{ needs.release-please.outputs.version }}
+        run: >
+          uv run --no-project --with packaging python -c
+          "import glob, os, sys; from packaging.version import Version;
+          want = Version(os.environ['RELEASE_VERSION']);
+          got = Version(os.path.basename(glob.glob('dist/*.whl')[0]).split('-')[1]);
+          print(f'release {want}, built {got}');
+          sys.exit(0 if got == want else f'Built {got}, but the release is {want}: src/copick/__init__.py was not bumped.')"
+
       - name: Publish distribution 📦 to PyPI
         uses: pypa/gh-action-pypi-publish@release/v1
         with:
