@@ -37,7 +37,7 @@ from copick.util.log import get_logger
 @add_debug_option
 @click.argument(
     "object_type",
-    type=click.Choice(["picks", "mesh", "segmentation"], case_sensitive=False),
+    type=click.Choice(["picks", "filaments", "mesh", "segmentation"], case_sensitive=False),
 )
 @click.argument("source_uri", type=CopickURI("any", "input"))
 @click.argument("target_uri", type=CopickURI("any", "output"))
@@ -56,14 +56,14 @@ def cp(
     """
     Copy or duplicate copick objects by URI.
 
-    Copies picks, meshes, or segmentations identified by copick URIs, either within a
-    run or across runs. Both single-object copies and pattern-based batch copies are
+    Copies picks, filaments, meshes, or segmentations identified by copick URIs, either
+    within a run or across runs. Both single-object copies and pattern-based batch copies are
     supported: a concrete TARGET_URI duplicates one object, while a glob/regex SOURCE_URI
     combined with a templated TARGET_URI copies many matching objects at once. Source
     objects are never modified, and existing targets are only replaced when --overwrite
     is given.
 
-    Picks and meshes are addressed as `object_name:user_id/session_id`; segmentations
+    Picks, filaments and meshes are addressed as `object_name:user_id/session_id`; segmentations
     add a voxel spacing as `name:user_id/session_id@voxel_spacing`. For pattern-based
     copies, the TARGET_URI may use the placeholders `{object_name}`, `{name}`,
     `{user_id}`, `{session_id}`, and `{voxel_spacing}` (segmentations only), each filled
@@ -72,7 +72,7 @@ def cp(
     Arguments:
 
         \b
-        OBJECT_TYPE: Type of object to copy (picks, mesh, or segmentation).
+        OBJECT_TYPE: Type of object to copy (picks, filaments, mesh, or segmentation).
         SOURCE_URI: Source copick URI pattern (supports glob and regex).
         TARGET_URI: Target copick URI (use template placeholders for pattern-based copies).
 

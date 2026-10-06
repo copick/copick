@@ -268,6 +268,114 @@ glb file allows relating the mesh to the user or tool that created it, as well a
     object that the mesh represents.
 
 
+#### Filaments
+Traced filaments are stored as JSON files in the `Filaments` directory of the run, named like point annotations
+(`[user_id]_[session_id]_[object_name].json`). Each file holds the filaments of one object, each an ordered
+centreline (polyline) in angstrom coordinates with its own `instance_id`:
+
+```json
+{
+    "pickable_object_name": "microtubule",
+    "user_id": "tracer",
+    "session_id": "1",
+    "voxel_spacing": 10.0,
+    "unit": "angstrom",
+    "version": 1,
+    "filaments": [
+        {"instance_id": 1, "points": [[100.0, 200.0, 50.0], [110.0, 200.5, 50.2], ...],
+         "polarity_known": false, "score": 1.0, "radius": 120.0, "metadata": {}}
+    ]
+}
+```
+
+- `instance_id` is at least 1 and unique within the file; picks sampled from a filament use it as their
+  `instance_id`.
+- `points` are ordered along the filament, at least two, and should be no further apart than the voxel spacing the
+  filament was traced at, so that linear interpolation follows the centreline.
+- `polarity_known` says whether the point order follows the structure's polarity (meaningful for objects whose
+  filament spec has `polar: true`).
+- `version` is the version of this file format.
+
+The cryoET Data Portal has no filament annotations, so data-portal projects keep filaments in their overlay; a
+self-contained Croissant project (Mode A) cannot hold them.
+
+```python
+filaments = run.new_filaments(object_name="microtubule", user_id="tracer", session_id="1")
+filaments.from_numpy([centreline_1, centreline_2], voxel_spacing=10.0)  # (M, 3) arrays in angstrom
+for line in run.get_filaments(object_name="microtubule")[0].numpy():
+    ...
+```
+
+##### Editable curves
+
+A filament can also carry the curve its points were made from, so that an editor can reopen the clicked control points
+or a fitting program's spline instead of re-deriving them from the dense points. The curve is an optional `curve` object
+on a filament, beside `points`; `points` stay the centreline every reader uses, and are regenerated from the curve
+whenever it changes.
+
+```json
+{"instance_id": 1,
+ "points": [[100.0, 200.0, 50.0], "... regenerated from the curve ..."],
+ "curve": {"kind": "catmull-rom", "alpha": 0.5, "step": 10.0,
+           "control_points": [[100.0, 200.0, 50.0], [180.0, 230.0, 55.0], [260.0, 240.0, 70.0]]}}
+```
+
+| Field | Kinds | Rule |
+|---|---|---|
+| `kind` | all | `catmull-rom` (passes through its control points; interactive tracing), `linear`, or `bspline` (a fitted B-spline, stored exactly). Other values are reserved and kept as they are. |
+| `control_points` | all | Ångström, ordered like `points`, finite. `catmull-rom`/`linear`: at least 2, consecutive points distinct. `bspline`: the coefficients, at least `degree + 1`. |
+| `step` | all | > 0 Å: the spacing of the regenerated points, usually the voxel spacing. |
+| `alpha` | `catmull-rom` | 0 to 1, default 0.5 (centripetal). |
+| `degree`, `knots` | `bspline` | Degree 1 to 5; `len(control_points) + degree + 1` non-decreasing knots, clamped (the end values repeat exactly `degree + 1` times, interior values at most `degree` times). |
+| `smoothing` | `bspline` | Optional, the fit's smoothing factor (scipy's `s`); descriptive. |
+
+**Evaluating.** `linear` joins the control points with straight segments. `catmull-rom` is the Barry–Goldman form of the
+Catmull-Rom spline with knot intervals `|P_{i+1} − P_i|^alpha`, and end points extended by `2·P_0 − P_1` and
+`2·P_n − P_{n−1}`; it passes through every control point. `bspline` is evaluated with de Boor's algorithm over the
+domain `[u_degree, u_n]`, exactly as scipy's `splev` evaluates a `splprep` fit; it starts and ends at its first and last
+coefficient.
+
+**Regenerating `points`.** The curve is cut into pieces at its *anchors*: the control points for `catmull-rom` and
+`linear`, and the curve at each distinct knot for `bspline`. Each piece is sampled at
+`m = max(16, ceil(16·ℓ/step))` equal parameter steps (ℓ: the segment's length, or the length of the span's control
+polygon), starting exactly at its anchor and ending at the next. Its length `L` along those samples is then split into
+`N = max(1, ceil(L/step − 1e-9))` equal arc-length steps. The pieces' points are joined, and the curve's end is
+appended. So consecutive points are at most `step` apart and every anchor is one of the points. The reference
+implementation is `copick.util.filaments`, and `tests/data/filament_curves.json` holds reference cases that other
+implementations reproduce to within 10⁻³ Å.
+
+**Writers** regenerate `points` whenever they change the curve, remove `curve` when they change `points` any other way,
+and reverse both together. copick does not store a curve of a known kind that no longer describes its points: it drops
+it, with a warning. Fitting programs store their spline as a `bspline` (`CopickFilamentCurve.from_tck`), scaling the
+coefficients if they fitted voxel coordinates, and record their settings in the filament's `metadata["fit"]`.
+
+**Readers** that do not edit ignore `curve`. A curve is *current* when the first and last points, and every anchor, lie
+within `0.01·step` of the points; an editor only reuses a current curve. Without one, it derives `catmull-rom` control
+points from the points: starting from the two ends, it repeatedly adds the point farthest from the curve through the
+chosen ones until none is farther than the tolerance (half the voxel spacing by default;
+`copick.util.filaments.control_points_from_polyline`). An editor that does not support `bspline`, or needs to insert or
+delete one of its points, converts it the same way.
+
+```python
+filaments = run.new_filaments(object_name="microtubule", user_id="tracer", session_id="1")
+filaments.from_control_points([clicks_1, clicks_2], voxel_spacing=10.0)  # (n, 3) control points in angstrom
+
+curve = filaments.editable_curve(instance_id=1)  # the stored curve, or one derived from the points
+edited = filaments.get(1).with_control_points(moved_control_points)
+filaments.filaments = [edited, filaments.get(2)]
+filaments.store()
+
+from scipy.interpolate import splprep
+from copick.models import CopickFilamentCurve
+
+tck, _ = splprep(centreline_voxels.T, s=5.0, k=3)
+fitted = CopickFilamentCurve.from_tck(tck, step=10.0, smoothing=5.0, scale=10.0)
+run.new_filaments(object_name="microtubule", user_id="fitter", session_id="0").from_curves([fitted])
+```
+
+Refer to the [API Reference](api_reference/base_classes/data_entity_models/CopickFilaments.md) for the
+CopickFilaments API.
+
 #### Dense Segmentations
 Dense segmentations are stored as OME-NGFF files in the `Segmentations` directory of the run. Each can either contain a
 binary segmentation (values of 0 or 1) or a multilabel segmentation (where permissable labels are defined by the
@@ -334,6 +442,8 @@ The on-disk data model of copick is as follows:
       │  └─ 📄 [user_id | tool_name]_[session_id | 0]_[object_name].json
       ├─ 📁 Meshes/
       │  └─ 📄 [user_id | tool_name]_[session_id | 0]_[object_name].glb
+      ├─ 📁 Filaments/
+      │  └─ 📄 [user_id | tool_name]_[session_id | 0]_[object_name].json
       └─ 📁 Segmentations/
          ├─ 📁 [xx.yyy]_[user_id | tool_name]_[session_id | 0]_[object_name].zarr
          │   └─ [OME-NGFF spec at 100% scale, 50% and 25% scale]

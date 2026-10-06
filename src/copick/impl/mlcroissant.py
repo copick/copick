@@ -1716,6 +1716,28 @@ class CopickRunMLC(CopickRunOverlay):
     def _picks_factory(self) -> Type[CopickPicksMLC]:
         return CopickPicksMLC
 
+    def _filaments_factory(self):
+        from copick.impl.filesystem import CopickFilamentsFSSpec
+
+        return CopickFilamentsFSSpec
+
+    def _query_overlay_filaments(self):
+        # Croissant indexes have no filaments recordset: in Mode A (the index is authoritative) there are none, in
+        # Mode B traced filaments live in the overlay.
+        if self.root.mode == "A":
+            return []
+        from copick.impl.filesystem import query_filament_files
+
+        return query_filament_files(self, read_only=False)
+
+    def new_filaments(self, object_name: str, session_id: str, user_id=None, exist_ok: bool = False):
+        if self.root.mode == "A":
+            raise PermissionError(
+                "Filaments cannot be written to a self-contained (Mode A) Croissant project: its index has no "
+                "filaments. Open it with an overlay (Mode B) to trace filaments.",
+            )
+        return super().new_filaments(object_name, session_id, user_id=user_id, exist_ok=exist_ok)
+
     def _mesh_factory(self) -> Tuple[Type[CopickMeshMLC], Type[CopickMeshMeta]]:
         return CopickMeshMLC, CopickMeshMeta
 

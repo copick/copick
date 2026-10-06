@@ -3,6 +3,8 @@ from typing import TYPE_CHECKING, List, Optional
 from copick.models import (
     CopickFeatures,
     CopickFeaturesMeta,
+    CopickFilaments,
+    CopickFilamentsFile,
     CopickMesh,
     CopickMeshMeta,
     CopickObject,
@@ -48,6 +50,30 @@ class CopickPicksOverlay(CopickPicks):
         if self.read_only:
             raise PermissionError("Cannot delete picks in a read-only source.")
 
+        super().delete()
+
+
+class CopickFilamentsOverlay(CopickFilaments):
+    """CopickFilaments class that keeps track of whether the filaments are read-only.
+
+    Attributes:
+        read_only (bool): Whether the filaments are read-only.
+    """
+
+    def __init__(self, run: CopickRun, file: CopickFilamentsFile, read_only: bool = False):
+        super().__init__(run, file)
+        self.read_only = read_only
+
+    def store(self):
+        """Store the filaments, making sure the source is writable."""
+        if self.read_only:
+            raise PermissionError("Cannot store filaments in a read-only source.")
+        super().store()
+
+    def delete(self):
+        """Delete the filaments, making sure the source is writable."""
+        if self.read_only:
+            raise PermissionError("Cannot delete filaments in a read-only source.")
         super().delete()
 
 
@@ -288,6 +314,29 @@ class CopickRunOverlay(CopickRun):
 
         for p in static:
             assert p.read_only, "Picks from static source must be read-only."
+
+        return static + overlay
+
+    def _query_static_filaments(self) -> List[CopickFilamentsOverlay]:
+        """Override to query the static source for filaments; all returned filaments must be read-only. Sources
+        without filaments return none."""
+        return []
+
+    def _query_overlay_filaments(self) -> List[CopickFilamentsOverlay]:
+        """Override to query the overlay source for filaments. Sources without filaments return none."""
+        return []
+
+    def query_filaments(self) -> List[CopickFilamentsOverlay]:
+        """Query all filaments.
+
+        Returns:
+            List[CopickFilamentsOverlay]: List of filaments from both sources.
+        """
+        static = self._query_static_filaments()
+        overlay = self._query_overlay_filaments()
+
+        for f in static:
+            assert f.read_only, "Filaments from static source must be read-only."
 
         return static + overlay
 

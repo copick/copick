@@ -7,6 +7,7 @@ from fsspec import AbstractFileSystem
 
 from copick.impl.overlay import (
     CopickFeaturesOverlay,
+    CopickFilamentsOverlay,
     CopickMeshOverlay,
     CopickObjectOverlay,
     CopickPicksOverlay,
@@ -19,6 +20,7 @@ from copick.models import (
     CopickConfig,
     CopickFeatures,
     CopickFeaturesMeta,
+    CopickFilamentsFile,
     CopickMeshMeta,
     CopickPicksFile,
     CopickRoot,
@@ -106,6 +108,88 @@ class CopickPicksFSSpec(CopickPicksOverlay):
             self.fs.rm(self.path)
         else:
             raise FileNotFoundError(f"File not found: {self.path}")
+
+
+class CopickFilamentsFSSpec(CopickFilamentsOverlay):
+    """CopickFilaments class backed by fsspec storage, at ``{run}/Filaments/{user}_{session}_{object}.json``.
+
+    Works with any run that has ``static_path``/``fs_static`` and ``overlay_path``/``fs_overlay`` (the filesystem,
+    data-portal and Croissant backends).
+
+    Attributes:
+        path (str): The path to the filaments file.
+        directory (str): The directory containing the filaments file.
+        fs (AbstractFileSystem): The filesystem containing the filaments file.
+    """
+
+    @property
+    def directory(self) -> str:
+        base = self.run.static_path if self.read_only else self.run.overlay_path
+        return f"{base}/Filaments/"
+
+    @property
+    def path(self) -> str:
+        return f"{self.directory}{self.user_id}_{self.session_id}_{self.pickable_object_name}.json"
+
+    @property
+    def fs(self) -> AbstractFileSystem:
+        return self.run.fs_static if self.read_only else self.run.fs_overlay
+
+    def _load(self) -> CopickFilamentsFile:
+        if not self.fs.exists(self.path):
+            logger.critical(f"File not found: {self.path}")
+            raise FileNotFoundError(f"File not found: {self.path}")
+
+        with self.fs.open(self.path, "r") as f:
+            data = json.load(f)
+
+        return CopickFilamentsFile(**data)
+
+    def _store(self) -> None:
+        if not self.fs.exists(self.directory):
+            self.fs.makedirs(self.directory, exist_ok=True)
+
+        with self.fs.open(self.path, "w") as f:
+            json.dump(self.meta.model_dump(), f, indent=4)
+
+    def _delete_data(self) -> None:
+        if self.fs.exists(self.path):
+            self.fs.rm(self.path)
+        else:
+            raise FileNotFoundError(f"File not found: {self.path}")
+
+
+def query_filament_files(run, read_only: bool) -> List[CopickFilamentsFSSpec]:
+    """The filaments files in a run's static (``read_only``) or overlay ``Filaments/`` directory.
+
+    File names are ``{user}_{session}_{object}``; names that do not have three parts are skipped.
+    """
+    fs = run.fs_static if read_only else run.fs_overlay
+    if fs is None:
+        return []
+    location = f"{run.static_path if read_only else run.overlay_path}/Filaments/"
+    try:
+        paths = fs.glob(location + "*.json")
+    except FileNotFoundError:
+        return []
+
+    result = []
+    for path in paths:
+        name = path.rsplit("/", 1)[-1][: -len(".json")]
+        if name.startswith("."):
+            continue
+        parts = name.split("_", 2)
+        if len(parts) != 3 or not all(parts):
+            continue
+        user_id, session_id, object_name = parts
+        result.append(
+            CopickFilamentsFSSpec(
+                run=run,
+                file=CopickFilamentsFile(pickable_object_name=object_name, user_id=user_id, session_id=session_id),
+                read_only=read_only,
+            ),
+        )
+    return result
 
 
 class CopickMeshFSSpec(CopickMeshOverlay):
@@ -531,6 +615,17 @@ class CopickRunFSSpec(CopickRunOverlay):
 
     def _picks_factory(self) -> Type[CopickPicksFSSpec]:
         return CopickPicksFSSpec
+
+    def _filaments_factory(self) -> Type["CopickFilamentsFSSpec"]:
+        return CopickFilamentsFSSpec
+
+    def _query_static_filaments(self) -> List["CopickFilamentsFSSpec"]:
+        if self.static_is_overlay:
+            return []
+        return query_filament_files(self, read_only=True)
+
+    def _query_overlay_filaments(self) -> List["CopickFilamentsFSSpec"]:
+        return query_filament_files(self, read_only=False)
 
     def _mesh_factory(self) -> Tuple[Type[CopickMeshFSSpec], Type[CopickMeshMeta]]:
         return CopickMeshFSSpec, CopickMeshMeta

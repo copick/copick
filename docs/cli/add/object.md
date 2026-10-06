@@ -27,14 +27,17 @@ attached to the object.
 |--------|------|---------|-------------|
 | `-c, --config` | path | — | Path to the configuration file. |
 | `--name` | text | **required** | Name of the object to add. |
-| `--object-type` | choice (particle \| segmentation) | `particle` | Type of object: 'particle' for point annotations or 'segmentation' for mask annotations. |
+| `--object-type` | choice (particle \| segmentation \| filament) | `particle` | Type of object: 'particle' for point annotations, 'segmentation' for mask annotations, or 'filament' for point annotations ordered along filaments (e.g. microtubules, actin). |
 | `--label` | integer | — | Numeric label/id for the object. If not provided, will use the next available label. |
 | `--color` | text | — | RGBA color for the object as comma-separated values (e.g. '255,0,0,255' for red). |
 | `--emdb-id` | text | — | EMDB ID for the object. |
 | `--pdb-id` | text | — | PDB ID for the object. |
-| `--identifier` | text | — | Identifier for the object (e.g. Gene Ontology ID or UniProtKB accession). |
+| `--identifier` | text | — | Ontology/database identifier for the object (namespaces: GO, UniProtKB, CHEBI, PDB [dash separator, e.g. PDB-1BXN], UBERON, CL, CDPO). |
 | `--map-threshold` | float | — | Threshold to apply to the map when rendering the isosurface. |
-| `--radius` | float | `50` | Radius of the particle, when displaying as a sphere. |
+| `--radius` | float | `50` | Radius of the particle, when displaying as a sphere. For a filament, the tube radius. |
+| `--polar / --apolar` | boolean flag | — | Filaments only: whether the structure has a polarity (microtubules and actin do). Not stated by default. |
+| `--helical-rise` | float | — | Filaments only: axial rise per subunit in Angstrom. Descriptive only; never used as a sampling default. |
+| `--helical-twist` | float | — | Filaments only: twist per subunit in degrees. Descriptive only. |
 | `--metadata` | text | — | Additional metadata values to associate with the object, in JSON format. |
 | `--volume` | text | — | Path to volume file to associate with the object. |
 | `--volume-format` | choice (mrc \| zarr \| map) | — | Format of the volume file ('mrc' or 'zarr'). Will guess from extension if not provided. |
@@ -56,6 +59,10 @@ copick add object -c config.json --name ribosome --object-type particle \
 # Add a segmentation object with an explicit label
 copick add object -c config.json --name membrane --object-type segmentation \
     --label 1 --color "0,255,0,128"
+
+# Add a polar filament with its tube radius
+copick add object -c config.json --name microtubule --object-type filament \
+    --radius 120 --polar
 ```
 
 ## See also
