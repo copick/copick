@@ -73,6 +73,36 @@ Run easymode's pretrained segmentation networks on a copick project.
 
 <div class="cmd-card" markdown>
 
+[![Tracing microtubules](../assets/mt_tracing_goal_light.png#only-light){ .cmd-card__thumb }![Tracing microtubules](../assets/mt_tracing_goal_dark.png#only-dark){ .cmd-card__thumb }](tutorials/microtubule_tracing.md)
+
+**[Tracing microtubules](tutorials/microtubule_tracing.md)**
+
+Segment microtubules with easymode, trace them into filaments and sample picks along them.
+
+</div>
+
+<div class="cmd-card" markdown>
+
+[![Tracing filaments in ChimeraX](../assets/chimerax_filaments/tracing.png){ .cmd-card__thumb }](tutorials/chimerax_filaments.md)
+
+**[Tracing filaments in ChimeraX](tutorials/chimerax_filaments.md)**
+
+Trace, cut, join and curate filaments by hand in ChimeraX-copick.
+
+</div>
+
+<div class="cmd-card" markdown>
+
+[![Tracing filaments in napari](../assets/napari_filaments/tracing.png){ .cmd-card__thumb }](tutorials/napari_filaments.md)
+
+**[Tracing filaments in napari](tutorials/napari_filaments.md)**
+
+Trace, join and curate filaments by hand in napari-copick.
+
+</div>
+
+<div class="cmd-card" markdown>
+
 [![Syncing the CZII Kaggle Dataset](../assets/tools/tutorials/kaggle.png){ .cmd-card__thumb }](tutorials/kaggle_czii_sync.md)
 
 **[Syncing the CZII Kaggle Dataset](tutorials/kaggle_czii_sync.md)**
