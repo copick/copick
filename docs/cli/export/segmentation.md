@@ -20,20 +20,23 @@ Selects segmentations with the `--segmentation-uri` filter (e.g.
 writes each label map to the chosen format under `--output-dir`. For MRC,
 TIFF, and EM the `--level` pyramid level is exported and TIFF supports
 `--compression`; for Zarr, `--copy-all-levels` writes the full multiscale
-pyramid. Restrict the export to specific runs with `--run-names`.
+pyramid. Restrict the export to specific runs with `--run-names`. A panoptic
+segmentation keeps both channels in Zarr; in MRC, TIFF and EM each channel is
+written to its own file, or only the one chosen with `--channel`.
 
 ## Options
 
 | Option | Type | Default | Description |
 |--------|------|---------|-------------|
 | `-c, --config` | path | — | Path to the configuration file. |
+| `--run-names, -r` | text · multiple | — | Specific run names to process (default: all runs). Repeatable; pass -r once per run. |
 | `--segmentation-uri` | text | **required** | URI to filter segmentations for export (e.g., 'membrane:user1/*@10.0'). |
-| `--run-names` | text | `""` | Comma-separated list of run names to export. If not specified, exports from all runs. |
 | `--output-dir` | directory | **required** | Output directory for exported files. |
 | `--output-format` | choice (mrc \| tiff \| zarr \| em) | **required** | Output format for segmentations. |
 | `--copy-all-levels / --level-only` | boolean flag | `True` | Copy all pyramid levels for Zarr output. |
 | `--compression` | choice (lzw \| zlib \| jpeg \| none) | — | Compression method for TIFF output. |
 | `--level` | integer | `0` | Pyramid level to export (for MRC and TIFF). |
+| `--channel` | choice (label \| instance) | — | Panoptic segmentations only: the channel to write to MRC, TIFF or EM. Without it, each channel is written to its own file (<name>_label, <name>_instance). |
 | `--max-workers` | integer | `4` | Maximum number of worker threads. |
 | `--debug / --no-debug` | boolean flag | `False` | Enable debug logging. |
 

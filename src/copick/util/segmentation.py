@@ -1,7 +1,7 @@
 """Helpers for segmentation volumes: label dtypes that never lose a value, and the store name that records a
 segmentation's type."""
 
-from typing import Any, Dict, List, Optional, Union
+from typing import Any, Dict, Iterable, List, Optional, Union
 
 import numpy as np
 
@@ -111,8 +111,13 @@ def checked_label_cast(data: np.ndarray, dtype: Optional[DTypeLike]) -> np.ndarr
 # ---------------------------------------------------------------------------
 
 #: The segmentation types. ``binary``: one object, voxel = 1. ``multilabel``: several objects, voxel = the object's
-#: ``label``. ``instance``: one object, voxel = the instance ID (0 = background).
-SEGMENTATION_TYPES = ("binary", "multilabel", "instance")
+#: ``label``. ``instance``: one object, voxel = the instance ID (0 = background). ``panoptic``: two channels, the
+#: object ``label`` and the instance ID within that object (see ``PANOPTIC_CHANNELS``).
+SEGMENTATION_TYPES = ("binary", "multilabel", "instance", "panoptic")
+
+#: The channels of a panoptic segmentation, in order: channel 0 holds each voxel's object ``label`` (0 = background),
+#: channel 1 the instance ID within that object (0 = no instance, e.g. a membrane region).
+PANOPTIC_CHANNELS = ("label", "instance")
 
 #: Run-level directory of each type. Binary and multilabel share the original directory, where clients have always
 #: looked; newer types get their own, which clients that predate them never list.
@@ -120,6 +125,7 @@ SEGMENTATION_DIRECTORIES = {
     "binary": "Segmentations",
     "multilabel": "Segmentations",
     "instance": "InstanceSegmentations",
+    "panoptic": "PanopticSegmentations",
 }
 
 # Directories that hold a single type, which therefore needs no mark in the store name.
@@ -132,27 +138,29 @@ _TYPE_SUFFIXES = {"multilabel": "-multilabel"}
 RESERVED_NAME_SUFFIXES = tuple(_TYPE_SUFFIXES.values())
 
 
-def segmentation_type(is_multilabel: bool, is_instance: bool) -> str:
-    """Return ``"binary"``, ``"multilabel"`` or ``"instance"``.
+def segmentation_type(is_multilabel: bool, is_instance: bool, is_panoptic: bool = False) -> str:
+    """Return ``"binary"``, ``"multilabel"``, ``"instance"`` or ``"panoptic"``.
 
     Raises:
-        ValueError: If both flags are set.
+        ValueError: If more than one flag is set.
     """
-    if is_multilabel and is_instance:
-        raise ValueError("A segmentation is either multilabel or instance, not both.")
+    if sum(map(bool, (is_multilabel, is_instance, is_panoptic))) > 1:
+        raise ValueError("A segmentation has one type: multilabel, instance or panoptic.")
     if is_multilabel:
         return "multilabel"
-    return "instance" if is_instance else "binary"
+    if is_instance:
+        return "instance"
+    return "panoptic" if is_panoptic else "binary"
 
 
-def segmentation_directory(is_multilabel: bool = False, is_instance: bool = False) -> str:
+def segmentation_directory(is_multilabel: bool = False, is_instance: bool = False, is_panoptic: bool = False) -> str:
     """The run-level directory that holds a segmentation of this type."""
-    return SEGMENTATION_DIRECTORIES[segmentation_type(is_multilabel, is_instance)]
+    return SEGMENTATION_DIRECTORIES[segmentation_type(is_multilabel, is_instance, is_panoptic)]
 
 
 #: Values of the ``--segmentation-type`` filter of the CLI: one type, or ``all``. Without it, commands select binary
 #: and multilabel segmentations, as ``CopickRun.get_segmentations`` and an untyped URI do.
-SEGMENTATION_TYPE_FILTERS = ("binary", "multilabel", "instance", "all")
+SEGMENTATION_TYPE_FILTERS = ("binary", "multilabel", "instance", "panoptic", "all")
 
 
 def segmentation_type_query(segmentation_type: Optional[str] = None) -> Dict[str, Optional[bool]]:
@@ -161,13 +169,13 @@ def segmentation_type_query(segmentation_type: Optional[str] = None) -> Dict[str
     ``None`` selects binary and multilabel segmentations, ``"all"`` every type.
     """
     if segmentation_type is None:
-        return {"is_multilabel": None, "is_instance": False}
+        return {"is_multilabel": None, "is_instance": False, "is_panoptic": False}
     kind = segmentation_type.lower()
     if kind == "all":
-        return {"is_multilabel": None, "is_instance": None}
+        return {"is_multilabel": None, "is_instance": None, "is_panoptic": None}
     if kind not in SEGMENTATION_TYPES:
         raise ValueError(f"Unknown segmentation type {segmentation_type!r}; use one of {SEGMENTATION_TYPE_FILTERS}.")
-    return {"is_multilabel": kind == "multilabel", "is_instance": kind == "instance"}
+    return {"is_multilabel": kind == "multilabel", "is_instance": kind == "instance", "is_panoptic": kind == "panoptic"}
 
 
 def segmentation_store_name(
@@ -178,12 +186,13 @@ def segmentation_store_name(
     *,
     is_multilabel: bool = False,
     is_instance: bool = False,
+    is_panoptic: bool = False,
 ) -> str:
     """The store name of a segmentation: ``{voxel_size:.3f}_{user}_{session}_{name}[-multilabel].zarr``.
 
     Only multilabel segmentations carry a suffix; other types are told apart by their directory.
     """
-    suffix = _TYPE_SUFFIXES.get(segmentation_type(is_multilabel, is_instance), "")
+    suffix = _TYPE_SUFFIXES.get(segmentation_type(is_multilabel, is_instance, is_panoptic), "")
     return f"{voxel_size:.3f}_{user_id}_{session_id}_{name}{suffix}.zarr"
 
 
@@ -196,8 +205,8 @@ def parse_segmentation_store_name(store_name: str, directory: str = "Segmentatio
             where the ``-multilabel`` suffix does.
 
     Returns:
-        ``voxel_size``, ``user_id``, ``session_id``, ``name``, ``is_multilabel`` and ``is_instance``, or ``None`` if
-        the name is not a segmentation store name.
+        ``voxel_size``, ``user_id``, ``session_id``, ``name``, ``is_multilabel``, ``is_instance`` and ``is_panoptic``,
+        or ``None`` if the name is not a segmentation store name.
     """
     if directory != "Segmentations" and directory not in _DIRECTORY_TYPES:
         raise ValueError(f"{directory} is not a segmentation directory.")
@@ -226,6 +235,7 @@ def parse_segmentation_store_name(store_name: str, directory: str = "Segmentatio
         "name": name,
         "is_multilabel": kind == "multilabel",
         "is_instance": kind == "instance",
+        "is_panoptic": kind == "panoptic",
     }
 
 
@@ -253,3 +263,32 @@ def list_segmentation_stores(fs: Any, run_path: str) -> List[Dict[str, Any]]:
                 continue
             found.append(fields)
     return found
+
+
+def panoptic_channel_index(channel: Union[str, int]) -> int:
+    """The index of a panoptic channel given by name (``"label"``, ``"instance"``) or index (0, 1)."""
+    if isinstance(channel, str) and channel in PANOPTIC_CHANNELS:
+        return PANOPTIC_CHANNELS.index(channel)
+    if not isinstance(channel, (bool, str)) and channel in (0, 1):
+        return int(channel)
+    raise ValueError(f"Unknown panoptic channel {channel!r}; use one of {PANOPTIC_CHANNELS} or 0/1.")
+
+
+def check_panoptic_values(labels: np.ndarray, instances: np.ndarray, known_labels: Iterable[int]) -> None:
+    """Refuse panoptic values that do not mean anything.
+
+    Args:
+        labels: Channel 0 (object labels), any shape.
+        instances: Channel 1 (instance IDs), the same shape.
+        known_labels: The ``label`` of every pickable object.
+
+    Raises:
+        ValueError: If a label is not 0 or a pickable object's label, or a background voxel (label 0) carries an
+            instance ID.
+    """
+    unknown = sorted(set(np.unique(labels).tolist()) - {0} - set(known_labels))
+    if unknown:
+        raise ValueError(f"Panoptic label channel holds {unknown}, which no pickable object has as its label.")
+    stray = int(np.count_nonzero((labels == 0) & (instances != 0)))
+    if stray:
+        raise ValueError(f"{stray} background voxels (label 0) carry an instance ID; instances belong to an object.")

@@ -471,3 +471,32 @@ def test_export_run_keeps_segmentation_types_apart(test_payload, tmp_path):
     assert export_run(run, str(tmp_path), segmentation_uri=uri, output_format="tiff")["segmentations"] == 1
     assert os.path.exists(tmp_path / "TS_001" / "Segmentations" / "ribosome_exp_88.tiff")
     assert os.path.exists(tmp_path / "TS_001" / "InstanceSegmentations" / "ribosome_exp_88.tiff")
+
+
+def test_export_panoptic_segmentation(test_payload, tmp_path):
+    """MRC, TIFF and EM hold one channel of a panoptic segmentation; Zarr keeps both."""
+    import numpy as np
+    from copick.util.formats import read_tiff_volume
+
+    run = test_payload["root"].get_run("TS_001")
+    data = np.zeros((2, 4, 4, 4), dtype=np.uint16)
+    data[0, 1:3, 1:3, 1:3], data[1, 1:3, 1:3, 1:3] = 2, 5
+    seg = run.new_segmentation(10.0, "cells", "4", user_id="exp", is_panoptic=True)
+    seg.from_numpy(data)
+
+    with pytest.raises(ValueError, match="--channel"):
+        export_segmentation(seg, str(tmp_path / "pan.tif"), "tiff")
+    path = export_segmentation(seg, str(tmp_path / "pan.tif"), "tiff", channel="instance")
+    assert np.array_equal(read_tiff_volume(path), data[1])
+    path = export_segmentation(seg, str(tmp_path / "pan.zarr"), "zarr")
+    assert zarr.open(path, mode="r")["0"].shape == (2, 4, 4, 4)
+
+    results = export_run(
+        run,
+        str(tmp_path / "run"),
+        segmentation_uri="cells:exp/4@10.0?panoptic=true",
+        output_format="tiff",
+    )
+    assert results["segmentations"] == 1, results
+    out = tmp_path / "run" / "TS_001" / "PanopticSegmentations"
+    assert sorted(p.name for p in out.iterdir()) == ["cells_exp_4_instance.tiff", "cells_exp_4_label.tiff"]

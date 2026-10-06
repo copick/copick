@@ -922,8 +922,12 @@ class TestInstanceSegmentationURI:
         result = parse_copick_uri("microtubule:tracer/7@10.0?instance=true", "segmentation")
         assert result["instance"] is True and result["multilabel"] is None
         assert parse_copick_uri("microtubule:tracer/7@10.0", "segmentation")["instance"] is None
-        with pytest.raises(ValueError, match="multilabel or instance"):
+        with pytest.raises(ValueError, match="one type"):
             parse_copick_uri("microtubule:tracer/7@10.0?multilabel=true&instance=true", "segmentation")
+        result = parse_copick_uri("cell:tracer/7@10.0?panoptic=true", "segmentation")
+        assert result["panoptic"] is True and result["instance"] is None
+        with pytest.raises(ValueError, match="one type"):
+            parse_copick_uri("cell:tracer/7@10.0?instance=true&panoptic=true", "segmentation")
 
     def test_serialize_from_dict(self):
         uri = serialize_copick_uri_from_dict(

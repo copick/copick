@@ -30,6 +30,7 @@ from copick.impl.mlcroissant import (
     STANDARD_SPLIT_URIS,
     _fs_for_url,
     schema_field,
+    segmentation_recordset,
 )
 from copick.models import CopickRoot
 from copick.util.log import get_logger
@@ -555,6 +556,7 @@ def _iter_segmentations_filtered(run, is_cdp, portal_meta, portal_author):
             portal_meta_query=portal_meta or None,
             portal_author_query=portal_author or None,
             is_instance=None,
+            is_panoptic=None,
         )
     else:
         yield from run.segmentations
@@ -634,6 +636,7 @@ def _walk_project(
                 s.name,
                 bool(s.is_multilabel),
                 bool(s.is_instance),
+                bool(s.is_panoptic),
             ),
         )
 
@@ -769,6 +772,7 @@ def _walk_project(
                 seg.name,
                 bool(seg.is_multilabel),
                 bool(seg.is_instance),
+                bool(seg.is_panoptic),
             )
             if allowed_segs is not None and key not in allowed_segs:
                 continue
@@ -802,11 +806,10 @@ def _walk_project(
             }
             if is_cdp:
                 seg_row.update(_portal_annotation_fields(seg))
-            if seg.is_instance:
+            recordset = segmentation_recordset(seg.segmentation_type)
+            if recordset != "copick/segmentations":
                 seg_row.pop("is_multilabel")
-                rows["copick/instance_segmentations"].append(seg_row)
-            else:
-                rows["copick/segmentations"].append(seg_row)
+            rows[recordset].append(seg_row)
 
     # Object density maps. The filter targets pickable-object names; the
     # ``copick:config.pickable_objects`` blob is NOT filtered here so picks/
@@ -949,6 +952,7 @@ def _seg_url(run, seg, base_url: str, is_cdp: bool) -> str:
         seg.name,
         is_multilabel=seg.is_multilabel,
         is_instance=seg.is_instance,
+        is_panoptic=seg.is_panoptic,
     )
     return f"ExperimentRuns/{run.name}/{seg.directory}/{fname}"
 

@@ -11,18 +11,17 @@ from typing import Dict, List, Tuple
 import fsspec
 import pooch
 import pytest
+from corpus_registry import ARCHIVE_NAME, CORPUS_DIGEST, CORPUS_DOI
 
 # Directory containing this conftest.py file - used for resolving relative paths
 TESTS_DIR = Path(__file__).parent
 DOCKER_COMPOSE_FILE = TESTS_DIR / "docker-compose.yml"
 
-OZ = pooch.os_cache("test_data")  # Path("/Users/utz.ermel/Documents/copick/testproject")  # pooch.os_cache("test_data")
+OZ = Path(os.environ.get("COPICK_TEST_DATA_CACHE", pooch.os_cache("test_data")))
 TOTO = pooch.create(
     path=OZ,
-    base_url="doi:10.5281/zenodo.19686100",
-    registry={
-        "sample_project.zip": "md5:8b8941350af1f621effd4903e75255c0",
-    },
+    base_url=f"doi:{CORPUS_DOI}",
+    registry={ARCHIVE_NAME: CORPUS_DIGEST},
 )
 
 # Determine if all tests should be run
@@ -31,6 +30,48 @@ RUN_ALL = bool(int(os.environ.get("RUN_ALL", 1)))
 BACKEND = os.environ.get("BACKEND", "all")
 
 CLEANUP = True
+
+
+def ensure_test_data(corpus=TOTO) -> Path:
+    """Fetch and extract the corpus selected by its registry digest.
+
+    Fetching on every session lets pooch validate the cached archive. The
+    extraction sentinel prevents a valid archive from being paired with a
+    stale, previously extracted directory.
+    """
+    cache_path = Path(corpus.path)
+    archive_path = Path(corpus.fetch(ARCHIVE_NAME))
+    registry_digest = corpus.registry[ARCHIVE_NAME]
+    extract_path = cache_path / "sample_project"
+    required = (
+        extract_path / "sample_project",
+        extract_path / "sample_overlay",
+        extract_path / "filesystem.json",
+        extract_path / "filesystem_overlay_only.json",
+    )
+    sentinel = extract_path / ".archive-digest"
+    if (
+        sentinel.is_file()
+        and sentinel.read_text(encoding="utf-8").strip() == registry_digest
+        and all(path.exists() for path in required)
+    ):
+        return extract_path
+
+    staging_path = Path(tempfile.mkdtemp(prefix=".sample_project-stage-", dir=cache_path))
+    try:
+        pooch.Unzip(extract_dir=staging_path.name)(str(archive_path), "update", corpus)
+        staged_required = tuple(staging_path / path.relative_to(extract_path) for path in required)
+        missing = [str(path.relative_to(staging_path)) for path in staged_required if not path.exists()]
+        if missing:
+            raise FileNotFoundError(f"Corpus archive is missing required paths: {missing}")
+        (staging_path / ".archive-digest").write_text(f"{registry_digest}\n", encoding="utf-8")
+        if extract_path.exists():
+            shutil.rmtree(extract_path)
+        staging_path.replace(extract_path)
+    finally:
+        if staging_path.exists():
+            shutil.rmtree(staging_path)
+    return extract_path
 
 
 def _copytree_world_writable(src: Path, dst: Path):
@@ -695,11 +736,6 @@ if BACKEND in ("all", "smb") and importlib_util.find_spec("smbclient") and RUN_A
 def pytest_configure(config):
     # Pre-extract test data in the controller process before xdist workers spawn.
     # This avoids race conditions where multiple workers try to unzip simultaneously.
-    extract_path = OZ / "sample_project"
-    if not (extract_path / "sample_project").exists():
-        # Remove partial extractions if any
-        if extract_path.exists():
-            shutil.rmtree(extract_path)
-        TOTO.fetch("sample_project.zip", processor=pooch.Unzip(extract_dir="sample_project"))
+    ensure_test_data()
 
     pytest.common_cases = COMMON_CASES

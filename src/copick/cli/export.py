@@ -354,6 +354,13 @@ def tomogram(
     help="Output format for segmentations.",
 )
 @add_pyramid_export_options
+@click.option(
+    "--channel",
+    type=click.Choice(["label", "instance"], case_sensitive=False),
+    default=None,
+    help="Panoptic segmentations only: the channel to write to MRC, TIFF or EM. Without it, each channel is written "
+    "to its own file (<name>_label, <name>_instance).",
+)
 @add_max_workers_option
 @add_debug_option
 @click.pass_context
@@ -367,6 +374,7 @@ def segmentation(
     level: int,
     compression: str,
     copy_all_levels: bool,
+    channel: str,
     max_workers: int,
     debug: bool,
 ):
@@ -378,7 +386,9 @@ def segmentation(
     writes each label map to the chosen format under `--output-dir`. For MRC,
     TIFF, and EM the `--level` pyramid level is exported and TIFF supports
     `--compression`; for Zarr, `--copy-all-levels` writes the full multiscale
-    pyramid. Restrict the export to specific runs with `--run-names`.
+    pyramid. Restrict the export to specific runs with `--run-names`. A panoptic
+    segmentation keeps both channels in Zarr; in MRC, TIFF and EM each channel is
+    written to its own file, or only the one chosen with `--channel`.
 
     Examples:
 
@@ -427,6 +437,7 @@ def segmentation(
             compression=compression_value,
             n_workers=max_workers,
             log=debug,
+            channel=channel.lower() if channel else None,
         )
         logger.info("Export completed successfully.")
     except Exception as e:

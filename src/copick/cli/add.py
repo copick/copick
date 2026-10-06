@@ -635,11 +635,12 @@ def tomogram_from_star(
 )
 @click.option(
     "--segmentation-type",
-    type=click.Choice(["multilabel", "binary", "instance"], case_sensitive=False),
+    type=click.Choice(["multilabel", "binary", "instance", "panoptic"], case_sensitive=False),
     default="multilabel",
     show_default=True,
     help="'multilabel': voxel = an object's label; 'binary': voxel = 1 inside the object NAME; 'instance': voxel = "
-    "the instance ID within the object NAME, 0 for background.",
+    "the instance ID within the object NAME, 0 for background; 'panoptic': a two-channel (2, Z, Y, X) TIFF or Zarr, "
+    "channel 0 object labels and channel 1 instance IDs within each object.",
 )
 @add_max_workers_option
 @add_volume_transform_options
@@ -680,7 +681,9 @@ def segmentation(
     is given. Segmentations are imported as multilabel volumes unless
     `--segmentation-type` says otherwise, and may be tagged with a name, user ID, and
     session ID. Binary and instance segmentations need NAME to be a pickable object.
-    Integer labels keep their values: the stored dtype is chosen to hold them.
+    Integer labels keep their values: the stored dtype is chosen to hold them. A panoptic
+    segmentation is read from a two-channel TIFF or Zarr; `--transpose` and `--flip` then
+    apply to its spatial axes.
 
     Arguments:
 
@@ -756,6 +759,7 @@ def segmentation(
                 file_type=file_type,
                 multilabel=segmentation_type.lower() == "multilabel",
                 instance=segmentation_type.lower() == "instance",
+                panoptic=segmentation_type.lower() == "panoptic",
                 transpose=transpose,
                 flip=flip,
                 create=create,
