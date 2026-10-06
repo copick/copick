@@ -365,6 +365,24 @@ if BACKEND in ("all", "s3") and importlib_util.find_spec("s3fs") and RUN_ALL:
                 rel = str(local_file.relative_to(local_dir))
                 s3.upload_file(str(local_file), bucket, key_prefix + rel)
 
+    def _delete_s3_prefix(s3_prefix: str, endpoint_url: str):
+        """Delete everything under a test's prefix. The mock S3 server keeps every object in memory for the whole
+        session, so a project left behind by each test adds up to more than a CI runner has."""
+        import boto3
+
+        bucket, _, key_prefix = s3_prefix.replace("s3://", "").partition("/")
+        s3 = boto3.client(
+            "s3",
+            endpoint_url=endpoint_url,
+            aws_access_key_id="test",
+            aws_secret_access_key="test",
+            region_name="us-west-2",
+        )
+        for page in s3.get_paginator("list_objects_v2").paginate(Bucket=bucket, Prefix=key_prefix):
+            keys = [{"Key": item["Key"]} for item in page.get("Contents", [])]
+            if keys:
+                s3.delete_objects(Bucket=bucket, Delete={"Objects": keys, "Quiet": True})
+
     @pytest.fixture(scope="session")
     def s3_container(worker_id):
         from moto.server import ThreadedMotoServer
@@ -418,6 +436,7 @@ if BACKEND in ("all", "s3") and importlib_util.find_spec("s3fs") and RUN_ALL:
 
         if CLEANUP:
             shutil.rmtree(temp_dir)
+            _delete_s3_prefix(project_directory, endpoint_url)
 
     @pytest.fixture
     def s3(s3_container, base_project_directory, base_overlay_directory, base_config_overlay_only):
@@ -472,6 +491,8 @@ if BACKEND in ("all", "s3") and importlib_util.find_spec("s3fs") and RUN_ALL:
 
         if CLEANUP:
             shutil.rmtree(temp_dir)
+            _delete_s3_prefix(project_directory, endpoint_url)
+            _delete_s3_prefix(overlay_directory, endpoint_url)
 
     COMMON_CASES.extend(["s3_overlay_only", "s3"])
 
