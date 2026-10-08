@@ -87,6 +87,21 @@ def export(ctx):
     "(takes precedence over the copick tomograms).",
 )
 @click.option(
+    "--tomo-type",
+    type=str,
+    default=None,
+    help="STAR only: type of the copick tomogram (at --voxel-size) whose shape defines each run's center. Default: "
+    "the first tomogram at that voxel size.",
+)
+@click.option(
+    "--coordinates",
+    type=click.Choice(["auto", "centered"], case_sensitive=False),
+    default="auto",
+    show_default=True,
+    help="STAR only: 'auto' writes centered coordinates and/or rlnCoordinateX/Y/Z in tilt-series pixels, whatever is "
+    "known; 'centered' writes centered coordinates only and fails for a run without a tomogram center.",
+)
+@click.option(
     "--filament-columns",
     type=click.Choice(["auto", "on", "off"], case_sensitive=False),
     default="auto",
@@ -125,6 +140,8 @@ def picks(
     include_optics: bool,
     tilt_series_pixel_size: float,
     tomograms_star: str,
+    tomo_type: str,
+    coordinates: str,
     filament_columns: str,
     polarity_from_filaments: bool,
     filaments_uri: str,
@@ -147,10 +164,11 @@ def picks(
     and Euler-angle conventions, see the docstrings in `copick.util.formats`.
 
     STAR files carry `rlnTomoName` and coordinates centred on each tomogram (from
-    `--tomograms-star`, or the copick tomogram at `--voxel-size`). With
-    `--tilt-series-pixel-size` (or a tomograms.star) they also carry
-    `rlnCoordinateX/Y/Z` in tilt-series pixels and the optics table RELION
-    requires. Picks of objects declared a filament get RELION's filament
+    `--tomograms-star`, or the copick tomogram at `--voxel-size`, of type
+    `--tomo-type` if given). With `--tilt-series-pixel-size` (or a
+    tomograms.star) they also carry `rlnCoordinateX/Y/Z` in tilt-series pixels
+    and the optics table RELION requires; `--coordinates centered` writes the
+    centered coordinates only. Picks of objects declared a filament get RELION's filament
     columns (`--filament-columns`): the frame in `rlnTomoSubtomogram*`,
     `rlnAngleTilt` and its prior at 90, `rlnHelicalTubeID` from the instance
     ID, and `rlnHelicalTrackLengthAngst`. Their `rlnAnglePsiFlipRatio` is 0
@@ -244,6 +262,8 @@ def picks(
                 filament_columns=filament_columns.lower(),
                 polarity_from_filaments=polarity_from_filaments,
                 filaments_uri=filaments_uri,
+                tomo_type=tomo_type,
+                coordinates=coordinates.lower(),
             )
         else:
             # Per-run export mode
@@ -263,6 +283,8 @@ def picks(
                 filament_columns=filament_columns.lower(),
                 polarity_from_filaments=polarity_from_filaments,
                 filaments_uri=filaments_uri,
+                tomo_type=tomo_type,
+                coordinates=coordinates.lower(),
             )
             if errors:
                 raise RuntimeError(f"{len(errors)} error(s): " + "; ".join(errors))

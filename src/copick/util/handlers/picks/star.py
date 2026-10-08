@@ -148,6 +148,7 @@ class STARPicksHandler:
         instance_ids: Optional[np.ndarray] = None,
         filament: bool = False,
         polarity_known: Union[bool, np.ndarray] = False,
+        coordinates: str = "auto",
         **kwargs,
     ) -> str:
         """Write picks to a STAR file.
@@ -171,6 +172,7 @@ class STARPicksHandler:
             filament: Write RELION's filament columns (``copick.util.formats.build_relion_particles_df``)
             polarity_known: For filament columns: whether the point order follows the filament's polarity, for all
                 picks (a bool) or per pick (an (N,) array); ``rlnAnglePsiFlipRatio`` is 0 where it does, else 0.5
+            coordinates: ``"auto"``, or ``"centered"`` for centered coordinates only (the center is then required)
 
         Returns:
             Path to the written file
@@ -187,6 +189,7 @@ class STARPicksHandler:
             instance_ids={tomo_name: instance_ids} if instance_ids is not None else None,
             filament=filament,
             polarity_known=polarity_known,
+            coordinates=coordinates,
         )
         write_star_particles(path, particles, optics)
         return path
@@ -251,11 +254,12 @@ class STARPicksHandler:
         include_optics: bool = True,
         *,
         tomogram_centers: Optional[Dict[str, Tuple[float, float, float]]] = None,
-        tilt_series_pixel_size: Optional[float] = None,
+        tilt_series_pixel_size: Union[None, float, Dict[str, float]] = None,
         tomograms: Optional[Dict[str, "RelionTomogram"]] = None,
         grouped_instance_ids: Optional[Dict[str, np.ndarray]] = None,
         filament: bool = False,
         polarity_known: Union[bool, Dict[str, Union[bool, np.ndarray]]] = False,
+        coordinates: str = "auto",
         **kwargs,
     ) -> str:
         """Write picks from multiple runs to a single STAR file.
@@ -270,12 +274,14 @@ class STARPicksHandler:
             run_to_index: Ignored for STAR files (uses run_name directly)
             include_optics: Whether to include the optics table
             tomogram_centers: Tomogram centre in Angstrom per run
-            tilt_series_pixel_size: Tilt-series pixel size in Angstrom
+            tilt_series_pixel_size: Tilt-series pixel size in Angstrom, for every run or per run (a dict)
             tomograms: tomograms.star entries by run name
             grouped_instance_ids: Instance IDs per run (filament IDs with ``filament``)
             filament: Write RELION's filament columns (``copick.util.formats.build_relion_particles_df``)
             polarity_known: For filament columns: whether the point order follows the filaments' polarity, for all
                 picks (a bool) or per run (a dict of run name to a bool or an (N,) array)
+            coordinates: ``"auto"``, or ``"centered"`` for centered coordinates only (every run's center is then
+                required)
 
         Returns:
             Path to the written file
@@ -293,6 +299,7 @@ class STARPicksHandler:
             instance_ids=grouped_instance_ids,
             filament=filament,
             polarity_known=polarity_known,
+            coordinates=coordinates,
         )
         return path
 

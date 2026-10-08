@@ -203,15 +203,20 @@ def relion_rows_to_poses(df: "pd.DataFrame") -> Tuple[np.ndarray, np.ndarray]:
 def copick_tomogram_center(
     picks: "CopickPicks",
     voxel_spacing: Optional[float] = None,
+    tomo_type: Optional[str] = None,
 ) -> Optional[Tuple[float, float, float]]:
     """Centre in Angstrom of the tomogram of the run these picks belong to (tomogram shape / 2 * voxel size).
 
     Uses a tomogram at ``voxel_spacing`` if the run has one there, else the tomogram at the smallest voxel spacing
-    with a tomogram (as earlier copick versions did). Returns None if the run has no tomogram.
+    with a tomogram (as earlier copick versions did). With ``tomo_type``, only a tomogram of that type counts: the
+    one at ``voxel_spacing`` if given, else the one at the smallest voxel spacing that has one. Returns None if the
+    run has no such tomogram.
     """
     from copick.util.formats import get_tomogram_centers_from_copick
 
     run = picks.run
+    if tomo_type is not None:
+        return get_tomogram_centers_from_copick(run.root, [run.name], voxel_spacing, tomo_type).get(run.name)
     if voxel_spacing is not None:
         centers = get_tomogram_centers_from_copick(run.root, [run.name], voxel_spacing)
         if run.name in centers:
@@ -238,6 +243,8 @@ def picks_to_df_relion(
     tomogram_center: Optional[Tuple[float, float, float]] = None,
     filament: Union[bool, str] = "auto",
     polarity_known: Union[bool, Sequence[bool], np.ndarray] = False,
+    tomo_type: Optional[str] = None,
+    coordinates: str = "auto",
 ) -> "pd.DataFrame":
     """Returns the points as a pandas DataFrame with RELION columns.
 
@@ -255,15 +262,17 @@ def picks_to_df_relion(
         polarity_known: For filament columns: whether the point order follows the filament's polarity, for all picks
             (a bool) or per pick (an (N,) array, e.g. from ``filament_polarity_known``). rlnAnglePsiFlipRatio is 0
             where it does and 0.5 elsewhere.
+        tomo_type: Type of the copick tomogram whose shape defines the center (see ``copick_tomogram_center``).
+        coordinates: ``"auto"``, or ``"centered"`` for centered coordinates only (the center is then required).
     """
     from copick.util.formats import build_relion_particles_df
 
     points, _ = picks.numpy()
     transforms = normalize_transforms(picks)
     if tomogram_center is None:
-        tomogram_center = copick_tomogram_center(picks, voxel_spacing)
+        tomogram_center = copick_tomogram_center(picks, voxel_spacing, tomo_type)
     legacy_voxel_spacing = None
-    if tomogram_center is None and tilt_series_pixel_size is None:
+    if tomogram_center is None and tilt_series_pixel_size is None and coordinates != "centered":
         legacy_voxel_spacing = voxel_spacing if voxel_spacing is not None else _smallest_voxel_spacing(picks)
 
     return build_relion_particles_df(
@@ -276,6 +285,7 @@ def picks_to_df_relion(
         instance_ids=picks.instance_ids(),
         filament=is_filament_export(picks, filament),
         polarity_known=polarity_known,
+        coordinates=coordinates,
     )
 
 

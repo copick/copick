@@ -331,8 +331,11 @@ does not enter it. On import copick uses, in order:
 
 On export copick writes `rlnTomoName`, centred coordinates whenever the tomogram centre is known and, when the
 tilt-series pixel size is known, `rlnCoordinateX/Y/Z` in tilt-series pixels together with the optics table
-(`rlnTomoTiltSeriesPixelSize`) that RELION requires. Without a tilt-series pixel size no optics table is written, and
-RELION builds one from `tomograms.star`.
+(`rlnTomoTiltSeriesPixelSize`) that RELION requires, one optics group per run. Without a tilt-series pixel size no
+optics table is written, and RELION builds one from `tomograms.star`. The center comes from `tomograms.star`, from the
+caller (`tomogram_centers`), or from the shape of the copick tomogram (of `--tomo-type`, if given), in that order.
+With `--coordinates centered`, only centered coordinates are written, and a run without a center is an error rather
+than a fallback to pixel coordinates.
 
 #### Shifts in EM and Dynamo files
 
