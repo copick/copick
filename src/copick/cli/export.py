@@ -87,6 +87,15 @@ def export(ctx):
     "(takes precedence over the copick tomograms).",
 )
 @click.option(
+    "--star-layout",
+    type=click.Choice(["particles", "import"], case_sensitive=False),
+    default="particles",
+    show_default=True,
+    help="STAR only, with --output-file: 'particles' writes one particle file; 'import' makes --output-file the "
+    "index RELION's tomography Import Coordinates job reads, naming one coordinate file per run in 'coordinates/' "
+    "beside it.",
+)
+@click.option(
     "--tomo-type",
     type=str,
     default=None,
@@ -140,6 +149,7 @@ def picks(
     include_optics: bool,
     tilt_series_pixel_size: float,
     tomograms_star: str,
+    star_layout: str,
     tomo_type: str,
     coordinates: str,
     filament_columns: str,
@@ -168,7 +178,12 @@ def picks(
     `--tomo-type` if given). With `--tilt-series-pixel-size` (or a
     tomograms.star) they also carry `rlnCoordinateX/Y/Z` in tilt-series pixels
     and the optics table RELION requires; `--coordinates centered` writes the
-    centered coordinates only. Picks of objects declared a filament get RELION's filament
+    centered coordinates only. With `--star-layout import`, `--output-file` is
+    the index that RELION's tomography Import Coordinates job reads
+    (`data_coordinate_files`: `rlnTomoName`, `rlnTomoImportParticleFile`),
+    naming one coordinate file per run in `coordinates/` beside it.
+
+    Picks of objects declared a filament get RELION's filament
     columns (`--filament-columns`): the frame in `rlnTomoSubtomogram*`,
     `rlnAngleTilt` and its prior at 90, `rlnHelicalTubeID` from the instance
     ID, and `rlnHelicalTrackLengthAngst`. Their `rlnAnglePsiFlipRatio` is 0
@@ -188,6 +203,12 @@ def picks(
         # Combined export: all runs to a single STAR file
         copick export picks -c config.json --picks-uri "*:*/*" \\
             --output-file ./particles.star --output-format star --voxel-size 10.0
+
+        \b
+        # Input for RELION's tomography Import Coordinates job
+        copick export picks -c config.json --picks-uri "ribosome:user1/1" \\
+            --output-file ./import/particles.star --output-format star \\
+            --voxel-size 10.0 --star-layout import --coordinates centered
 
         \b
         # Filament picks sampled from traced Filaments in another session:
@@ -223,6 +244,8 @@ def picks(
     # Validate voxel size for formats that require it
     if output_format.lower() in ["em", "star", "dynamo"] and voxel_size is None:
         ctx.fail(f"--voxel-size is required for {output_format.upper()} format export.")
+    if star_layout.lower() == "import" and (output_format.lower() != "star" or not output_file):
+        ctx.fail("--star-layout import writes one index for all runs: it needs --output-format star and --output-file.")
     if filaments_uri and not polarity_from_filaments:
         ctx.fail("--filaments-uri names a polarity source; it cannot be combined with --no-polarity-from-filaments.")
 
@@ -264,6 +287,7 @@ def picks(
                 filaments_uri=filaments_uri,
                 tomo_type=tomo_type,
                 coordinates=coordinates.lower(),
+                star_layout=star_layout.lower(),
             )
         else:
             # Per-run export mode
