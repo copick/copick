@@ -829,3 +829,22 @@ class TestExportRelionParticles:
 
         result = CliRunner().invoke(export, [*args, "--output-dir", str(tmp_path / "per-run")])
         assert result.exit_code != 0 and "--star-layout import" in result.output
+
+
+def test_star_particles_block_is_named_without_optics(test_payload, tmp_path):
+    """RELION reads `data_particles` by name; an unnamed `data_` block would hold zero particles for it."""
+    from copick.ops.export import export_relion_particles
+
+    root = test_payload["root"]
+    _relion_export_picks(root)
+    per_run = export_picks(
+        root.get_run("TS_001").get_picks("ribosome", "relion-export", "1")[0],
+        str(tmp_path / "a.star"),
+        "star",
+        voxel_spacing=10.0,
+    )
+    combined = export_relion_particles(root, "ribosome:relion-export/1", str(tmp_path / "b.star"), voxel_spacing=10.0)
+    for path in (per_run, combined.path):
+        assert list(_read_star(path)) == ["particles"]
+        with open(path) as f:
+            assert "data_particles" in f.read()
