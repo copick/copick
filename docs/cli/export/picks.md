@@ -28,13 +28,23 @@ index map is supplied, and STAR/CSV reference runs by name. For coordinate
 and Euler-angle conventions, see the docstrings in `copick.util.formats`.
 
 STAR files carry `rlnTomoName` and coordinates centred on each tomogram (from
-`--tomograms-star`, or the copick tomogram at `--voxel-size`). With
-`--tilt-series-pixel-size` (or a tomograms.star) they also carry
-`rlnCoordinateX/Y/Z` in tilt-series pixels and the optics table RELION
-requires. Picks of objects declared a filament get RELION's filament
+`--tomograms-star`, or the copick tomogram at `--voxel-size`, of type
+`--tomo-type` if given). With `--tilt-series-pixel-size` (or a
+tomograms.star) they also carry `rlnCoordinateX/Y/Z` in tilt-series pixels
+and the optics table RELION requires; `--coordinates centered` writes the
+centered coordinates only. With `--star-layout import`, `--output-file` is
+the index that RELION's tomography Import Coordinates job reads
+(`data_coordinate_files`: `rlnTomoName`, `rlnTomoImportParticleFile`),
+naming one coordinate file per run in `coordinates/` beside it.
+
+Picks of objects declared a filament get RELION's filament
 columns (`--filament-columns`): the frame in `rlnTomoSubtomogram*`,
 `rlnAngleTilt` and its prior at 90, `rlnHelicalTubeID` from the instance
-ID, and `rlnHelicalTrackLengthAngst`.
+ID, and `rlnHelicalTrackLengthAngst`. Their `rlnAnglePsiFlipRatio` is 0
+for picks of filaments whose polarity is known and 0.5 for the rest; the
+polarity comes from the Filaments under the picks' own URI, or from those
+named by `--filaments-uri` (e.g. when the picks were sampled from Filaments
+into another session).
 
 ## Options
 
@@ -51,7 +61,12 @@ ID, and `rlnHelicalTrackLengthAngst`.
 | `--include-optics / --no-include-optics` | boolean flag | `True` | Include optics group in STAR file output. |
 | `--tilt-series-pixel-size` | float | — | STAR only: tilt-series pixel size in Angstrom. Adds rlnCoordinateX/Y/Z in tilt-series pixels and an optics table with rlnTomoTiltSeriesPixelSize, which RELION requires. |
 | `--tomograms-star` | file | — | STAR only: RELION tomograms.star giving each tomogram's centre, tilt-series pixel size and CTF parameters (takes precedence over the copick tomograms). |
+| `--star-layout` | choice (particles \| import) | `particles` | STAR only, with --output-file: 'particles' writes one particle file; 'import' makes --output-file the index RELION's tomography Import Coordinates job reads, naming one coordinate file per run in 'coordinates/' beside it. |
+| `--tomo-type` | text | — | STAR only: type of the copick tomogram (at --voxel-size) whose shape defines each run's center. Default: the first tomogram at that voxel size. |
+| `--coordinates` | choice (auto \| centered) | `auto` | STAR only: 'auto' writes centered coordinates and/or rlnCoordinateX/Y/Z in tilt-series pixels, whatever is known; 'centered' writes centered coordinates only and fails for a run without a tomogram center. |
 | `--filament-columns` | choice (auto \| on \| off) | `auto` | STAR only: RELION's filament columns (rlnHelicalTubeID, track length, subtomogram frame, priors) for objects declared a filament ('auto'), always ('on'), or never ('off'). |
+| `--polarity-from-filaments / --no-polarity-from-filaments` | boolean flag | `True` | STAR only, with filament columns: set rlnAnglePsiFlipRatio from each filament's polarity_known in a Filaments source (0 where the polarity is known, 0.5 elsewhere). Off: 0.5 for every pick. |
+| `--filaments-uri` | text | — | STAR only: the Filaments (e.g. 'microtubule:tracer/1') that state the polarity, matched to the picks by instance ID in each run; every pick's filament must be in them. Default: the Filaments under the picks' own URI, when they exist. |
 | `--max-workers` | integer | `4` | Maximum number of worker threads. |
 | `--debug / --no-debug` | boolean flag | `False` | Enable debug logging. |
 
@@ -65,6 +80,17 @@ copick export picks -c config.json --picks-uri "ribosome:user1/*" \
 # Combined export: all runs to a single STAR file
 copick export picks -c config.json --picks-uri "*:*/*" \
     --output-file ./particles.star --output-format star --voxel-size 10.0
+
+# Input for RELION's tomography Import Coordinates job
+copick export picks -c config.json --picks-uri "ribosome:user1/1" \
+    --output-file ./import/particles.star --output-format star \
+    --voxel-size 10.0 --star-layout import --coordinates centered
+
+# Filament picks sampled from traced Filaments in another session:
+# their polarity comes from those Filaments
+copick export picks -c config.json --picks-uri "microtubule:sampler/1" \
+    --filaments-uri "microtubule:tracer/1" \
+    --output-file ./filaments.star --output-format star --voxel-size 10.0
 
 # Combined export to a Dynamo table using an index map
 copick export picks -c config.json --picks-uri "ribosome:*/*" \

@@ -14,6 +14,7 @@ import tifffile
 from click.testing import CliRunner
 from copick.cli.add import add
 from copick.cli.export import export
+from croissant_helpers import skip_without_filaments
 
 
 @pytest.fixture(params=pytest.common_cases)
@@ -1714,20 +1715,20 @@ class TestRelionFilaments:
         picks = root.get_run("TS_001").new_picks(object_name="microtubule", user_id="filament-export", session_id="1")
         picks.from_numpy(points, transforms, instance_ids=[1] * 4 + [2] * 4)
 
+        if polarity_known:
+            # The same session's Filaments state the polarity
+            skip_without_filaments(root)
+            filaments = root.get_run("TS_001").new_filaments("microtubule", "1", user_id="filament-export")
+            filaments.from_numpy([points[:4], points[4:]], instance_ids=[1, 2], polarity_known=[True, True])
+
         path = str(tmp_path / "filaments.star")
         export_picks(picks, path, "star", voxel_spacing=10.0, tilt_series_pixel_size=2.0)
-        if polarity_known:
-            from copick.util.relion import picks_to_df_relion
-
-            df = picks_to_df_relion(picks, voxel_spacing=10.0, polarity_known=True)
-            assert "rlnAnglePsiFlipRatio" not in df.columns
-            return
 
         particles = starfile.read(path)["particles"]
         assert particles["rlnHelicalTubeID"].tolist() == [1] * 4 + [2] * 4
         assert particles["rlnHelicalTrackLengthAngst"].tolist() == pytest.approx([0, 82, 164, 246] * 2)
         assert (particles["rlnAngleTilt"] == 90).all() and (particles["rlnAngleTiltPrior"] == 90).all()
-        assert (particles["rlnAnglePsiFlipRatio"] == 0.5).all()
+        assert (particles["rlnAnglePsiFlipRatio"] == (0.0 if polarity_known else 0.5)).all()
 
         imported = add_picks_from_file(root, "TS_001", path, "microtubule", "filament-export", "2", 10.0)
         assert imported.instance_ids().tolist() == [1] * 4 + [2] * 4
@@ -1769,3 +1770,193 @@ class TestRelionFilaments:
         data = starfile.read(path)
         particles = data["particles"] if isinstance(data, dict) else data
         assert "rlnHelicalTubeID" not in particles.columns
+
+
+def _polar_filament_project(test_payload, picks_session="1", filaments_session="1", picks_user="sampler"):
+    """TS_001 with three microtubules picked in point order (IDs 1-3), and the Filaments they were sampled from, of
+    which only filament 1 has known polarity."""
+    root = test_payload["root"]
+    skip_without_filaments(root)
+    root.new_object(name="microtubule", is_particle=True, radius=120, filament={"polar": True})
+    root.save_config(test_payload["cfg_file"])
+    run = root.get_run("TS_001")
+    steps = np.arange(3)[:, None] * 82.0
+    starts = ([100.0, 100.0, 300.0], [400.0, 50.0, 200.0], [150.0, 500.0, 250.0])
+    axes = ([1.0, 0.0, 0.0], [0.0, 1.0, 0.0], [1.0, 0.0, 0.0])
+    lines = [np.array(start) + steps * np.array(axis) for start, axis in zip(starts, axes, strict=True)]
+    transforms = np.tile(np.eye(4), (9, 1, 1))
+    for i, axis in enumerate(axes):
+        transforms[3 * i : 3 * i + 3, :3, :3] = _frames_along(axis, 3, i)
+    picks = run.new_picks(object_name="microtubule", user_id=picks_user, session_id=picks_session)
+    picks.from_numpy(np.vstack(lines), transforms, instance_ids=[1] * 3 + [2] * 3 + [3] * 3)
+    filaments = run.new_filaments("microtubule", filaments_session, user_id="tracer")
+    filaments.from_numpy(lines, instance_ids=[1, 2, 3], polarity_known=[True, False, False])
+    return root, picks, filaments, np.vstack(lines), transforms
+
+
+def _star_particles(path):
+    import starfile
+
+    data = starfile.read(path)
+    return data["particles"] if isinstance(data, dict) else data
+
+
+class TestFilamentPolarity:
+    """rlnAnglePsiFlipRatio from each filament's polarity_known."""
+
+    def test_builder_takes_per_row_polarity(self):
+        from copick.util.formats import build_relion_particles_df
+
+        positions = np.array([[0.0, 0.0, 0.0], [82.0, 0.0, 0.0], [0.0, 0.0, 100.0], [0.0, 82.0, 100.0]])
+        transforms = np.tile(np.eye(4), (4, 1, 1))
+        transforms[:2, :3, :3] = _frames_along([1, 0, 0], 2)
+        transforms[2:, :3, :3] = _frames_along([0, 1, 0], 2)
+        kwargs = {"tomogram_center": (0.0, 0.0, 0.0), "instance_ids": np.array([1, 1, 2, 2]), "filament": True}
+
+        mixed = build_relion_particles_df(positions, transforms, polarity_known=[True, True, False, False], **kwargs)
+        assert mixed["rlnAnglePsiFlipRatio"].tolist() == [0.0, 0.0, 0.5, 0.5]
+        # A bool applies to every row, and known polarity is written as 0, since RELION reads a missing column as 0.5
+        assert (
+            build_relion_particles_df(positions, transforms, polarity_known=True, **kwargs)[
+                "rlnAnglePsiFlipRatio"
+            ].tolist()
+            == [0.0] * 4
+        )
+        assert build_relion_particles_df(positions, transforms, **kwargs)["rlnAnglePsiFlipRatio"].tolist() == [0.5] * 4
+        with pytest.raises(ValueError, match="one value per pick"):
+            build_relion_particles_df(positions, transforms, polarity_known=[True, False], **kwargs)
+
+    def test_picks_to_df_relion_takes_per_row_polarity(self, test_payload):
+        from copick.util.relion import filament_polarity_known, picks_to_df_relion
+
+        root, picks, *_ = _polar_filament_project(test_payload, picks_user="tracer")
+
+        known = filament_polarity_known(picks)
+        assert known.tolist() == [True] * 3 + [False] * 6
+        df = picks_to_df_relion(picks, voxel_spacing=10.0, polarity_known=known)
+        assert df["rlnAnglePsiFlipRatio"].tolist() == [0.0] * 3 + [0.5] * 6
+
+    def test_same_uri_filaments_give_mixed_flip_ratios(self, test_payload, tmp_path):
+        """copick-helix writes Filaments and picks under one URI: they are the default polarity source."""
+        from copick.ops.export import export_picks
+
+        root, picks, *_ = _polar_filament_project(test_payload, picks_user="tracer")
+
+        path = str(tmp_path / "same-uri.star")
+        export_picks(picks, path, "star", voxel_spacing=10.0)
+        particles = _star_particles(path)
+        assert particles["rlnHelicalTubeID"].tolist() == [1] * 3 + [2] * 3 + [3] * 3
+        assert particles["rlnAnglePsiFlipRatio"].tolist() == [0.0] * 3 + [0.5] * 6
+
+        export_picks(picks, path, "star", voxel_spacing=10.0, polarity_from_filaments=False)
+        assert _star_particles(path)["rlnAnglePsiFlipRatio"].tolist() == [0.5] * 9
+
+    def test_explicit_filaments_uri(self, test_payload, tmp_path):
+        """Picks sampled into their own session (fil2picks -o) take the polarity from the Filaments they came from."""
+        from copick.ops.export import export_picks, export_picks_combined
+
+        root, picks, *_ = _polar_filament_project(test_payload)
+
+        path = str(tmp_path / "no-source.star")
+        export_picks(picks, path, "star", voxel_spacing=10.0)
+        assert _star_particles(path)["rlnAnglePsiFlipRatio"].tolist() == [0.5] * 9
+
+        export_picks(picks, path, "star", voxel_spacing=10.0, filaments_uri="microtubule:tracer/1")
+        assert _star_particles(path)["rlnAnglePsiFlipRatio"].tolist() == [0.0] * 3 + [0.5] * 6
+
+        combined = str(tmp_path / "combined.star")
+        export_picks_combined(
+            str(test_payload["cfg_file"]),
+            combined,
+            "microtubule:sampler/1",
+            "star",
+            voxel_spacing=10.0,
+            filaments_uri="microtubule:tracer/*",
+        )
+        assert _star_particles(combined)["rlnAnglePsiFlipRatio"].tolist() == [0.0] * 3 + [0.5] * 6
+
+        with pytest.raises(ValueError, match="polarity_from_filaments is False"):
+            export_picks(
+                picks,
+                path,
+                "star",
+                voxel_spacing=10.0,
+                filaments_uri="microtubule:tracer/1",
+                polarity_from_filaments=False,
+            )
+
+    def test_ambiguous_filaments_uri_is_an_error(self, test_payload, tmp_path):
+        from copick.ops.export import export_picks_combined
+
+        root, picks, _, lines, _ = _polar_filament_project(test_payload)
+        root.get_run("TS_001").new_filaments("microtubule", "2", user_id="tracer").from_numpy([lines[:3]])
+
+        with pytest.raises(ValueError, match="matches several Filaments"):
+            export_picks_combined(
+                str(test_payload["cfg_file"]),
+                str(tmp_path / "ambiguous.star"),
+                "microtubule:sampler/1",
+                "star",
+                voxel_spacing=10.0,
+                filaments_uri="microtubule:tracer/*",
+            )
+
+    def test_missing_filaments_are_an_error(self, test_payload, runner, tmp_path):
+        from copick.ops.export import export_picks
+
+        root, picks, filaments, points, _ = _polar_filament_project(test_payload)
+        lines = [points[:3], points[3:6], points[6:]]
+        path = str(tmp_path / "missing.star")
+
+        # Filament 3 is not in the named source
+        filaments.from_numpy(lines[:2], instance_ids=[1, 2], polarity_known=[True, False])
+        with pytest.raises(ValueError, match=r"in TS_001 have no filament in microtubule:tracer/1: \[3\]"):
+            export_picks(picks, path, "star", voxel_spacing=10.0, filaments_uri="microtubule:tracer/1")
+
+        # The default source, the Filaments under the picks' own URI, is held to the same rule
+        own = picks.run.new_filaments("microtubule", "1", user_id="sampler")
+        own.from_numpy(lines[:1], instance_ids=[1], polarity_known=[True])
+        with pytest.raises(ValueError, match=r"have no filament in microtubule:sampler/1: \[2, 3\]"):
+            export_picks(picks, path, "star", voxel_spacing=10.0)
+
+        # A named source that matches no Filaments in the run
+        with pytest.raises(ValueError, match="No Filaments match microtubule:nobody/1 in TS_001"):
+            export_picks(picks, path, "star", voxel_spacing=10.0, filaments_uri="microtubule:nobody/1")
+
+        # The CLI fails, with one output file or one per run
+        base = ["picks", "-c", str(test_payload["cfg_file"]), "--picks-uri", "microtubule:sampler/1"]
+        base += ["--output-format", "star", "--voxel-size", "10.0", "--filaments-uri", "microtubule:tracer/1"]
+        for output in (["--output-file", path], ["--output-dir", str(tmp_path / "per-run")]):
+            result = runner.invoke(export, [*base, *output])
+            assert result.exit_code != 0
+            assert "have no filament in microtubule:tracer/1" in result.output
+
+    def test_cli_filaments_uri_and_round_trip(self, test_payload, runner, tmp_path):
+        """The CLI's polarity options, and export -> `copick add picks` reproducing IDs, order and frames."""
+        root, picks, _, points, transforms = _polar_filament_project(test_payload)
+        config = str(test_payload["cfg_file"])
+        path = str(tmp_path / "cli.star")
+        base = ["picks", "-c", config, "--picks-uri", "microtubule:sampler/1", "--output-file", path]
+        base += ["--output-format", "star", "--voxel-size", "10.0", "--tilt-series-pixel-size", "2.0"]
+
+        result = runner.invoke(export, [*base, "--filaments-uri", "microtubule:tracer/1"])
+        assert result.exit_code == 0, result.output
+        assert _star_particles(path)["rlnAnglePsiFlipRatio"].tolist() == [0.0] * 3 + [0.5] * 6
+
+        result = runner.invoke(
+            export,
+            [*base, "--filaments-uri", "microtubule:tracer/1", "--no-polarity-from-filaments"],
+        )
+        assert result.exit_code != 0
+        assert "--no-polarity-from-filaments" in result.output
+
+        result = runner.invoke(
+            add,
+            ["picks", "-c", config, "--run", "TS_001", "--object-name", "microtubule", "--user-id", "round-trip"]
+            + ["--session-id", "1", "--file-type", "star", "--voxel-size", "10.0", path],
+        )
+        assert result.exit_code == 0, result.output
+        imported = copick.from_file(config).get_run("TS_001").get_picks("microtubule", "round-trip", "1")[0]
+        assert imported.instance_ids().tolist() == [1] * 3 + [2] * 3 + [3] * 3
+        assert imported.full_positions() == pytest.approx(points)
+        assert imported.numpy()[1][:, :3, :3] == pytest.approx(transforms[:, :3, :3], abs=1e-6)

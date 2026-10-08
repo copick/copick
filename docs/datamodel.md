@@ -293,8 +293,17 @@ centreline (polyline) in angstrom coordinates with its own `instance_id`:
 - `points` are ordered along the filament, at least two, and should be no further apart than the voxel spacing the
   filament was traced at, so that linear interpolation follows the centreline.
 - `polarity_known` says whether the point order follows the structure's polarity (meaningful for objects whose
-  filament spec has `polar: true`).
+  filament spec has `polar: true`). Where it is true, the points run from the minus end to the plus end
+  (microtubules), or from the pointed end to the barbed end (actin), so the +Z axis of a pick sampled in point order
+  points toward the plus (barbed) end.
 - `version` is the version of this file format.
+
+RELION export (`copick export picks --output-format star`) takes each filament pick's polarity from the filament with
+the same `instance_id`: in the Filaments under the picks' own URI by default, or in those named by `--filaments-uri`
+when the picks were sampled into another session. `rlnAnglePsiFlipRatio` is 0 for picks of filaments with
+`polarity_known` and 0.5 for the others. A pick whose filament is missing from those Filaments is an error, as is a
+`--filaments-uri` that matches no Filaments in a run. Picks without any Filaments (none under their own URI, and no
+`--filaments-uri`) all get 0.5.
 
 The cryoET Data Portal has no filament annotations, so data-portal projects keep filaments in their overlay; a
 self-contained Croissant project (Mode A) cannot hold them.

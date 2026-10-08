@@ -87,12 +87,51 @@ def export(ctx):
     "(takes precedence over the copick tomograms).",
 )
 @click.option(
+    "--star-layout",
+    type=click.Choice(["particles", "import"], case_sensitive=False),
+    default="particles",
+    show_default=True,
+    help="STAR only, with --output-file: 'particles' writes one particle file; 'import' makes --output-file the "
+    "index RELION's tomography Import Coordinates job reads, naming one coordinate file per run in 'coordinates/' "
+    "beside it.",
+)
+@click.option(
+    "--tomo-type",
+    type=str,
+    default=None,
+    help="STAR only: type of the copick tomogram (at --voxel-size) whose shape defines each run's center. Default: "
+    "the first tomogram at that voxel size.",
+)
+@click.option(
+    "--coordinates",
+    type=click.Choice(["auto", "centered"], case_sensitive=False),
+    default="auto",
+    show_default=True,
+    help="STAR only: 'auto' writes centered coordinates and/or rlnCoordinateX/Y/Z in tilt-series pixels, whatever is "
+    "known; 'centered' writes centered coordinates only and fails for a run without a tomogram center.",
+)
+@click.option(
     "--filament-columns",
     type=click.Choice(["auto", "on", "off"], case_sensitive=False),
     default="auto",
     show_default=True,
     help="STAR only: RELION's filament columns (rlnHelicalTubeID, track length, subtomogram frame, priors) for "
     "objects declared a filament ('auto'), always ('on'), or never ('off').",
+)
+@click.option(
+    "--polarity-from-filaments/--no-polarity-from-filaments",
+    default=True,
+    show_default=True,
+    help="STAR only, with filament columns: set rlnAnglePsiFlipRatio from each filament's polarity_known in a "
+    "Filaments source (0 where the polarity is known, 0.5 elsewhere). Off: 0.5 for every pick.",
+)
+@click.option(
+    "--filaments-uri",
+    type=str,
+    default=None,
+    help="STAR only: the Filaments (e.g. 'microtubule:tracer/1') that state the polarity, matched to the picks by "
+    "instance ID in each run; every pick's filament must be in them. Default: the Filaments under the picks' own URI, "
+    "when they exist.",
 )
 @add_max_workers_option
 @add_debug_option
@@ -110,7 +149,12 @@ def picks(
     include_optics: bool,
     tilt_series_pixel_size: float,
     tomograms_star: str,
+    star_layout: str,
+    tomo_type: str,
+    coordinates: str,
     filament_columns: str,
+    polarity_from_filaments: bool,
+    filaments_uri: str,
     max_workers: int,
     debug: bool,
 ):
@@ -130,13 +174,23 @@ def picks(
     and Euler-angle conventions, see the docstrings in `copick.util.formats`.
 
     STAR files carry `rlnTomoName` and coordinates centred on each tomogram (from
-    `--tomograms-star`, or the copick tomogram at `--voxel-size`). With
-    `--tilt-series-pixel-size` (or a tomograms.star) they also carry
-    `rlnCoordinateX/Y/Z` in tilt-series pixels and the optics table RELION
-    requires. Picks of objects declared a filament get RELION's filament
+    `--tomograms-star`, or the copick tomogram at `--voxel-size`, of type
+    `--tomo-type` if given). With `--tilt-series-pixel-size` (or a
+    tomograms.star) they also carry `rlnCoordinateX/Y/Z` in tilt-series pixels
+    and the optics table RELION requires; `--coordinates centered` writes the
+    centered coordinates only. With `--star-layout import`, `--output-file` is
+    the index that RELION's tomography Import Coordinates job reads
+    (`data_coordinate_files`: `rlnTomoName`, `rlnTomoImportParticleFile`),
+    naming one coordinate file per run in `coordinates/` beside it.
+
+    Picks of objects declared a filament get RELION's filament
     columns (`--filament-columns`): the frame in `rlnTomoSubtomogram*`,
     `rlnAngleTilt` and its prior at 90, `rlnHelicalTubeID` from the instance
-    ID, and `rlnHelicalTrackLengthAngst`.
+    ID, and `rlnHelicalTrackLengthAngst`. Their `rlnAnglePsiFlipRatio` is 0
+    for picks of filaments whose polarity is known and 0.5 for the rest; the
+    polarity comes from the Filaments under the picks' own URI, or from those
+    named by `--filaments-uri` (e.g. when the picks were sampled from Filaments
+    into another session).
 
     Examples:
 
@@ -149,6 +203,19 @@ def picks(
         # Combined export: all runs to a single STAR file
         copick export picks -c config.json --picks-uri "*:*/*" \\
             --output-file ./particles.star --output-format star --voxel-size 10.0
+
+        \b
+        # Input for RELION's tomography Import Coordinates job
+        copick export picks -c config.json --picks-uri "ribosome:user1/1" \\
+            --output-file ./import/particles.star --output-format star \\
+            --voxel-size 10.0 --star-layout import --coordinates centered
+
+        \b
+        # Filament picks sampled from traced Filaments in another session:
+        # their polarity comes from those Filaments
+        copick export picks -c config.json --picks-uri "microtubule:sampler/1" \\
+            --filaments-uri "microtubule:tracer/1" \\
+            --output-file ./filaments.star --output-format star --voxel-size 10.0
 
         \b
         # Combined export to a Dynamo table using an index map
@@ -177,6 +244,10 @@ def picks(
     # Validate voxel size for formats that require it
     if output_format.lower() in ["em", "star", "dynamo"] and voxel_size is None:
         ctx.fail(f"--voxel-size is required for {output_format.upper()} format export.")
+    if star_layout.lower() == "import" and (output_format.lower() != "star" or not output_file):
+        ctx.fail("--star-layout import writes one index for all runs: it needs --output-format star and --output-file.")
+    if filaments_uri and not polarity_from_filaments:
+        ctx.fail("--filaments-uri names a polarity source; it cannot be combined with --no-polarity-from-filaments.")
 
     # Resolve run names (repeatable; legacy comma-separated values tolerated with a warning)
     run_names_list = resolve_run_names(run_names, logger=logger)
@@ -212,10 +283,15 @@ def picks(
                 tilt_series_pixel_size=tilt_series_pixel_size,
                 tomograms_star=tomograms_star,
                 filament_columns=filament_columns.lower(),
+                polarity_from_filaments=polarity_from_filaments,
+                filaments_uri=filaments_uri,
+                tomo_type=tomo_type,
+                coordinates=coordinates.lower(),
+                star_layout=star_layout.lower(),
             )
         else:
             # Per-run export mode
-            export_op(
+            errors = export_op(
                 config=config,
                 output_dir=output_dir,
                 run_names=run_names_list,
@@ -229,7 +305,13 @@ def picks(
                 tilt_series_pixel_size=tilt_series_pixel_size,
                 tomograms_star=tomograms_star,
                 filament_columns=filament_columns.lower(),
+                polarity_from_filaments=polarity_from_filaments,
+                filaments_uri=filaments_uri,
+                tomo_type=tomo_type,
+                coordinates=coordinates.lower(),
             )
+            if errors:
+                raise RuntimeError(f"{len(errors)} error(s): " + "; ".join(errors))
         logger.info("Export completed successfully.")
     except Exception as e:
         logger.critical(f"Export failed: {e}")
