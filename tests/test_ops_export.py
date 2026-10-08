@@ -14,6 +14,7 @@ from copick.ops.export import (
     export_segmentation,
     export_tomogram,
 )
+from croissant_helpers import skip_without_filaments
 
 
 @pytest.fixture(params=pytest.common_cases)
@@ -645,7 +646,7 @@ class TestRelionImportBundle:
 
         index_path, files = write_relion_import_bundle("Import/job001/particles.star", particles)
 
-        # Paths are written as given: a relative job directory gives relative paths
+        # Paths are written as given (a relative job directory gives relative paths), with forward slashes on every OS
         assert files == {"TS_A": "Import/job001/coordinates/TS_A.star", "TS_B": "Import/job001/coordinates/TS_B.star"}
         index = _read_star(index_path)
         assert list(index) == ["coordinate_files"]
@@ -767,6 +768,7 @@ class TestExportRelionParticles:
         from copick.ops.export import export_relion_particles
 
         root = test_payload["root"]
+        skip_without_filaments(root)
         root.new_object(name="microtubule", is_particle=True, radius=120, filament={"polar": True})
         run = root.get_run("TS_001")
         line = np.array([[100.0, 100.0, 300.0], [182.0, 100.0, 300.0]])

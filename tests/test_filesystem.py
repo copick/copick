@@ -6,6 +6,7 @@ import pytest
 import zarr
 from copick.models import CopickPicksFile
 from copick.util.ome import write_ome_zarr_3d
+from croissant_helpers import croissant_mode_a as _croissant_mode_a
 from scipy.spatial.transform import Rotation
 from trimesh.parent import Geometry
 
@@ -1833,10 +1834,6 @@ FILAMENT_LINES = [
     np.array([[0.0, 0.0, 0.0], [10.0, 0.0, 0.0], [20.0, 1.0, 0.0]]),
     np.array([[5.0, 5.0, 5.0], [5.0, 15.0, 5.0]]),
 ]
-
-
-def _croissant_mode_a(root) -> bool:
-    return getattr(root, "mode", None) == "A"
 
 
 def test_filaments_write_read_delete(test_payload: Dict[str, Any]):

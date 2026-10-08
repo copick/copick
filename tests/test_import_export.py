@@ -14,6 +14,7 @@ import tifffile
 from click.testing import CliRunner
 from copick.cli.add import add
 from copick.cli.export import export
+from croissant_helpers import skip_without_filaments
 
 
 @pytest.fixture(params=pytest.common_cases)
@@ -1716,6 +1717,7 @@ class TestRelionFilaments:
 
         if polarity_known:
             # The same session's Filaments state the polarity
+            skip_without_filaments(root)
             filaments = root.get_run("TS_001").new_filaments("microtubule", "1", user_id="filament-export")
             filaments.from_numpy([points[:4], points[4:]], instance_ids=[1, 2], polarity_known=[True, True])
 
@@ -1774,6 +1776,7 @@ def _polar_filament_project(test_payload, picks_session="1", filaments_session="
     """TS_001 with three microtubules picked in point order (IDs 1-3), and the Filaments they were sampled from, of
     which only filament 1 has known polarity."""
     root = test_payload["root"]
+    skip_without_filaments(root)
     root.new_object(name="microtubule", is_particle=True, radius=120, filament={"polar": True})
     root.save_config(test_payload["cfg_file"])
     run = root.get_run("TS_001")
