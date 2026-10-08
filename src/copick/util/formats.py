@@ -1566,11 +1566,12 @@ def write_relion_import_bundle(
         particles: Particle table with ``rlnTomoName`` (e.g. from ``build_relion_star_tables``).
         coordinates_dir: Directory of the per-tomogram files. Default: ``coordinates`` beside the index. The paths in
             the index are this string joined with ``<rlnTomoName>.star``, as given: a relative directory gives relative
-            paths, which RELION resolves from its project directory.
+            paths, which RELION resolves from its project directory. They are written with forward slashes on every
+            operating system, since RELION reads no other separator.
 
     Returns:
-        Tuple of (index path, dict of tomogram name to coordinate file path as written in the index). Tomograms with
-        no particles get no file and no index row; an empty table gives an empty index.
+        Tuple of (index path, dict of tomogram name to coordinate file path as written in the index, with forward
+        slashes). Tomograms with no particles get no file and no index row; an empty table gives an empty index.
 
     Raises:
         ValueError: If the table has particles but no ``rlnTomoName``, or a tomogram name cannot be a file name.
@@ -1593,7 +1594,7 @@ def write_relion_import_bundle(
         for name in unique_names:
             path = os.path.join(coordinates_dir, f"{name}.star")
             starfile.write({"particles": table[names == name].reset_index(drop=True)}, path, overwrite=True)
-            files[name] = path
+            files[name] = path.replace(os.sep, "/") if os.sep != "/" else path
     index = pd.DataFrame({"rlnTomoName": list(files), "rlnTomoImportParticleFile": list(files.values())})
     os.makedirs(os.path.dirname(index_path) or ".", exist_ok=True)
     starfile.write({RELION_IMPORT_INDEX_BLOCK: index}, index_path, overwrite=True)
