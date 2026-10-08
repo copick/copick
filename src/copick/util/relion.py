@@ -1,4 +1,4 @@
-from typing import TYPE_CHECKING, Dict, Optional, Tuple, Union
+from typing import TYPE_CHECKING, Dict, Optional, Sequence, Tuple, Union
 
 import numpy as np
 import zarr
@@ -8,7 +8,7 @@ from copick.util.ome import get_level_path
 if TYPE_CHECKING:
     import pandas as pd
 
-    from copick.models import CopickPicks
+    from copick.models import CopickFilaments, CopickPicks
 
 
 def normalize_transforms(picks: "CopickPicks", eps: float = 1e-8) -> np.ndarray:
@@ -240,7 +240,7 @@ def picks_to_df_relion(
     tilt_series_pixel_size: Optional[float] = None,
     tomogram_center: Optional[Tuple[float, float, float]] = None,
     filament: Union[bool, str] = "auto",
-    polarity_known: bool = False,
+    polarity_known: Union[bool, Sequence[bool], np.ndarray] = False,
 ) -> "pd.DataFrame":
     """Returns the points as a pandas DataFrame with RELION columns.
 
@@ -255,8 +255,9 @@ def picks_to_df_relion(
         tomogram_center: Tomogram centre in Angstrom; overrides the copick tomogram.
         filament: Write RELION's filament columns (see ``filament_relion_angles``): True, False, or "auto" for picks
             of an object declared a filament.
-        polarity_known: For filament columns: the point order follows the filament's polarity, so
-            rlnAnglePsiFlipRatio is not written.
+        polarity_known: For filament columns: whether the point order follows the filament's polarity, for all picks
+            (a bool) or per pick (an (N,) array, e.g. from ``filament_polarity_known``). rlnAnglePsiFlipRatio is 0
+            where it does and 0.5 elsewhere.
     """
     from copick.util.formats import build_relion_particles_df
 
@@ -279,6 +280,102 @@ def picks_to_df_relion(
         filament=is_filament_export(picks, filament),
         polarity_known=polarity_known,
     )
+
+
+def polarity_filaments(picks: "CopickPicks", filaments_uri: Optional[str] = None) -> Optional["CopickFilaments"]:
+    """The Filaments that state the polarity of these picks' filaments, or None if there are none.
+
+    Args:
+        picks: Picks of a filament object; their instance IDs are filament IDs.
+        filaments_uri: Filaments URI (``object:user/session``), resolved in the picks' run. Of several matches, those of
+            the picks' object are used. Default: the Filaments under the picks' own URI (object, user and session),
+            as a tool that writes both (e.g. copick-helix) leaves them.
+
+    Raises:
+        ValueError: If ``filaments_uri`` matches more than one Filaments of the picks' object in the run, since filament
+            IDs are unique only within one Filaments file.
+    """
+    run = picks.run
+    if filaments_uri is None:
+        matches = run.get_filaments(
+            object_name=picks.pickable_object_name,
+            user_id=picks.user_id,
+            session_id=picks.session_id,
+        )
+    else:
+        from copick.util.uri import resolve_copick_objects
+
+        matches = resolve_copick_objects(filaments_uri, run.root, "filaments", run.name)
+        if len(matches) > 1:
+            matches = [f for f in matches if f.pickable_object_name == picks.pickable_object_name]
+    if len(matches) > 1:
+        found = ", ".join(f"{f.pickable_object_name}:{f.user_id}/{f.session_id}" for f in matches)
+        raise ValueError(
+            f"{filaments_uri} matches several Filaments in {run.name} ({found}); filament IDs are unique only within "
+            "one of them. Name one Filaments session.",
+        )
+    return matches[0] if matches else None
+
+
+def _uri(entity) -> str:
+    return f"{entity.pickable_object_name}:{entity.user_id}/{entity.session_id}"
+
+
+def _polarity_lookup(
+    picks: "CopickPicks",
+    filaments_uri: Optional[str],
+) -> Tuple[np.ndarray, Optional[str], Dict[int, bool]]:
+    """The picks' filament IDs, the URI of the Filaments that state their polarity (None if there are none), and the
+    polarity of each filament in those Filaments.
+
+    Raises:
+        ValueError: If ``filaments_uri`` matches no Filaments in the picks' run (or several), or a pick's filament is
+            not in the Filaments.
+    """
+    instance_ids = np.asarray(picks.instance_ids(), dtype=np.int64)
+    filaments = polarity_filaments(picks, filaments_uri)
+    if filaments is None:
+        if filaments_uri is not None and len(instance_ids):
+            raise ValueError(
+                f"No Filaments match {filaments_uri} in {picks.run.name}, so the polarity of {_uri(picks)} is "
+                "unknown. Name the Filaments these picks were sampled from.",
+            )
+        return instance_ids, None, {}
+    polarity = {f.instance_id: bool(f.polarity_known) for f in filaments.filaments}
+    missing = sorted({int(i) for i in instance_ids} - set(polarity))
+    if missing:
+        raise ValueError(
+            f"{len(missing)} filament IDs of {_uri(picks)} in {picks.run.name} have no filament in "
+            f"{_uri(filaments)}: {missing[:20]}{' ...' if len(missing) > 20 else ''}. Each pick must come from a "
+            "filament of the Filaments that state the polarity.",
+        )
+    return instance_ids, _uri(filaments), polarity
+
+
+def filament_polarity_known(picks: "CopickPicks", filaments_uri: Optional[str] = None) -> np.ndarray:
+    """Per pick, whether the point order of its filament follows the structure's polarity.
+
+    Each pick is matched to the filament whose ``instance_id`` equals its own, in the Filaments chosen by
+    ``polarity_filaments``, and takes that filament's ``polarity_known``. Every pick's filament must be in those
+    Filaments. Without any (none under the picks' own URI, and no ``filaments_uri``), every pick counts as of unknown
+    polarity.
+
+    With ``polarity_known``, a filament's points run from the minus to the plus end (microtubules) or from the pointed to
+    the barbed end (actin), so the +Z axis of a pick sampled in point order points toward the plus (barbed) end.
+
+    Args:
+        picks: Picks of a filament object.
+        filaments_uri: Filaments URI; default: the picks' own URI (see ``polarity_filaments``).
+
+    Returns:
+        (N,) bool array.
+
+    Raises:
+        ValueError: If a pick's filament is not in the Filaments, or ``filaments_uri`` matches no Filaments in the
+            picks' run, or several (see ``polarity_filaments``).
+    """
+    instance_ids, _, polarity = _polarity_lookup(picks, filaments_uri)
+    return np.array([polarity.get(int(i), False) for i in instance_ids], dtype=bool)
 
 
 def is_filament_export(picks: "CopickPicks", filament: Union[bool, str]) -> bool:

@@ -1,6 +1,6 @@
 """STAR (RELION) picks format handler."""
 
-from typing import TYPE_CHECKING, Dict, Optional, Tuple
+from typing import TYPE_CHECKING, Dict, Optional, Tuple, Union
 
 import numpy as np
 
@@ -147,7 +147,7 @@ class STARPicksHandler:
         tomogram: Optional["RelionTomogram"] = None,
         instance_ids: Optional[np.ndarray] = None,
         filament: bool = False,
-        polarity_known: bool = False,
+        polarity_known: Union[bool, np.ndarray] = False,
         **kwargs,
     ) -> str:
         """Write picks to a STAR file.
@@ -169,7 +169,8 @@ class STARPicksHandler:
             tomogram: tomograms.star entry for this tomogram (centre, pixel size and CTF parameters)
             instance_ids: Instance IDs (filament IDs with ``filament``)
             filament: Write RELION's filament columns (``copick.util.formats.build_relion_particles_df``)
-            polarity_known: For filament columns: the point order follows the filament's polarity
+            polarity_known: For filament columns: whether the point order follows the filament's polarity, for all
+                picks (a bool) or per pick (an (N,) array); ``rlnAnglePsiFlipRatio`` is 0 where it does, else 0.5
 
         Returns:
             Path to the written file
@@ -254,7 +255,7 @@ class STARPicksHandler:
         tomograms: Optional[Dict[str, "RelionTomogram"]] = None,
         grouped_instance_ids: Optional[Dict[str, np.ndarray]] = None,
         filament: bool = False,
-        polarity_known: bool = False,
+        polarity_known: Union[bool, Dict[str, Union[bool, np.ndarray]]] = False,
         **kwargs,
     ) -> str:
         """Write picks from multiple runs to a single STAR file.
@@ -273,7 +274,8 @@ class STARPicksHandler:
             tomograms: tomograms.star entries by run name
             grouped_instance_ids: Instance IDs per run (filament IDs with ``filament``)
             filament: Write RELION's filament columns (``copick.util.formats.build_relion_particles_df``)
-            polarity_known: For filament columns: the point order follows the filaments' polarity
+            polarity_known: For filament columns: whether the point order follows the filaments' polarity, for all
+                picks (a bool) or per run (a dict of run name to a bool or an (N,) array)
 
         Returns:
             Path to the written file

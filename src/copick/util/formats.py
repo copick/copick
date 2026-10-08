@@ -1560,7 +1560,7 @@ def build_relion_particles_df(
     legacy_voxel_spacing: Optional[float] = None,
     instance_ids: Optional[np.ndarray] = None,
     filament: bool = False,
-    polarity_known: bool = False,
+    polarity_known: Union[bool, Sequence[bool], np.ndarray] = False,
 ) -> "pd.DataFrame":
     """RELION particle rows for copick picks.
 
@@ -1584,12 +1584,16 @@ def build_relion_particles_df(
         instance_ids: (N,) instance IDs; with ``filament``, the filament IDs.
         filament: Write RELION's filament convention (``copick.util.relion.filament_relion_angles``) instead of
             plain angles, plus ``rlnHelicalTubeID`` (the instance ID), ``rlnHelicalTrackLengthAngst`` (Angstrom along
-            the filament in point order) and, unless ``polarity_known``, ``rlnAnglePsiFlipRatio`` = 0.5. The
-            transforms' +Z axis must be the filament axis (copick's filament pick convention).
-        polarity_known: The point order follows the filament's polarity.
+            the filament in point order) and ``rlnAnglePsiFlipRatio`` (see ``polarity_known``). The transforms' +Z
+            axis must be the filament axis (copick's filament pick convention).
+        polarity_known: For filament columns: whether the point order follows the filament's polarity, for all rows
+            (a bool) or per row (an (N,) array). ``rlnAnglePsiFlipRatio`` is 0 where it does (an ordinary psi prior)
+            and 0.5 elsewhere (a bimodal prior, so that refinement can flip the direction). The column is always
+            written, because RELION reads a missing one as 0.5. Ignored without ``filament``.
 
     Raises:
-        ValueError: If no coordinates can be written, or filament columns are requested for picks without filament IDs.
+        ValueError: If no coordinates can be written, filament columns are requested for picks without filament IDs,
+            or ``polarity_known`` is an array of the wrong length.
     """
     import pandas as pd
 
@@ -1597,6 +1601,9 @@ def build_relion_particles_df(
     transforms = np.asarray(transforms, dtype=float).reshape(-1, 4, 4)
     n = positions.shape[0]
     full_positions = positions + transforms[:, :3, 3]
+    known = np.asarray(polarity_known, dtype=bool)
+    if known.ndim > 1 or (known.ndim == 1 and known.shape[0] != n):
+        raise ValueError(f"polarity_known has shape {known.shape}; expected a bool or one value per pick ({n}).")
     if filament:
         if instance_ids is None or (n and np.min(instance_ids) < 1):
             unassigned = n if instance_ids is None else int(np.sum(np.asarray(instance_ids) < 1))
@@ -1642,8 +1649,7 @@ def build_relion_particles_df(
         ids = np.asarray(instance_ids, dtype=np.int64)
         data["rlnHelicalTubeID"] = ids
         data["rlnHelicalTrackLengthAngst"] = filament_track_lengths(full_positions, ids)
-        if not polarity_known:
-            data["rlnAnglePsiFlipRatio"] = np.full(n, 0.5)
+        data["rlnAnglePsiFlipRatio"] = np.where(np.broadcast_to(known, (n,)), 0.0, 0.5)
     if tomogram_center is not None:
         centered = full_positions - np.asarray(tomogram_center, dtype=float)
         data["rlnCenteredCoordinateXAngst"] = centered[:, 0]
@@ -1685,7 +1691,7 @@ def build_relion_star_tables(
     include_optics: bool = True,
     instance_ids: Optional[Dict[Optional[str], np.ndarray]] = None,
     filament: bool = False,
-    polarity_known: bool = False,
+    polarity_known: Union[bool, Dict[Optional[str], Union[bool, np.ndarray]]] = False,
 ) -> Tuple["pd.DataFrame", Optional["pd.DataFrame"]]:
     """Particle and optics tables of a RELION STAR file for picks from one or more runs.
 
@@ -1705,7 +1711,8 @@ def build_relion_star_tables(
         include_optics: Write an optics table (when the tilt-series pixel size is known).
         instance_ids: Instance IDs per run (filament IDs with ``filament``).
         filament: Write RELION's filament columns (see ``build_relion_particles_df``).
-        polarity_known: For filament columns: the point order follows the filaments' polarity.
+        polarity_known: For filament columns: whether the point order follows the filaments' polarity, for every
+            row (a bool) or per run (a dict of run name to a bool or an (N,) array; runs not in it count as unknown).
 
     Returns:
         Tuple of (particles DataFrame, optics DataFrame or None).
@@ -1737,7 +1744,7 @@ def build_relion_star_tables(
             legacy_voxel_spacing=None if (use_centers or use_sizes) else voxel_spacing,
             instance_ids=(instance_ids or {}).get(name),
             filament=filament,
-            polarity_known=polarity_known,
+            polarity_known=polarity_known.get(name, False) if isinstance(polarity_known, dict) else polarity_known,
         )
         if include_optics and use_sizes:
             df["rlnOpticsGroup"] = group
@@ -1761,7 +1768,7 @@ def write_star_particles_grouped(
     include_optics: bool = True,
     instance_ids: Optional[Dict[str, np.ndarray]] = None,
     filament: bool = False,
-    polarity_known: bool = False,
+    polarity_known: Union[bool, Dict[str, Union[bool, np.ndarray]]] = False,
 ) -> None:
     """Write a combined RELION STAR file from multiple runs.
 
@@ -1780,7 +1787,8 @@ def write_star_particles_grouped(
         include_optics: Write an optics table when the tilt-series pixel size is known.
         instance_ids: Instance IDs per run (filament IDs with ``filament``).
         filament: Write RELION's filament columns (see ``build_relion_particles_df``).
-        polarity_known: For filament columns: the point order follows the filaments' polarity.
+        polarity_known: For filament columns: whether the point order follows the filaments' polarity, for every
+            row (a bool) or per run (a dict of run name to a bool or an (N,) array).
     """
     import warnings
 
