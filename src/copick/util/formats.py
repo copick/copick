@@ -1518,6 +1518,9 @@ def write_star_particles(
 ) -> None:
     """Write a RELION STAR file.
 
+    The particles are always written as ``data_particles``: RELION's tomography programs read that block by name, and
+    find no particles in an unnamed ``data_`` block.
+
     Args:
         path: Output path for the STAR file.
         df: DataFrame with particle data.
@@ -1526,11 +1529,10 @@ def write_star_particles(
     import pandas as pd
     import starfile
 
+    data = {"particles": df}
     if optics_group is not None:
         optics_df = optics_group if isinstance(optics_group, pd.DataFrame) else pd.DataFrame([optics_group])
         data = {"optics": optics_df, "particles": df}
-    else:
-        data = df
 
     starfile.write(data, path, overwrite=True)
 
