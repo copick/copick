@@ -28,10 +28,11 @@ index map is supplied, and STAR/CSV reference runs by name. For coordinate
 and Euler-angle conventions, see the docstrings in `copick.util.formats`.
 
 STAR files carry `rlnTomoName` and coordinates centred on each tomogram (from
-`--tomograms-star`, or the copick tomogram at `--voxel-size`). With
-`--tilt-series-pixel-size` (or a tomograms.star) they also carry
-`rlnCoordinateX/Y/Z` in tilt-series pixels and the optics table RELION
-requires. Picks of objects declared a filament get RELION's filament
+`--tomograms-star`, or the copick tomogram at `--voxel-size`, of type
+`--tomo-type` if given). With `--tilt-series-pixel-size` (or a
+tomograms.star) they also carry `rlnCoordinateX/Y/Z` in tilt-series pixels
+and the optics table RELION requires; `--coordinates centered` writes the
+centered coordinates only. Picks of objects declared a filament get RELION's filament
 columns (`--filament-columns`): the frame in `rlnTomoSubtomogram*`,
 `rlnAngleTilt` and its prior at 90, `rlnHelicalTubeID` from the instance
 ID, and `rlnHelicalTrackLengthAngst`. Their `rlnAnglePsiFlipRatio` is 0
@@ -55,6 +56,8 @@ into another session).
 | `--include-optics / --no-include-optics` | boolean flag | `True` | Include optics group in STAR file output. |
 | `--tilt-series-pixel-size` | float | — | STAR only: tilt-series pixel size in Angstrom. Adds rlnCoordinateX/Y/Z in tilt-series pixels and an optics table with rlnTomoTiltSeriesPixelSize, which RELION requires. |
 | `--tomograms-star` | file | — | STAR only: RELION tomograms.star giving each tomogram's centre, tilt-series pixel size and CTF parameters (takes precedence over the copick tomograms). |
+| `--tomo-type` | text | — | STAR only: type of the copick tomogram (at --voxel-size) whose shape defines each run's center. Default: the first tomogram at that voxel size. |
+| `--coordinates` | choice (auto \| centered) | `auto` | STAR only: 'auto' writes centered coordinates and/or rlnCoordinateX/Y/Z in tilt-series pixels, whatever is known; 'centered' writes centered coordinates only and fails for a run without a tomogram center. |
 | `--filament-columns` | choice (auto \| on \| off) | `auto` | STAR only: RELION's filament columns (rlnHelicalTubeID, track length, subtomogram frame, priors) for objects declared a filament ('auto'), always ('on'), or never ('off'). |
 | `--polarity-from-filaments / --no-polarity-from-filaments` | boolean flag | `True` | STAR only, with filament columns: set rlnAnglePsiFlipRatio from each filament's polarity_known in a Filaments source (0 where the polarity is known, 0.5 elsewhere). Off: 0.5 for every pick. |
 | `--filaments-uri` | text | — | STAR only: the Filaments (e.g. 'microtubule:tracer/1') that state the polarity, matched to the picks by instance ID in each run; every pick's filament must be in them. Default: the Filaments under the picks' own URI, when they exist. |

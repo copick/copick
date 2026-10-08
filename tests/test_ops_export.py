@@ -532,3 +532,120 @@ def test_export_panoptic_segmentation(test_payload, tmp_path):
     assert results["segmentations"] == 1, results
     out = tmp_path / "run" / "TS_001" / "PanopticSegmentations"
     assert sorted(p.name for p in out.iterdir()) == ["cells_exp_4_instance.tiff", "cells_exp_4_label.tiff"]
+
+
+# =============================================================================
+# RELION coordinates: centered only, per-run tilt-series pixel sizes, the center's tomogram type
+# =============================================================================
+
+
+def _two_runs():
+    import numpy as np
+
+    return {
+        "TS_A": (np.array([[100.0, 200.0, 300.0], [150.0, 250.0, 350.0]]), np.tile(np.eye(4), (2, 1, 1))),
+        "TS_B": (np.array([[400.0, 300.0, 200.0]]), np.tile(np.eye(4), (1, 1, 1))),
+    }
+
+
+class TestRelionCoordinates:
+    def test_centered_only(self):
+        from copick.util.formats import build_relion_star_tables
+
+        centers = {"TS_A": (300.0, 300.0, 100.0), "TS_B": (500.0, 500.0, 150.0)}
+        particles, optics = build_relion_star_tables(
+            _two_runs(),
+            tomogram_centers=centers,
+            tilt_series_pixel_size=2.0,
+            coordinates="centered",
+        )
+        assert not {"rlnCoordinateX", "rlnCoordinateY", "rlnCoordinateZ"} & set(particles.columns)
+        assert particles["rlnCenteredCoordinateXAngst"].tolist() == pytest.approx([-200.0, -150.0, -100.0])
+        # The optics table still carries the tilt-series pixel size
+        assert optics["rlnTomoTiltSeriesPixelSize"].tolist() == [2.0, 2.0]
+
+        # "auto" adds rlnCoordinateX/Y/Z in tilt-series pixels
+        auto, _ = build_relion_star_tables(_two_runs(), tomogram_centers=centers, tilt_series_pixel_size=2.0)
+        assert auto["rlnCoordinateX"].tolist() == pytest.approx([50.0, 75.0, 200.0])
+
+    def test_centered_needs_every_center(self):
+        from copick.util.formats import build_relion_star_tables
+
+        with pytest.raises(ValueError, match="No tomogram center for 1 run\\(s\\): TS_B"):
+            build_relion_star_tables(
+                _two_runs(),
+                tomogram_centers={"TS_A": (300.0, 300.0, 100.0)},
+                tilt_series_pixel_size=2.0,
+                coordinates="centered",
+            )
+        # "auto" falls back to tilt-series pixels for every run
+        particles, _ = build_relion_star_tables(
+            _two_runs(),
+            tomogram_centers={"TS_A": (300.0, 300.0, 100.0)},
+            tilt_series_pixel_size=2.0,
+        )
+        assert "rlnCenteredCoordinateXAngst" not in particles.columns
+        with pytest.raises(ValueError, match="coordinates must be one of"):
+            build_relion_star_tables(_two_runs(), tilt_series_pixel_size=2.0, coordinates="pixels")
+
+    def test_per_run_tilt_series_pixel_size(self):
+        from copick.util.formats import build_relion_star_tables
+
+        centers = {"TS_A": (300.0, 300.0, 100.0), "TS_B": (500.0, 500.0, 150.0)}
+        particles, optics = build_relion_star_tables(
+            _two_runs(),
+            tomogram_centers=centers,
+            tilt_series_pixel_size={"TS_A": 2.0, "TS_B": 4.0},
+        )
+        assert optics["rlnOpticsGroupName"].tolist() == ["TS_A", "TS_B"]
+        assert optics["rlnTomoTiltSeriesPixelSize"].tolist() == [2.0, 4.0]
+        assert particles["rlnOpticsGroup"].tolist() == [1, 1, 2]
+        assert particles["rlnCoordinateX"].tolist() == pytest.approx([50.0, 75.0, 100.0])
+
+        # A run without a value: no pixel coordinates and no optics table for any run
+        particles, optics = build_relion_star_tables(
+            _two_runs(),
+            tomogram_centers=centers,
+            tilt_series_pixel_size={"TS_A": 2.0},
+        )
+        assert optics is None
+        assert "rlnCoordinateX" not in particles.columns
+        assert "rlnCenteredCoordinateXAngst" in particles.columns
+
+    def test_center_from_tomogram_type(self, test_payload, tmp_path):
+        import numpy as np
+        import starfile
+        from copick.util.formats import get_tomogram_centers_from_copick
+        from copick.util.relion import copick_tomogram_center
+
+        root = test_payload["root"]
+        run = root.get_run("TS_001")
+        run.get_voxel_spacing(10.0).new_tomogram(tomo_type="center-test").from_numpy(
+            np.zeros((20, 40, 80), dtype=np.float32),
+            levels=1,
+        )
+        picks = run.new_picks(object_name="ribosome", user_id="center-test", session_id="1")
+        picks.from_numpy(np.array([[500.0, 250.0, 120.0]]))
+
+        assert get_tomogram_centers_from_copick(root, ["TS_001"], 10.0, "center-test")["TS_001"] == (
+            400.0,
+            200.0,
+            100.0,
+        )
+        assert get_tomogram_centers_from_copick(root, ["TS_001"], None, "center-test")["TS_001"] == (
+            400.0,
+            200.0,
+            100.0,
+        )
+        assert copick_tomogram_center(picks, 10.0, tomo_type="center-test") == (400.0, 200.0, 100.0)
+        # No fallback to another type
+        assert copick_tomogram_center(picks, 10.0, tomo_type="no-such-type") is None
+        assert get_tomogram_centers_from_copick(root, ["TS_001"], 10.0, "no-such-type") == {}
+
+        path = str(tmp_path / "typed.star")
+        export_picks(picks, path, "star", voxel_spacing=10.0, tomo_type="center-test", coordinates="centered")
+        particles = starfile.read(path)
+        assert particles["rlnCenteredCoordinateXAngst"].tolist() == pytest.approx([100.0])
+        assert particles["rlnCenteredCoordinateZAngst"].tolist() == pytest.approx([20.0])
+        with pytest.raises(ValueError, match="No tomogram center"):
+            export_picks(picks, path, "star", voxel_spacing=10.0, tomo_type="no-such-type", coordinates="centered")

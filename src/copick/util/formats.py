@@ -1448,10 +1448,20 @@ def _row_tomogram_centers(
     return np.asarray(centers, dtype=float).reshape(n, 3)
 
 
+def _center_tomogram(voxel_spacing, tomo_type: Optional[str]):
+    """The tomogram of a voxel spacing whose shape defines the center: the first of ``tomo_type`` if given, else the
+    first tomogram; None if there is none."""
+    if voxel_spacing is None:
+        return None
+    tomograms = [t for t in voxel_spacing.tomograms if tomo_type is None or t.tomo_type == tomo_type]
+    return tomograms[0] if tomograms else None
+
+
 def get_tomogram_centers_from_copick(
     root: "CopickRootFSSpec",
     run_names: List[str],
     voxel_spacing: Optional[float],
+    tomo_type: Optional[str] = None,
 ) -> Dict[str, Tuple[float, float, float]]:
     """Get tomogram centers from existing copick project tomograms.
 
@@ -1462,7 +1472,9 @@ def get_tomogram_centers_from_copick(
         root: Copick root object.
         run_names: List of run names to get centers for.
         voxel_spacing: Voxel spacing in Angstrom. If None, the smallest voxel spacing of each run that has a
-            tomogram is used.
+            tomogram (of ``tomo_type``, if given) is used.
+        tomo_type: Type of the tomogram whose shape defines the center. Default: the voxel spacing's first tomogram.
+            A run without a tomogram of this type gets no center; no other type is used instead.
 
     Returns:
         Dict mapping run_name -> (center_x_angst, center_y_angst, center_z_angst).
@@ -1475,19 +1487,14 @@ def get_tomogram_centers_from_copick(
             continue  # Skip missing runs
 
         if voxel_spacing is None:
-            with_tomograms = [v for v in run.voxel_spacings if v.tomograms]
+            with_tomograms = [v for v in run.voxel_spacings if _center_tomogram(v, tomo_type) is not None]
             vs = min(with_tomograms, key=lambda v: v.voxel_size) if with_tomograms else None
         else:
             vs = run.get_voxel_spacing(voxel_spacing)
-        if vs is None:
+        tomo = _center_tomogram(vs, tomo_type)
+        if tomo is None:
             continue
 
-        # Get any tomogram to read shape
-        tomos = vs.tomograms
-        if not tomos:
-            continue
-
-        tomo = tomos[0]
         import zarr
 
         zarr_store = tomo.zarr()
@@ -1550,6 +1557,16 @@ def _relion_eulers(rotations: np.ndarray) -> np.ndarray:
     return eulers
 
 
+#: How RELION particle coordinates are written: ``"auto"`` (centered and/or tilt-series pixels, whatever is known) or
+#: ``"centered"`` (centered coordinates only, which must be known).
+RELION_COORDINATE_MODES = ("auto", "centered")
+
+
+def _check_coordinates(coordinates: str) -> None:
+    if coordinates not in RELION_COORDINATE_MODES:
+        raise ValueError(f"coordinates must be one of {RELION_COORDINATE_MODES}, not {coordinates!r}")
+
+
 def build_relion_particles_df(
     positions: np.ndarray,
     transforms: np.ndarray,
@@ -1561,11 +1578,12 @@ def build_relion_particles_df(
     instance_ids: Optional[np.ndarray] = None,
     filament: bool = False,
     polarity_known: Union[bool, Sequence[bool], np.ndarray] = False,
+    coordinates: str = "auto",
 ) -> "pd.DataFrame":
     """RELION particle rows for copick picks.
 
     Each particle's position is its location plus its transform's translation (``geometry.md`` §2.3); its angles
-    come from the transform's rotation. Coordinates are written as:
+    come from the transform's rotation. With ``coordinates="auto"``, coordinates are written as:
 
     - ``rlnCenteredCoordinate{X,Y,Z}Angst`` (position minus the tomogram centre) whenever ``tomogram_center`` is
       given; RELION 5 reads these.
@@ -1573,6 +1591,8 @@ def build_relion_particles_df(
       RELION 4 and 5 mean by these columns.
     - With neither, ``rlnCoordinate{X,Y,Z}`` in pixels of ``legacy_voxel_spacing``, as earlier copick versions wrote
       them, with a warning, since RELION would read them as tilt-series pixels.
+
+    With ``coordinates="centered"``, only the centered coordinates are written, and the tomogram center is required.
 
     Args:
         positions: (N, 3) locations in Angstrom.
@@ -1590,12 +1610,22 @@ def build_relion_particles_df(
             (a bool) or per row (an (N,) array). ``rlnAnglePsiFlipRatio`` is 0 where it does (an ordinary psi prior)
             and 0.5 elsewhere (a bimodal prior, so that refinement can flip the direction). The column is always
             written, because RELION reads a missing one as 0.5. Ignored without ``filament``.
+        coordinates: ``"auto"`` (as above) or ``"centered"`` (centered coordinates only).
 
     Raises:
-        ValueError: If no coordinates can be written, filament columns are requested for picks without filament IDs,
-            or ``polarity_known`` is an array of the wrong length.
+        ValueError: If no coordinates can be written (or, with ``coordinates="centered"``, no center is given),
+            filament columns are requested for picks without filament IDs, or ``polarity_known`` is an array of the
+            wrong length.
     """
     import pandas as pd
+
+    _check_coordinates(coordinates)
+    if coordinates == "centered":
+        if tomogram_center is None:
+            raise ValueError(
+                f"No tomogram center{f' for {tomo_name}' if tomo_name else ''}: centered RELION coordinates need one.",
+            )
+        tilt_series_pixel_size = None
 
     positions = np.asarray(positions, dtype=float).reshape(-1, 3)
     transforms = np.asarray(transforms, dtype=float).reshape(-1, 4, 4)
@@ -1686,18 +1716,20 @@ def build_relion_star_tables(
     *,
     voxel_spacing: Optional[float] = None,
     tomogram_centers: Optional[Dict[Optional[str], Tuple[float, float, float]]] = None,
-    tilt_series_pixel_size: Optional[float] = None,
+    tilt_series_pixel_size: Union[None, float, Dict[Optional[str], float]] = None,
     tomograms: Optional[Dict[str, RelionTomogram]] = None,
     include_optics: bool = True,
     instance_ids: Optional[Dict[Optional[str], np.ndarray]] = None,
     filament: bool = False,
     polarity_known: Union[bool, Dict[Optional[str], Union[bool, np.ndarray]]] = False,
+    coordinates: str = "auto",
 ) -> Tuple["pd.DataFrame", Optional["pd.DataFrame"]]:
     """Particle and optics tables of a RELION STAR file for picks from one or more runs.
 
     The same coordinate columns are written for every run: centred coordinates if every run's tomogram centre is
     known, ``rlnCoordinate{X,Y,Z}`` in tilt-series pixels if every run's tilt-series pixel size is known, and the
-    legacy tomogram-pixel coordinates (see ``build_relion_particles_df``) only if neither is.
+    legacy tomogram-pixel coordinates (see ``build_relion_particles_df``) only if neither is. With
+    ``coordinates="centered"``, only centered coordinates are written, and a run without a center is an error.
 
     An optics table is written only when the tilt-series pixel size is known (RELION refuses an optics table without
     ``rlnTomoTiltSeriesPixelSize``, and builds one from tomograms.star when the file has none), one group per run.
@@ -1706,32 +1738,50 @@ def build_relion_star_tables(
         runs: Dict mapping run name (written as rlnTomoName; None writes no such column) to (positions, transforms).
         voxel_spacing: Voxel size for the legacy fallback.
         tomogram_centers: Tomogram centre in Angstrom per run.
-        tilt_series_pixel_size: Tilt-series pixel size for every run.
+        tilt_series_pixel_size: Tilt-series pixel size in Angstrom, for every run (a float) or per run (a dict; a
+            run not in it takes the value from ``tomograms``, if any).
         tomograms: tomograms.star entries per run; they supply centres, tilt-series pixel sizes and CTF parameters.
-        include_optics: Write an optics table (when the tilt-series pixel size is known).
+            A run's entry takes precedence over its ``tomogram_centers`` value.
+        include_optics: Write an optics table (when the tilt-series pixel size is known), one group per run.
         instance_ids: Instance IDs per run (filament IDs with ``filament``).
         filament: Write RELION's filament columns (see ``build_relion_particles_df``).
         polarity_known: For filament columns: whether the point order follows the filaments' polarity, for every
             row (a bool) or per run (a dict of run name to a bool or an (N,) array; runs not in it count as unknown).
+        coordinates: ``"auto"`` or ``"centered"`` (see above).
 
     Returns:
         Tuple of (particles DataFrame, optics DataFrame or None).
+
+    Raises:
+        ValueError: With ``coordinates="centered"``, if a run has no tomogram center.
     """
     import pandas as pd
 
+    _check_coordinates(coordinates)
     tomograms = tomograms or {}
     tomogram_centers = tomogram_centers or {}
     centers, sizes = {}, {}
     for name in runs:
         tomogram = tomograms.get(name) if name is not None else None
         centers[name] = tomogram.center_angstrom if tomogram is not None else tomogram_centers.get(name)
-        sizes[name] = (
-            tilt_series_pixel_size
-            if tilt_series_pixel_size is not None
-            else (tomogram.tilt_series_pixel_size if tomogram is not None else None)
-        )
+        size = tilt_series_pixel_size.get(name) if isinstance(tilt_series_pixel_size, dict) else tilt_series_pixel_size
+        if size is None and tomogram is not None:
+            size = tomogram.tilt_series_pixel_size
+        sizes[name] = size
     use_centers = all(center is not None for center in centers.values())
     use_sizes = all(size is not None for size in sizes.values())
+    if coordinates == "centered" and not use_centers:
+        missing = sorted(str(name) for name, center in centers.items() if center is None)
+        raise ValueError(
+            f"No tomogram center for {len(missing)} run(s): {', '.join(missing)}. Centered RELION coordinates need the "
+            "center of each run's tomogram (from tomograms.star, the caller, or a copick tomogram).",
+        )
+    if not use_sizes and any(size is not None for size in sizes.values()):
+        missing = sorted(str(name) for name, size in sizes.items() if size is None)
+        logger.warning(
+            f"No tilt-series pixel size for {', '.join(missing)}: writing neither rlnCoordinateX/Y/Z nor an optics "
+            "table for any run.",
+        )
 
     particle_tables, optics_rows = [], []
     for group, (name, (positions, transforms)) in enumerate(runs.items(), start=1):
@@ -1745,6 +1795,7 @@ def build_relion_star_tables(
             instance_ids=(instance_ids or {}).get(name),
             filament=filament,
             polarity_known=polarity_known.get(name, False) if isinstance(polarity_known, dict) else polarity_known,
+            coordinates=coordinates,
         )
         if include_optics and use_sizes:
             df["rlnOpticsGroup"] = group
@@ -1763,12 +1814,13 @@ def write_star_particles_grouped(
     optics_group: Optional[Dict] = None,
     *,
     tomogram_centers: Optional[Dict[str, Tuple[float, float, float]]] = None,
-    tilt_series_pixel_size: Optional[float] = None,
+    tilt_series_pixel_size: Union[None, float, Dict[str, float]] = None,
     tomograms: Optional[Dict[str, RelionTomogram]] = None,
     include_optics: bool = True,
     instance_ids: Optional[Dict[str, np.ndarray]] = None,
     filament: bool = False,
     polarity_known: Union[bool, Dict[str, Union[bool, np.ndarray]]] = False,
+    coordinates: str = "auto",
 ) -> None:
     """Write a combined RELION STAR file from multiple runs.
 
@@ -1782,13 +1834,14 @@ def write_star_particles_grouped(
             size are known.
         optics_group: Deprecated and ignored: the optics table is derived from the tilt-series pixel size.
         tomogram_centers: Tomogram centre in Angstrom per run.
-        tilt_series_pixel_size: Tilt-series pixel size in Angstrom for every run.
+        tilt_series_pixel_size: Tilt-series pixel size in Angstrom, for every run (a float) or per run (a dict).
         tomograms: tomograms.star entries per run.
         include_optics: Write an optics table when the tilt-series pixel size is known.
         instance_ids: Instance IDs per run (filament IDs with ``filament``).
         filament: Write RELION's filament columns (see ``build_relion_particles_df``).
         polarity_known: For filament columns: whether the point order follows the filaments' polarity, for every
             row (a bool) or per run (a dict of run name to a bool or an (N,) array).
+        coordinates: ``"auto"`` or ``"centered"`` (see ``build_relion_star_tables``).
     """
     import warnings
 
@@ -1809,6 +1862,7 @@ def write_star_particles_grouped(
         instance_ids=instance_ids,
         filament=filament,
         polarity_known=polarity_known,
+        coordinates=coordinates,
     )
     write_star_particles(path, particles, optics)
 
