@@ -6,17 +6,20 @@ to various external file formats used in cryo-ET workflows.
 
 import logging
 import os
-from typing import TYPE_CHECKING, Dict, List, Optional, Tuple
+from dataclasses import dataclass, field
+from typing import TYPE_CHECKING, Dict, List, Optional, Tuple, Union
 
 import numpy as np
 import zarr
 
 from copick.util.log import get_logger
+from copick.util.relion import FilamentPolarity
 from copick.util.segmentation import PANOPTIC_CHANNELS
 
 if TYPE_CHECKING:
     from copick.models import (
         CopickPicks,
+        CopickRoot,
         CopickRun,
         CopickSegmentation,
         CopickTomogram,
@@ -351,6 +354,234 @@ def _export_picks_csv(
     return output_path
 
 
+@dataclass
+class RelionExport:
+    """What ``export_relion_particles`` wrote.
+
+    Attributes:
+        path: The particle STAR file, or the index for the ``"import"`` layout.
+        layout: ``"particles"`` or ``"import"``.
+        files: For the ``"import"`` layout, each run's coordinate file as written in the index; else empty.
+        rows: Particles written per run, for every run considered (0 for a run without picks).
+        filament: Whether RELION's filament columns were written.
+        polarity: For filament exports, how each run's polarity was resolved (runs with picks only). A run whose
+            picks come from several picks sets sums their counts and joins their sources with ", ".
+    """
+
+    path: str
+    layout: str
+    files: Dict[str, str] = field(default_factory=dict)
+    rows: Dict[str, int] = field(default_factory=dict)
+    filament: bool = False
+    polarity: Dict[str, FilamentPolarity] = field(default_factory=dict)
+
+
+#: STAR layouts of ``export_relion_particles``.
+RELION_LAYOUTS = ("particles", "import")
+
+#: Columns of a particle file without particles.
+_EMPTY_PARTICLE_COLUMNS = (
+    "rlnTomoName",
+    "rlnCenteredCoordinateXAngst",
+    "rlnCenteredCoordinateYAngst",
+    "rlnCenteredCoordinateZAngst",
+    "rlnAngleRot",
+    "rlnAngleTilt",
+    "rlnAnglePsi",
+)
+
+
+def _merge_polarity(summaries: List[FilamentPolarity]) -> FilamentPolarity:
+    sources = sorted({p.source for p in summaries if p.source is not None})
+    return FilamentPolarity(
+        source=", ".join(sources) if sources else None,
+        known=sum(p.known for p in summaries),
+        unknown=sum(p.unknown for p in summaries),
+    )
+
+
+def _run_polarity(
+    picks_list: List["CopickPicks"],
+    polarity_from_filaments: bool,
+    filaments_uri: Optional[str],
+) -> Tuple[np.ndarray, FilamentPolarity]:
+    """Per pick polarity and its summary for the picks sets of one run, in order."""
+    from copick.util.relion import filament_polarity
+
+    results = []
+    for picks in picks_list:
+        if polarity_from_filaments:
+            results.append(filament_polarity(picks, filaments_uri))
+        else:
+            ids = np.asarray(picks.instance_ids())
+            results.append((np.zeros(len(ids), dtype=bool), FilamentPolarity(None, 0, len(set(ids.tolist())))))
+    return np.concatenate([known for known, _ in results]), _merge_polarity([summary for _, summary in results])
+
+
+def export_relion_particles(
+    root: Union[str, "CopickRoot"],
+    picks_uri: str,
+    output_path: str,
+    *,
+    voxel_spacing: Optional[float] = None,
+    run_names: Optional[List[str]] = None,
+    layout: str = "particles",
+    tomo_type: Optional[str] = None,
+    tomogram_centers: Optional[Dict[str, Tuple[float, float, float]]] = None,
+    tilt_series_pixel_size: Union[None, float, Dict[str, float]] = None,
+    tomograms_star: Optional[str] = None,
+    coordinates: str = "auto",
+    include_optics: bool = True,
+    filament_columns: str = "auto",
+    polarity_from_filaments: bool = True,
+    filaments_uri: Optional[str] = None,
+    allow_empty: bool = False,
+) -> RelionExport:
+    """Export the picks matching a URI from several runs to RELION, and report what was written.
+
+    The picks of each run are concatenated in the order the URI resolves them, each in its own point order; the
+    particle rows follow ``copick.util.formats.build_relion_star_tables``. Errors are raised, never skipped per run.
+
+    Two layouts:
+
+    - ``"particles"``: one STAR file with a particles table and, when the tilt-series pixel size is known (and
+      ``include_optics``), an optics table with one group per run.
+    - ``"import"``: the input of RELION's tomography Import Coordinates job. ``output_path`` is an index naming one
+      coordinate file per run, in ``coordinates/`` beside it (``copick.util.formats.write_relion_import_bundle``).
+
+    A run's tomogram center comes from ``tomograms_star``, else ``tomogram_centers``, else the shape of the copick
+    tomogram (``tomo_type`` at ``voxel_spacing``). Copick tomograms are opened only for runs whose center is not given.
+
+    Args:
+        root: Copick root, or the path of its configuration file.
+        picks_uri: Picks URI (e.g. ``microtubule:sampler/1``).
+        output_path: Output STAR file (the index for the ``"import"`` layout).
+        voxel_spacing: Voxel spacing of the copick tomograms that define the centers; also the unit of the legacy
+            coordinates written when neither a center nor the tilt-series pixel size is known.
+        run_names: Runs to export (default: all). An unknown name is an error.
+        layout: ``"particles"`` or ``"import"``.
+        tomo_type: Type of the copick tomogram whose shape defines each run's center.
+        tomogram_centers: Tomogram center in Angstrom (copick's frame) per run.
+        tilt_series_pixel_size: Tilt-series pixel size in Angstrom, for every run or per run (a dict).
+        tomograms_star: RELION tomograms.star with the runs' centers, tilt-series pixel sizes and CTF parameters.
+        coordinates: ``"auto"`` or ``"centered"`` (centered coordinates only; a run without a center is an error).
+        include_optics: ``"particles"`` layout: write the optics table when the tilt-series pixel size is known.
+        filament_columns: ``"on"``, ``"off"`` or ``"auto"`` (filament columns when every exported object is declared
+            a filament).
+        polarity_from_filaments: For filament columns, read each filament's polarity from Filaments (see
+            ``copick.util.relion.filament_polarity``); with False every pick gets ``rlnAnglePsiFlipRatio`` = 0.5.
+        filaments_uri: The Filaments that state the polarity. Default: those under each picks set's own URI.
+        allow_empty: Without picks, write an empty particle table (or index) instead of raising.
+
+    Returns:
+        A ``RelionExport``.
+
+    Raises:
+        ValueError: For an unknown layout, coordinate mode or run name; no picks (unless ``allow_empty``); a run
+            without a center with ``coordinates="centered"``; a ``filaments_uri`` matching no or several Filaments in
+            a run; or a pick whose filament is not in the Filaments (see ``copick.util.relion.filament_polarity``).
+    """
+    import pandas as pd
+
+    import copick
+    from copick.util.formats import (
+        build_relion_star_tables,
+        get_tomogram_centers_from_copick,
+        read_relion_tomograms,
+        write_relion_import_bundle,
+        write_star_particles,
+    )
+    from copick.util.uri import resolve_copick_objects
+
+    if layout not in RELION_LAYOUTS:
+        raise ValueError(f"layout must be one of {RELION_LAYOUTS}, not {layout!r}")
+    _check_polarity_source(polarity_from_filaments, filaments_uri)
+    mode = _filament_mode(filament_columns)
+    if isinstance(root, (str, os.PathLike)):
+        root = copick.from_file(str(root))
+
+    if run_names is None:
+        runs = list(root.runs)
+    else:
+        unknown = [name for name in run_names if root.get_run(name) is None]
+        if unknown:
+            raise ValueError(f"Unknown runs: {', '.join(unknown)}")
+        runs = [root.get_run(name) for name in run_names]
+
+    positions: Dict[str, List[np.ndarray]] = {}
+    transforms: Dict[str, List[np.ndarray]] = {}
+    instance_ids: Dict[str, List[np.ndarray]] = {}
+    picks_sets: Dict[str, List["CopickPicks"]] = {}
+    rows: Dict[str, int] = {}
+    filament_objects = []
+    for run in runs:
+        rows[run.name] = 0
+        for picks in resolve_copick_objects(picks_uri, root, "picks", run.name):
+            points, matrices = picks.numpy()
+            if len(points) == 0:
+                continue
+            positions.setdefault(run.name, []).append(points)
+            transforms.setdefault(run.name, []).append(matrices)
+            instance_ids.setdefault(run.name, []).append(np.asarray(picks.instance_ids(), dtype=np.int64))
+            picks_sets.setdefault(run.name, []).append(picks)
+            rows[run.name] += len(points)
+            obj = root.get_object(picks.pickable_object_name)
+            filament_objects.append(bool(obj is not None and obj.is_filament))
+
+    if not positions and not allow_empty:
+        raise ValueError("No picks found to export")
+
+    if mode == "auto":
+        filament = bool(filament_objects) and all(filament_objects)
+        if any(filament_objects) and not filament:
+            logger.warning(
+                "Exporting filament and non-filament objects to one STAR file: writing plain particle angles. "
+                "Export filament objects separately to get RELION's filament columns.",
+            )
+    else:
+        filament = mode
+
+    tomograms = read_relion_tomograms(tomograms_star) if tomograms_star else {}
+    centers = dict(tomogram_centers or {})
+    from_copick = [name for name in positions if name not in centers and name not in tomograms]
+    if from_copick:
+        centers.update(get_tomogram_centers_from_copick(root, from_copick, voxel_spacing, tomo_type))
+
+    polarity_known: Dict[str, np.ndarray] = {}
+    polarity: Dict[str, FilamentPolarity] = {}
+    if filament:
+        for name, picks_list in picks_sets.items():
+            polarity_known[name], polarity[name] = _run_polarity(picks_list, polarity_from_filaments, filaments_uri)
+
+    particles, optics = build_relion_star_tables(
+        {name: (np.vstack(positions[name]), np.vstack(transforms[name])) for name in positions},
+        voxel_spacing=voxel_spacing,
+        tomogram_centers=centers,
+        tilt_series_pixel_size=tilt_series_pixel_size,
+        tomograms=tomograms,
+        include_optics=include_optics and layout == "particles",
+        instance_ids={name: np.concatenate(ids) for name, ids in instance_ids.items()},
+        filament=filament,
+        polarity_known=polarity_known,
+        coordinates=coordinates,
+    )
+
+    files: Dict[str, str] = {}
+    if layout == "import":
+        output_path, files = write_relion_import_bundle(output_path, particles)
+    else:
+        if not len(particles.columns):
+            particles = pd.DataFrame(columns=list(_EMPTY_PARTICLE_COLUMNS))
+        os.makedirs(os.path.dirname(output_path) or ".", exist_ok=True)
+        write_star_particles(output_path, particles, optics)
+
+    logger.info(
+        f"Exported {sum(rows.values())} particles from {len(positions)} of {len(rows)} runs to RELION "
+        f"({layout} layout): {output_path}",
+    )
+    return RelionExport(path=output_path, layout=layout, files=files, rows=rows, filament=filament, polarity=polarity)
+
+
 def export_picks_combined(
     config: str,
     output_file: str,
@@ -368,11 +599,13 @@ def export_picks_combined(
     filaments_uri: Optional[str] = None,
     tomo_type: Optional[str] = None,
     coordinates: str = "auto",
+    star_layout: str = "particles",
 ) -> str:
     """Export picks from multiple runs to a single combined file.
 
     This function collects picks from all specified runs and writes them
     to a single output file using the format handler's write_grouped method.
+    STAR files are written by ``export_relion_particles``, which raises rather than skipping a run that fails.
 
     Args:
         config: Path to the copick configuration file.
@@ -398,6 +631,8 @@ def export_picks_combined(
             tomogram at ``voxel_spacing``.
         coordinates: STAR only: ``"auto"`` (centered coordinates and/or rlnCoordinateX/Y/Z in tilt-series pixels,
             whatever is known) or ``"centered"`` (centered coordinates only; a run without a center is an error).
+        star_layout: STAR only: ``"particles"`` (one particle file) or ``"import"`` (``output_file`` is the index of
+            per-run coordinate files for RELION's Import Coordinates job; see ``export_relion_particles``).
 
     Returns:
         Path to the created output file.
@@ -423,10 +658,29 @@ def export_picks_combined(
     # Validate voxel spacing for formats that need it
     if output_format in ("em", "star", "dynamo") and voxel_spacing is None:
         raise ValueError(f"voxel_spacing is required for {output_format.upper()} export")
-    _check_polarity_source(polarity_from_filaments, filaments_uri)
 
     # Load copick project
     root = copick.from_file(config)
+
+    if output_format == "star":
+        if run_names is not None:  # unknown runs are skipped here, as for the other formats
+            run_names = [name for name in run_names if root.get_run(name) is not None]
+        return export_relion_particles(
+            root,
+            picks_uri,
+            output_file,
+            voxel_spacing=voxel_spacing,
+            run_names=run_names,
+            layout=star_layout,
+            tomo_type=tomo_type,
+            tilt_series_pixel_size=tilt_series_pixel_size,
+            tomograms_star=tomograms_star,
+            coordinates=coordinates,
+            include_optics=include_optics,
+            filament_columns=filament_columns,
+            polarity_from_filaments=polarity_from_filaments,
+            filaments_uri=filaments_uri,
+        ).path
 
     # Get runs to process
     runs = root.runs if run_names is None else [root.get_run(name) for name in run_names if root.get_run(name)]
@@ -434,8 +688,6 @@ def export_picks_combined(
     # Collect picks from all runs
     grouped_data: Dict[str, Tuple[np.ndarray, np.ndarray, Optional[np.ndarray]]] = {}
     grouped_instance_ids: Dict[str, np.ndarray] = {}
-    grouped_picks: Dict[str, List["CopickPicks"]] = {}
-    exported_filament_objects = []
     total_particles = 0
 
     for run in runs:
@@ -451,8 +703,6 @@ def export_picks_combined(
                 if picks.points:
                     scores = np.array([p.score for p in picks.points])
                 instance_ids = picks.instance_ids()
-                obj = root.get_object(picks.pickable_object_name)
-                exported_filament_objects.append(bool(obj is not None and obj.is_filament))
 
                 # Accumulate data for this run
                 if run.name in grouped_data:
@@ -472,7 +722,6 @@ def export_picks_combined(
                     grouped_instance_ids[run.name] = np.concatenate([grouped_instance_ids[run.name], instance_ids])
                 else:
                     grouped_instance_ids[run.name] = instance_ids
-                grouped_picks.setdefault(run.name, []).append(picks)
                 total_particles += len(points)
         except Exception as e:
             if log:
@@ -480,37 +729,6 @@ def export_picks_combined(
 
     if not grouped_data:
         raise ValueError("No picks found to export")
-
-    # STAR: tomogram centres and pixel sizes per run
-    star_kwargs = {}
-    if output_format == "star":
-        from copick.util.formats import get_tomogram_centers_from_copick, read_relion_tomograms
-
-        mode = _filament_mode(filament_columns)
-        if mode == "auto":
-            filament = bool(exported_filament_objects) and all(exported_filament_objects)
-            if any(exported_filament_objects) and not filament:
-                logging.warning(
-                    "Exporting filament and non-filament objects to one STAR file: writing plain particle angles. "
-                    "Export filament objects separately to get RELION's filament columns.",
-                )
-        else:
-            filament = mode
-        polarity = {}
-        if filament:
-            # Outside the per-run collection above, so that an ambiguous Filaments source is an error, not a skipped run
-            polarity = {
-                name: np.concatenate([_picks_polarity(p, polarity_from_filaments, filaments_uri) for p in picks_list])
-                for name, picks_list in grouped_picks.items()
-            }
-        star_kwargs = {
-            "tomogram_centers": get_tomogram_centers_from_copick(root, list(grouped_data), voxel_spacing, tomo_type),
-            "tilt_series_pixel_size": tilt_series_pixel_size,
-            "tomograms": read_relion_tomograms(tomograms_star) if tomograms_star else None,
-            "filament": filament,
-            "polarity_known": polarity,
-            "coordinates": coordinates,
-        }
 
     # Create output directory if needed
     os.makedirs(os.path.dirname(output_file) or ".", exist_ok=True)
@@ -523,7 +741,6 @@ def export_picks_combined(
         run_to_index=run_to_index,
         include_optics=include_optics,
         grouped_instance_ids=grouped_instance_ids,
-        **star_kwargs,
     )
 
     if log:

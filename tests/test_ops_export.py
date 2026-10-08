@@ -617,3 +617,215 @@ class TestRelionCoordinates:
         assert particles["rlnCenteredCoordinateZAngst"].tolist() == pytest.approx([20.0])
         with pytest.raises(ValueError, match="No tomogram center"):
             export_picks(picks, path, "star", voxel_spacing=10.0, tomo_type="no-such-type", coordinates="centered")
+
+
+# =============================================================================
+# RELION import-coordinates layout and export_relion_particles
+# =============================================================================
+
+
+def _read_star(path):
+    import starfile
+
+    return starfile.read(path, always_dict=True)
+
+
+class TestRelionImportBundle:
+    def test_writer_splits_one_table(self, tmp_path, monkeypatch):
+        from copick.util.formats import build_relion_star_tables, write_relion_import_bundle
+
+        particles, _ = build_relion_star_tables(
+            _two_runs(),
+            tomogram_centers={"TS_A": (300.0, 300.0, 100.0), "TS_B": (500.0, 500.0, 150.0)},
+            tilt_series_pixel_size=2.0,
+            coordinates="centered",
+        )
+        assert "rlnOpticsGroup" in particles.columns
+        monkeypatch.chdir(tmp_path)
+
+        index_path, files = write_relion_import_bundle("Import/job001/particles.star", particles)
+
+        # Paths are written as given: a relative job directory gives relative paths
+        assert files == {"TS_A": "Import/job001/coordinates/TS_A.star", "TS_B": "Import/job001/coordinates/TS_B.star"}
+        index = _read_star(index_path)
+        assert list(index) == ["coordinate_files"]
+        assert index["coordinate_files"]["rlnTomoName"].tolist() == ["TS_A", "TS_B"]
+        assert index["coordinate_files"]["rlnTomoImportParticleFile"].tolist() == list(files.values())
+        tables = [_read_star(path) for path in files.values()]
+        assert [list(t) for t in tables] == [["particles"], ["particles"]]
+        a, b = (t["particles"] for t in tables)
+        assert list(a.columns) == list(b.columns)  # RELION appends the files, which needs identical columns
+        assert "rlnOpticsGroup" not in a.columns
+        assert a["rlnTomoName"].tolist() == ["TS_A", "TS_A"] and b["rlnTomoName"].tolist() == ["TS_B"]
+        assert a["rlnCenteredCoordinateXAngst"].tolist() == pytest.approx([-200.0, -150.0])
+
+        # No particles: an empty index
+        index_path, files = write_relion_import_bundle("empty/particles.star", particles.iloc[:0])
+        assert files == {}
+        assert len(_read_star(index_path)["coordinate_files"]) == 0
+
+    @pytest.mark.parametrize("name", ["a/b", "..", "."])
+    def test_writer_refuses_names_that_are_not_file_names(self, tmp_path, name):
+        import pandas as pd
+        from copick.util.formats import write_relion_import_bundle
+
+        with pytest.raises(ValueError, match="cannot name a coordinate file"):
+            write_relion_import_bundle(str(tmp_path / "particles.star"), pd.DataFrame({"rlnTomoName": [name]}))
+
+
+def _relion_export_picks(root):
+    import numpy as np
+
+    for run_name, points in (
+        ("TS_001", [[100.0, 200.0, 300.0], [110.0, 210.0, 310.0]]),
+        ("TS_002", [[50.0, 60.0, 70.0]]),
+    ):
+        picks = root.get_run(run_name).new_picks(object_name="ribosome", user_id="relion-export", session_id="1")
+        picks.from_numpy(np.array(points))
+
+
+class TestExportRelionParticles:
+    def test_import_layout_and_report(self, test_payload, tmp_path):
+        from copick.ops.export import export_relion_particles
+
+        root = test_payload["root"]
+        _relion_export_picks(root)
+
+        result = export_relion_particles(
+            str(test_payload["cfg_file"]),
+            "ribosome:relion-export/1",
+            str(tmp_path / "AutoPick" / "particles.star"),
+            voxel_spacing=10.0,
+            layout="import",
+            tomogram_centers={"TS_002": (0.0, 0.0, 0.0)},
+            coordinates="centered",
+        )
+
+        assert result.layout == "import" and not result.filament and result.polarity == {}
+        assert result.rows["TS_001"] == 2 and result.rows["TS_002"] == 1
+        assert set(result.rows) == {run.name for run in root.runs}  # every run considered, 0 for runs without picks
+        assert set(result.files) == {"TS_001", "TS_002"}
+        index = _read_star(result.path)["coordinate_files"]
+        assert index["rlnTomoImportParticleFile"].tolist() == [result.files["TS_001"], result.files["TS_002"]]
+        ts1 = _read_star(result.files["TS_001"])["particles"]
+        ts2 = _read_star(result.files["TS_002"])["particles"]
+        # TS_001's center from its copick tomogram (320 A); TS_002's from the caller
+        assert ts1["rlnCenteredCoordinateXAngst"].tolist() == pytest.approx([-220.0, -210.0])
+        assert ts2["rlnCenteredCoordinateZAngst"].tolist() == pytest.approx([70.0])
+        assert "rlnCoordinateX" not in ts1.columns
+
+    def test_particles_layout_with_per_run_pixel_sizes(self, test_payload, tmp_path):
+        from copick.ops.export import export_relion_particles
+
+        root = test_payload["root"]
+        _relion_export_picks(root)
+        result = export_relion_particles(
+            root,
+            "ribosome:relion-export/1",
+            str(tmp_path / "particles.star"),
+            voxel_spacing=10.0,
+            run_names=["TS_001", "TS_002"],
+            tilt_series_pixel_size={"TS_001": 2.0, "TS_002": 4.0},
+        )
+        assert result.files == {} and result.rows == {"TS_001": 2, "TS_002": 1}
+        data = _read_star(result.path)
+        assert data["optics"]["rlnTomoTiltSeriesPixelSize"].tolist() == [2.0, 4.0]
+        assert data["particles"]["rlnCoordinateX"].tolist() == pytest.approx([50.0, 55.0, 12.5])
+
+    def test_errors_raise_and_empty_exports(self, test_payload, tmp_path):
+        from copick.ops.export import export_relion_particles
+
+        root = test_payload["root"]
+        with pytest.raises(ValueError, match="Unknown runs: no-such-run"):
+            export_relion_particles(root, "*:*/*", str(tmp_path / "x.star"), run_names=["no-such-run"])
+        with pytest.raises(ValueError, match="No picks found to export"):
+            export_relion_particles(root, "ribosome:nobody/1", str(tmp_path / "x.star"), voxel_spacing=10.0)
+        with pytest.raises(ValueError, match="layout must be one of"):
+            export_relion_particles(root, "ribosome:nobody/1", str(tmp_path / "x.star"), layout="flat")
+
+        empty = export_relion_particles(
+            root,
+            "ribosome:nobody/1",
+            str(tmp_path / "empty" / "particles.star"),
+            layout="import",
+            allow_empty=True,
+        )
+        assert empty.files == {} and sum(empty.rows.values()) == 0
+        assert len(_read_star(empty.path)["coordinate_files"]) == 0
+
+        flat = export_relion_particles(
+            root,
+            "ribosome:nobody/1",
+            str(tmp_path / "flat.star"),
+            allow_empty=True,
+        )
+        particles = next(iter(_read_star(flat.path).values()))
+        assert len(particles) == 0 and "rlnCenteredCoordinateXAngst" in particles.columns
+
+    def test_filament_polarity_report(self, test_payload, tmp_path):
+        import numpy as np
+        from copick.ops.export import export_relion_particles
+
+        root = test_payload["root"]
+        root.new_object(name="microtubule", is_particle=True, radius=120, filament={"polar": True})
+        run = root.get_run("TS_001")
+        line = np.array([[100.0, 100.0, 300.0], [182.0, 100.0, 300.0]])
+        transforms = np.tile(np.eye(4), (6, 1, 1))
+        transforms[:, :3, :3] = np.array([[0.0, 0.0, 1.0], [0.0, 1.0, 0.0], [-1.0, 0.0, 0.0]])  # +Z along +x
+        picks = run.new_picks(object_name="microtubule", user_id="cleaned", session_id="1")
+        picks.from_numpy(
+            np.vstack([line, line + [0, 100, 0], line + [0, 200, 0]]),
+            transforms,
+            instance_ids=[1, 1, 2, 2, 3, 3],
+        )
+        trace = run.new_filaments("microtubule", "1", user_id="trace")
+        trace.from_numpy([line, line + [0, 100, 0], line + [0, 200, 0]], polarity_known=[True, False, False])
+
+        result = export_relion_particles(
+            root,
+            "microtubule:cleaned/1",
+            str(tmp_path / "AutoPick" / "particles.star"),
+            voxel_spacing=10.0,
+            layout="import",
+            filaments_uri="microtubule:trace/1",
+        )
+        assert result.filament
+        assert result.polarity["TS_001"].source == "microtubule:trace/1"
+        assert (result.polarity["TS_001"].known, result.polarity["TS_001"].unknown) == (1, 2)
+        particles = _read_star(result.files["TS_001"])["particles"]
+        assert particles["rlnAnglePsiFlipRatio"].tolist() == [0.0, 0.0, 0.5, 0.5, 0.5, 0.5]
+        assert particles["rlnHelicalTubeID"].tolist() == [1, 1, 2, 2, 3, 3]
+
+        # Without a source under the picks' own URI: no source, every filament of unknown polarity
+        result = export_relion_particles(root, "microtubule:cleaned/1", str(tmp_path / "p.star"), voxel_spacing=10.0)
+        assert result.polarity["TS_001"].source is None
+        assert (result.polarity["TS_001"].known, result.polarity["TS_001"].unknown) == (0, 3)
+
+        # A pick whose filament is not in the source is an error (a fresh root, which reads the changed Filaments)
+        trace.from_numpy([line, line + [0, 100, 0]], polarity_known=[True, False])
+        root.save_config(test_payload["cfg_file"])
+        with pytest.raises(ValueError, match=r"1 filament IDs of microtubule:cleaned/1 in TS_001 .* \[3\]"):
+            export_relion_particles(
+                str(test_payload["cfg_file"]),
+                "microtubule:cleaned/1",
+                str(tmp_path / "q.star"),
+                voxel_spacing=10.0,
+                filaments_uri="microtubule:trace/1",
+            )
+
+    def test_cli_import_layout(self, test_payload, tmp_path):
+        from click.testing import CliRunner
+        from copick.cli.export import export
+
+        _relion_export_picks(test_payload["root"])
+        index = str(tmp_path / "import" / "particles.star")
+        args = ["picks", "-c", str(test_payload["cfg_file"]), "--picks-uri", "ribosome:relion-export/1"]
+        args += ["--output-format", "star", "--voxel-size", "10.0", "--star-layout", "import"]
+
+        result = CliRunner().invoke(export, [*args, "--output-file", index, "--coordinates", "centered"])
+        assert result.exit_code == 0, result.output
+        assert _read_star(index)["coordinate_files"]["rlnTomoName"].tolist() == ["TS_001", "TS_002"]
+        assert os.path.exists(os.path.join(str(tmp_path), "import", "coordinates", "TS_001.star"))
+
+        result = CliRunner().invoke(export, [*args, "--output-dir", str(tmp_path / "per-run")])
+        assert result.exit_code != 0 and "--star-layout import" in result.output

@@ -335,7 +335,10 @@ tilt-series pixel size is known, `rlnCoordinateX/Y/Z` in tilt-series pixels toge
 optics table is written, and RELION builds one from `tomograms.star`. The center comes from `tomograms.star`, from the
 caller (`tomogram_centers`), or from the shape of the copick tomogram (of `--tomo-type`, if given), in that order.
 With `--coordinates centered`, only centered coordinates are written, and a run without a center is an error rather
-than a fallback to pixel coordinates.
+than a fallback to pixel coordinates. `--star-layout import` (`copick.ops.export.export_relion_particles(layout="import")`) writes
+the input of RELION's tomography Import Coordinates job instead of one particle file: an index
+(`data_coordinate_files` with `rlnTomoName` and `rlnTomoImportParticleFile`) naming one coordinate file per run,
+each with the same columns and no optics table.
 
 #### Shifts in EM and Dynamo files
 

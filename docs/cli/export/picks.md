@@ -32,7 +32,12 @@ STAR files carry `rlnTomoName` and coordinates centred on each tomogram (from
 `--tomo-type` if given). With `--tilt-series-pixel-size` (or a
 tomograms.star) they also carry `rlnCoordinateX/Y/Z` in tilt-series pixels
 and the optics table RELION requires; `--coordinates centered` writes the
-centered coordinates only. Picks of objects declared a filament get RELION's filament
+centered coordinates only. With `--star-layout import`, `--output-file` is
+the index that RELION's tomography Import Coordinates job reads
+(`data_coordinate_files`: `rlnTomoName`, `rlnTomoImportParticleFile`),
+naming one coordinate file per run in `coordinates/` beside it.
+
+Picks of objects declared a filament get RELION's filament
 columns (`--filament-columns`): the frame in `rlnTomoSubtomogram*`,
 `rlnAngleTilt` and its prior at 90, `rlnHelicalTubeID` from the instance
 ID, and `rlnHelicalTrackLengthAngst`. Their `rlnAnglePsiFlipRatio` is 0
@@ -56,6 +61,7 @@ into another session).
 | `--include-optics / --no-include-optics` | boolean flag | `True` | Include optics group in STAR file output. |
 | `--tilt-series-pixel-size` | float | — | STAR only: tilt-series pixel size in Angstrom. Adds rlnCoordinateX/Y/Z in tilt-series pixels and an optics table with rlnTomoTiltSeriesPixelSize, which RELION requires. |
 | `--tomograms-star` | file | — | STAR only: RELION tomograms.star giving each tomogram's centre, tilt-series pixel size and CTF parameters (takes precedence over the copick tomograms). |
+| `--star-layout` | choice (particles \| import) | `particles` | STAR only, with --output-file: 'particles' writes one particle file; 'import' makes --output-file the index RELION's tomography Import Coordinates job reads, naming one coordinate file per run in 'coordinates/' beside it. |
 | `--tomo-type` | text | — | STAR only: type of the copick tomogram (at --voxel-size) whose shape defines each run's center. Default: the first tomogram at that voxel size. |
 | `--coordinates` | choice (auto \| centered) | `auto` | STAR only: 'auto' writes centered coordinates and/or rlnCoordinateX/Y/Z in tilt-series pixels, whatever is known; 'centered' writes centered coordinates only and fails for a run without a tomogram center. |
 | `--filament-columns` | choice (auto \| on \| off) | `auto` | STAR only: RELION's filament columns (rlnHelicalTubeID, track length, subtomogram frame, priors) for objects declared a filament ('auto'), always ('on'), or never ('off'). |
@@ -74,6 +80,11 @@ copick export picks -c config.json --picks-uri "ribosome:user1/*" \
 # Combined export: all runs to a single STAR file
 copick export picks -c config.json --picks-uri "*:*/*" \
     --output-file ./particles.star --output-format star --voxel-size 10.0
+
+# Input for RELION's tomography Import Coordinates job
+copick export picks -c config.json --picks-uri "ribosome:user1/1" \
+    --output-file ./import/particles.star --output-format star \
+    --voxel-size 10.0 --star-layout import --coordinates centered
 
 # Filament picks sampled from traced Filaments in another session:
 # their polarity comes from those Filaments

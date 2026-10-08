@@ -12,6 +12,7 @@ Supported formats:
 - TIFF stacks (via tifffile package)
 """
 
+import os
 from dataclasses import dataclass
 from typing import TYPE_CHECKING, Dict, List, Optional, Sequence, Tuple, Union
 
@@ -1531,6 +1532,69 @@ def write_star_particles(
         data = df
 
     starfile.write(data, path, overwrite=True)
+
+
+#: Block of a RELION import-coordinates index (see ``write_relion_import_bundle``).
+RELION_IMPORT_INDEX_BLOCK = "coordinate_files"
+
+
+def _check_file_name(name: str) -> None:
+    if name in ("", ".", "..") or "/" in name or os.sep in name or "\0" in name:
+        raise ValueError(f"Run name {name!r} cannot name a coordinate file.")
+
+
+def write_relion_import_bundle(
+    index_path: str,
+    particles: "pd.DataFrame",
+    *,
+    coordinates_dir: Optional[str] = None,
+) -> Tuple[str, Dict[str, str]]:
+    """Write particles as the input of RELION's tomography Import Coordinates job (``relion_tomo_import_coordinates``,
+    the pipeliner's ``relion.importtomo.coordinates``).
+
+    That program reads one STAR file as an index: a ``data_coordinate_files`` table with ``rlnTomoName`` and
+    ``rlnTomoImportParticleFile``, one row per tomogram, each naming a STAR file with that tomogram's particles. It
+    reads each of those files whole and appends them, which requires identical columns, so the files are made by
+    splitting one table by ``rlnTomoName``. Each holds a single ``data_particles`` table without optics (RELION takes
+    the optics from tomograms.star) and without ``rlnOpticsGroup``.
+
+    Args:
+        index_path: Path of the index STAR file.
+        particles: Particle table with ``rlnTomoName`` (e.g. from ``build_relion_star_tables``).
+        coordinates_dir: Directory of the per-tomogram files. Default: ``coordinates`` beside the index. The paths in
+            the index are this string joined with ``<rlnTomoName>.star``, as given: a relative directory gives relative
+            paths, which RELION resolves from its project directory.
+
+    Returns:
+        Tuple of (index path, dict of tomogram name to coordinate file path as written in the index). Tomograms with
+        no particles get no file and no index row; an empty table gives an empty index.
+
+    Raises:
+        ValueError: If the table has particles but no ``rlnTomoName``, or a tomogram name cannot be a file name.
+    """
+    import pandas as pd
+    import starfile
+
+    if coordinates_dir is None:
+        coordinates_dir = os.path.join(os.path.dirname(index_path), "coordinates")
+    table = particles.drop(columns=["rlnOpticsGroup"], errors="ignore")
+    files: Dict[str, str] = {}
+    if len(table):
+        if "rlnTomoName" not in table.columns:
+            raise ValueError("The particle table has no rlnTomoName, which an import-coordinates index needs.")
+        names = table["rlnTomoName"].astype(str)
+        unique_names = list(pd.unique(names))
+        for name in unique_names:
+            _check_file_name(name)
+        os.makedirs(coordinates_dir or ".", exist_ok=True)
+        for name in unique_names:
+            path = os.path.join(coordinates_dir, f"{name}.star")
+            starfile.write({"particles": table[names == name].reset_index(drop=True)}, path, overwrite=True)
+            files[name] = path
+    index = pd.DataFrame({"rlnTomoName": list(files), "rlnTomoImportParticleFile": list(files.values())})
+    os.makedirs(os.path.dirname(index_path) or ".", exist_ok=True)
+    starfile.write({RELION_IMPORT_INDEX_BLOCK: index}, index_path, overwrite=True)
+    return index_path, files
 
 
 def _relion_eulers(rotations: np.ndarray) -> np.ndarray:
