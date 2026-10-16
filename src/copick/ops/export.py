@@ -7,7 +7,7 @@ to various external file formats used in cryo-ET workflows.
 import logging
 import os
 from dataclasses import dataclass, field
-from typing import TYPE_CHECKING, Dict, List, Optional, Tuple, Union
+from typing import TYPE_CHECKING, Dict, List, Literal, Optional, Tuple, Union
 
 import numpy as np
 import zarr
@@ -52,6 +52,8 @@ def export_picks(
     filaments_uri: Optional[str] = None,
     tomo_type: Optional[str] = None,
     coordinates: str = "auto",
+    filament_angles: Literal["frame", "pose"] = "frame",
+    half_sets: Literal[None, "filament"] = None,
 ) -> str:
     """Export picks to an external format.
 
@@ -79,6 +81,13 @@ def export_picks(
             tomogram at ``voxel_spacing``.
         coordinates: STAR only: ``"auto"`` (centered coordinates and/or rlnCoordinateX/Y/Z in tilt-series pixels,
             whatever is known) or ``"centered"`` (centered coordinates only; a run without a center is an error).
+        filament_angles: STAR only, with filament columns: ``"frame"`` (RELION's filament convention: the frame in
+            rlnTomoSubtomogramRot/Tilt/Psi, particle angles (0, 90, 0) and priors) or ``"pose"`` (each pick's own
+            rotation in rlnAngleRot/Tilt/Psi, as for picks without filament columns, with no subtomogram angles and
+            no priors; for registered poses). Without filament columns, ``"pose"`` changes nothing.
+        half_sets: STAR only: ``"filament"`` adds rlnRandomSubset by whole filament, balanced by particle count
+            within this file (``copick.util.relion.filament_half_sets``); needs filament columns. Default: no
+            rlnRandomSubset.
 
     Returns:
         Path to the created output file.
@@ -110,6 +119,8 @@ def export_picks(
             filaments_uri=filaments_uri,
             tomo_type=tomo_type,
             coordinates=coordinates,
+            filament_angles=filament_angles,
+            half_sets=half_sets,
         )
     elif output_format == "dynamo":
         return _export_picks_dynamo(picks, output_path, voxel_spacing, tomogram_index=tomogram_index, log=log)
@@ -131,6 +142,18 @@ def _filament_mode(filament_columns: str):
 def _check_polarity_source(polarity_from_filaments: bool, filaments_uri: Optional[str]) -> None:
     if filaments_uri is not None and not polarity_from_filaments:
         raise ValueError("filaments_uri names a polarity source, but polarity_from_filaments is False.")
+
+
+def _check_filament_options(filament_columns: str, filament_angles: str, half_sets: Optional[str]) -> None:
+    """Refuse unknown modes, and filament half sets with filament columns turned off."""
+    from copick.util.formats import check_relion_filament_options
+
+    check_relion_filament_options(filament_angles, half_sets)
+    if half_sets == "filament" and _filament_mode(filament_columns) is False:
+        raise ValueError(
+            "half_sets='filament' assigns half sets by rlnHelicalTubeID, which only filament columns carry; it "
+            "cannot be combined with filament_columns='off'.",
+        )
 
 
 def _picks_polarity(picks: "CopickPicks", polarity_from_filaments: bool, filaments_uri: Optional[str]) -> np.ndarray:
@@ -199,6 +222,8 @@ def _export_picks_star(
     filaments_uri: Optional[str] = None,
     tomo_type: Optional[str] = None,
     coordinates: str = "auto",
+    filament_angles: Literal["frame", "pose"] = "frame",
+    half_sets: Literal[None, "filament"] = None,
 ) -> str:
     """Export picks to RELION STAR format.
 
@@ -219,6 +244,8 @@ def _export_picks_star(
         filaments_uri: The Filaments source; default: the picks' own URI.
         tomo_type: Type of the copick tomogram whose shape defines the center.
         coordinates: ``"auto"`` or ``"centered"`` (centered coordinates only).
+        filament_angles: ``"frame"`` or ``"pose"`` (see ``export_picks``).
+        half_sets: ``"filament"`` for rlnRandomSubset by whole filament (see ``export_picks``).
 
     Returns:
         Path to the created output file.
@@ -230,6 +257,7 @@ def _export_picks_star(
     if voxel_spacing is None:
         raise ValueError("voxel_spacing is required for STAR export.")
     _check_polarity_source(polarity_from_filaments, filaments_uri)
+    _check_filament_options(filament_columns, filament_angles, half_sets)
 
     run_name = picks.run.name
     tomogram = None
@@ -261,6 +289,8 @@ def _export_picks_star(
         filament=filament,
         polarity_known=_picks_polarity(picks, polarity_from_filaments, filaments_uri) if filament else False,
         coordinates=coordinates,
+        filament_angles=filament_angles,
+        half_sets=half_sets,
     )
 
     if log:
@@ -369,6 +399,7 @@ class RelionExport:
         filament: Whether RELION's filament columns were written.
         polarity: For filament exports, how each run's polarity was resolved (runs with picks only). A run whose
             picks come from several picks sets sums their counts and joins their sources with ", ".
+        half_sets: With ``half_sets="filament"``, particles written per half set (``{1: n1, 2: n2}``); else empty.
     """
 
     path: str
@@ -377,6 +408,7 @@ class RelionExport:
     rows: Dict[str, int] = field(default_factory=dict)
     filament: bool = False
     polarity: Dict[str, FilamentPolarity] = field(default_factory=dict)
+    half_sets: Dict[int, int] = field(default_factory=dict)
 
 
 #: STAR layouts of ``export_relion_particles``.
@@ -439,6 +471,8 @@ def export_relion_particles(
     polarity_from_filaments: bool = True,
     filaments_uri: Optional[str] = None,
     allow_empty: bool = False,
+    filament_angles: Literal["frame", "pose"] = "frame",
+    half_sets: Literal[None, "filament"] = None,
 ) -> RelionExport:
     """Export the picks matching a URI from several runs to RELION, and report what was written.
 
@@ -475,14 +509,29 @@ def export_relion_particles(
             ``copick.util.relion.filament_polarity``); with False every pick gets ``rlnAnglePsiFlipRatio`` = 0.5.
         filaments_uri: The Filaments that state the polarity. Default: those under each picks set's own URI.
         allow_empty: Without picks, write an empty particle table (or index) instead of raising.
+        filament_angles: With filament columns, ``"frame"`` (default: RELION's filament convention, the frame in
+            rlnTomoSubtomogramRot/Tilt/Psi, particle angles (0, 90, 0) and priors) or ``"pose"``: each pick's own
+            rotation in rlnAngleRot/Tilt/Psi, in the convention of picks without filament columns, with no
+            rlnTomoSubtomogram angles and no angle priors, for picks whose rotation is a registered pose (e.g.
+            lattice-registered filament subunits) that refinement should start from. rlnHelicalTubeID,
+            rlnHelicalTrackLengthAngst and rlnAnglePsiFlipRatio (the per-filament polarity) are written either way.
+            Without filament columns (``filament_columns="off"``, or ``"auto"`` for objects not declared a
+            filament), ``"pose"`` is the same as ``"frame"``: the angles are the picks' rotations already.
+        half_sets: ``"filament"`` adds rlnRandomSubset (1 or 2) assigned by whole filament, keyed by
+            (rlnTomoName, rlnHelicalTubeID) over all exported runs and greedily balanced by particle count
+            (``copick.util.relion.filament_half_sets``). RELION otherwise splits half sets per particle, which puts
+            neighboring, overlapping particles of one filament in both halves and inflates the FSC. Needs filament
+            columns. Default None: no rlnRandomSubset.
 
     Returns:
         A ``RelionExport``.
 
     Raises:
-        ValueError: For an unknown layout, coordinate mode or run name; no picks (unless ``allow_empty``); a run
-            without a center with ``coordinates="centered"``; a ``filaments_uri`` matching no or several Filaments in
-            a run; or a pick whose filament is not in the Filaments (see ``copick.util.relion.filament_polarity``).
+        ValueError: For an unknown layout, coordinate mode, angle mode, half-set mode or run name; no picks (unless
+            ``allow_empty``); a run without a center with ``coordinates="centered"``; a ``filaments_uri`` matching no
+            or several Filaments in a run; a pick whose filament is not in the Filaments (see
+            ``copick.util.relion.filament_polarity``); or ``half_sets="filament"`` for picks exported without filament
+            columns.
     """
     import pandas as pd
 
@@ -499,6 +548,7 @@ def export_relion_particles(
     if layout not in RELION_LAYOUTS:
         raise ValueError(f"layout must be one of {RELION_LAYOUTS}, not {layout!r}")
     _check_polarity_source(polarity_from_filaments, filaments_uri)
+    _check_filament_options(filament_columns, filament_angles, half_sets)
     mode = _filament_mode(filament_columns)
     if isinstance(root, (str, os.PathLike)):
         root = copick.from_file(str(root))
@@ -543,6 +593,12 @@ def export_relion_particles(
             )
     else:
         filament = mode
+    if half_sets == "filament" and not filament and positions:
+        raise ValueError(
+            f"half_sets='filament' assigns half sets by rlnHelicalTubeID, but {picks_uri} is exported without filament "
+            "columns, since not every exported object is declared a filament. Pass filament_columns='on' (the picks' "
+            "instance IDs are then the filament IDs), or export without filament half sets.",
+        )
 
     tomograms = read_relion_tomograms(tomograms_star) if tomograms_star else {}
     centers = dict(tomogram_centers or {})
@@ -567,7 +623,13 @@ def export_relion_particles(
         filament=filament,
         polarity_known=polarity_known,
         coordinates=coordinates,
+        filament_angles=filament_angles,
+        half_sets=half_sets,
     )
+    subsets: Dict[int, int] = {}
+    if half_sets == "filament":
+        counts = particles["rlnRandomSubset"].value_counts() if len(particles) else {}
+        subsets = {subset: int(counts.get(subset, 0)) for subset in (1, 2)}
 
     files: Dict[str, str] = {}
     if layout == "import":
@@ -582,7 +644,15 @@ def export_relion_particles(
         f"Exported {sum(rows.values())} particles from {len(positions)} of {len(rows)} runs to RELION "
         f"({layout} layout): {output_path}",
     )
-    return RelionExport(path=output_path, layout=layout, files=files, rows=rows, filament=filament, polarity=polarity)
+    return RelionExport(
+        path=output_path,
+        layout=layout,
+        files=files,
+        rows=rows,
+        filament=filament,
+        polarity=polarity,
+        half_sets=subsets,
+    )
 
 
 def export_picks_combined(
@@ -603,6 +673,8 @@ def export_picks_combined(
     tomo_type: Optional[str] = None,
     coordinates: str = "auto",
     star_layout: str = "particles",
+    filament_angles: Literal["frame", "pose"] = "frame",
+    half_sets: Literal[None, "filament"] = None,
 ) -> str:
     """Export picks from multiple runs to a single combined file.
 
@@ -636,6 +708,10 @@ def export_picks_combined(
             whatever is known) or ``"centered"`` (centered coordinates only; a run without a center is an error).
         star_layout: STAR only: ``"particles"`` (one particle file) or ``"import"`` (``output_file`` is the index of
             per-run coordinate files for RELION's Import Coordinates job; see ``export_relion_particles``).
+        filament_angles: STAR only, with filament columns: ``"frame"`` or ``"pose"`` (see
+            ``export_relion_particles``).
+        half_sets: STAR only: ``"filament"`` adds rlnRandomSubset by whole filament, balanced over all runs (see
+            ``export_relion_particles``).
 
     Returns:
         Path to the created output file.
@@ -683,6 +759,8 @@ def export_picks_combined(
             filament_columns=filament_columns,
             polarity_from_filaments=polarity_from_filaments,
             filaments_uri=filaments_uri,
+            filament_angles=filament_angles,
+            half_sets=half_sets,
         ).path
 
     # Get runs to process
@@ -1186,6 +1264,8 @@ def export_run(
     filaments_uri: Optional[str] = None,
     tomo_type: Optional[str] = None,
     coordinates: str = "auto",
+    filament_angles: Literal["frame", "pose"] = "frame",
+    half_sets: Literal[None, "filament"] = None,
 ) -> Dict[str, int]:
     """Export data from a single run.
 
@@ -1213,6 +1293,9 @@ def export_run(
             tomogram at ``voxel_spacing``.
         coordinates: STAR only: ``"auto"`` (centered coordinates and/or rlnCoordinateX/Y/Z in tilt-series pixels,
             whatever is known) or ``"centered"`` (centered coordinates only; a run without a center is an error).
+        filament_angles: STAR only, with filament columns: ``"frame"`` or ``"pose"`` (see ``export_picks``).
+        half_sets: STAR only: ``"filament"`` adds rlnRandomSubset by whole filament, balanced within each file (see
+            ``export_picks``).
 
     Returns:
         Dictionary with counts of exported items.
@@ -1254,6 +1337,8 @@ def export_run(
                     filaments_uri=filaments_uri,
                     tomo_type=tomo_type,
                     coordinates=coordinates,
+                    filament_angles=filament_angles,
+                    half_sets=half_sets,
                 )
                 results["picks"] += 1
         except Exception as e:
@@ -1341,6 +1426,8 @@ def export(
     filaments_uri: Optional[str] = None,
     tomo_type: Optional[str] = None,
     coordinates: str = "auto",
+    filament_angles: Literal["frame", "pose"] = "frame",
+    half_sets: Literal[None, "filament"] = None,
 ) -> List[str]:
     """Export data from a copick project.
 
@@ -1369,6 +1456,9 @@ def export(
             tomogram at ``voxel_spacing``.
         coordinates: STAR only: ``"auto"`` (centered coordinates and/or rlnCoordinateX/Y/Z in tilt-series pixels,
             whatever is known) or ``"centered"`` (centered coordinates only; a run without a center is an error).
+        filament_angles: STAR only, with filament columns: ``"frame"`` or ``"pose"`` (see ``export_picks``).
+        half_sets: STAR only: ``"filament"`` adds rlnRandomSubset by whole filament, balanced within each per-run
+            file (see ``export_picks``).
 
     Returns:
         The errors, one message per failed export (empty if there were none).
@@ -1377,6 +1467,7 @@ def export(
     from copick.ops.run import map_runs
 
     _check_polarity_source(polarity_from_filaments, filaments_uri)
+    _check_filament_options(filament_columns, filament_angles, half_sets)
     root = copick.from_file(config)
 
     # Get runs to process
@@ -1404,6 +1495,8 @@ def export(
             "filaments_uri": filaments_uri,
             "tomo_type": tomo_type,
             "coordinates": coordinates,
+            "filament_angles": filament_angles,
+            "half_sets": half_sets,
         }
         for _ in runs
     ]
