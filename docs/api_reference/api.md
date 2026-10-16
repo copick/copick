@@ -66,6 +66,7 @@ The abstract data entities are defined in the `copick.models` module and given i
 | ...... Mesh         | [CopickMesh][CopickMesh]       | [CopickMeshMeta][CopickMeshMeta] |
 | ...... Segmentation | [CopickSegmentation][CopickSegmentation] | [CopickSegmentationMeta][CopickSegmentationMeta] |
 | ...... Tilt Series  | [CopickTiltSeries][CopickTiltSeries] | [CopickTiltSeriesMeta][CopickTiltSeriesMeta], [CopickTiltSeriesMetadata][CopickTiltSeriesMetadata] |
+| ...... Alignment    | [CopickAlignment][CopickAlignment] | [CopickAlignmentFile][CopickAlignmentFile] |
 | ...... Voxel Spacing | [CopickVoxelSpacing][CopickVoxelSpacing] | [CopickVoxelSpacingMeta][CopickVoxelSpacingMeta] |
 | ......... Tomogram  | [CopickTomogram][CopickTomogram] | [CopickTomogramMeta][CopickTomogramMeta] |
 | ......... Features  | [CopickFeatures][CopickFeatures] | [CopickFeaturesMeta][CopickFeaturesMeta] |
