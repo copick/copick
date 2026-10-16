@@ -133,6 +133,25 @@ def export(ctx):
     "instance ID in each run; every pick's filament must be in them. Default: the Filaments under the picks' own URI, "
     "when they exist.",
 )
+@click.option(
+    "--filament-angles",
+    type=click.Choice(["frame", "pose"], case_sensitive=False),
+    default="frame",
+    show_default=True,
+    help="STAR only, with filament columns: 'frame' writes RELION's filament convention (the frame in "
+    "rlnTomoSubtomogramRot/Tilt/Psi, rlnAngleRot/Tilt/Psi = (0, 90, 0), tilt and psi priors); 'pose' writes each "
+    "pick's own rotation in rlnAngleRot/Tilt/Psi, with no subtomogram angles and no priors, for registered poses. "
+    "Without filament columns the angles are always the picks' rotations.",
+)
+@click.option(
+    "--half-sets",
+    type=click.Choice(["none", "filament"], case_sensitive=False),
+    default="none",
+    show_default=True,
+    help="STAR only: 'filament' adds rlnRandomSubset (1/2) by whole filament (rlnTomoName, rlnHelicalTubeID), "
+    "greedily balanced by particle count, so that no filament is in both halves of a refinement; needs filament "
+    "columns. Per-run export balances each file on its own.",
+)
 @add_max_workers_option
 @add_debug_option
 @click.pass_context
@@ -155,6 +174,8 @@ def picks(
     filament_columns: str,
     polarity_from_filaments: bool,
     filaments_uri: str,
+    filament_angles: str,
+    half_sets: str,
     max_workers: int,
     debug: bool,
 ):
@@ -190,7 +211,11 @@ def picks(
     for picks of filaments whose polarity is known and 0.5 for the rest; the
     polarity comes from the Filaments under the picks' own URI, or from those
     named by `--filaments-uri` (e.g. when the picks were sampled from Filaments
-    into another session).
+    into another session). With `--filament-angles pose`, the picks' own
+    rotations go into `rlnAngleRot/Tilt/Psi` instead, with no subtomogram
+    angles and no priors, for poses already registered (e.g. to a lattice).
+    `--half-sets filament` assigns `rlnRandomSubset` by whole filament, so that
+    neighboring particles of one filament never land in both half sets.
 
     Examples:
 
@@ -216,6 +241,13 @@ def picks(
         copick export picks -c config.json --picks-uri "microtubule:sampler/1" \\
             --filaments-uri "microtubule:tracer/1" \\
             --output-file ./filaments.star --output-format star --voxel-size 10.0
+
+        \b
+        # Lattice-registered filament subunits: their poses as particle angles,
+        # and half sets by whole filament
+        copick export picks -c config.json --picks-uri "microtubule:helix/1" \\
+            --filament-columns on --filament-angles pose --half-sets filament \\
+            --output-file ./registered.star --output-format star --voxel-size 10.0
 
         \b
         # Combined export to a Dynamo table using an index map
@@ -248,6 +280,12 @@ def picks(
         ctx.fail("--star-layout import writes one index for all runs: it needs --output-format star and --output-file.")
     if filaments_uri and not polarity_from_filaments:
         ctx.fail("--filaments-uri names a polarity source; it cannot be combined with --no-polarity-from-filaments.")
+    half_sets = None if half_sets.lower() == "none" else half_sets.lower()
+    if half_sets == "filament" and filament_columns.lower() == "off":
+        ctx.fail(
+            "--half-sets filament assigns half sets by rlnHelicalTubeID; it needs filament columns, not "
+            "--filament-columns off.",
+        )
 
     # Resolve run names (repeatable; legacy comma-separated values tolerated with a warning)
     run_names_list = resolve_run_names(run_names, logger=logger)
@@ -288,6 +326,8 @@ def picks(
                 tomo_type=tomo_type,
                 coordinates=coordinates.lower(),
                 star_layout=star_layout.lower(),
+                filament_angles=filament_angles.lower(),
+                half_sets=half_sets,
             )
         else:
             # Per-run export mode
@@ -309,6 +349,8 @@ def picks(
                 filaments_uri=filaments_uri,
                 tomo_type=tomo_type,
                 coordinates=coordinates.lower(),
+                filament_angles=filament_angles.lower(),
+                half_sets=half_sets,
             )
             if errors:
                 raise RuntimeError(f"{len(errors)} error(s): " + "; ".join(errors))

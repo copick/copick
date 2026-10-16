@@ -815,6 +815,97 @@ class TestExportRelionParticles:
                 filaments_uri="microtubule:trace/1",
             )
 
+    def test_registered_poses_and_filament_half_sets(self, test_payload, tmp_path):
+        """copick-pipeliner's filament export with registered poses and half sets by whole filament, over two runs."""
+        import numpy as np
+        from copick.ops.export import export_relion_particles
+        from scipy.spatial.transform import Rotation
+
+        root = test_payload["root"]
+        skip_without_filaments(root)
+        root.new_object(name="microtubule", is_particle=True, radius=120, filament={"polar": True})
+        rotations = {}
+        for run_name, lengths in (("TS_001", (5, 3, 2)), ("TS_002", (4, 3))):
+            lines = [
+                np.array([50.0, 100.0 + 80.0 * i, 300.0]) + np.arange(n)[:, None] * np.array([82.0, 0.0, 0.0])
+                for i, n in enumerate(lengths)
+            ]
+            transforms = np.tile(np.eye(4), (sum(lengths), 1, 1))
+            transforms[:, :3, :3] = rotations[run_name] = Rotation.random(sum(lengths), random_state=7).as_matrix()
+            run = root.get_run(run_name)
+            ids = np.repeat(np.arange(1, len(lengths) + 1), lengths)
+            run.new_picks("microtubule", "1", user_id="helix").from_numpy(
+                np.vstack(lines),
+                transforms,
+                instance_ids=ids,
+            )
+            run.new_filaments("microtubule", "1", user_id="helix").from_numpy(
+                lines,
+                polarity_known=[True] * len(lengths),
+            )
+
+        def export(path, **kwargs):
+            return export_relion_particles(
+                root,
+                "microtubule:helix/1",
+                str(path),
+                voxel_spacing=10.0,
+                tomogram_centers={"TS_001": (320.0, 320.0, 320.0), "TS_002": (0.0, 0.0, 0.0)},
+                coordinates="centered",
+                include_optics=True,
+                filament_columns="on",
+                polarity_from_filaments=True,
+                filaments_uri="microtubule:helix/1",
+                allow_empty=True,
+                filament_angles="pose",
+                half_sets="filament",
+                **kwargs,
+            )
+
+        result = export(tmp_path / "particles.star", run_names=["TS_001", "TS_002"])
+        assert result.filament and result.half_sets == {1: 8, 2: 9}
+        particles = _read_star(result.path)["particles"]
+        assert not [c for c in particles.columns if c.startswith("rlnTomoSubtomogram") or c.endswith("Prior")]
+        assert particles["rlnAnglePsiFlipRatio"].tolist() == [0.0] * 17
+        expected = {("TS_001", 1): 1, ("TS_001", 2): 2, ("TS_001", 3): 2, ("TS_002", 1): 2, ("TS_002", 2): 1}
+        halves = particles.groupby(["rlnTomoName", "rlnHelicalTubeID"])["rlnRandomSubset"]
+        assert (halves.nunique() == 1).all() and halves.first().to_dict() == expected
+        # The registered rotations are the particle angles
+        angles = particles[["rlnAngleRot", "rlnAngleTilt", "rlnAnglePsi"]].to_numpy()
+        matrices = Rotation.from_euler("ZYZ", angles, degrees=True).inv().as_matrix()
+        assert matrices == pytest.approx(np.vstack([rotations["TS_001"], rotations["TS_002"]]), abs=1e-6)
+
+        # The same halves in another run order, and in the import layout's per-run files
+        reordered = export(tmp_path / "reordered.star", run_names=["TS_002", "TS_001"])
+        halves = _read_star(reordered.path)["particles"].groupby(["rlnTomoName", "rlnHelicalTubeID"])["rlnRandomSubset"]
+        assert halves.first().to_dict() == expected
+        bundle = export(tmp_path / "import" / "particles.star", layout="import")
+        for run_name, file in bundle.files.items():
+            halves = _read_star(file)["particles"].groupby("rlnHelicalTubeID")["rlnRandomSubset"].first()
+            assert {(run_name, tube): subset for tube, subset in halves.items()} == {
+                key: subset for key, subset in expected.items() if key[0] == run_name
+            }
+
+        # Without filament columns there are no tube IDs to split by
+        with pytest.raises(ValueError, match="cannot be combined with filament_columns='off'"):
+            export_relion_particles(
+                root,
+                "microtubule:helix/1",
+                str(tmp_path / "x.star"),
+                voxel_spacing=10.0,
+                filament_columns="off",
+                half_sets="filament",
+            )
+        _relion_export_picks(root)
+        with pytest.raises(ValueError, match="exported without filament columns"):
+            export_relion_particles(
+                root,
+                "ribosome:relion-export/1",
+                str(tmp_path / "x.star"),
+                voxel_spacing=10.0,
+                half_sets="filament",
+            )
+
     def test_cli_import_layout(self, test_payload, tmp_path):
         from click.testing import CliRunner
         from copick.cli.export import export
