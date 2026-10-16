@@ -4,6 +4,7 @@ from typing import Tuple
 
 import click
 
+from copick.cli.acquisition import add_alignment, add_ctf, add_tiltseries
 from copick.cli.util import (
     add_config_option,
     add_create_overwrite_options,
@@ -56,6 +57,13 @@ def add(ctx):
     show_default=True,
     help="Voxel size in Angstrom. Overrides voxel size in the tomogram header.",
 )
+@click.option(
+    "--alignment",
+    required=False,
+    type=str,
+    default=None,
+    help="Name of the run's alignment the tomogram was reconstructed with; the tomogram is linked to it.",
+)
 @add_pyramid_create_options
 @add_max_workers_option
 @add_volume_transform_options
@@ -77,6 +85,7 @@ def tomogram(
     tomo_type: str,
     file_type: str,
     voxel_size: float,
+    alignment: str,
     create_pyramid: bool,
     pyramid_levels: int,
     chunk_size: str,
@@ -117,6 +126,10 @@ def tomogram(
         \b
         # Extract the run name from the filename with a regex
         copick add tomogram "TS*.mrc" -c config.json --run-regex "^(TS_\\d+)"
+
+        \b
+        # Link the tomogram to the alignment it was reconstructed with
+        copick add tomogram TS_001.mrc -c config.json --run TS_001 --alignment aretomo3
 
     See Also:
 
@@ -184,6 +197,7 @@ def tomogram(
                 exist_ok=overwrite,
                 overwrite=overwrite,
                 log=debug,
+                alignment=alignment,
             )
             return {"processed": 1, "errors": []}
 
@@ -1920,3 +1934,8 @@ def picks_relion(
             logger.error(f"Failed to import picks from {p}: {e}")
 
     logger.info(f"Successfully imported picks to {len(total_runs)} runs total")
+
+
+add.add_command(add_tiltseries)
+add.add_command(add_alignment)
+add.add_command(add_ctf)
