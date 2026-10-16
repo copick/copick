@@ -1,0 +1,1419 @@
+{
+ "source": "10445_TS_105_5.json (cets-cryoet-data-portal tests)",
+ "annotations": {
+  "runs": [
+   {
+    "id": 17687,
+    "name": "TS_105_5",
+    "dataset_id": 10445
+   }
+  ],
+  "annotation_files": [],
+  "annotation_shapes": [],
+  "annotations": [],
+  "annotation_authors": [],
+  "voxel_spacings": [
+   {
+    "id": 17909,
+    "run_id": 17687,
+    "voxel_spacing": 10.012
+   },
+   {
+    "id": 17910,
+    "run_id": 17687,
+    "voxel_spacing": 4.99
+   }
+  ],
+  "tomograms": [
+   {
+    "id": 18954,
+    "alignment_id": 18924,
+    "run_id": 17687,
+    "tomogram_voxel_spacing_id": 17909,
+    "voxel_spacing": 10.012,
+    "size_x": 630,
+    "size_y": 630,
+    "size_z": 184,
+    "reconstruction_method": "WBP",
+    "processing": "denoised",
+    "processing_software": null,
+    "reconstruction_software": "AreTomo3 v2.0.10",
+    "ctf_corrected": true,
+    "is_portal_standard": false,
+    "s3_omezarr_dir": "s3://cryoet-data-portal-public/10445/TS_105_5/Reconstructions/VoxelSpacing10.012/Tomograms/102/TS_105_5.zarr",
+    "https_omezarr_dir": "https://files.cryoetdataportal.cziscience.com/10445/TS_105_5/Reconstructions/VoxelSpacing10.012/Tomograms/102/TS_105_5.zarr"
+   },
+   {
+    "id": 18955,
+    "alignment_id": 18924,
+    "run_id": 17687,
+    "tomogram_voxel_spacing_id": 17909,
+    "voxel_spacing": 10.012,
+    "size_x": 630,
+    "size_y": 630,
+    "size_z": 184,
+    "reconstruction_method": "WBP",
+    "processing": "filtered",
+    "processing_software": null,
+    "reconstruction_software": "AreTomo3 v2.0.10",
+    "ctf_corrected": true,
+    "is_portal_standard": false,
+    "s3_omezarr_dir": "s3://cryoet-data-portal-public/10445/TS_105_5/Reconstructions/VoxelSpacing10.012/Tomograms/103/TS_105_5.zarr",
+    "https_omezarr_dir": "https://files.cryoetdataportal.cziscience.com/10445/TS_105_5/Reconstructions/VoxelSpacing10.012/Tomograms/103/TS_105_5.zarr"
+   },
+   {
+    "id": 18956,
+    "alignment_id": 18924,
+    "run_id": 17687,
+    "tomogram_voxel_spacing_id": 17910,
+    "voxel_spacing": 4.99,
+    "size_x": 1260,
+    "size_y": 1260,
+    "size_z": 368,
+    "reconstruction_method": "WBP",
+    "processing": "denoised",
+    "processing_software": null,
+    "reconstruction_software": "AreTomo3 v2.0.10",
+    "ctf_corrected": true,
+    "is_portal_standard": false,
+    "s3_omezarr_dir": "s3://cryoet-data-portal-public/10445/TS_105_5/Reconstructions/VoxelSpacing4.990/Tomograms/100/TS_105_5.zarr",
+    "https_omezarr_dir": "https://files.cryoetdataportal.cziscience.com/10445/TS_105_5/Reconstructions/VoxelSpacing4.990/Tomograms/100/TS_105_5.zarr"
+   },
+   {
+    "id": 18957,
+    "alignment_id": 18924,
+    "run_id": 17687,
+    "tomogram_voxel_spacing_id": 17910,
+    "voxel_spacing": 4.99,
+    "size_x": 1260,
+    "size_y": 1260,
+    "size_z": 368,
+    "reconstruction_method": "WBP",
+    "processing": "filtered",
+    "processing_software": null,
+    "reconstruction_software": "AreTomo3 v2.0.10",
+    "ctf_corrected": true,
+    "is_portal_standard": false,
+    "s3_omezarr_dir": "s3://cryoet-data-portal-public/10445/TS_105_5/Reconstructions/VoxelSpacing4.990/Tomograms/101/TS_105_5.zarr",
+    "https_omezarr_dir": "https://files.cryoetdataportal.cziscience.com/10445/TS_105_5/Reconstructions/VoxelSpacing4.990/Tomograms/101/TS_105_5.zarr"
+   }
+  ],
+  "tomogram_authors": []
+ },
+ "acquisition": {
+  "tiltseries": [
+   {
+    "id": 17489,
+    "run_id": 17687,
+    "s3_omezarr_dir": "s3://cryoet-data-portal-public/10445/TS_105_5/TiltSeries/100/TS_105_5.zarr",
+    "https_omezarr_dir": "https://files.cryoetdataportal.cziscience.com/10445/TS_105_5/TiltSeries/100/TS_105_5.zarr",
+    "https_mrc_file": "https://files.cryoetdataportal.cziscience.com/10445/TS_105_5/TiltSeries/100/TS_105_5.mrc",
+    "pixel_spacing": 1.54,
+    "size_x": 4096,
+    "size_y": 4096,
+    "size_z": 31,
+    "is_aligned": false,
+    "acceleration_voltage": 300000,
+    "spherical_aberration_constant": 2.7,
+    "tilt_axis": -96.0
+   }
+  ],
+  "alignments": [
+   {
+    "id": 18924,
+    "run_id": 17687,
+    "tiltseries_id": 17489,
+    "alignment_type": "LOCAL",
+    "alignment_method": "projection_matching",
+    "volume_x_dimension": 6287.400000000001,
+    "volume_y_dimension": 6287.400000000001,
+    "volume_z_dimension": 1836.3200000000002,
+    "volume_x_offset": 0.0,
+    "volume_y_offset": 0.0,
+    "volume_z_offset": 0.0,
+    "x_rotation_offset": 0.0,
+    "tilt_offset": 0.0,
+    "affine_transformation_matrix": "{{1,0,0,0},{0,1,0,0},{0,0,1,0},{0,0,0,1}}",
+    "https_alignment_metadata": "https://files.cryoetdataportal.cziscience.com/10445/TS_105_5/Alignments/100/alignment_metadata.json",
+    "is_portal_standard": true
+   }
+  ],
+  "per_section_alignment_parameters": [
+   {
+    "id": 3000,
+    "alignment_id": 18924,
+    "z_index": 0,
+    "tilt_angle": -45.03,
+    "volume_x_rotation": 0.0,
+    "in_plane_rotation": [
+     [
+      -0.11025299807561198,
+      0.9939035548861564
+     ],
+     [
+      -0.9939035548861564,
+      -0.11025299807561198
+     ]
+    ],
+    "x_offset": -16.81,
+    "y_offset": -79.316
+   },
+   {
+    "id": 3001,
+    "alignment_id": 18924,
+    "z_index": 1,
+    "tilt_angle": -42.03,
+    "volume_x_rotation": 0.0,
+    "in_plane_rotation": [
+     [
+      -0.11025299807561198,
+      0.9939035548861564
+     ],
+     [
+      -0.9939035548861564,
+      -0.11025299807561198
+     ]
+    ],
+    "x_offset": -9.0,
+    "y_offset": -260.858
+   },
+   {
+    "id": 3002,
+    "alignment_id": 18924,
+    "z_index": 2,
+    "tilt_angle": -39.04,
+    "volume_x_rotation": 0.0,
+    "in_plane_rotation": [
+     [
+      -0.11025299807561198,
+      0.9939035548861564
+     ],
+     [
+      -0.9939035548861564,
+      -0.11025299807561198
+     ]
+    ],
+    "x_offset": -17.395,
+    "y_offset": 196.41
+   },
+   {
+    "id": 3003,
+    "alignment_id": 18924,
+    "z_index": 3,
+    "tilt_angle": -36.03,
+    "volume_x_rotation": 0.0,
+    "in_plane_rotation": [
+     [
+      -0.11025299807561198,
+      0.9939035548861564
+     ],
+     [
+      -0.9939035548861564,
+      -0.11025299807561198
+     ]
+    ],
+    "x_offset": -17.809,
+    "y_offset": -215.329
+   },
+   {
+    "id": 3004,
+    "alignment_id": 18924,
+    "z_index": 4,
+    "tilt_angle": -33.03,
+    "volume_x_rotation": 0.0,
+    "in_plane_rotation": [
+     [
+      -0.11025299807561198,
+      0.9939035548861564
+     ],
+     [
+      -0.9939035548861564,
+      -0.11025299807561198
+     ]
+    ],
+    "x_offset": -27.595,
+    "y_offset": 597.243
+   },
+   {
+    "id": 3005,
+    "alignment_id": 18924,
+    "z_index": 5,
+    "tilt_angle": -30.03,
+    "volume_x_rotation": 0.0,
+    "in_plane_rotation": [
+     [
+      -0.11025299807561198,
+      0.9939035548861564
+     ],
+     [
+      -0.9939035548861564,
+      -0.11025299807561198
+     ]
+    ],
+    "x_offset": 4.97,
+    "y_offset": -15.054
+   },
+   {
+    "id": 3006,
+    "alignment_id": 18924,
+    "z_index": 6,
+    "tilt_angle": -27.03,
+    "volume_x_rotation": 0.0,
+    "in_plane_rotation": [
+     [
+      -0.11025299807561198,
+      0.9939035548861564
+     ],
+     [
+      -0.9939035548861564,
+      -0.11025299807561198
+     ]
+    ],
+    "x_offset": -593.313,
+    "y_offset": 214.499
+   },
+   {
+    "id": 3007,
+    "alignment_id": 18924,
+    "z_index": 7,
+    "tilt_angle": -24.03,
+    "volume_x_rotation": 0.0,
+    "in_plane_rotation": [
+     [
+      -0.11025299807561198,
+      0.9939035548861564
+     ],
+     [
+      -0.9939035548861564,
+      -0.11025299807561198
+     ]
+    ],
+    "x_offset": -1316.973,
+    "y_offset": -143.154
+   },
+   {
+    "id": 3008,
+    "alignment_id": 18924,
+    "z_index": 8,
+    "tilt_angle": -21.03,
+    "volume_x_rotation": 0.0,
+    "in_plane_rotation": [
+     [
+      -0.11025299807561198,
+      0.9939035548861564
+     ],
+     [
+      -0.9939035548861564,
+      -0.11025299807561198
+     ]
+    ],
+    "x_offset": -19.888,
+    "y_offset": 102.909
+   },
+   {
+    "id": 3009,
+    "alignment_id": 18924,
+    "z_index": 9,
+    "tilt_angle": -18.04,
+    "volume_x_rotation": 0.0,
+    "in_plane_rotation": [
+     [
+      -0.11025299807561198,
+      0.9939035548861564
+     ],
+     [
+      -0.9939035548861564,
+      -0.11025299807561198
+     ]
+    ],
+    "x_offset": -73.761,
+    "y_offset": -173.605
+   },
+   {
+    "id": 3010,
+    "alignment_id": 18924,
+    "z_index": 10,
+    "tilt_angle": -15.03,
+    "volume_x_rotation": 0.0,
+    "in_plane_rotation": [
+     [
+      -0.11025299807561198,
+      0.9939035548861564
+     ],
+     [
+      -0.9939035548861564,
+      -0.11025299807561198
+     ]
+    ],
+    "x_offset": -29.31,
+    "y_offset": -36.759
+   },
+   {
+    "id": 3011,
+    "alignment_id": 18924,
+    "z_index": 11,
+    "tilt_angle": -12.04,
+    "volume_x_rotation": 0.0,
+    "in_plane_rotation": [
+     [
+      -0.11025299807561198,
+      0.9939035548861564
+     ],
+     [
+      -0.9939035548861564,
+      -0.11025299807561198
+     ]
+    ],
+    "x_offset": 7.174,
+    "y_offset": -87.674
+   },
+   {
+    "id": 3012,
+    "alignment_id": 18924,
+    "z_index": 12,
+    "tilt_angle": -9.03,
+    "volume_x_rotation": 0.0,
+    "in_plane_rotation": [
+     [
+      -0.11025299807561198,
+      0.9939035548861564
+     ],
+     [
+      -0.9939035548861564,
+      -0.11025299807561198
+     ]
+    ],
+    "x_offset": 82.417,
+    "y_offset": 324.555
+   },
+   {
+    "id": 3013,
+    "alignment_id": 18924,
+    "z_index": 13,
+    "tilt_angle": -6.04,
+    "volume_x_rotation": 0.0,
+    "in_plane_rotation": [
+     [
+      -0.11025299807561198,
+      0.9939035548861564
+     ],
+     [
+      -0.9939035548861564,
+      -0.11025299807561198
+     ]
+    ],
+    "x_offset": 36.989,
+    "y_offset": 284.886
+   },
+   {
+    "id": 3014,
+    "alignment_id": 18924,
+    "z_index": 14,
+    "tilt_angle": -3.03,
+    "volume_x_rotation": 0.0,
+    "in_plane_rotation": [
+     [
+      -0.11025299807561198,
+      0.9939035548861564
+     ],
+     [
+      -0.9939035548861564,
+      -0.11025299807561198
+     ]
+    ],
+    "x_offset": -119.522,
+    "y_offset": -273.226
+   },
+   {
+    "id": 3015,
+    "alignment_id": 18924,
+    "z_index": 15,
+    "tilt_angle": -0.04,
+    "volume_x_rotation": 0.0,
+    "in_plane_rotation": [
+     [
+      -0.11025299807561198,
+      0.9939035548861564
+     ],
+     [
+      -0.9939035548861564,
+      -0.11025299807561198
+     ]
+    ],
+    "x_offset": 3.248,
+    "y_offset": 11.799
+   },
+   {
+    "id": 3016,
+    "alignment_id": 18924,
+    "z_index": 16,
+    "tilt_angle": 2.96,
+    "volume_x_rotation": 0.0,
+    "in_plane_rotation": [
+     [
+      -0.11025299807561198,
+      0.9939035548861564
+     ],
+     [
+      -0.9939035548861564,
+      -0.11025299807561198
+     ]
+    ],
+    "x_offset": -219.202,
+    "y_offset": 209.032
+   },
+   {
+    "id": 3017,
+    "alignment_id": 18924,
+    "z_index": 17,
+    "tilt_angle": 5.96,
+    "volume_x_rotation": 0.0,
+    "in_plane_rotation": [
+     [
+      -0.11025299807561198,
+      0.9939035548861564
+     ],
+     [
+      -0.9939035548861564,
+      -0.11025299807561198
+     ]
+    ],
+    "x_offset": -7.963,
+    "y_offset": -135.611
+   },
+   {
+    "id": 3018,
+    "alignment_id": 18924,
+    "z_index": 18,
+    "tilt_angle": 8.96,
+    "volume_x_rotation": 0.0,
+    "in_plane_rotation": [
+     [
+      -0.11025299807561198,
+      0.9939035548861564
+     ],
+     [
+      -0.9939035548861564,
+      -0.11025299807561198
+     ]
+    ],
+    "x_offset": 0.0,
+    "y_offset": 0.0
+   },
+   {
+    "id": 3019,
+    "alignment_id": 18924,
+    "z_index": 19,
+    "tilt_angle": 11.96,
+    "volume_x_rotation": 0.0,
+    "in_plane_rotation": [
+     [
+      -0.11025299807561198,
+      0.9939035548861564
+     ],
+     [
+      -0.9939035548861564,
+      -0.11025299807561198
+     ]
+    ],
+    "x_offset": 4.137,
+    "y_offset": 83.745
+   },
+   {
+    "id": 3020,
+    "alignment_id": 18924,
+    "z_index": 20,
+    "tilt_angle": 14.96,
+    "volume_x_rotation": 0.0,
+    "in_plane_rotation": [
+     [
+      -0.11025299807561198,
+      0.9939035548861564
+     ],
+     [
+      -0.9939035548861564,
+      -0.11025299807561198
+     ]
+    ],
+    "x_offset": 4.819,
+    "y_offset": -111.887
+   },
+   {
+    "id": 3021,
+    "alignment_id": 18924,
+    "z_index": 21,
+    "tilt_angle": 17.96,
+    "volume_x_rotation": 0.0,
+    "in_plane_rotation": [
+     [
+      -0.11025299807561198,
+      0.9939035548861564
+     ],
+     [
+      -0.9939035548861564,
+      -0.11025299807561198
+     ]
+    ],
+    "x_offset": -621.076,
+    "y_offset": -153.531
+   },
+   {
+    "id": 3022,
+    "alignment_id": 18924,
+    "z_index": 22,
+    "tilt_angle": 20.96,
+    "volume_x_rotation": 0.0,
+    "in_plane_rotation": [
+     [
+      -0.11025299807561198,
+      0.9939035548861564
+     ],
+     [
+      -0.9939035548861564,
+      -0.11025299807561198
+     ]
+    ],
+    "x_offset": -1.204,
+    "y_offset": 0.462
+   },
+   {
+    "id": 3023,
+    "alignment_id": 18924,
+    "z_index": 23,
+    "tilt_angle": 23.96,
+    "volume_x_rotation": 0.0,
+    "in_plane_rotation": [
+     [
+      -0.11025299807561198,
+      0.9939035548861564
+     ],
+     [
+      -0.9939035548861564,
+      -0.11025299807561198
+     ]
+    ],
+    "x_offset": 290.365,
+    "y_offset": 695.527
+   },
+   {
+    "id": 3024,
+    "alignment_id": 18924,
+    "z_index": 24,
+    "tilt_angle": 26.96,
+    "volume_x_rotation": 0.0,
+    "in_plane_rotation": [
+     [
+      -0.11025299807561198,
+      0.9939035548861564
+     ],
+     [
+      -0.9939035548861564,
+      -0.11025299807561198
+     ]
+    ],
+    "x_offset": 855.069,
+    "y_offset": -282.736
+   },
+   {
+    "id": 3025,
+    "alignment_id": 18924,
+    "z_index": 25,
+    "tilt_angle": 29.96,
+    "volume_x_rotation": 0.0,
+    "in_plane_rotation": [
+     [
+      -0.11025299807561198,
+      0.9939035548861564
+     ],
+     [
+      -0.9939035548861564,
+      -0.11025299807561198
+     ]
+    ],
+    "x_offset": -17.718,
+    "y_offset": 28.135
+   },
+   {
+    "id": 3026,
+    "alignment_id": 18924,
+    "z_index": 26,
+    "tilt_angle": 32.96,
+    "volume_x_rotation": 0.0,
+    "in_plane_rotation": [
+     [
+      -0.11025299807561198,
+      0.9939035548861564
+     ],
+     [
+      -0.9939035548861564,
+      -0.11025299807561198
+     ]
+    ],
+    "x_offset": 745.642,
+    "y_offset": -121.008
+   },
+   {
+    "id": 3027,
+    "alignment_id": 18924,
+    "z_index": 27,
+    "tilt_angle": 35.96,
+    "volume_x_rotation": 0.0,
+    "in_plane_rotation": [
+     [
+      -0.11025299807561198,
+      0.9939035548861564
+     ],
+     [
+      -0.9939035548861564,
+      -0.11025299807561198
+     ]
+    ],
+    "x_offset": -3.49,
+    "y_offset": 98.161
+   },
+   {
+    "id": 3028,
+    "alignment_id": 18924,
+    "z_index": 28,
+    "tilt_angle": 38.96,
+    "volume_x_rotation": 0.0,
+    "in_plane_rotation": [
+     [
+      -0.11025299807561198,
+      0.9939035548861564
+     ],
+     [
+      -0.9939035548861564,
+      -0.11025299807561198
+     ]
+    ],
+    "x_offset": -539.502,
+    "y_offset": -184.725
+   },
+   {
+    "id": 3029,
+    "alignment_id": 18924,
+    "z_index": 29,
+    "tilt_angle": 41.96,
+    "volume_x_rotation": 0.0,
+    "in_plane_rotation": [
+     [
+      -0.11025299807561198,
+      0.9939035548861564
+     ],
+     [
+      -0.9939035548861564,
+      -0.11025299807561198
+     ]
+    ],
+    "x_offset": 13.119,
+    "y_offset": 126.504
+   },
+   {
+    "id": 3030,
+    "alignment_id": 18924,
+    "z_index": 30,
+    "tilt_angle": 44.96,
+    "volume_x_rotation": 0.0,
+    "in_plane_rotation": [
+     [
+      -0.11025299807561198,
+      0.9939035548861564
+     ],
+     [
+      -0.9939035548861564,
+      -0.11025299807561198
+     ]
+    ],
+    "x_offset": 513.993,
+    "y_offset": -104.96
+   }
+  ],
+  "per_section_parameters": [
+   {
+    "id": 1000,
+    "z_index": 0,
+    "raw_angle": -45.03,
+    "frame_id": 2000,
+    "tiltseries_id": 17489,
+    "run_id": 17687,
+    "major_defocus": 22481.63,
+    "minor_defocus": 22086.07,
+    "astigmatic_angle": -1.76,
+    "phase_shift": 0.0,
+    "max_resolution": null
+   },
+   {
+    "id": 1001,
+    "z_index": 1,
+    "raw_angle": -42.03,
+    "frame_id": 2001,
+    "tiltseries_id": 17489,
+    "run_id": 17687,
+    "major_defocus": 23596.52,
+    "minor_defocus": 23596.52,
+    "astigmatic_angle": -1.76,
+    "phase_shift": 0.0,
+    "max_resolution": null
+   },
+   {
+    "id": 1002,
+    "z_index": 2,
+    "raw_angle": -39.04,
+    "frame_id": 2002,
+    "tiltseries_id": 17489,
+    "run_id": 17687,
+    "major_defocus": 22654.49,
+    "minor_defocus": 22654.49,
+    "astigmatic_angle": -1.76,
+    "phase_shift": 0.0,
+    "max_resolution": null
+   },
+   {
+    "id": 1003,
+    "z_index": 3,
+    "raw_angle": -36.03,
+    "frame_id": 2003,
+    "tiltseries_id": 17489,
+    "run_id": 17687,
+    "major_defocus": 23704.08,
+    "minor_defocus": 23287.01,
+    "astigmatic_angle": -1.76,
+    "phase_shift": 0.0,
+    "max_resolution": null
+   },
+   {
+    "id": 1004,
+    "z_index": 4,
+    "raw_angle": -33.03,
+    "frame_id": 2004,
+    "tiltseries_id": 17489,
+    "run_id": 17687,
+    "major_defocus": 22558.75,
+    "minor_defocus": 22161.83,
+    "astigmatic_angle": -1.76,
+    "phase_shift": 0.0,
+    "max_resolution": null
+   },
+   {
+    "id": 1005,
+    "z_index": 5,
+    "raw_angle": -30.03,
+    "frame_id": 2005,
+    "tiltseries_id": 17489,
+    "run_id": 17687,
+    "major_defocus": 23237.4,
+    "minor_defocus": 23053.7,
+    "astigmatic_angle": -1.76,
+    "phase_shift": 0.0,
+    "max_resolution": null
+   },
+   {
+    "id": 1006,
+    "z_index": 6,
+    "raw_angle": -27.03,
+    "frame_id": 2006,
+    "tiltseries_id": 17489,
+    "run_id": 17687,
+    "major_defocus": 22397.62,
+    "minor_defocus": 22019.0,
+    "astigmatic_angle": -1.76,
+    "phase_shift": 0.0,
+    "max_resolution": null
+   },
+   {
+    "id": 1007,
+    "z_index": 7,
+    "raw_angle": -24.03,
+    "frame_id": 2007,
+    "tiltseries_id": 17489,
+    "run_id": 17687,
+    "major_defocus": 22640.12,
+    "minor_defocus": 22506.56,
+    "astigmatic_angle": -1.76,
+    "phase_shift": 0.0,
+    "max_resolution": null
+   },
+   {
+    "id": 1008,
+    "z_index": 8,
+    "raw_angle": -21.03,
+    "frame_id": 2008,
+    "tiltseries_id": 17489,
+    "run_id": 17687,
+    "major_defocus": 22444.23,
+    "minor_defocus": 22220.3,
+    "astigmatic_angle": -1.76,
+    "phase_shift": 0.0,
+    "max_resolution": null
+   },
+   {
+    "id": 1009,
+    "z_index": 9,
+    "raw_angle": -18.04,
+    "frame_id": 2009,
+    "tiltseries_id": 17489,
+    "run_id": 17687,
+    "major_defocus": 22841.26,
+    "minor_defocus": 22570.13,
+    "astigmatic_angle": -1.76,
+    "phase_shift": 0.0,
+    "max_resolution": null
+   },
+   {
+    "id": 1010,
+    "z_index": 10,
+    "raw_angle": -15.03,
+    "frame_id": 2010,
+    "tiltseries_id": 17489,
+    "run_id": 17687,
+    "major_defocus": 22392.39,
+    "minor_defocus": 21998.4,
+    "astigmatic_angle": -1.76,
+    "phase_shift": 0.0,
+    "max_resolution": null
+   },
+   {
+    "id": 1011,
+    "z_index": 11,
+    "raw_angle": -12.04,
+    "frame_id": 2011,
+    "tiltseries_id": 17489,
+    "run_id": 17687,
+    "major_defocus": 22469.06,
+    "minor_defocus": 22351.84,
+    "astigmatic_angle": -1.76,
+    "phase_shift": 0.0,
+    "max_resolution": null
+   },
+   {
+    "id": 1012,
+    "z_index": 12,
+    "raw_angle": -9.03,
+    "frame_id": 2012,
+    "tiltseries_id": 17489,
+    "run_id": 17687,
+    "major_defocus": 22048.88,
+    "minor_defocus": 21873.83,
+    "astigmatic_angle": -1.76,
+    "phase_shift": 0.0,
+    "max_resolution": null
+   },
+   {
+    "id": 1013,
+    "z_index": 13,
+    "raw_angle": -6.04,
+    "frame_id": 2013,
+    "tiltseries_id": 17489,
+    "run_id": 17687,
+    "major_defocus": 22006.91,
+    "minor_defocus": 21625.71,
+    "astigmatic_angle": -1.76,
+    "phase_shift": 0.0,
+    "max_resolution": null
+   },
+   {
+    "id": 1014,
+    "z_index": 14,
+    "raw_angle": -3.03,
+    "frame_id": 2014,
+    "tiltseries_id": 17489,
+    "run_id": 17687,
+    "major_defocus": 21626.37,
+    "minor_defocus": 21245.86,
+    "astigmatic_angle": -1.76,
+    "phase_shift": 0.0,
+    "max_resolution": null
+   },
+   {
+    "id": 1015,
+    "z_index": 15,
+    "raw_angle": -0.04,
+    "frame_id": 2015,
+    "tiltseries_id": 17489,
+    "run_id": 17687,
+    "major_defocus": 20717.38,
+    "minor_defocus": 20555.52,
+    "astigmatic_angle": -1.76,
+    "phase_shift": 0.0,
+    "max_resolution": null
+   },
+   {
+    "id": 1016,
+    "z_index": 16,
+    "raw_angle": 2.96,
+    "frame_id": 2016,
+    "tiltseries_id": 17489,
+    "run_id": 17687,
+    "major_defocus": 21179.84,
+    "minor_defocus": 20807.19,
+    "astigmatic_angle": -1.76,
+    "phase_shift": 0.0,
+    "max_resolution": null
+   },
+   {
+    "id": 1017,
+    "z_index": 17,
+    "raw_angle": 5.96,
+    "frame_id": 2017,
+    "tiltseries_id": 17489,
+    "run_id": 17687,
+    "major_defocus": 21922.65,
+    "minor_defocus": 21536.92,
+    "astigmatic_angle": -1.76,
+    "phase_shift": 0.0,
+    "max_resolution": null
+   },
+   {
+    "id": 1018,
+    "z_index": 18,
+    "raw_angle": 8.96,
+    "frame_id": 2018,
+    "tiltseries_id": 17489,
+    "run_id": 17687,
+    "major_defocus": 21905.65,
+    "minor_defocus": 21520.23,
+    "astigmatic_angle": -1.76,
+    "phase_shift": 0.0,
+    "max_resolution": null
+   },
+   {
+    "id": 1019,
+    "z_index": 19,
+    "raw_angle": 11.96,
+    "frame_id": 2019,
+    "tiltseries_id": 17489,
+    "run_id": 17687,
+    "major_defocus": 22105.1,
+    "minor_defocus": 21862.04,
+    "astigmatic_angle": -1.76,
+    "phase_shift": 0.0,
+    "max_resolution": null
+   },
+   {
+    "id": 1020,
+    "z_index": 20,
+    "raw_angle": 14.96,
+    "frame_id": 2020,
+    "tiltseries_id": 17489,
+    "run_id": 17687,
+    "major_defocus": 22075.09,
+    "minor_defocus": 21722.19,
+    "astigmatic_angle": -1.76,
+    "phase_shift": 0.0,
+    "max_resolution": null
+   },
+   {
+    "id": 1021,
+    "z_index": 21,
+    "raw_angle": 17.96,
+    "frame_id": 2021,
+    "tiltseries_id": 17489,
+    "run_id": 17687,
+    "major_defocus": 22623.29,
+    "minor_defocus": 22312.98,
+    "astigmatic_angle": -1.76,
+    "phase_shift": 0.0,
+    "max_resolution": null
+   },
+   {
+    "id": 1022,
+    "z_index": 22,
+    "raw_angle": 20.96,
+    "frame_id": 2022,
+    "tiltseries_id": 17489,
+    "run_id": 17687,
+    "major_defocus": 22489.48,
+    "minor_defocus": 22489.48,
+    "astigmatic_angle": -1.76,
+    "phase_shift": 0.0,
+    "max_resolution": null
+   },
+   {
+    "id": 1023,
+    "z_index": 23,
+    "raw_angle": 23.96,
+    "frame_id": 2023,
+    "tiltseries_id": 17489,
+    "run_id": 17687,
+    "major_defocus": 23149.42,
+    "minor_defocus": 22808.98,
+    "astigmatic_angle": -1.76,
+    "phase_shift": 0.0,
+    "max_resolution": null
+   },
+   {
+    "id": 1024,
+    "z_index": 24,
+    "raw_angle": 26.96,
+    "frame_id": 2024,
+    "tiltseries_id": 17489,
+    "run_id": 17687,
+    "major_defocus": 22073.79,
+    "minor_defocus": 21685.4,
+    "astigmatic_angle": -1.76,
+    "phase_shift": 0.0,
+    "max_resolution": null
+   },
+   {
+    "id": 1025,
+    "z_index": 25,
+    "raw_angle": 29.96,
+    "frame_id": 2025,
+    "tiltseries_id": 17489,
+    "run_id": 17687,
+    "major_defocus": 22756.92,
+    "minor_defocus": 22356.52,
+    "astigmatic_angle": -1.76,
+    "phase_shift": 0.0,
+    "max_resolution": null
+   },
+   {
+    "id": 1026,
+    "z_index": 26,
+    "raw_angle": 32.96,
+    "frame_id": 2026,
+    "tiltseries_id": 17489,
+    "run_id": 17687,
+    "major_defocus": 22091.75,
+    "minor_defocus": 22091.75,
+    "astigmatic_angle": -1.76,
+    "phase_shift": 0.0,
+    "max_resolution": null
+   },
+   {
+    "id": 1027,
+    "z_index": 27,
+    "raw_angle": 35.96,
+    "frame_id": 2027,
+    "tiltseries_id": 17489,
+    "run_id": 17687,
+    "major_defocus": 22515.54,
+    "minor_defocus": 22151.65,
+    "astigmatic_angle": -1.76,
+    "phase_shift": 0.0,
+    "max_resolution": null
+   },
+   {
+    "id": 1028,
+    "z_index": 28,
+    "raw_angle": 38.96,
+    "frame_id": 2028,
+    "tiltseries_id": 17489,
+    "run_id": 17687,
+    "major_defocus": 22856.43,
+    "minor_defocus": 22454.27,
+    "astigmatic_angle": -1.76,
+    "phase_shift": 0.0,
+    "max_resolution": null
+   },
+   {
+    "id": 1029,
+    "z_index": 29,
+    "raw_angle": 41.96,
+    "frame_id": 2029,
+    "tiltseries_id": 17489,
+    "run_id": 17687,
+    "major_defocus": 23861.47,
+    "minor_defocus": 23441.63,
+    "astigmatic_angle": -1.76,
+    "phase_shift": 0.0,
+    "max_resolution": null
+   },
+   {
+    "id": 1030,
+    "z_index": 30,
+    "raw_angle": 44.96,
+    "frame_id": 2030,
+    "tiltseries_id": 17489,
+    "run_id": 17687,
+    "major_defocus": 21961.35,
+    "minor_defocus": 21961.35,
+    "astigmatic_angle": -1.76,
+    "phase_shift": 0.0,
+    "max_resolution": null
+   }
+  ],
+  "frames": [
+   {
+    "id": 2000,
+    "run_id": 17687,
+    "acquisition_order": 30,
+    "accumulated_dose": 116.12250000000002,
+    "exposure_dose": 3.87075,
+    "s3_frame_path": "s3://cryoet-data-portal-public/10445/TS_105_5/Frames/24mar08a_Position_105_5_031_-45.03_20240311_031951_EER.eer",
+    "https_frame_path": "https://files.cryoetdataportal.cziscience.com/10445/TS_105_5/Frames/24mar08a_Position_105_5_031_-45.03_20240311_031951_EER.eer"
+   },
+   {
+    "id": 2001,
+    "run_id": 17687,
+    "acquisition_order": 27,
+    "accumulated_dose": 104.51025000000001,
+    "exposure_dose": 3.87075,
+    "s3_frame_path": "s3://cryoet-data-portal-public/10445/TS_105_5/Frames/24mar08a_Position_105_5_028_-42.03_20240311_031710_EER.eer",
+    "https_frame_path": "https://files.cryoetdataportal.cziscience.com/10445/TS_105_5/Frames/24mar08a_Position_105_5_028_-42.03_20240311_031710_EER.eer"
+   },
+   {
+    "id": 2002,
+    "run_id": 17687,
+    "acquisition_order": 26,
+    "accumulated_dose": 100.63950000000001,
+    "exposure_dose": 3.87075,
+    "s3_frame_path": "s3://cryoet-data-portal-public/10445/TS_105_5/Frames/24mar08a_Position_105_5_027_-39.03_20240311_031616_EER.eer",
+    "https_frame_path": "https://files.cryoetdataportal.cziscience.com/10445/TS_105_5/Frames/24mar08a_Position_105_5_027_-39.03_20240311_031616_EER.eer"
+   },
+   {
+    "id": 2003,
+    "run_id": 17687,
+    "acquisition_order": 23,
+    "accumulated_dose": 89.02725000000001,
+    "exposure_dose": 3.87075,
+    "s3_frame_path": "s3://cryoet-data-portal-public/10445/TS_105_5/Frames/24mar08a_Position_105_5_024_-36.03_20240311_031322_EER.eer",
+    "https_frame_path": "https://files.cryoetdataportal.cziscience.com/10445/TS_105_5/Frames/24mar08a_Position_105_5_024_-36.03_20240311_031322_EER.eer"
+   },
+   {
+    "id": 2004,
+    "run_id": 17687,
+    "acquisition_order": 22,
+    "accumulated_dose": 85.15650000000001,
+    "exposure_dose": 3.87075,
+    "s3_frame_path": "s3://cryoet-data-portal-public/10445/TS_105_5/Frames/24mar08a_Position_105_5_023_-33.03_20240311_031231_EER.eer",
+    "https_frame_path": "https://files.cryoetdataportal.cziscience.com/10445/TS_105_5/Frames/24mar08a_Position_105_5_023_-33.03_20240311_031231_EER.eer"
+   },
+   {
+    "id": 2005,
+    "run_id": 17687,
+    "acquisition_order": 19,
+    "accumulated_dose": 73.54425,
+    "exposure_dose": 3.87075,
+    "s3_frame_path": "s3://cryoet-data-portal-public/10445/TS_105_5/Frames/24mar08a_Position_105_5_020_-30.03_20240311_030936_EER.eer",
+    "https_frame_path": "https://files.cryoetdataportal.cziscience.com/10445/TS_105_5/Frames/24mar08a_Position_105_5_020_-30.03_20240311_030936_EER.eer"
+   },
+   {
+    "id": 2006,
+    "run_id": 17687,
+    "acquisition_order": 18,
+    "accumulated_dose": 69.6735,
+    "exposure_dose": 3.87075,
+    "s3_frame_path": "s3://cryoet-data-portal-public/10445/TS_105_5/Frames/24mar08a_Position_105_5_019_-27.03_20240311_030844_EER.eer",
+    "https_frame_path": "https://files.cryoetdataportal.cziscience.com/10445/TS_105_5/Frames/24mar08a_Position_105_5_019_-27.03_20240311_030844_EER.eer"
+   },
+   {
+    "id": 2007,
+    "run_id": 17687,
+    "acquisition_order": 15,
+    "accumulated_dose": 58.06125000000001,
+    "exposure_dose": 3.87075,
+    "s3_frame_path": "s3://cryoet-data-portal-public/10445/TS_105_5/Frames/24mar08a_Position_105_5_016_-24.03_20240311_030550_EER.eer",
+    "https_frame_path": "https://files.cryoetdataportal.cziscience.com/10445/TS_105_5/Frames/24mar08a_Position_105_5_016_-24.03_20240311_030550_EER.eer"
+   },
+   {
+    "id": 2008,
+    "run_id": 17687,
+    "acquisition_order": 14,
+    "accumulated_dose": 54.19050000000001,
+    "exposure_dose": 3.87075,
+    "s3_frame_path": "s3://cryoet-data-portal-public/10445/TS_105_5/Frames/24mar08a_Position_105_5_015_-21.03_20240311_030458_EER.eer",
+    "https_frame_path": "https://files.cryoetdataportal.cziscience.com/10445/TS_105_5/Frames/24mar08a_Position_105_5_015_-21.03_20240311_030458_EER.eer"
+   },
+   {
+    "id": 2009,
+    "run_id": 17687,
+    "acquisition_order": 11,
+    "accumulated_dose": 42.578250000000004,
+    "exposure_dose": 3.87075,
+    "s3_frame_path": "s3://cryoet-data-portal-public/10445/TS_105_5/Frames/24mar08a_Position_105_5_012_-18.03_20240311_030208_EER.eer",
+    "https_frame_path": "https://files.cryoetdataportal.cziscience.com/10445/TS_105_5/Frames/24mar08a_Position_105_5_012_-18.03_20240311_030208_EER.eer"
+   },
+   {
+    "id": 2010,
+    "run_id": 17687,
+    "acquisition_order": 10,
+    "accumulated_dose": 38.7075,
+    "exposure_dose": 3.87075,
+    "s3_frame_path": "s3://cryoet-data-portal-public/10445/TS_105_5/Frames/24mar08a_Position_105_5_011_-15.03_20240311_030114_EER.eer",
+    "https_frame_path": "https://files.cryoetdataportal.cziscience.com/10445/TS_105_5/Frames/24mar08a_Position_105_5_011_-15.03_20240311_030114_EER.eer"
+   },
+   {
+    "id": 2011,
+    "run_id": 17687,
+    "acquisition_order": 7,
+    "accumulated_dose": 27.095250000000004,
+    "exposure_dose": 3.87075,
+    "s3_frame_path": "s3://cryoet-data-portal-public/10445/TS_105_5/Frames/24mar08a_Position_105_5_008_-12.03_20240311_025825_EER.eer",
+    "https_frame_path": "https://files.cryoetdataportal.cziscience.com/10445/TS_105_5/Frames/24mar08a_Position_105_5_008_-12.03_20240311_025825_EER.eer"
+   },
+   {
+    "id": 2012,
+    "run_id": 17687,
+    "acquisition_order": 6,
+    "accumulated_dose": 23.224500000000003,
+    "exposure_dose": 3.87075,
+    "s3_frame_path": "s3://cryoet-data-portal-public/10445/TS_105_5/Frames/24mar08a_Position_105_5_007_-9.03_20240311_025733_EER.eer",
+    "https_frame_path": "https://files.cryoetdataportal.cziscience.com/10445/TS_105_5/Frames/24mar08a_Position_105_5_007_-9.03_20240311_025733_EER.eer"
+   },
+   {
+    "id": 2013,
+    "run_id": 17687,
+    "acquisition_order": 3,
+    "accumulated_dose": 11.61225,
+    "exposure_dose": 3.87075,
+    "s3_frame_path": "s3://cryoet-data-portal-public/10445/TS_105_5/Frames/24mar08a_Position_105_5_004_-6.03_20240311_025441_EER.eer",
+    "https_frame_path": "https://files.cryoetdataportal.cziscience.com/10445/TS_105_5/Frames/24mar08a_Position_105_5_004_-6.03_20240311_025441_EER.eer"
+   },
+   {
+    "id": 2014,
+    "run_id": 17687,
+    "acquisition_order": 2,
+    "accumulated_dose": 7.7415,
+    "exposure_dose": 3.87075,
+    "s3_frame_path": "s3://cryoet-data-portal-public/10445/TS_105_5/Frames/24mar08a_Position_105_5_003_-3.03_20240311_025349_EER.eer",
+    "https_frame_path": "https://files.cryoetdataportal.cziscience.com/10445/TS_105_5/Frames/24mar08a_Position_105_5_003_-3.03_20240311_025349_EER.eer"
+   },
+   {
+    "id": 2015,
+    "run_id": 17687,
+    "acquisition_order": 0,
+    "accumulated_dose": 0.0,
+    "exposure_dose": 3.87075,
+    "s3_frame_path": "s3://cryoet-data-portal-public/10445/TS_105_5/Frames/24mar08a_Position_105_5_001_-0.03_20240311_025201_EER.eer",
+    "https_frame_path": "https://files.cryoetdataportal.cziscience.com/10445/TS_105_5/Frames/24mar08a_Position_105_5_001_-0.03_20240311_025201_EER.eer"
+   },
+   {
+    "id": 2016,
+    "run_id": 17687,
+    "acquisition_order": 1,
+    "accumulated_dose": 3.87075,
+    "exposure_dose": 3.87075,
+    "s3_frame_path": "s3://cryoet-data-portal-public/10445/TS_105_5/Frames/24mar08a_Position_105_5_002_2.97_20240311_025249_EER.eer",
+    "https_frame_path": "https://files.cryoetdataportal.cziscience.com/10445/TS_105_5/Frames/24mar08a_Position_105_5_002_2.97_20240311_025249_EER.eer"
+   },
+   {
+    "id": 2017,
+    "run_id": 17687,
+    "acquisition_order": 4,
+    "accumulated_dose": 15.483,
+    "exposure_dose": 3.87075,
+    "s3_frame_path": "s3://cryoet-data-portal-public/10445/TS_105_5/Frames/24mar08a_Position_105_5_005_5.97_20240311_025540_EER.eer",
+    "https_frame_path": "https://files.cryoetdataportal.cziscience.com/10445/TS_105_5/Frames/24mar08a_Position_105_5_005_5.97_20240311_025540_EER.eer"
+   },
+   {
+    "id": 2018,
+    "run_id": 17687,
+    "acquisition_order": 5,
+    "accumulated_dose": 19.35375,
+    "exposure_dose": 3.87075,
+    "s3_frame_path": "s3://cryoet-data-portal-public/10445/TS_105_5/Frames/24mar08a_Position_105_5_006_8.97_20240311_025631_EER.eer",
+    "https_frame_path": "https://files.cryoetdataportal.cziscience.com/10445/TS_105_5/Frames/24mar08a_Position_105_5_006_8.97_20240311_025631_EER.eer"
+   },
+   {
+    "id": 2019,
+    "run_id": 17687,
+    "acquisition_order": 8,
+    "accumulated_dose": 30.966000000000005,
+    "exposure_dose": 3.87075,
+    "s3_frame_path": "s3://cryoet-data-portal-public/10445/TS_105_5/Frames/24mar08a_Position_105_5_009_11.97_20240311_025923_EER.eer",
+    "https_frame_path": "https://files.cryoetdataportal.cziscience.com/10445/TS_105_5/Frames/24mar08a_Position_105_5_009_11.97_20240311_025923_EER.eer"
+   },
+   {
+    "id": 2020,
+    "run_id": 17687,
+    "acquisition_order": 9,
+    "accumulated_dose": 34.83675,
+    "exposure_dose": 3.87075,
+    "s3_frame_path": "s3://cryoet-data-portal-public/10445/TS_105_5/Frames/24mar08a_Position_105_5_010_14.97_20240311_030013_EER.eer",
+    "https_frame_path": "https://files.cryoetdataportal.cziscience.com/10445/TS_105_5/Frames/24mar08a_Position_105_5_010_14.97_20240311_030013_EER.eer"
+   },
+   {
+    "id": 2021,
+    "run_id": 17687,
+    "acquisition_order": 12,
+    "accumulated_dose": 46.449000000000005,
+    "exposure_dose": 3.87075,
+    "s3_frame_path": "s3://cryoet-data-portal-public/10445/TS_105_5/Frames/24mar08a_Position_105_5_013_17.97_20240311_030307_EER.eer",
+    "https_frame_path": "https://files.cryoetdataportal.cziscience.com/10445/TS_105_5/Frames/24mar08a_Position_105_5_013_17.97_20240311_030307_EER.eer"
+   },
+   {
+    "id": 2022,
+    "run_id": 17687,
+    "acquisition_order": 13,
+    "accumulated_dose": 50.319750000000006,
+    "exposure_dose": 3.87075,
+    "s3_frame_path": "s3://cryoet-data-portal-public/10445/TS_105_5/Frames/24mar08a_Position_105_5_014_20.97_20240311_030358_EER.eer",
+    "https_frame_path": "https://files.cryoetdataportal.cziscience.com/10445/TS_105_5/Frames/24mar08a_Position_105_5_014_20.97_20240311_030358_EER.eer"
+   },
+   {
+    "id": 2023,
+    "run_id": 17687,
+    "acquisition_order": 16,
+    "accumulated_dose": 61.93200000000001,
+    "exposure_dose": 3.87075,
+    "s3_frame_path": "s3://cryoet-data-portal-public/10445/TS_105_5/Frames/24mar08a_Position_105_5_017_23.97_20240311_030653_EER.eer",
+    "https_frame_path": "https://files.cryoetdataportal.cziscience.com/10445/TS_105_5/Frames/24mar08a_Position_105_5_017_23.97_20240311_030653_EER.eer"
+   },
+   {
+    "id": 2024,
+    "run_id": 17687,
+    "acquisition_order": 17,
+    "accumulated_dose": 65.80275,
+    "exposure_dose": 3.87075,
+    "s3_frame_path": "s3://cryoet-data-portal-public/10445/TS_105_5/Frames/24mar08a_Position_105_5_018_26.97_20240311_030743_EER.eer",
+    "https_frame_path": "https://files.cryoetdataportal.cziscience.com/10445/TS_105_5/Frames/24mar08a_Position_105_5_018_26.97_20240311_030743_EER.eer"
+   },
+   {
+    "id": 2025,
+    "run_id": 17687,
+    "acquisition_order": 20,
+    "accumulated_dose": 77.415,
+    "exposure_dose": 3.87075,
+    "s3_frame_path": "s3://cryoet-data-portal-public/10445/TS_105_5/Frames/24mar08a_Position_105_5_021_29.97_20240311_031036_EER.eer",
+    "https_frame_path": "https://files.cryoetdataportal.cziscience.com/10445/TS_105_5/Frames/24mar08a_Position_105_5_021_29.97_20240311_031036_EER.eer"
+   },
+   {
+    "id": 2026,
+    "run_id": 17687,
+    "acquisition_order": 21,
+    "accumulated_dose": 81.28575000000001,
+    "exposure_dose": 3.87075,
+    "s3_frame_path": "s3://cryoet-data-portal-public/10445/TS_105_5/Frames/24mar08a_Position_105_5_022_32.97_20240311_031126_EER.eer",
+    "https_frame_path": "https://files.cryoetdataportal.cziscience.com/10445/TS_105_5/Frames/24mar08a_Position_105_5_022_32.97_20240311_031126_EER.eer"
+   },
+   {
+    "id": 2027,
+    "run_id": 17687,
+    "acquisition_order": 24,
+    "accumulated_dose": 92.89800000000001,
+    "exposure_dose": 3.87075,
+    "s3_frame_path": "s3://cryoet-data-portal-public/10445/TS_105_5/Frames/24mar08a_Position_105_5_025_35.97_20240311_031423_EER.eer",
+    "https_frame_path": "https://files.cryoetdataportal.cziscience.com/10445/TS_105_5/Frames/24mar08a_Position_105_5_025_35.97_20240311_031423_EER.eer"
+   },
+   {
+    "id": 2028,
+    "run_id": 17687,
+    "acquisition_order": 25,
+    "accumulated_dose": 96.76875000000001,
+    "exposure_dose": 3.87075,
+    "s3_frame_path": "s3://cryoet-data-portal-public/10445/TS_105_5/Frames/24mar08a_Position_105_5_026_38.97_20240311_031513_EER.eer",
+    "https_frame_path": "https://files.cryoetdataportal.cziscience.com/10445/TS_105_5/Frames/24mar08a_Position_105_5_026_38.97_20240311_031513_EER.eer"
+   },
+   {
+    "id": 2029,
+    "run_id": 17687,
+    "acquisition_order": 28,
+    "accumulated_dose": 108.38100000000001,
+    "exposure_dose": 3.87075,
+    "s3_frame_path": "s3://cryoet-data-portal-public/10445/TS_105_5/Frames/24mar08a_Position_105_5_029_41.97_20240311_031812_EER.eer",
+    "https_frame_path": "https://files.cryoetdataportal.cziscience.com/10445/TS_105_5/Frames/24mar08a_Position_105_5_029_41.97_20240311_031812_EER.eer"
+   },
+   {
+    "id": 2030,
+    "run_id": 17687,
+    "acquisition_order": 29,
+    "accumulated_dose": 112.25175000000002,
+    "exposure_dose": 3.87075,
+    "s3_frame_path": "s3://cryoet-data-portal-public/10445/TS_105_5/Frames/24mar08a_Position_105_5_030_44.97_20240311_031858_EER.eer",
+    "https_frame_path": "https://files.cryoetdataportal.cziscience.com/10445/TS_105_5/Frames/24mar08a_Position_105_5_030_44.97_20240311_031858_EER.eer"
+   }
+  ]
+ }
+}

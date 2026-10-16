@@ -14,16 +14,19 @@ from pydantic import BaseModel, create_model, field_validator
 from zarr.abc.store import Store
 
 from copick.impl.overlay import (
+    CopickAlignmentOverlay,
     CopickFeaturesOverlay,
     CopickMeshOverlay,
     CopickObjectOverlay,
     CopickPicksOverlay,
     CopickRunOverlay,
     CopickSegmentationOverlay,
+    CopickTiltSeriesOverlay,
     CopickTomogramOverlay,
     CopickVoxelSpacingOverlay,
 )
 from copick.models import (
+    CopickAlignmentFile,
     CopickConfig,
     CopickFeaturesMeta,
     CopickLocation,
@@ -33,6 +36,9 @@ from copick.models import (
     CopickRoot,
     CopickRunMeta,
     CopickSegmentationMeta,
+    CopickTiltSeriesMeta,
+    CopickTiltSeriesMetadata,
+    CopickTomogramLink,
     CopickTomogramMeta,
     CopickVoxelSpacingMeta,
     PickableObject,
@@ -195,6 +201,19 @@ class PortalCache:
     # Tomogram cache
     tomograms_by_vs: Dict[int, List[Any]] = field(default_factory=dict)  # vs_id -> tomograms
     tomogram_authors: Dict[int, List[str]] = field(default_factory=dict)  # tomogram_id -> authors
+
+
+@dataclass
+class PortalAcquisitionCache:
+    """Cache for the portal's tilt series, alignments and per-section data, shared across all runs. Records are the
+    client's ``to_dict()`` payloads."""
+
+    tilt_series: Dict[int, Dict[str, Any]] = field(default_factory=dict)  # id -> tilt series
+    tilt_series_by_run: Dict[int, List[Dict[str, Any]]] = field(default_factory=dict)  # run_id -> tilt series
+    per_section_by_tilt_series: Dict[int, List[Dict[str, Any]]] = field(default_factory=dict)
+    frames: Dict[int, Dict[str, Any]] = field(default_factory=dict)  # id -> frame
+    alignments: Dict[int, CopickAlignmentFile] = field(default_factory=dict)  # id -> alignment
+    alignments_by_run: Dict[int, List[CopickAlignmentFile]] = field(default_factory=dict)  # run_id -> alignments
 
 
 class PortalAnnotationMeta(BaseModel):
@@ -638,11 +657,7 @@ class CopickTomogramMetaCDP(CopickTomogramMeta):
         if ctf_status:
             name += f"-{ctf_status}"
 
-        # Use cached authors if provided, otherwise trigger lazy load
-        if author_names is not None:
-            portal_meta = PortalTomogramMeta.from_portal_cached(source, author_names)
-        else:
-            portal_meta = PortalTomogramMeta.from_tomogram(source)
+        portal_meta = PortalTomogramMeta.from_portal_cached(source, author_names or [])
 
         return cls(
             tomo_type=name,
@@ -697,6 +712,33 @@ class CopickTomogramCDP(CopickTomogramOverlay):
     def _query_static_features(self) -> List[CopickFeaturesCDP]:
         # Features are not defined by the portal yet
         return []
+
+    @property
+    def portal_alignment_id(self) -> Optional[int]:
+        """CryoET Data Portal identifier of the alignment this portal tomogram was reconstructed with."""
+        if not self.portal_tomo:
+            return None
+        return self.meta.portal_metadata.portal_metadata.alignment_id
+
+    def _load_link(self) -> Optional[CopickTomogramLink]:
+        # Portal tomograms do not carry copick attributes; their link comes from the portal (_synthesized_link)
+        if self.read_only and self.portal_tomo:
+            return None
+        return super()._load_link()
+
+    def _synthesized_link(self) -> Optional[CopickTomogramLink]:
+        alignment_id = self.portal_alignment_id
+        if alignment_id is None:
+            return None
+        alignment = self.voxel_spacing.run.root._ensure_acquisition_cache().alignments.get(alignment_id)
+        if alignment is None:
+            return None
+        return CopickTomogramLink(
+            alignment=alignment.name,
+            tilt_series=alignment.tilt_series,
+            tilt_series_portal_id=alignment.tilt_series_portal_id,
+            source="portal",
+        )
 
     def _query_overlay_features(self) -> List[CopickFeaturesCDP]:
         feat_loc = self.overlay_path.replace(".zarr", "_")
@@ -882,6 +924,99 @@ class CopickVoxelSpacingCDP(CopickVoxelSpacingOverlay):
             raise FileNotFoundError(f"File not found: {self.overlay_path}")
 
 
+class CopickTiltSeriesMetaCDP(CopickTiltSeriesMeta):
+    """Identity of a tilt series of a portal project. Portal tilt series carry their portal identifier and record."""
+
+    portal_tiltseries_id: Optional[int] = None
+    portal_tiltseries_path: Optional[str] = None
+    portal_metadata: Dict[str, Any] = {}
+
+    @classmethod
+    def from_portal(cls, source: Dict[str, Any]) -> "CopickTiltSeriesMetaCDP":
+        from copick.util.portal_acquisition import tilt_series_type
+
+        return cls(
+            ts_type=tilt_series_type(source),
+            portal_tiltseries_id=source["id"],
+            portal_tiltseries_path=source.get("s3_omezarr_dir"),
+            portal_metadata=dict(source),
+        )
+
+
+class CopickTiltSeriesCDP(CopickTiltSeriesOverlay):
+    """A tilt series of the CryoET Data Portal (read-only, ``raw`` or ``aligned``) or of the project's overlay."""
+
+    run: "CopickRunCDP"
+    meta: CopickTiltSeriesMetaCDP
+
+    @property
+    def portal_tilt_series(self) -> bool:
+        """Whether this tilt series is from the portal."""
+        return self.meta.portal_tiltseries_id is not None
+
+    @property
+    def cets_id(self) -> str:
+        if self.portal_tilt_series:
+            return f"{self.ts_type}-{self.meta.portal_tiltseries_id}"
+        return self.ts_type
+
+    @property
+    def overlay_path(self) -> str:
+        return f"{self.run.overlay_path}/TiltSeries/{self.ts_type}.zarr"
+
+    @property
+    def fs_overlay(self) -> AbstractFileSystem:
+        return self.run.fs_overlay
+
+    def _load_metadata(self) -> Optional[CopickTiltSeriesMetadata]:
+        if not (self.read_only and self.portal_tilt_series):
+            return super()._load_metadata()
+        from copick.util.portal_acquisition import portal_tilt_series_metadata
+
+        cache = self.run.root._ensure_acquisition_cache()
+        ts_id = self.meta.portal_tiltseries_id
+        return portal_tilt_series_metadata(
+            cache.tilt_series.get(ts_id, self.meta.portal_metadata),
+            cache.per_section_by_tilt_series.get(ts_id, []),
+            cache.frames,
+        )
+
+    def zarr(self) -> Store:
+        if self.read_only:
+            return copick_store(s3fs.S3FileSystem(anon=True), self.meta.portal_tiltseries_path, read_only=True)
+        fs = self.fs_overlay
+        path = self.overlay_path
+        return copick_store(fs, path, create=not fs.exists(path))
+
+    def _delete_data(self) -> None:
+        if self.fs_overlay.exists(self.overlay_path):
+            self.fs_overlay.rm(self.overlay_path, recursive=True)
+        else:
+            raise FileNotFoundError(f"File not found: {self.overlay_path}")
+
+
+class CopickAlignmentCDP(CopickAlignmentOverlay):
+    """An alignment of the CryoET Data Portal (read-only), converted to copick's conventions."""
+
+    run: "CopickRunCDP"
+
+    @property
+    def portal_alignment_id(self) -> Optional[int]:
+        return self.meta.provenance.get("portal_alignment_id")
+
+    def _load(self) -> CopickAlignmentFile:
+        alignment = self.run.root._ensure_acquisition_cache().alignments.get(self.portal_alignment_id)
+        if alignment is None:
+            raise FileNotFoundError(f"The portal has no alignment {self.portal_alignment_id}.")
+        return alignment.model_copy(deep=True)
+
+    def _store(self) -> None:
+        raise PermissionError("Portal alignments are read-only.")
+
+    def _delete_data(self) -> None:
+        raise PermissionError("Portal alignments are read-only.")
+
+
 class CopickRunMetaCDP(CopickRunMeta):
     portal_run_id: Optional[int] = None
     portal_run_name: Optional[str] = None
@@ -915,21 +1050,71 @@ class CopickRunCDP(CopickRunOverlay):
 
         return query_filament_files(self, read_only=False)
 
-    def _tilt_series_factory(self):
-        from copick.impl.filesystem import CopickTiltSeriesFSSpec
-        from copick.models import CopickTiltSeriesMeta
+    def _tilt_series_factory(self) -> Tuple[Type[CopickTiltSeriesCDP], Type[CopickTiltSeriesMetaCDP]]:
+        return CopickTiltSeriesCDP, CopickTiltSeriesMetaCDP
 
-        return CopickTiltSeriesFSSpec, CopickTiltSeriesMeta
+    def _query_static_tilt_series(self) -> List[CopickTiltSeriesCDP]:
+        if self.portal_run_id is None:
+            return []
+        cache = self.root._ensure_acquisition_cache()
+        return [
+            CopickTiltSeriesCDP(run=self, meta=CopickTiltSeriesMetaCDP.from_portal(ts), read_only=True)
+            for ts in cache.tilt_series_by_run.get(self.portal_run_id, [])
+        ]
 
-    def _query_overlay_tilt_series(self):
-        from copick.impl.filesystem import query_tilt_series_stores
+    def _query_overlay_tilt_series(self) -> List[CopickTiltSeriesCDP]:
+        from copick.impl.filesystem import list_tilt_series_types
 
-        return query_tilt_series_stores(self, read_only=False)
+        return [
+            CopickTiltSeriesCDP(run=self, meta=CopickTiltSeriesMetaCDP(ts_type=ts_type), read_only=False)
+            for ts_type in list_tilt_series_types(self.fs_overlay, self.overlay_path)
+        ]
+
+    def get_tilt_series_list(
+        self,
+        ts_type: Union[str, List[str]] = None,
+        portal_meta_query: Dict[str, Any] = None,
+        **kwargs,
+    ) -> List[CopickTiltSeriesCDP]:
+        """Get tilt series by type. Portal tilt series are of type ``raw`` (or ``aligned`` for stacks of aligned
+        images); several of one type are told apart by ``portal_meta_query``.
+
+        Args:
+            ts_type: Type(s) of the tilt series. Default: all.
+            portal_meta_query: Values to compare for equality against the fields of the portal's
+                ``cryoet_data_portal.TiltSeries`` record (e.g. ``{"id": 17489}``). Overlay tilt series never match a
+                query.
+            **kwargs: Additional parameters passed to the parent class.
+
+        Returns:
+            List[CopickTiltSeries]: The matching tilt series.
+        """
+        found = super().get_tilt_series_list(ts_type, **kwargs)
+        if not portal_meta_query:
+            return found
+        return [
+            ts
+            for ts in found
+            if ts.meta.portal_metadata
+            and all(ts.meta.portal_metadata.get(k) == v for k, v in portal_meta_query.items())
+        ]
 
     def _alignment_factory(self):
+        # New alignments are written to the overlay
         from copick.impl.filesystem import CopickAlignmentFSSpec
 
         return CopickAlignmentFSSpec
+
+    def _query_static_alignments(self) -> List[CopickAlignmentCDP]:
+        if self.portal_run_id is None:
+            return []
+        cache = self.root._ensure_acquisition_cache()
+        alignments = []
+        for file in cache.alignments_by_run.get(self.portal_run_id, []):
+            alignment = CopickAlignmentCDP(run=self, file=file.model_copy(deep=True), read_only=True)
+            alignment._loaded = True
+            alignments.append(alignment)
+        return alignments
 
     def _query_overlay_alignments(self):
         from copick.impl.filesystem import query_alignment_files
@@ -1353,6 +1538,7 @@ class CopickRootCDP(CopickRoot):
         )
         self.root_overlay: str = self.fs_overlay._strip_protocol(config.overlay_root)  # noqa
         self._portal_cache: Optional[PortalCache] = None
+        self._acquisition_cache: Optional[PortalAcquisitionCache] = None
 
         # Set root reference for cache invalidation on reconnect
         self.fs_overlay._root_ref = weakref.ref(self)
@@ -1505,6 +1691,78 @@ class CopickRootCDP(CopickRoot):
             cache.tomogram_authors[author.tomogram_id].append(author.name)
 
         self._portal_cache = cache
+        return cache
+
+    def _ensure_acquisition_cache(self, force: bool = False) -> PortalAcquisitionCache:
+        """Return the portal's tilt series, alignments and per-section data for all configured datasets.
+
+        Fetched on first use (a run's tilt series or alignments, or a tomogram's alignment), not when the project is
+        opened, then memoized for the life of the root. ``force`` refetches from the portal.
+        """
+        if self._acquisition_cache is not None and not force:
+            return self._acquisition_cache
+
+        self._acquisition_cache = self._build_acquisition_cache(self._fetch_acquisition_data())
+        return self._acquisition_cache
+
+    def _fetch_acquisition_data(self) -> Dict[str, List[Dict[str, Any]]]:
+        """Query the portal for the tilt series, alignments and their per-section records of all configured runs,
+        batched over run IDs like the annotation queries."""
+        client = cdp.Client()
+        run_ids = [r.portal_run_id for r in self.runs if r.portal_run_id is not None]
+
+        tilt_series = _find_batched(cdp.TiltSeries.find, client, run_ids, lambda b: [cdp.TiltSeries.run.id._in(b)])
+        alignments = _find_batched(cdp.Alignment.find, client, run_ids, lambda b: [cdp.Alignment.run.id._in(b)])
+        per_section_alignment = _find_batched(
+            cdp.PerSectionAlignmentParameters.find,
+            client,
+            run_ids,
+            lambda b: [cdp.PerSectionAlignmentParameters.alignment.run.id._in(b)],  # noqa
+        )
+        per_section = _find_batched(
+            cdp.PerSectionParameters.find,
+            client,
+            run_ids,
+            lambda b: [cdp.PerSectionParameters.run.id._in(b)],
+        )
+        frames = _find_batched(cdp.Frame.find, client, run_ids, lambda b: [cdp.Frame.run.id._in(b)])
+
+        return {
+            "tiltseries": [x.to_dict() for x in tilt_series],
+            "alignments": [x.to_dict() for x in alignments],
+            "per_section_alignment_parameters": [x.to_dict() for x in per_section_alignment],
+            "per_section_parameters": [x.to_dict() for x in per_section],
+            "frames": [x.to_dict() for x in frames],
+        }
+
+    def _build_acquisition_cache(self, data: Dict[str, List[Dict[str, Any]]]) -> PortalAcquisitionCache:
+        """Index the acquisition payload and convert the portal's alignments to copick alignments."""
+        from copick.util.portal_acquisition import portal_alignment_file
+
+        cache = PortalAcquisitionCache()
+        for ts in data.get("tiltseries", []):
+            cache.tilt_series[ts["id"]] = ts
+            cache.tilt_series_by_run.setdefault(ts["run_id"], []).append(ts)
+        for row in data.get("per_section_parameters", []):
+            cache.per_section_by_tilt_series.setdefault(row.get("tiltseries_id"), []).append(row)
+        cache.frames = {frame["id"]: frame for frame in data.get("frames", [])}
+
+        per_section_alignment: Dict[int, List[Dict[str, Any]]] = {}
+        for row in data.get("per_section_alignment_parameters", []):
+            per_section_alignment.setdefault(row.get("alignment_id"), []).append(row)
+        from copick.util.portal_acquisition import resolve_alignment_tilt_series
+
+        for alignment in data.get("alignments", []):
+            run_id = alignment.get("run_id")
+            tilt_series = resolve_alignment_tilt_series(alignment, cache.tilt_series_by_run.get(run_id, []))
+            file = portal_alignment_file(
+                alignment,
+                per_section_alignment.get(alignment["id"], []),
+                tilt_series,
+                run_name=None if run_id is None else str(run_id),
+            )
+            cache.alignments[alignment["id"]] = file
+            cache.alignments_by_run.setdefault(run_id, []).append(file)
         return cache
 
     @property
