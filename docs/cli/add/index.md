@@ -15,6 +15,8 @@ copick add [OPTIONS] COMMAND [ARGS]...
 
 | Command | Description |
 |---------|-------------|
+| [`alignment`](alignment.md) | Add an alignment of a tilt series from AreTomo3, Warp, RELION or IMOD files. |
+| [`ctf`](ctf.md) | Set the CTF fits of a tilt series from a file. |
 | [`object`](object.md) | Add a pickable object to the project configuration. |
 | [`object-volume`](object-volume.md) | Add volume data to an existing pickable object. |
 | [`picks`](picks.md) | Add picks from external formats (EM, STAR, Dynamo, CSV). |
@@ -22,6 +24,7 @@ copick add [OPTIONS] COMMAND [ARGS]...
 | [`picks-em`](picks-em.md) | Add picks from EM motivelist files containing multiple tomograms. |
 | [`picks-relion`](picks-relion.md) | Add picks from RELION STAR files containing multiple tomograms. |
 | [`segmentation`](segmentation.md) | Add a segmentation to the project. |
+| [`tiltseries`](tiltseries.md) | Add a tilt series from a stack and its acquisition metadata. |
 | [`tomogram`](tomogram.md) | Add a tomogram to the project. |
 | [`tomograms-dynamo`](tomograms-dynamo.md) | Add tomograms from a Dynamo tomolist file. |
 | [`tomograms-relion`](tomograms-relion.md) | Add tomograms from a RELION tomograms.star file. |

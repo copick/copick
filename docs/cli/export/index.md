@@ -15,7 +15,10 @@ copick export [OPTIONS] COMMAND [ARGS]...
 
 | Command | Description |
 |---------|-------------|
+| [`alignment`](alignment.md) | Export alignments to AreTomo3, Warp, RELION, IMOD or the CryoET Data Portal format. |
 | [`cets`](cets.md) | Export a project's tilt series, alignments and tomograms as a CETS dataset. |
+| [`ctf`](ctf.md) | Export the CTF fits of tilt series. |
 | [`picks`](picks.md) | Export picks to external formats (EM, STAR, Dynamo, CSV). |
 | [`segmentation`](segmentation.md) | Export segmentations to MRC, TIFF, Zarr, or EM. |
+| [`tiltseries`](tiltseries.md) | Export tilt series as MRC, TIFF or Zarr stacks. |
 | [`tomogram`](tomogram.md) | Export tomograms to external formats (MRC, TIFF, Zarr). |
