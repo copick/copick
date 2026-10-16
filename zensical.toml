@@ -60,6 +60,7 @@ nav = [
             {"mv" = "cli/mv.md"},
             {"new" = [
                 {"Overview" = "cli/new/index.md"},
+                {"link" = "cli/new/link.md"},
                 {"picks" = "cli/new/picks.md"},
                 {"run" = "cli/new/run.md"},
                 {"voxelspacing" = "cli/new/voxelspacing.md"},
@@ -67,9 +68,11 @@ nav = [
             {"rm" = "cli/rm.md"},
             {"sync" = [
                 {"Overview" = "cli/sync/index.md"},
+                {"alignments" = "cli/sync/alignments.md"},
                 {"meshes" = "cli/sync/meshes.md"},
                 {"picks" = "cli/sync/picks.md"},
                 {"segmentations" = "cli/sync/segmentations.md"},
+                {"tiltseries" = "cli/sync/tiltseries.md"},
                 {"tomograms" = "cli/sync/tomograms.md"},
             ]},
         ]},
