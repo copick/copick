@@ -20,6 +20,7 @@
       "versioning": "prerelease",
       "prerelease-type": "alpha",
       "separate-pull-requests": true,
+      "pull-request-title-pattern": "chore: release${component} ${version}",
       "changelog-path": "CHANGELOG.md",
       "extra-files": [{ "type": "generic", "path": "src/copick/__init__.py" }],
       "bump-minor-pre-major": false,
