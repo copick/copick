@@ -5,20 +5,34 @@ from typing import Any, Dict, List, Optional, Union
 import zarr
 from zarr.convenience import copy_store
 
-from copick.models import CopickMesh, CopickPicks, CopickRoot, CopickRun, CopickSegmentation
+from copick.models import (
+    CopickAlignment,
+    CopickMesh,
+    CopickPicks,
+    CopickRoot,
+    CopickRun,
+    CopickSegmentation,
+    CopickTiltSeries,
+)
 from copick.util.log import get_logger
 from copick.util.uri import parse_copick_uri, resolve_copick_objects, serialize_copick_uri
 
 logger = get_logger(__name__)
 
 
+#: Object types cp and mv handle.
+_TRANSFERABLE_TYPES = ("picks", "filaments", "mesh", "segmentation", "tiltseries", "alignment")
+#: Object types cp and mv transfer with ``copy_tilt_series`` / ``copy_alignment``.
+_ACQUISITION_TYPES = ("tiltseries", "alignment")
+
+
 def _copy_segmentation_store(
-    source: CopickSegmentation,
-    target: CopickSegmentation,
+    source: Union[CopickSegmentation, CopickTiltSeries],
+    target: Union[CopickSegmentation, CopickTiltSeries],
     *,
     verify_before_delete: bool,
 ) -> None:
-    """Raw-copy a segmentation's store, keeping its dtype and every pyramid level.
+    """Raw-copy a segmentation's (or tilt series') store, keeping its dtype and every pyramid level.
 
     Round-tripping through ``numpy()``/``from_numpy()`` would keep only level 0 and re-choose the dtype.
     """
@@ -26,7 +40,7 @@ def _copy_segmentation_store(
     target_store = target.zarr()
     source_path = getattr(source_store, "path", None)
     if source_path is not None and source_path == getattr(target_store, "path", None):
-        raise ValueError("Source and target are the same segmentation store.")
+        raise ValueError("Source and target are the same store.")
     # An overwritten target must not keep levels the source doesn't have.
     for key in list(target_store.keys()):
         del target_store[key]
@@ -37,7 +51,165 @@ def _copy_segmentation_store(
         for name, array in src.arrays():
             copied = trg[name]
             if copied.shape != array.shape or copied.dtype != array.dtype:
-                raise ValueError(f"Copied segmentation level {name} does not match its source.")
+                raise ValueError(f"Copied level {name} does not match its source.")
+
+
+def copy_tilt_series(
+    source: CopickTiltSeries,
+    target_run: CopickRun,
+    ts_type: Optional[str] = None,
+    exist_ok: bool = False,
+) -> CopickTiltSeries:
+    """Copy a tilt series, images and metadata, into a run (the same or another).
+
+    The images are copied store to store, keeping every level. The metadata is stored with the copy, so the copy of a
+    tilt series whose metadata is synthesized (e.g. from the CryoET Data Portal) carries it.
+
+    Args:
+        source: The tilt series to copy.
+        target_run: The run to copy it into.
+        ts_type: Type of the copy. Default: the source's.
+        exist_ok: Whether to overwrite an existing tilt series of that type.
+
+    Returns:
+        CopickTiltSeries: The copy.
+    """
+    ts_type = ts_type or source.ts_type
+    if target_run is source.run and ts_type == source.ts_type and not source.read_only:
+        raise ValueError(f"Source and target are the same tilt series {ts_type}.")
+    if target_run.get_tilt_series_list(ts_type) and not exist_ok:
+        raise ValueError(f"Tilt series {ts_type} already exists in run {target_run.name}.")
+    target = target_run.new_tilt_series(ts_type, exist_ok=exist_ok)
+    _copy_segmentation_store(source, target, verify_before_delete=True)
+    target.refresh()
+    metadata = source.metadata
+    if metadata is not None:
+        target.store_metadata(metadata)
+    return target
+
+
+def copy_alignment(
+    source: CopickAlignment,
+    target_run: CopickRun,
+    name: Optional[str] = None,
+    tilt_series: Optional[str] = None,
+    exist_ok: bool = False,
+    keep_links: bool = False,
+) -> CopickAlignment:
+    """Copy an alignment into a run (the same or another).
+
+    Args:
+        source: The alignment to copy.
+        target_run: The run to copy it into; it must hold the tilt series the copy aligns.
+        name: Name of the copy. Default: the source's.
+        tilt_series: Type of the tilt series the copy aligns. Default: the source's.
+        exist_ok: Whether to overwrite an existing alignment of that name.
+        keep_links: Whether the copy names the read-only tomograms the source names.
+
+    Returns:
+        CopickAlignment: The copy.
+    """
+    file = source.file
+    name = name or source.name
+    ts_type = tilt_series or file.tilt_series
+    if target_run is source.run and ts_type == file.tilt_series:
+        target_ts = source.tilt_series
+    else:
+        found = target_run.get_tilt_series_list(ts_type)
+        target_ts = found[0] if found else None
+    if target_ts is None:
+        raise ValueError(f"Run {target_run.name} has no tilt series {ts_type} for alignment {name}.")
+
+    existing = target_run.get_alignment(name)
+    if existing is not None:
+        if existing is source:
+            raise ValueError(f"Source and target are the same alignment {name}.")
+        if not exist_ok:
+            raise ValueError(f"Alignment {name} already exists in run {target_run.name}.")
+        existing.delete(unlink=False)
+
+    fields = file.model_dump(
+        exclude={
+            "name",
+            "run_name",
+            "tilt_series",
+            "tilt_series_portal_id",
+            "linked_tomograms",
+            "sections",
+            "reference_volume",
+        },
+    )
+    return target_run.new_alignment(
+        name,
+        target_ts,
+        sections=file.sections,
+        reference_volume=file.reference_volume,
+        linked_tomograms=list(file.linked_tomograms) if keep_links else [],
+        **fields,
+    )
+
+
+def _transfer_acquisition_object(
+    source: Union[CopickTiltSeries, CopickAlignment],
+    object_type: str,
+    target_params: Dict[str, Any],
+    overwrite: bool,
+    move: bool,
+) -> None:
+    """Copy or move a tilt series or an alignment within its run.
+
+    Moving a tilt series moves its alignments along (their writable tomograms are relinked); moving an alignment
+    relinks the tomograms reconstructed with it. A move that would leave a read-only record pointing nowhere is refused
+    before anything changes.
+    """
+    run = source.run
+    if move and getattr(source, "read_only", False):
+        raise PermissionError(f"{serialize_copick_uri(source)} is read-only and cannot be moved.")
+
+    if object_type == "tiltseries":
+        alignments = source.alignments if move else []
+        if blocked := [a.name for a in alignments if getattr(a, "read_only", False)]:
+            raise PermissionError(f"Read-only alignments {blocked} align tilt series {source.ts_type}.")
+        linked = {a.name: a.tomograms for a in alignments}
+        target = copy_tilt_series(source, run, target_params["ts_type"], exist_ok=overwrite)
+        for alignment in alignments:
+            alignment.meta.tilt_series = target.ts_type
+            alignment.meta.tilt_series_portal_id = None
+            alignment.store()
+            for tomogram in linked[alignment.name]:
+                link = tomogram.alignment_link
+                if link.source == "attrs" and not getattr(tomogram, "read_only", False):
+                    tomogram.set_alignment(alignment, reference_offset=link.reference_offset)
+        if move:
+            source.delete()
+        return
+
+    tomograms = source.tomograms if move else []
+    if move:
+        # Links the tomogram or its source record (portal, Croissant) cannot follow; those the alignment records do
+        fixed = [
+            t.link_id
+            for t in tomograms
+            if t.alignment_link.source in ("portal", "croissant")
+            or (t.alignment_link.source == "attrs" and getattr(t, "read_only", False))
+        ]
+        if fixed:
+            raise PermissionError(f"Tomograms {fixed} record alignment {source.name} where it cannot be changed.")
+    target_ts = target_params.get("ts_type")
+    target = copy_alignment(
+        source,
+        run,
+        name=target_params["name"],
+        tilt_series=None if target_ts in (None, "*") else target_ts,
+        exist_ok=overwrite,
+        keep_links=move,
+    )
+    if move:
+        for tomogram in tomograms:
+            link = tomogram.alignment_link
+            if link.source == "attrs":
+                tomogram.set_alignment(target, reference_offset=link.reference_offset)
+        source.delete(unlink=False)
 
 
 def _keep_segmentation_type(source: CopickSegmentation, target_params: Dict[str, Any]) -> None:
@@ -81,7 +253,8 @@ def _validate_target_template(
         or "*" in str(source_params.get("object_name", ""))
         or "*" in str(source_params.get("user_id", ""))
         or "*" in str(source_params.get("session_id", ""))
-        or (object_type == "segmentation" and "*" in str(source_params.get("name", "")))
+        or (object_type in ("segmentation", "alignment") and "*" in str(source_params.get("name", "")))
+        or "*" in str(source_params.get("ts_type", ""))
     )
 
     # If source matches multiple objects or is a pattern, target must use templates
@@ -93,6 +266,7 @@ def _validate_target_template(
             or "{user_id}" in target_uri
             or "{session_id}" in target_uri
             or "{voxel_spacing}" in target_uri
+            or "{ts_type}" in target_uri
         )
 
         if not has_template:
@@ -112,7 +286,7 @@ def _validate_target_template(
 
 def _apply_template(
     template_uri: str,
-    obj: Union[CopickPicks, CopickMesh, CopickSegmentation],
+    obj: Union[CopickPicks, CopickMesh, CopickSegmentation, CopickTiltSeries, CopickAlignment],
     object_type: str,
 ) -> str:
     """Apply template placeholders to generate a concrete URI.
@@ -137,8 +311,27 @@ def _apply_template(
         result = result.replace("{user_id}", obj.user_id)
         result = result.replace("{session_id}", obj.session_id)
         result = result.replace("{voxel_spacing}", str(obj.voxel_size))
+    elif object_type == "tiltseries":
+        result = result.replace("{ts_type}", obj.ts_type)
+    elif object_type == "alignment":
+        result = result.replace("{name}", obj.name)
+        result = result.replace("{ts_type}", obj.tilt_series_name or "")
 
     return result
+
+
+def _delete_object(obj: Any, cascade: bool) -> None:
+    """Delete one object. A tilt series still aligned by alignments is refused unless ``cascade`` deletes those too."""
+    if isinstance(obj, CopickTiltSeries):
+        alignments = obj.alignments
+        if alignments and not cascade:
+            raise ValueError(
+                f"Tilt series {obj.ts_type} is aligned by {[a.name for a in alignments]}; remove those first, or "
+                "remove them along (cascade).",
+            )
+        for alignment in alignments:
+            alignment.delete()
+    obj.delete()
 
 
 def remove_copick_objects(
@@ -148,16 +341,19 @@ def remove_copick_objects(
     run_name: Optional[str] = None,
     dry_run: bool = False,
     log: bool = False,
+    cascade: bool = False,
 ) -> Dict[str, Any]:
     """Remove copick objects matching a URI pattern.
 
     Args:
         root: CopickRoot instance
-        object_type: Type of object ('picks', 'filaments', 'mesh', 'segmentation', 'tomogram', 'feature')
+        object_type: Type of object ('picks', 'filaments', 'mesh', 'segmentation', 'tomogram', 'feature',
+            'tiltseries', 'alignment')
         uri: Copick URI (supports patterns)
         run_name: Specific run name to operate on (None = all runs)
         dry_run: If True, only list objects that would be deleted
         log: Enable logging
+        cascade: Also remove the alignments of removed tilt series (otherwise such tilt series are not removed)
 
     Returns:
         Dict with 'deleted' count and 'objects' list (URIs)
@@ -185,7 +381,7 @@ def remove_copick_objects(
         for obj in objects:
             obj_uri = serialize_copick_uri(obj)
             try:
-                obj.delete()
+                _delete_object(obj, cascade)
                 deleted_uris.append(obj_uri)
                 if log:
                     logger.info(f"Deleted: {obj_uri}")
@@ -225,7 +421,7 @@ def move_copick_objects(
     Raises:
         ValueError: If URIs are invalid or incompatible
     """
-    if object_type not in ("picks", "filaments", "mesh", "segmentation"):
+    if object_type not in _TRANSFERABLE_TYPES:
         raise ValueError(f"Move operation not supported for object type: {object_type}")
 
     # Resolve source objects
@@ -254,6 +450,13 @@ def move_copick_objects(
 
             # Parse target to get new parameters
             target_params = parse_copick_uri(concrete_target_uri, object_type)
+
+            if object_type in _ACQUISITION_TYPES:
+                _transfer_acquisition_object(source_obj, object_type, target_params, overwrite, move=True)
+                mappings.append((source_obj_uri, concrete_target_uri))
+                if log:
+                    logger.info(f"Moved: {source_obj_uri} → {concrete_target_uri}")
+                continue
 
             # Create new object with target parameters
             if object_type == "picks":
@@ -358,7 +561,7 @@ def copy_copick_objects(
     Raises:
         ValueError: If URIs are invalid or incompatible
     """
-    if object_type not in ("picks", "filaments", "mesh", "segmentation"):
+    if object_type not in _TRANSFERABLE_TYPES:
         raise ValueError(f"Copy operation not supported for object type: {object_type}")
 
     # Resolve source objects
@@ -384,6 +587,13 @@ def copy_copick_objects(
 
             # Parse target to get new parameters
             target_params = parse_copick_uri(concrete_target_uri, object_type)
+
+            if object_type in _ACQUISITION_TYPES:
+                _transfer_acquisition_object(source_obj, object_type, target_params, overwrite, move=False)
+                mappings.append((source_obj_uri, concrete_target_uri))
+                if log:
+                    logger.info(f"Copied: {source_obj_uri} → {concrete_target_uri}")
+                continue
 
             # Create new object with target parameters
             if object_type == "picks":
@@ -466,6 +676,7 @@ def remove_copick_objects_per_run(
     object_type: str,
     uri: str,
     dry_run: bool = False,
+    cascade: bool = False,
 ) -> Dict[str, Any]:
     """Remove copick objects matching a URI pattern within a single run.
 
@@ -476,6 +687,7 @@ def remove_copick_objects_per_run(
         object_type: Type of object ('picks', 'filaments', 'mesh', 'segmentation', 'tomogram', 'feature')
         uri: Copick URI (supports patterns)
         dry_run: If True, only list objects that would be deleted
+        cascade: Also remove the alignments of removed tilt series
 
     Returns:
         Dict with 'deleted' count, 'objects' list (URIs), and 'errors' list
@@ -498,7 +710,7 @@ def remove_copick_objects_per_run(
             for obj in objects:
                 obj_uri = serialize_copick_uri(obj)
                 try:
-                    obj.delete()
+                    _delete_object(obj, cascade)
                     deleted_uris.append(obj_uri)
                 except Exception as e:
                     errors.append(f"Failed to delete {obj_uri}: {e}")
@@ -517,6 +729,7 @@ def remove_copick_objects_batch(
     run_names: Optional[List[str]] = None,
     dry_run: bool = False,
     workers: int = 8,
+    cascade: bool = False,
 ) -> Dict[str, Any]:
     """Remove copick objects in parallel across multiple runs.
 
@@ -527,6 +740,7 @@ def remove_copick_objects_batch(
         run_names: List of run names to process (None = all runs)
         dry_run: If True, only list objects that would be deleted
         workers: Number of parallel workers
+        cascade: Also remove the alignments of removed tilt series
 
     Returns:
         Dict mapping run names to results
@@ -544,6 +758,7 @@ def remove_copick_objects_batch(
             object_type=object_type,
             uri=uri,
             dry_run=dry_run,
+            cascade=cascade,
         )
 
     task_desc = "[DRY RUN] Removing objects" if dry_run else "Removing objects"
@@ -580,7 +795,7 @@ def move_copick_objects_per_run(
         Dict with 'moved' count, 'mappings' list, and 'errors' list
     """
     try:
-        if object_type not in ("picks", "filaments", "mesh", "segmentation"):
+        if object_type not in _TRANSFERABLE_TYPES:
             return {
                 "moved": 0,
                 "mappings": [],
@@ -608,6 +823,11 @@ def move_copick_objects_per_run(
 
                 # Parse target to get new parameters
                 target_params = parse_copick_uri(concrete_target_uri, object_type)
+
+                if object_type in _ACQUISITION_TYPES:
+                    _transfer_acquisition_object(source_obj, object_type, target_params, overwrite, move=True)
+                    mappings.append((source_obj_uri, concrete_target_uri))
+                    continue
 
                 # Create new object with target parameters
                 if object_type == "picks":
@@ -752,7 +972,7 @@ def copy_copick_objects_per_run(
         Dict with 'copied' count, 'mappings' list, and 'errors' list
     """
     try:
-        if object_type not in ("picks", "filaments", "mesh", "segmentation"):
+        if object_type not in _TRANSFERABLE_TYPES:
             return {
                 "copied": 0,
                 "mappings": [],
@@ -777,6 +997,11 @@ def copy_copick_objects_per_run(
 
                 # Parse target to get new parameters
                 target_params = parse_copick_uri(concrete_target_uri, object_type)
+
+                if object_type in _ACQUISITION_TYPES:
+                    _transfer_acquisition_object(source_obj, object_type, target_params, overwrite, move=False)
+                    mappings.append((source_obj_uri, concrete_target_uri))
+                    continue
 
                 # Create new object with target parameters
                 if object_type == "picks":

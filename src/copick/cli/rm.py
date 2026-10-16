@@ -41,10 +41,20 @@ from copick.util.log import get_logger
     help="Number of parallel worker processes.",
     show_default=True,
 )
+@click.option(
+    "--cascade",
+    is_flag=True,
+    default=False,
+    help="Also remove the alignments of removed tilt series (otherwise tilt series that alignments align are kept).",
+    show_default=True,
+)
 @add_debug_option
 @click.argument(
     "object_type",
-    type=click.Choice(["picks", "filaments", "mesh", "segmentation", "tomogram", "feature"], case_sensitive=False),
+    type=click.Choice(
+        ["picks", "filaments", "mesh", "segmentation", "tomogram", "feature", "tiltseries", "alignment"],
+        case_sensitive=False,
+    ),
 )
 @click.argument("uri", type=CopickURI("any", "input"))
 @click.pass_context
@@ -55,6 +65,7 @@ def rm(
     dry_run: bool,
     force: bool,
     workers: int,
+    cascade: bool,
     object_type: str,
     uri: str,
     debug: bool,
@@ -62,15 +73,19 @@ def rm(
     """
     Remove copick objects by URI.
 
-    Deletes picks, filaments, meshes, segmentations, tomograms, or features that match a
-    copick URI. A URI may target a single object or many at once via glob (`*`)
+    Deletes picks, filaments, meshes, segmentations, tomograms, features, tilt series, or
+    alignments that match a copick URI. A URI may target a single object or many at once via glob (`*`)
     wildcards or a regular expression prefixed with `re:`. The command operates
     across every run by default, or on a single run when `--run` is given.
 
     The URI shape depends on the object type: picks, filaments and meshes use
     `object_name:user_id/session_id`; segmentations use
     `name:user_id/session_id@voxel_spacing`; tomograms use
-    `tomo_type@voxel_spacing`; and features use `tomo_type@voxel_spacing:feature_type`.
+    `tomo_type@voxel_spacing`; features use `tomo_type@voxel_spacing:feature_type`; tilt
+    series use `ts_type`; and alignments use `name@ts_type`.
+
+    Removing an alignment removes the link of the tomograms reconstructed with it. A tilt
+    series that alignments align is kept unless `--cascade` removes those alignments too.
 
     Pattern-based deletions require `--force` as a safety measure, unless
     `--dry-run` is used. Use `--dry-run` to preview exactly what would be removed
@@ -79,7 +94,8 @@ def rm(
     Arguments:
 
         \b
-        OBJECT_TYPE: Type of object to remove (picks, filaments, mesh, segmentation, tomogram, or feature).
+        OBJECT_TYPE: Type of object to remove (picks, filaments, mesh, segmentation, tomogram, feature,
+            tiltseries, or alignment).
         URI: Copick URI selecting the objects to remove; supports glob wildcards and `re:` regex patterns.
 
     Examples:
@@ -99,6 +115,10 @@ def rm(
         \b
         # Remove segmentations matching a regex pattern
         copick rm --force segmentation "re:membrane:user1/session-\\d+@10.0" -c config.json
+
+        \b
+        # Remove a tilt series and its alignments
+        copick rm --cascade tiltseries denoised -c config.json
 
     See Also:
 
@@ -128,6 +148,7 @@ def rm(
             or "*" in str(parsed.get("tomo_type", ""))
             or "*" in str(parsed.get("feature_type", ""))
             or "*" in str(parsed.get("voxel_spacing", ""))
+            or "*" in str(parsed.get("ts_type", ""))
         )
     except ValueError as e:
         logger.error(f"Invalid URI: {e}")
@@ -165,6 +186,7 @@ def rm(
             run_names=run_names,
             dry_run=dry_run,
             workers=workers,
+            cascade=cascade,
         )
 
         # Aggregate results
