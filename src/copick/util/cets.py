@@ -110,6 +110,35 @@ def image_frame(width: int, height: int, pixel_size: float) -> Tuple[List[Dict[s
     return systems, transforms
 
 
+def volume_frame(
+    size: Tuple[int, int, int],
+    voxel_size: float,
+) -> Tuple[List[Dict[str, Any]], List[Dict[str, Any]]]:
+    """The CETS frame of a volume of ``size`` ``(x, y, z)`` voxels: its ``array`` and ``physical`` coordinate systems
+    and the ``array_to_physical`` transformation, centered at ``floor(N/2)`` on each axis."""
+    systems = [
+        _coordinate_system("array", "array", "pixel", ("x", "y", "z")),
+        _coordinate_system("physical", "space", "angstrom", ("x", "y", "z")),
+    ]
+    transforms = [
+        {
+            "transformation_type": "sequence",
+            "name": "array_to_physical",
+            "input": "array",
+            "output": "physical",
+            "sequence": [
+                {
+                    "transformation_type": "translation",
+                    "name": "center_array_origin",
+                    "translation": [-float(floor(n / 2)) for n in size],
+                },
+                {"transformation_type": "scale", "name": "scale_to_physical", "scale": [voxel_size] * 3},
+            ],
+        },
+    ]
+    return systems, transforms
+
+
 def _check_image_frame(image: Dict[str, Any], width: int, height: int, pixel_size: float) -> None:
     """Raise ``ValueError`` unless ``image`` has exactly the frame ``image_frame`` writes."""
     where = f"tilt image {image.get('id')!r}"
