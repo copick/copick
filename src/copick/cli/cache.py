@@ -55,7 +55,9 @@ def info(ctx, config, debug=False):
 
     Reports each candidate cache location for the project (the overlay cache and any local
     fallback), whether a cache file is present, and whether it is fresh or stale relative to
-    the configured TTL. Does not contact the CryoET Data Portal.
+    the configured TTL. There is one file for the annotation data fetched when the project is
+    opened, and one for the tilt series and alignment data fetched on first use. Does not
+    contact the CryoET Data Portal.
 
     Examples:
 
@@ -97,12 +99,12 @@ def info(ctx, config, debug=False):
     logger.info(f"Portal cache {'enabled' if settings.enabled else 'DISABLED'}, TTL {settings.ttl_seconds}s.")
     for status in statuses:
         if not status.exists:
-            logger.info(f"  [missing]  {status.path}")
+            logger.info(f"  [missing]  {status.kind}: {status.path}")
             continue
         state = "fresh" if status.fresh else "stale"
         age = f"{status.age_seconds:.0f}s" if status.age_seconds is not None else "unknown age"
         lock = "" if status.lockable else " (no lock on this backend)"
-        logger.info(f"  [{state}]  {status.path} — created {status.created}, age {age}{lock}")
+        logger.info(f"  [{state}]  {status.kind}: {status.path} — created {status.created}, age {age}{lock}")
 
 
 @cache.command(
