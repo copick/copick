@@ -7547,8 +7547,9 @@ conventions:</p>
   pointing in the direction of increasing point order. The rotation about the axis (roll) is arbitrary unless a tool
   documents otherwise.</li>
 <li>The transform's translation is 0; the position along the axis is the <code>location</code>.</li>
-<li>The point order follows the structure's polarity only where the producer states it. Otherwise the direction along
-  the filament is unknown.</li>
+<li>The point order follows the structure's polarity only where the producer states it (a filament's
+  <code>polarity_known</code>, see <a href="../datamodel/#filaments">Filaments</a>): minus to plus end for microtubules, pointed to barbed
+  end for actin. Otherwise the direction along the filament is unknown.</li>
 </ul>
 <hr />
 <h2 id="3-volume-geometry-tomograms-and-segmentations">3. Volume Geometry (Tomograms and Segmentations)</h2>
@@ -7687,9 +7688,11 @@ filament frame in the subtomogram orientation, pre-rotated by <span class="arith
 \qquad \mathbf{A}_\text{sub} \cdot \mathbf{A}_\text{particle} = \mathbf{R}\]</div>
 <p>where <span class="arithmatex">\(\mathbf{R}\)</span> is copick's rotation, whose +Z axis is the filament axis (see 2.4 Filament Frames). Copick writes
 this convention for picks of filament objects (<code>copick export picks --filament-columns</code>), together with
-<code>rlnHelicalTubeID</code> (the instance ID), <code>rlnHelicalTrackLengthAngst</code> (Angstrom along the filament in point order) and,
-unless the point order follows the filament's polarity, <code>rlnAnglePsiFlipRatio</code> = 0.5. On import,
-<code>rlnHelicalTubeID</code> becomes the instance ID and rows are ordered by tube and track length.</p>
+<code>rlnHelicalTubeID</code> (the instance ID), <code>rlnHelicalTrackLengthAngst</code> (Angstrom along the filament in point order) and
+<code>rlnAnglePsiFlipRatio</code>: 0 (an ordinary psi prior) where the filament's <code>polarity_known</code> says the point order follows
+its polarity, 0.5 (a bimodal prior, so that refinement may flip the direction) elsewhere. The column is always
+written, because RELION reads a missing one as 0.5. On import, <code>rlnHelicalTubeID</code> becomes the instance ID and rows
+are ordered by tube and track length.</p>
 <h4 id="dynamo-to-copick">Dynamo to Copick</h4>
 <p>Given Dynamo Euler angles <span class="arithmatex">\((t_\text{drot}, t_\text{ilt}, n_\text{arot})\)</span> in ZXZ convention:</p>
 <div class="arithmatex">\[\mathbf{R} = \left( R_z(t_\text{drot}) \cdot R_x(t_\text{ilt}) \cdot R_z(n_\text{arot}) \right)^{-1}\]</div>
@@ -7755,8 +7758,14 @@ does not enter it. On import copick uses, in order:</p>
 </ol>
 <p>On export copick writes <code>rlnTomoName</code>, centred coordinates whenever the tomogram centre is known and, when the
 tilt-series pixel size is known, <code>rlnCoordinateX/Y/Z</code> in tilt-series pixels together with the optics table
-(<code>rlnTomoTiltSeriesPixelSize</code>) that RELION requires. Without a tilt-series pixel size no optics table is written, and
-RELION builds one from <code>tomograms.star</code>.</p>
+(<code>rlnTomoTiltSeriesPixelSize</code>) that RELION requires, one optics group per run. Without a tilt-series pixel size no
+optics table is written, and RELION builds one from <code>tomograms.star</code>. The center comes from <code>tomograms.star</code>, from the
+caller (<code>tomogram_centers</code>), or from the shape of the copick tomogram (of <code>--tomo-type</code>, if given), in that order.
+With <code>--coordinates centered</code>, only centered coordinates are written, and a run without a center is an error rather
+than a fallback to pixel coordinates. <code>--star-layout import</code> (<code>copick.ops.export.export_relion_particles(layout="import")</code>) writes
+the input of RELION's tomography Import Coordinates job instead of one particle file: an index
+(<code>data_coordinate_files</code> with <code>rlnTomoName</code> and <code>rlnTomoImportParticleFile</code>) naming one coordinate file per run,
+each with the same columns and no optics table.</p>
 <h4 id="shifts-in-em-and-dynamo-files">Shifts in EM and Dynamo files</h4>
 <p>Dynamo table shifts (<code>dx</code>, <code>dy</code>, <code>dz</code>) and TOM motivelist shifts (rows 11-13) in pixels become the transform's
 translation in Angstrom, so the particle centre is the location plus the shift; export writes the translation back as

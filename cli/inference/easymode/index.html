@@ -6784,6 +6784,9 @@ on tomograms stored in a copick project and saves the results as copick
 segmentations. Each requested feature is written back as its own single-label
 segmentation at the input tomogram's voxel size; with <code>--add-objects</code> (on by
 default) each feature is also registered as a pickable object in the config.</p>
+<p>One worker process runs per GPU, and the runs are split among them. Each worker
+reads and preprocesses the next tomogram and writes the previous segmentation
+while its GPU segments the current one.</p>
 <p>Available models include: ribosome, membrane, microtubule, actin, cytoplasm,
 mitochondrion, nucleus, nuclear_envelope, npc, and more.</p>
 <h2 id="uri-format">URI Format</h2>
@@ -6847,7 +6850,43 @@ mitochondrion, nucleus, nuclear_envelope, npc, and more.</p>
 <td><code>--gpus</code></td>
 <td>text</td>
 <td>—</td>
-<td>Comma-separated GPU IDs (e.g., '0,1'). Default: all available.</td>
+<td>Comma-separated GPUs to use, one worker process each: positions in CUDA_VISIBLE_DEVICES when it is set (else nvidia-smi indices), or device UUIDs. A GPU outside the allocation is refused. Default: every GPU this process may use.</td>
+</tr>
+<tr>
+<td><code>--cpu</code></td>
+<td>boolean flag</td>
+<td><code>False</code></td>
+<td>Run on the CPU, with one worker and no GPU.</td>
+</tr>
+<tr>
+<td><code>--max-workers</code></td>
+<td>integer range</td>
+<td>—</td>
+<td>Use at most this many GPUs (worker processes). Default: one per GPU.</td>
+</tr>
+<tr>
+<td><code>--threads</code></td>
+<td>integer range</td>
+<td>—</td>
+<td>CPU threads to divide among the workers. Default: the CPUs this process may run on, at most SLURM_CPUS_ON_NODE.</td>
+</tr>
+<tr>
+<td><code>--model-dir</code></td>
+<td>directory</td>
+<td>—</td>
+<td>easymode model directory (the one holding registry.json and models/). Default: easymode's MODEL_DIRECTORY setting. Applies to this command only; easymode's settings file is not changed.</td>
+</tr>
+<tr>
+<td><code>--offline</code></td>
+<td>boolean flag</td>
+<td><code>False</code></td>
+<td>Never contact the model registry: use only the weights already in the model directory, and write nothing there.</td>
+</tr>
+<tr>
+<td><code>--report</code></td>
+<td>file</td>
+<td>—</td>
+<td>Write a JSON report: settings, resolved models, devices, each worker's runs and outcome, errors and timings.</td>
 </tr>
 <tr>
 <td><code>--session-id</code></td>
@@ -6882,13 +6921,13 @@ mitochondrion, nucleus, nuclear_envelope, npc, and more.</p>
 </tbody>
 </table>
 <h2 id="examples">Examples</h2>
-<div class="language-bash highlight"><pre><span></span><code><span id="__span-3-1"><a id="__codelineno-3-1" name="__codelineno-3-1" href="#__codelineno-3-1"></a><span class="c1"># Segment ribosomes in all runs</span>
+<div class="language-bash highlight"><pre><span></span><code><span id="__span-3-1"><a id="__codelineno-3-1" name="__codelineno-3-1" href="#__codelineno-3-1"></a><span class="c1"># Segment ribosomes in all runs, on every GPU of the allocation</span>
 </span><span id="__span-3-2"><a id="__codelineno-3-2" name="__codelineno-3-2" href="#__codelineno-3-2"></a>copick<span class="w"> </span>inference<span class="w"> </span>easymode<span class="w"> </span>-c<span class="w"> </span>config.json<span class="w"> </span>-m<span class="w"> </span>ribosome<span class="w"> </span>-t<span class="w"> </span>wbp@10.0
 </span><span id="__span-3-3"><a id="__codelineno-3-3" name="__codelineno-3-3" href="#__codelineno-3-3"></a>
 </span><span id="__span-3-4"><a id="__codelineno-3-4" name="__codelineno-3-4" href="#__codelineno-3-4"></a><span class="c1"># Segment multiple features</span>
 </span><span id="__span-3-5"><a id="__codelineno-3-5" name="__codelineno-3-5" href="#__codelineno-3-5"></a>copick<span class="w"> </span>inference<span class="w"> </span>easymode<span class="w"> </span>-c<span class="w"> </span>config.json<span class="w"> </span>-m<span class="w"> </span>ribosome,membrane<span class="w"> </span>-t<span class="w"> </span>wbp@10.0
 </span><span id="__span-3-6"><a id="__codelineno-3-6" name="__codelineno-3-6" href="#__codelineno-3-6"></a>
-</span><span id="__span-3-7"><a id="__codelineno-3-7" name="__codelineno-3-7" href="#__codelineno-3-7"></a><span class="c1"># Segment specific runs with GPU selection</span>
+</span><span id="__span-3-7"><a id="__codelineno-3-7" name="__codelineno-3-7" href="#__codelineno-3-7"></a><span class="c1"># Segment specific runs on GPUs 0 and 1 (one worker process each)</span>
 </span><span id="__span-3-8"><a id="__codelineno-3-8" name="__codelineno-3-8" href="#__codelineno-3-8"></a>copick<span class="w"> </span>inference<span class="w"> </span>easymode<span class="w"> </span>-c<span class="w"> </span>config.json<span class="w"> </span>-m<span class="w"> </span>membrane<span class="w"> </span>-t<span class="w"> </span>wbp@10.0<span class="w"> </span>--run<span class="w"> </span>run001,run002<span class="w"> </span>--gpus<span class="w"> </span><span class="m">0</span>,1
 </span><span id="__span-3-9"><a id="__codelineno-3-9" name="__codelineno-3-9" href="#__codelineno-3-9"></a>
 </span><span id="__span-3-10"><a id="__codelineno-3-10" name="__codelineno-3-10" href="#__codelineno-3-10"></a><span class="c1"># High quality inference with TTA</span>
@@ -6896,13 +6935,17 @@ mitochondrion, nucleus, nuclear_envelope, npc, and more.</p>
 </span><span id="__span-3-12"><a id="__codelineno-3-12" name="__codelineno-3-12" href="#__codelineno-3-12"></a>
 </span><span id="__span-3-13"><a id="__codelineno-3-13" name="__codelineno-3-13" href="#__codelineno-3-13"></a><span class="c1"># Skip adding object definitions to config</span>
 </span><span id="__span-3-14"><a id="__codelineno-3-14" name="__codelineno-3-14" href="#__codelineno-3-14"></a>copick<span class="w"> </span>inference<span class="w"> </span>easymode<span class="w"> </span>-c<span class="w"> </span>config.json<span class="w"> </span>-m<span class="w"> </span>ribosome<span class="w"> </span>-t<span class="w"> </span>wbp@10.0<span class="w"> </span>--no-add-objects
+</span><span id="__span-3-15"><a id="__codelineno-3-15" name="__codelineno-3-15" href="#__codelineno-3-15"></a>
+</span><span id="__span-3-16"><a id="__codelineno-3-16" name="__codelineno-3-16" href="#__codelineno-3-16"></a><span class="c1"># A shared model directory, no downloads, and a JSON report</span>
+</span><span id="__span-3-17"><a id="__codelineno-3-17" name="__codelineno-3-17" href="#__codelineno-3-17"></a>copick<span class="w"> </span>inference<span class="w"> </span>easymode<span class="w"> </span>-c<span class="w"> </span>config.json<span class="w"> </span>-m<span class="w"> </span>actin<span class="w"> </span>-t<span class="w"> </span>wbp@10.0<span class="w"> </span>--model-dir<span class="w"> </span>/shared/easymode<span class="w"> </span>--offline<span class="w"> </span>--report<span class="w"> </span>easymode.json
 </span></code></pre></div>
 <h2 id="see-also">See also</h2>
 <ul>
 <li><a href="../../convert/seg2mesh/"><code>copick convert seg2mesh</code></a> — turn an easymode segmentation into a surface mesh</li>
 </ul>
 <h2 id="notes">Notes</h2>
-<p>A CUDA GPU is strongly recommended; the weights download automatically on first use.</p>
+<p>A CUDA GPU is strongly recommended; the weights download automatically on first use.
+The exit status is non-zero when a model is missing, a run fails or a worker dies.</p>
 <h2 id="acknowledgements">Acknowledgements</h2>
 <p>This command uses pretrained models from easymode by Mart G.F. Last.
 Docs: https://mgflast.github.io/easymode

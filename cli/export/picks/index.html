@@ -6715,13 +6715,22 @@ tomogram index to each run; per-run EM/Dynamo default to index 1 unless an
 index map is supplied, and STAR/CSV reference runs by name. For coordinate
 and Euler-angle conventions, see the docstrings in <code>copick.util.formats</code>.</p>
 <p>STAR files carry <code>rlnTomoName</code> and coordinates centred on each tomogram (from
-<code>--tomograms-star</code>, or the copick tomogram at <code>--voxel-size</code>). With
-<code>--tilt-series-pixel-size</code> (or a tomograms.star) they also carry
-<code>rlnCoordinateX/Y/Z</code> in tilt-series pixels and the optics table RELION
-requires. Picks of objects declared a filament get RELION's filament
+<code>--tomograms-star</code>, or the copick tomogram at <code>--voxel-size</code>, of type
+<code>--tomo-type</code> if given). With <code>--tilt-series-pixel-size</code> (or a
+tomograms.star) they also carry <code>rlnCoordinateX/Y/Z</code> in tilt-series pixels
+and the optics table RELION requires; <code>--coordinates centered</code> writes the
+centered coordinates only. With <code>--star-layout import</code>, <code>--output-file</code> is
+the index that RELION's tomography Import Coordinates job reads
+(<code>data_coordinate_files</code>: <code>rlnTomoName</code>, <code>rlnTomoImportParticleFile</code>),
+naming one coordinate file per run in <code>coordinates/</code> beside it.</p>
+<p>Picks of objects declared a filament get RELION's filament
 columns (<code>--filament-columns</code>): the frame in <code>rlnTomoSubtomogram*</code>,
 <code>rlnAngleTilt</code> and its prior at 90, <code>rlnHelicalTubeID</code> from the instance
-ID, and <code>rlnHelicalTrackLengthAngst</code>.</p>
+ID, and <code>rlnHelicalTrackLengthAngst</code>. Their <code>rlnAnglePsiFlipRatio</code> is 0
+for picks of filaments whose polarity is known and 0.5 for the rest; the
+polarity comes from the Filaments under the picks' own URI, or from those
+named by <code>--filaments-uri</code> (e.g. when the picks were sampled from Filaments
+into another session).</p>
 <h2 id="options">Options</h2>
 <table>
 <thead>
@@ -6800,10 +6809,40 @@ ID, and <code>rlnHelicalTrackLengthAngst</code>.</p>
 <td>STAR only: RELION tomograms.star giving each tomogram's centre, tilt-series pixel size and CTF parameters (takes precedence over the copick tomograms).</td>
 </tr>
 <tr>
+<td><code>--star-layout</code></td>
+<td>choice (particles | import)</td>
+<td><code>particles</code></td>
+<td>STAR only, with --output-file: 'particles' writes one particle file; 'import' makes --output-file the index RELION's tomography Import Coordinates job reads, naming one coordinate file per run in 'coordinates/' beside it.</td>
+</tr>
+<tr>
+<td><code>--tomo-type</code></td>
+<td>text</td>
+<td>—</td>
+<td>STAR only: type of the copick tomogram (at --voxel-size) whose shape defines each run's center. Default: the first tomogram at that voxel size.</td>
+</tr>
+<tr>
+<td><code>--coordinates</code></td>
+<td>choice (auto | centered)</td>
+<td><code>auto</code></td>
+<td>STAR only: 'auto' writes centered coordinates and/or rlnCoordinateX/Y/Z in tilt-series pixels, whatever is known; 'centered' writes centered coordinates only and fails for a run without a tomogram center.</td>
+</tr>
+<tr>
 <td><code>--filament-columns</code></td>
 <td>choice (auto | on | off)</td>
 <td><code>auto</code></td>
 <td>STAR only: RELION's filament columns (rlnHelicalTubeID, track length, subtomogram frame, priors) for objects declared a filament ('auto'), always ('on'), or never ('off').</td>
+</tr>
+<tr>
+<td><code>--polarity-from-filaments / --no-polarity-from-filaments</code></td>
+<td>boolean flag</td>
+<td><code>True</code></td>
+<td>STAR only, with filament columns: set rlnAnglePsiFlipRatio from each filament's polarity_known in a Filaments source (0 where the polarity is known, 0.5 elsewhere). Off: 0.5 for every pick.</td>
+</tr>
+<tr>
+<td><code>--filaments-uri</code></td>
+<td>text</td>
+<td>—</td>
+<td>STAR only: the Filaments (e.g. 'microtubule:tracer/1') that state the polarity, matched to the picks by instance ID in each run; every pick's filament must be in them. Default: the Filaments under the picks' own URI, when they exist.</td>
 </tr>
 <tr>
 <td><code>--max-workers</code></td>
@@ -6828,10 +6867,21 @@ ID, and <code>rlnHelicalTrackLengthAngst</code>.</p>
 </span><span id="__span-1-6"><a id="__codelineno-1-6" name="__codelineno-1-6" href="#__codelineno-1-6"></a>copick<span class="w"> </span><span class="nb">export</span><span class="w"> </span>picks<span class="w"> </span>-c<span class="w"> </span>config.json<span class="w"> </span>--picks-uri<span class="w"> </span><span class="s2">"*:*/*"</span><span class="w"> </span><span class="se">\</span>
 </span><span id="__span-1-7"><a id="__codelineno-1-7" name="__codelineno-1-7" href="#__codelineno-1-7"></a><span class="w">    </span>--output-file<span class="w"> </span>./particles.star<span class="w"> </span>--output-format<span class="w"> </span>star<span class="w"> </span>--voxel-size<span class="w"> </span><span class="m">10</span>.0
 </span><span id="__span-1-8"><a id="__codelineno-1-8" name="__codelineno-1-8" href="#__codelineno-1-8"></a>
-</span><span id="__span-1-9"><a id="__codelineno-1-9" name="__codelineno-1-9" href="#__codelineno-1-9"></a><span class="c1"># Combined export to a Dynamo table using an index map</span>
-</span><span id="__span-1-10"><a id="__codelineno-1-10" name="__codelineno-1-10" href="#__codelineno-1-10"></a>copick<span class="w"> </span><span class="nb">export</span><span class="w"> </span>picks<span class="w"> </span>-c<span class="w"> </span>config.json<span class="w"> </span>--picks-uri<span class="w"> </span><span class="s2">"ribosome:*/*"</span><span class="w"> </span><span class="se">\</span>
-</span><span id="__span-1-11"><a id="__codelineno-1-11" name="__codelineno-1-11" href="#__codelineno-1-11"></a><span class="w">    </span>--output-file<span class="w"> </span>./particles.tbl<span class="w"> </span>--output-format<span class="w"> </span>dynamo<span class="w"> </span><span class="se">\</span>
-</span><span id="__span-1-12"><a id="__codelineno-1-12" name="__codelineno-1-12" href="#__codelineno-1-12"></a><span class="w">    </span>--voxel-size<span class="w"> </span><span class="m">10</span>.0<span class="w"> </span>--index-map<span class="w"> </span>./index_map.csv
+</span><span id="__span-1-9"><a id="__codelineno-1-9" name="__codelineno-1-9" href="#__codelineno-1-9"></a><span class="c1"># Input for RELION's tomography Import Coordinates job</span>
+</span><span id="__span-1-10"><a id="__codelineno-1-10" name="__codelineno-1-10" href="#__codelineno-1-10"></a>copick<span class="w"> </span><span class="nb">export</span><span class="w"> </span>picks<span class="w"> </span>-c<span class="w"> </span>config.json<span class="w"> </span>--picks-uri<span class="w"> </span><span class="s2">"ribosome:user1/1"</span><span class="w"> </span><span class="se">\</span>
+</span><span id="__span-1-11"><a id="__codelineno-1-11" name="__codelineno-1-11" href="#__codelineno-1-11"></a><span class="w">    </span>--output-file<span class="w"> </span>./import/particles.star<span class="w"> </span>--output-format<span class="w"> </span>star<span class="w"> </span><span class="se">\</span>
+</span><span id="__span-1-12"><a id="__codelineno-1-12" name="__codelineno-1-12" href="#__codelineno-1-12"></a><span class="w">    </span>--voxel-size<span class="w"> </span><span class="m">10</span>.0<span class="w"> </span>--star-layout<span class="w"> </span>import<span class="w"> </span>--coordinates<span class="w"> </span>centered
+</span><span id="__span-1-13"><a id="__codelineno-1-13" name="__codelineno-1-13" href="#__codelineno-1-13"></a>
+</span><span id="__span-1-14"><a id="__codelineno-1-14" name="__codelineno-1-14" href="#__codelineno-1-14"></a><span class="c1"># Filament picks sampled from traced Filaments in another session:</span>
+</span><span id="__span-1-15"><a id="__codelineno-1-15" name="__codelineno-1-15" href="#__codelineno-1-15"></a><span class="c1"># their polarity comes from those Filaments</span>
+</span><span id="__span-1-16"><a id="__codelineno-1-16" name="__codelineno-1-16" href="#__codelineno-1-16"></a>copick<span class="w"> </span><span class="nb">export</span><span class="w"> </span>picks<span class="w"> </span>-c<span class="w"> </span>config.json<span class="w"> </span>--picks-uri<span class="w"> </span><span class="s2">"microtubule:sampler/1"</span><span class="w"> </span><span class="se">\</span>
+</span><span id="__span-1-17"><a id="__codelineno-1-17" name="__codelineno-1-17" href="#__codelineno-1-17"></a><span class="w">    </span>--filaments-uri<span class="w"> </span><span class="s2">"microtubule:tracer/1"</span><span class="w"> </span><span class="se">\</span>
+</span><span id="__span-1-18"><a id="__codelineno-1-18" name="__codelineno-1-18" href="#__codelineno-1-18"></a><span class="w">    </span>--output-file<span class="w"> </span>./filaments.star<span class="w"> </span>--output-format<span class="w"> </span>star<span class="w"> </span>--voxel-size<span class="w"> </span><span class="m">10</span>.0
+</span><span id="__span-1-19"><a id="__codelineno-1-19" name="__codelineno-1-19" href="#__codelineno-1-19"></a>
+</span><span id="__span-1-20"><a id="__codelineno-1-20" name="__codelineno-1-20" href="#__codelineno-1-20"></a><span class="c1"># Combined export to a Dynamo table using an index map</span>
+</span><span id="__span-1-21"><a id="__codelineno-1-21" name="__codelineno-1-21" href="#__codelineno-1-21"></a>copick<span class="w"> </span><span class="nb">export</span><span class="w"> </span>picks<span class="w"> </span>-c<span class="w"> </span>config.json<span class="w"> </span>--picks-uri<span class="w"> </span><span class="s2">"ribosome:*/*"</span><span class="w"> </span><span class="se">\</span>
+</span><span id="__span-1-22"><a id="__codelineno-1-22" name="__codelineno-1-22" href="#__codelineno-1-22"></a><span class="w">    </span>--output-file<span class="w"> </span>./particles.tbl<span class="w"> </span>--output-format<span class="w"> </span>dynamo<span class="w"> </span><span class="se">\</span>
+</span><span id="__span-1-23"><a id="__codelineno-1-23" name="__codelineno-1-23" href="#__codelineno-1-23"></a><span class="w">    </span>--voxel-size<span class="w"> </span><span class="m">10</span>.0<span class="w"> </span>--index-map<span class="w"> </span>./index_map.csv
 </span></code></pre></div>
 <h2 id="see-also">See also</h2>
 <ul>
