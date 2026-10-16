@@ -10,20 +10,24 @@
 ## Usage
 
 ```bash
-copick rm [OPTIONS] {picks|filaments|mesh|segmentation|tomogram|feature} URI
+copick rm [OPTIONS] {picks|filaments|mesh|segmentation|tomogram|feature|tiltseries|alignment} URI
 ```
 
 ## Description
 
-Deletes picks, filaments, meshes, segmentations, tomograms, or features that match a
-copick URI. A URI may target a single object or many at once via glob (`*`)
+Deletes picks, filaments, meshes, segmentations, tomograms, features, tilt series, or
+alignments that match a copick URI. A URI may target a single object or many at once via glob (`*`)
 wildcards or a regular expression prefixed with `re:`. The command operates
 across every run by default, or on a single run when `--run` is given.
 
 The URI shape depends on the object type: picks, filaments and meshes use
 `object_name:user_id/session_id`; segmentations use
 `name:user_id/session_id@voxel_spacing`; tomograms use
-`tomo_type@voxel_spacing`; and features use `tomo_type@voxel_spacing:feature_type`.
+`tomo_type@voxel_spacing`; features use `tomo_type@voxel_spacing:feature_type`; tilt
+series use `ts_type`; and alignments use `name@ts_type`.
+
+Removing an alignment removes the link of the tomograms reconstructed with it. A tilt
+series that alignments align is kept unless `--cascade` removes those alignments too.
 
 Pattern-based deletions require `--force` as a safety measure, unless
 `--dry-run` is used. Use `--dry-run` to preview exactly what would be removed
@@ -33,7 +37,7 @@ without deleting anything.
 
 | Argument | Description |
 |----------|-------------|
-| `OBJECT_TYPE` | Type of object to remove (picks, filaments, mesh, segmentation, tomogram, or feature). |
+| `OBJECT_TYPE` | Type of object to remove (picks, filaments, mesh, segmentation, tomogram, feature, tiltseries, or alignment). |
 | `URI` | Copick URI selecting the objects to remove; supports glob wildcards and `re:` regex patterns. |
 
 ## Options
@@ -45,6 +49,7 @@ without deleting anything.
 | `--dry-run` | boolean flag | `False` | Show what would be deleted without actually deleting. |
 | `--force` | boolean flag | `False` | Required for pattern-based deletions (safety measure). |
 | `--workers, -w` | integer | `8` | Number of parallel worker processes. |
+| `--cascade` | boolean flag | `False` | Also remove the alignments of removed tilt series (otherwise tilt series that alignments align are kept). |
 | `--debug / --no-debug` | boolean flag | `False` | Enable debug logging. |
 
 ## Examples
@@ -61,6 +66,9 @@ copick rm --force picks "ribosome:user1/manual-*" -c config.json
 
 # Remove segmentations matching a regex pattern
 copick rm --force segmentation "re:membrane:user1/session-\d+@10.0" -c config.json
+
+# Remove a tilt series and its alignments
+copick rm --cascade tiltseries denoised -c config.json
 ```
 
 ## See also

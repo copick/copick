@@ -1,12 +1,14 @@
 from typing import Iterable, List, Optional, Union
 
 from copick.models import (
+    CopickAlignment,
     CopickFeatures,
     CopickMesh,
     CopickPicks,
     CopickRoot,
     CopickRun,
     CopickSegmentation,
+    CopickTiltSeries,
     CopickTomogram,
     CopickVoxelSpacing,
 )
@@ -452,3 +454,113 @@ def get_runs(
         return [root.get_run(name=names)]
     else:
         return [root.get_run(name=name) for name in names]
+
+
+def _resolve_runs(root: CopickRoot, runs) -> List[CopickRun]:
+    if runs is None:
+        return root.runs
+    if isinstance(runs, str):
+        return [root.get_run(name=runs)]
+    if isinstance(runs, CopickRun):
+        return [runs]
+    return [root.get_run(name=r) if isinstance(r, str) else r for r in runs]
+
+
+def _tilt_series_query(
+    run: CopickRun,
+    ts_type: Union[str, Iterable[str], None] = None,
+) -> List[CopickTiltSeries]:
+    return run.get_tilt_series_list(ts_type)
+
+
+def get_tilt_series(
+    root: Union[str, CopickRoot],
+    runs: Union[str, CopickRun, Iterable[str], Iterable[CopickRun], None] = None,
+    ts_type: Union[str, Iterable[str], None] = None,
+    parallel: bool = False,
+    workers: Optional[int] = 8,
+    show_progress: bool = True,
+) -> List[CopickTiltSeries]:
+    """Query tilt series from a Copick project.
+
+    Args:
+        root: The Copick project root.
+        runs: The runs to query tilt series from. If `None`, query all runs.
+        ts_type: The type(s) of the tilt series. If `None`, query all tilt series.
+        parallel: Whether to query in parallel. Default is `False`.
+        workers: The number of workers to use. Default is `8`.
+        show_progress: Whether to show progress. Default is `True`.
+
+    Returns:
+        A list of tilt series.
+    """
+    if isinstance(root, str):
+        root = from_file(root)
+    runs = _resolve_runs(root, runs)
+
+    if parallel:
+        res = map_runs(
+            _tilt_series_query,
+            root,
+            runs,
+            workers=workers,
+            ts_type=ts_type,
+            show_progress=show_progress,
+        )
+        return [ts for found in res.values() for ts in found]
+    return [ts for run in runs for ts in _tilt_series_query(run, ts_type)]
+
+
+def _alignment_query(
+    run: CopickRun,
+    name: Union[str, Iterable[str], None] = None,
+    ts_type: Optional[str] = None,
+    valid_only: bool = False,
+) -> List[CopickAlignment]:
+    names = [name] if isinstance(name, str) else name
+    return [a for a in run.get_alignments(ts_type, valid_only=valid_only) if names is None or a.name in names]
+
+
+def get_alignments(
+    root: Union[str, CopickRoot],
+    runs: Union[str, CopickRun, Iterable[str], Iterable[CopickRun], None] = None,
+    name: Union[str, Iterable[str], None] = None,
+    ts_type: Optional[str] = None,
+    valid_only: bool = False,
+    parallel: bool = False,
+    workers: Optional[int] = 8,
+    show_progress: bool = True,
+) -> List[CopickAlignment]:
+    """Query alignments from a Copick project, best first within each run (see ``CopickRun.get_alignments``).
+
+    Args:
+        root: The Copick project root.
+        runs: The runs to query alignments from. If `None`, query all runs.
+        name: The name(s) of the alignments. If `None`, query all alignments.
+        ts_type: The type of the tilt series the alignments align. If `None`, any.
+        valid_only: Whether to leave out alignments that do not come from their author (e.g. CryoET Data Portal
+            placeholders).
+        parallel: Whether to query in parallel. Default is `False`.
+        workers: The number of workers to use. Default is `8`.
+        show_progress: Whether to show progress. Default is `True`.
+
+    Returns:
+        A list of alignments.
+    """
+    if isinstance(root, str):
+        root = from_file(root)
+    runs = _resolve_runs(root, runs)
+
+    if parallel:
+        res = map_runs(
+            _alignment_query,
+            root,
+            runs,
+            workers=workers,
+            name=name,
+            ts_type=ts_type,
+            valid_only=valid_only,
+            show_progress=show_progress,
+        )
+        return [a for found in res.values() for a in found]
+    return [a for run in runs for a in _alignment_query(run, name, ts_type, valid_only)]

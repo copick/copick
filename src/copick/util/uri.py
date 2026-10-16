@@ -4,6 +4,7 @@ from typing import Any, Dict, List, Optional, Union
 from urllib.parse import parse_qs
 
 from copick.models import (
+    CopickAlignment,
     CopickFeatures,
     CopickFilaments,
     CopickMesh,
@@ -11,8 +12,17 @@ from copick.models import (
     CopickRoot,
     CopickRun,
     CopickSegmentation,
+    CopickTiltSeries,
     CopickTomogram,
 )
+
+#: All object types copick URIs address.
+URI_OBJECT_TYPES = ("picks", "filaments", "mesh", "segmentation", "tomogram", "feature", "tiltseries", "alignment")
+
+
+def _truthy(value: Any) -> bool:
+    return str(value).lower() in ("true", "1", "yes")
+
 
 # ============================================================================
 # URI Parsing
@@ -33,6 +43,9 @@ def parse_copick_uri(uri: str, object_type: str) -> Dict[str, Any]:
       without a type, binary and multilabel segmentations
     - Tomogram: tomo_type@voxel_spacing
     - Feature: tomo_type@voxel_spacing:feature_type
+    - Tilt series: ts_type
+    - Alignment: name@ts_type[?valid=true][&default=true]; ``valid`` selects alignments from their authors (no
+      placeholders), ``default`` the best valid alignment of each tilt series
 
     Pattern Support:
     - Glob patterns by default (e.g., 'mt*:user*/session*')
@@ -42,7 +55,8 @@ def parse_copick_uri(uri: str, object_type: str) -> Dict[str, Any]:
 
     Args:
         uri (str): The copick URI to parse.
-        object_type (str): Type of object ('picks', 'filaments', 'mesh', 'segmentation', 'tomogram', 'feature').
+        object_type (str): Type of object ('picks', 'filaments', 'mesh', 'segmentation', 'tomogram', 'feature',
+            'tiltseries', 'alignment').
 
     Returns:
         Dict[str, Any]: A dictionary containing the parsed components.
@@ -189,11 +203,28 @@ def parse_copick_uri(uri: str, object_type: str) -> Dict[str, Any]:
             "feature_type": feature_type,
         }
 
+    elif object_type == "tiltseries":
+        # Pattern: ts_type
+        return {"object_type": "tiltseries", "pattern_type": pattern_type, "ts_type": uri or "*"}
+
+    elif object_type == "alignment":
+        # Pattern: name@ts_type, with optional ?valid=true / &default=true
+        # Support incomplete: 'name' → 'name@*'
+        if "@" in uri:
+            name, ts_type = uri.split("@", 1)
+        else:
+            name, ts_type = uri, "*"
+        return {
+            "object_type": "alignment",
+            "pattern_type": pattern_type,
+            "name": name or "*",
+            "ts_type": ts_type or "*",
+            "valid": _truthy(query_params.get("valid", False)),
+            "default": _truthy(query_params.get("default", False)),
+        }
+
     else:
-        raise ValueError(
-            f"Unknown object type: {object_type}. Must be one of: picks, filaments, mesh, segmentation, tomogram, "
-            "feature",
-        )
+        raise ValueError(f"Unknown object type: {object_type}. Must be one of: {', '.join(URI_OBJECT_TYPES)}")
 
 
 # ============================================================================
@@ -392,7 +423,15 @@ def expand_output_uri(
 
 
 def serialize_copick_uri(
-    obj: Union[CopickPicks, CopickMesh, CopickSegmentation, CopickTomogram, CopickFeatures],
+    obj: Union[
+        CopickPicks,
+        CopickMesh,
+        CopickSegmentation,
+        CopickTomogram,
+        CopickFeatures,
+        CopickTiltSeries,
+        CopickAlignment,
+    ],
 ) -> str:
     """Serialize a copick object to its URI representation.
 
@@ -420,6 +459,12 @@ def serialize_copick_uri(
     elif isinstance(obj, CopickFeatures):
         return f"{obj.tomo_type}@{obj.tomogram.voxel_spacing.voxel_size}:{obj.feature_type}"
 
+    elif isinstance(obj, CopickTiltSeries):
+        return obj.ts_type
+
+    elif isinstance(obj, CopickAlignment):
+        return f"{obj.name}@{obj.tilt_series_name}" if obj.tilt_series_name else obj.name
+
     else:
         raise ValueError(f"Unknown copick object type: {type(obj).__name__}")
 
@@ -436,6 +481,7 @@ def serialize_copick_uri_from_dict(
     multilabel: Optional[bool] = None,
     instance: Optional[bool] = None,
     panoptic: Optional[bool] = None,
+    ts_type: Optional[str] = None,
 ) -> str:
     """Serialize copick object parameters into a URI according to copick URI schemes.
 
@@ -451,6 +497,7 @@ def serialize_copick_uri_from_dict(
         multilabel (bool, optional): Whether segmentation is multilabel
         instance (bool, optional): Whether segmentation is an instance segmentation
         panoptic (bool, optional): Whether segmentation is a panoptic segmentation
+        ts_type (str, optional): Tilt series type for tilt series and alignments
 
     Returns:
         str: The serialized copick URI
@@ -494,6 +541,16 @@ def serialize_copick_uri_from_dict(
         if not all([tomo_type, voxel_spacing is not None, feature_type]):
             raise ValueError("Features require tomo_type, voxel_spacing, and feature_type")
         return f"{tomo_type}@{voxel_spacing}:{feature_type}"
+
+    elif object_type == "tiltseries":
+        if not ts_type:
+            raise ValueError("Tilt series require ts_type")
+        return ts_type
+
+    elif object_type == "alignment":
+        if not name:
+            raise ValueError("Alignments require name")
+        return f"{name}@{ts_type}" if ts_type else name
 
     else:
         raise ValueError(f"Unknown object type: {object_type}")
@@ -558,6 +615,8 @@ def get_copick_objects_by_type(
                   For segmentations: name, user_id, session_id, voxel_spacing, multilabel, instance, panoptic
                   For tomograms: tomo_type, voxel_spacing
                   For features: tomo_type, voxel_spacing, feature_type
+                  For tilt series: ts_type
+                  For alignments: name, ts_type, valid, default
 
     Returns:
         List: List of matching copick objects.
@@ -583,13 +642,12 @@ def get_copick_objects_by_type(
         "segmentation": _get_segmentations_from_runs,
         "tomogram": _get_tomograms_from_runs,
         "feature": _get_features_from_runs,
+        "tiltseries": _get_tilt_series_from_runs,
+        "alignment": _get_alignments_from_runs,
     }
 
     if object_type not in handlers:
-        raise ValueError(
-            f"Unknown object type: {object_type}. Must be one of: picks, filaments, mesh, segmentation, tomogram, "
-            "feature",
-        )
+        raise ValueError(f"Unknown object type: {object_type}. Must be one of: {', '.join(URI_OBJECT_TYPES)}")
 
     return handlers[object_type](runs_to_search, filters)
 
@@ -947,4 +1005,67 @@ def _get_features_from_runs(
                     ]
                     results.extend(features)
 
+    return results
+
+
+def _get_tilt_series_from_runs(
+    runs: List["CopickRun"],
+    filters: Dict[str, Any],
+) -> List["CopickTiltSeries"]:
+    """Get tilt series with optional filtering.
+
+    Args:
+        runs: List of runs to search.
+        filters: Filter dictionary with optional keys: ts_type, pattern_type.
+
+    Returns:
+        List of matching tilt series.
+    """
+    pattern_type = filters.get("pattern_type", "glob")
+    ts_type = filters.get("ts_type")
+    return [
+        ts
+        for run in runs
+        for ts in run.tilt_series
+        if not ts_type or _matches_pattern(ts.ts_type, ts_type, pattern_type)
+    ]
+
+
+def _get_alignments_from_runs(
+    runs: List["CopickRun"],
+    filters: Dict[str, Any],
+) -> List["CopickAlignment"]:
+    """Get alignments with optional filtering, best first within each run (see ``CopickRun.get_alignments``).
+
+    Args:
+        runs: List of runs to search.
+        filters: Filter dictionary with optional keys: name, ts_type, valid (only alignments from their authors),
+            default (only the best valid alignment of each tilt series), pattern_type.
+
+    Returns:
+        List of matching alignments.
+    """
+    pattern_type = filters.get("pattern_type", "glob")
+    name = filters.get("name")
+    ts_type = filters.get("ts_type")
+    valid_only = bool(filters.get("valid")) or bool(filters.get("default"))
+    results = []
+    for run in runs:
+        found = [
+            a
+            for a in run.get_alignments(valid_only=valid_only)
+            if (not name or _matches_pattern(a.name, name, pattern_type))
+            and (not ts_type or _matches_pattern(a.tilt_series_name or "", ts_type, pattern_type))
+        ]
+        if filters.get("default"):
+            # The best alignment of each tilt series
+            seen = set()
+            best = []
+            for a in found:
+                key = (a.tilt_series_name, a.tilt_series_portal_id)
+                if key not in seen:
+                    seen.add(key)
+                    best.append(a)
+            found = best
+        results.extend(found)
     return results

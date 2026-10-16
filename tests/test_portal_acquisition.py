@@ -389,3 +389,31 @@ def test_acquisition_disk_cache(portal, monkeypatch):
     assert any("portal_acq_" in path for path in removed)
     assert len(portal["open"]().get_run(str(RUN_ID)).tilt_series) == 1
     assert portal["fetch"].calls == 2
+
+
+def test_croissant_export_of_portal_tilt_series(portal):
+    """A Croissant of a portal project carries the portal's tilt-series metadata, alignments and tomogram links,
+    written next to it, so the Croissant serves them without the portal."""
+    import copick
+    from copick.ops.croissant import export_croissant
+
+    root = portal["open"]()
+    project = portal["tmp_path"] / "croissant_project"
+    export_croissant(root, str(project), validate=False)
+
+    croissant = project / "Croissant"
+    (sidecar,) = (croissant / "tilt_series" / str(RUN_ID)).iterdir()
+    assert sidecar.name == f"raw-{TS_ID}.json"
+    assert (croissant / "alignments" / str(RUN_ID) / "projectionMatching-local-18924.json").is_file()
+
+    reopened = copick.from_croissant(str(croissant / "metadata.json"))
+    run = reopened.get_run(str(RUN_ID))
+    (ts,) = run.tilt_series
+    assert ts.cets_id == f"raw-{TS_ID}"
+    assert ts.metadata == root.get_run(str(RUN_ID)).get_tilt_series("raw").metadata
+    (alignment,) = run.alignments
+    assert alignment.name == "projectionMatching-local-18924" and alignment.is_valid
+    assert alignment.tilt_series is ts
+    tomograms = [t for vs in run.voxel_spacings for t in vs.tomograms]
+    assert len(tomograms) == 4
+    assert all(t.alignment_link.source == "croissant" and t.alignment is alignment for t in tomograms)

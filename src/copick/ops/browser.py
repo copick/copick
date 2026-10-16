@@ -15,6 +15,7 @@ from textual.widgets.tree import TreeNode
 
 import copick
 from copick.models import (
+    CopickAlignment,
     CopickFeatures,
     CopickMesh,
     CopickObject,
@@ -22,6 +23,7 @@ from copick.models import (
     CopickRoot,
     CopickRun,
     CopickSegmentation,
+    CopickTiltSeries,
     CopickTomogram,
     CopickVoxelSpacing,
 )
@@ -42,6 +44,8 @@ _copick_types = Union[
     CopickMesh,
     CopickPicks,
     CopickObject,
+    CopickTiltSeries,
+    CopickAlignment,
 ]
 
 
@@ -56,6 +60,8 @@ ICONS = {
     "mesh": "🕸",  # Spider Web
     "segmentation": "🖌",  # Paint Brush
     "object": "🦠",  # Microbe
+    "tilt_series": "🎞",  # Film Frames
+    "alignment": "📐",  # Triangular Ruler
     "folder": "📁",  # File Folder
 }
 
@@ -88,6 +94,10 @@ def copick_to_label(entity: _copick_types, include_metadata: bool = True) -> Tex
         label = Text.assemble(Text(ICONS["tomogram"]), Text.from_markup(f" [b]Tomogram[/b] {entity.tomo_type}"))
     elif isinstance(entity, CopickFeatures):
         label = Text.assemble(Text(ICONS["feature"]), Text.from_markup(f" [b]Features[/b] {entity.feature_type}"))
+    elif isinstance(entity, CopickTiltSeries):
+        label = Text.assemble(Text(ICONS["tilt_series"]), Text.from_markup(f" [b]Tilt Series[/b] {entity.ts_type}"))
+    elif isinstance(entity, CopickAlignment):
+        label = Text.assemble(Text(ICONS["alignment"]), Text.from_markup(f" [b]Alignment[/b] {entity.name}"))
     elif isinstance(entity, CopickSegmentation):
         color = entity.color
         colorbox = Text("  ", style=f"on rgb({color[0]},{color[1]},{color[2]})")
@@ -204,6 +214,10 @@ class CopickTreeApp(App):
             self.add_mesh_data_nodes(node, data.meshes)
         elif data_type == "objects_parent":
             self.add_object_data_node(node, data)
+        elif data_type == "tilt_series_parent":
+            self.add_leaf_nodes(node, data.tilt_series, "tilt_series")
+        elif data_type == "alignment_parent":
+            self.add_leaf_nodes(node, data.alignments, "alignment")
 
     def on_tree_node_highlighted(self, event: Tree.NodeHighlighted) -> None:
         """
@@ -233,7 +247,19 @@ class CopickTreeApp(App):
             self.markdown.update(ENTITY_TO_MD["mesh"](data))
         elif data_type == "picks":
             self.markdown.update(ENTITY_TO_MD["picks"](data))
-        elif data_type in ["objects_parent", "segmentation_parent", "picks_parent", "mesh_parent", "voxel_parent"]:
+        elif data_type == "tilt_series":
+            self.markdown.update(ENTITY_TO_MD["tilt_series"](data))
+        elif data_type == "alignment":
+            self.markdown.update(ENTITY_TO_MD["alignment"](data))
+        elif data_type in [
+            "objects_parent",
+            "segmentation_parent",
+            "picks_parent",
+            "mesh_parent",
+            "voxel_parent",
+            "tilt_series_parent",
+            "alignment_parent",
+        ]:
             self.markdown.update("")
 
     def add_object_folder_node(self, root_node: TreeNode, objects: List[CopickObject]) -> None:
@@ -306,6 +332,14 @@ class CopickTreeApp(App):
         if f"{ICONS['segmentation']} Segmentations" not in already_present:
             segmentations_node = run_node.add(f"{ICONS['segmentation']} Segmentations")
             segmentations_node.data = ("segmentation_parent", run)
+
+        if f"{ICONS['tilt_series']} Tilt Series" not in already_present:
+            tilt_series_node = run_node.add(f"{ICONS['tilt_series']} Tilt Series")
+            tilt_series_node.data = ("tilt_series_parent", run)
+
+        if f"{ICONS['alignment']} Alignments" not in already_present:
+            alignments_node = run_node.add(f"{ICONS['alignment']} Alignments")
+            alignments_node.data = ("alignment_parent", run)
 
     def add_voxel_spacing_parent_nodes(
         self,
@@ -425,6 +459,24 @@ class CopickTreeApp(App):
         for pick in picks:
             pick_node = picks_parent_node.add_leaf(label=copick_to_label(pick))
             pick_node.data = ("picks", pick)
+
+    def add_leaf_nodes(self, parent_node: TreeNode, entities: list, tag: str) -> None:
+        """
+        Add entities without children (tilt series, alignments) to their parent node.
+
+        Args:
+            parent_node (TreeNode): The parent node to add the entities to.
+            entities (list): The entities to add.
+            tag (str): The node tag of the entities.
+        """
+        if len(entities) == len(list(parent_node.children)):
+            return
+        else:
+            parent_node.remove_children()
+
+        for entity in entities:
+            node = parent_node.add_leaf(label=copick_to_label(entity))
+            node.data = (tag, entity)
 
 
 def launch_app(
