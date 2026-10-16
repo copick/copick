@@ -1,0 +1,2 @@
+[](){#CopickAlignment}
+::: copick.models.CopickAlignment

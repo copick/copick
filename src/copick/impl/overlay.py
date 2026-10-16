@@ -1,6 +1,8 @@
 from typing import TYPE_CHECKING, List, Optional
 
 from copick.models import (
+    CopickAlignment,
+    CopickAlignmentFile,
     CopickFeatures,
     CopickFeaturesMeta,
     CopickFilaments,
@@ -165,6 +167,30 @@ class CopickFeaturesOverlay(CopickFeatures):
             raise PermissionError("Cannot delete features in a read-only source.")
 
         super().delete()
+
+
+class CopickAlignmentOverlay(CopickAlignment):
+    """CopickAlignment class that keeps track of whether the alignment is read-only.
+
+    Attributes:
+        read_only (bool): Whether the alignment is read-only.
+    """
+
+    def __init__(self, run: CopickRun, file: CopickAlignmentFile, read_only: bool = False):
+        super().__init__(run, file)
+        self.read_only = read_only
+
+    def store(self) -> None:
+        """Store the alignment, making sure the source is writable."""
+        if self.read_only:
+            raise PermissionError(f"Cannot store alignment {self.name} in a read-only source.")
+        super().store()
+
+    def delete(self, unlink: bool = True) -> None:
+        """Delete the alignment, making sure the source is writable."""
+        if self.read_only:
+            raise PermissionError(f"Cannot delete alignment {self.name} in a read-only source.")
+        super().delete(unlink=unlink)
 
 
 class CopickTiltSeriesOverlay(CopickTiltSeries):
@@ -398,6 +424,30 @@ class CopickRunOverlay(CopickRun):
 
         for ts in static:
             assert ts.read_only, "Tilt series from static source must be read-only."
+
+        return static + overlay
+
+    def _query_static_alignments(self) -> List[CopickAlignmentOverlay]:
+        """Override to query the static source for alignments; all returned alignments must be read-only. Sources
+        without alignments return none."""
+        return []
+
+    def _query_overlay_alignments(self) -> List[CopickAlignmentOverlay]:
+        """Override to query the overlay source for alignments. Sources without alignments return none."""
+        return []
+
+    def query_alignments(self) -> List[CopickAlignmentOverlay]:
+        """Query all alignments. An overlay alignment of the same name as a static one is not listed.
+
+        Returns:
+            List[CopickAlignmentOverlay]: List of alignments from both sources.
+        """
+        static = self._query_static_alignments()
+        names = {a.name for a in static}
+        overlay = [a for a in self._query_overlay_alignments() if a.name not in names]
+
+        for a in static:
+            assert a.read_only, "Alignments from static source must be read-only."
 
         return static + overlay
 

@@ -163,3 +163,41 @@ def test_pixel_size_is_rounded_and_positive():
     assert _metadata(pixel_size=1.23456).pixel_size == 1.235
     with pytest.raises(ValidationError):
         _metadata(pixel_size=0)
+
+
+def test_alignment_document_reader_is_strict():
+    from copick.models import CopickAlignmentFile, CopickSectionAlignment
+    from copick.util.cets import alignment_from_document, alignment_to_document
+
+    alignment = CopickAlignmentFile(
+        name="aretomo3",
+        tilt_series="raw",
+        tilt_series_portal_id=123,
+        sections=[CopickSectionAlignment(section=0, tilt_angle=-30.0)],
+    )
+    document = json.loads(json.dumps(alignment_to_document(alignment)))
+    assert document["alignment"]["tilt_series_id"] == "raw-123"
+    assert document["alignment"]["projection_alignments"][0]["tilt_image_id"] == "raw-123_0"
+    validate_cets(document["alignment"], "Alignment")
+    # Angles are stored as matrices, so they read back up to rounding
+    reread = alignment_from_document(document)
+    assert reread.model_dump(exclude={"sections"}) == alignment.model_dump(exclude={"sections"})
+    assert reread.sections[0].tilt_angle == pytest.approx(-30.0, abs=1e-12)
+
+    wrong_schema = dict(document, schema="copick-alignment/2")
+    with pytest.raises(ValueError, match="schema"):
+        alignment_from_document(wrong_schema)
+    other_series = dict(document, alignment=dict(document["alignment"], tilt_series_id="aligned"))
+    with pytest.raises(ValueError, match="tilt_series_id"):
+        alignment_from_document(other_series)
+
+
+def test_tomogram_link_block():
+    from copick.models import CopickTomogramLink
+    from copick.util.cets import tomogram_link_from_attrs, tomogram_link_to_attrs
+
+    link = CopickTomogramLink(alignment="aretomo3", tilt_series="raw", reference_offset=(1.0, 2.0, 3.0))
+    attrs = json.loads(json.dumps(tomogram_link_to_attrs("wbp@10.000", link)))
+    validate_cets(attrs[COPICK_ATTRS_KEY]["tomogram"], "Tomogram")
+    assert tomogram_link_from_attrs(attrs) == link
+    assert tomogram_link_from_attrs({}) is None

@@ -17,7 +17,7 @@ from copick.models import (
     CopickVoxelSpacing,
     FilamentSpec,
 )
-from copick.util.ome import get_voxel_size_from_zarr, ome_metadata, volume_pyramid
+from copick.util.ome import get_voxel_size_from_zarr, ome_metadata, read_preserved_attrs, volume_pyramid
 
 
 def _subset(values: Optional[np.ndarray], mask: np.ndarray) -> Optional[np.ndarray]:
@@ -177,6 +177,7 @@ def add_tomogram(
     flip: Optional[str] = None,
     meta: Dict[str, Any] = None,
     log: bool = False,
+    alignment: Optional[str] = None,
 ) -> CopickTomogram:
     """Add a tomogram to a copick run.
 
@@ -189,6 +190,8 @@ def add_tomogram(
         run (str, optional): The run the tomogram is part of. Default: Name of the input file.
         transpose (str, optional): Transpose axes. E.g., '2,1,0' to reverse all axes. Default: None.
         flip (str, optional): Flip axes. E.g., '0' to flip Z, '0,2' to flip Z and X. Default: None.
+        alignment (str, optional): Name of the alignment of the run the tomogram was reconstructed with. Default: keep
+            the link of an existing tomogram.
     """
 
     # Apply transpose if specified
@@ -244,8 +247,9 @@ def add_tomogram(
     # Create the tomogram
     tomogram = vsobj.new_tomogram(tomo_type, exist_ok=exist_ok)
 
-    # Get the store
+    # Get the store; copick's own attributes (e.g. the alignment link) survive rewriting the data
     loc = tomogram.zarr()
+    preserved = read_preserved_attrs(loc)
     root_group = zarr.group(loc, overwrite=overwrite)
 
     # Write the pyramid
@@ -258,6 +262,10 @@ def add_tomogram(
         compute=True,
         metadata=meta,
     )
+    if preserved:
+        root_group.attrs.update(preserved)
+    if alignment is not None:
+        tomogram.set_alignment(alignment)
 
     if log:
         logging.log(logging.INFO, f"Added tomogram {tomo_type} to run {runobj.name}.")

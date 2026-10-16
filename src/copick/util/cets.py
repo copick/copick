@@ -16,8 +16,10 @@ Identifiers are unique within a run; ``copick export cets`` prefixes them with t
 from math import floor
 from typing import TYPE_CHECKING, Any, Dict, List, Optional, Tuple
 
+import numpy as np
+
 if TYPE_CHECKING:
-    from copick.models import CopickTiltSeriesMetadata
+    from copick.models import CopickAlignmentFile, CopickSectionAlignment, CopickTiltSeriesMetadata, CopickTomogramLink
 
 #: The CETS data-model version the stored CETS objects are written for.
 CETS_TARGET = {
@@ -30,9 +32,28 @@ CETS_TARGET = {
 COPICK_ATTRS_KEY = "copick"
 #: Schema of the block stored with a tilt series.
 TILT_SERIES_SCHEMA = "copick-tiltseries/1"
+#: Schema of an alignment document.
+ALIGNMENT_SCHEMA = "copick-alignment/1"
+#: Schema of the block linking a tomogram to its tilt series and alignment.
+TOMOGRAM_SCHEMA = "copick-tomogram/1"
 
 #: Tolerance for comparing stored frame values, in pixels or Angstrom.
 _FRAME_TOLERANCE = 1e-6
+
+
+def tilt_series_cets_id(ts_type: str, portal_id: Optional[Any] = None) -> str:
+    """CETS identifier of a tilt series: its type, qualified by its portal identifier if it has one."""
+    return f"{ts_type}-{portal_id}" if portal_id not in (None, "") else ts_type
+
+
+def tomogram_link_id(tomo_type: str, voxel_size: float) -> str:
+    """Identifier of a tomogram within its run, as alignments name the tomograms they apply to."""
+    return f"{tomo_type}@{voxel_size:.3f}"
+
+
+def projection_alignment_id(ts_id: str, alignment_name: str, section: int) -> str:
+    """CETS identifier of the projection alignment of the image at ``section`` by alignment ``alignment_name``."""
+    return f"{ts_id}_{alignment_name}_align_{section}"
 
 
 def tilt_image_id(ts_id: str, section: int) -> str:
@@ -292,3 +313,218 @@ def minimal_tilt_series_metadata(shape: Tuple[int, int, int], pixel_size: float)
     from copick.models import CopickTiltSeriesMetadata
 
     return CopickTiltSeriesMetadata(pixel_size=pixel_size, width=int(shape[2]), height=int(shape[1]))
+
+
+# ---------------------------------------------------------------------------------------------------------------------
+# Alignments
+# ---------------------------------------------------------------------------------------------------------------------
+
+#: Names of the steps of a projection alignment and of the spaces between them.
+_PROJECTION_STEPS = (
+    ("affine", "tilt", "physical", "tilted_physical"),
+    ("project_axis", "project", "tilted_physical", "projected_physical"),
+    ("affine", "in_plane_rotation", "projected_physical", "rotated_physical"),
+    ("translation", "shift", "rotated_physical", "physical"),
+)
+
+
+def _homogeneous(matrix: np.ndarray) -> List[List[float]]:
+    n = matrix.shape[0]
+    full = np.eye(n + 1)
+    full[:n, :n] = matrix
+    return [[float(v) for v in row] for row in full]
+
+
+def section_to_projection_alignment(section: "CopickSectionAlignment", ts_id: str, name: str) -> Dict[str, Any]:
+    """The CETS ``ProjectionAlignment`` of one section: ``tomogram_to_projection`` as a 4x4 tilt, a projection
+    dropping z, a 3x3 in-plane rotation and a shift in Angstrom."""
+    from copick.util.alignment_geometry import rot_x, rot_y, rot_z
+
+    steps = [
+        {"affine": _homogeneous(rot_y(section.tilt_angle) @ rot_x(section.x_tilt))},
+        {"dropped_inputs": [2], "created_outputs": []},
+        {"affine": _homogeneous(rot_z(section.in_plane_rotation)[:2, :2])},
+        {"translation": [float(section.shift_x), float(section.shift_y)]},
+    ]
+    sequence = [
+        {"transformation_type": kind, "name": step_name, "input": source, "output": target, **values}
+        for (kind, step_name, source, target), values in zip(_PROJECTION_STEPS, steps, strict=True)
+    ]
+    return {
+        "id": projection_alignment_id(ts_id, name, section.section),
+        "tilt_image_id": tilt_image_id(ts_id, section.section),
+        "transformation_type": "projection_alignment",
+        "name": "tomogram_to_projection",
+        "input": "physical",
+        "output": "physical",
+        "sequence": sequence,
+    }
+
+
+def _section_of(tilt_image: Optional[str], ts_id: str, where: str) -> int:
+    prefix = f"{ts_id}_"
+    if not tilt_image or not tilt_image.startswith(prefix) or not tilt_image[len(prefix) :].isdigit():
+        raise ValueError(f"{where}: tilt_image_id {tilt_image!r} is not an image of tilt series {ts_id!r}.")
+    return int(tilt_image[len(prefix) :])
+
+
+def projection_alignment_to_section(projection: Dict[str, Any], ts_id: str) -> "CopickSectionAlignment":
+    """Read a projection alignment written by ``section_to_projection_alignment``.
+
+    Raises:
+        ValueError: If it does not have exactly that form, naming the offending element.
+    """
+    from copick.models import CopickSectionAlignment
+    from copick.util.alignment_geometry import decompose_in_plane, decompose_tilt
+
+    where = f"projection alignment {projection.get('id')!r}"
+    if (projection.get("name"), projection.get("input"), projection.get("output")) != (
+        "tomogram_to_projection",
+        "physical",
+        "physical",
+    ):
+        raise ValueError(f"{where}: expected 'tomogram_to_projection' from 'physical' to 'physical'.")
+    sequence = projection.get("sequence") or []
+    found = [(step.get("transformation_type"), step.get("name")) for step in sequence]
+    expected = [(kind, name) for kind, name, _, _ in _PROJECTION_STEPS]
+    if found != expected:
+        raise ValueError(f"{where}: expected the steps {expected}, got {found}.")
+    for step, (_, name, source, target) in zip(sequence, _PROJECTION_STEPS, strict=True):
+        if (step.get("input"), step.get("output")) != (source, target):
+            raise ValueError(f"{where}: step {name!r} must map {source!r} to {target!r}.")
+
+    tilt = np.asarray(sequence[0].get("affine"), dtype=float)
+    if tilt.shape != (4, 4) or np.max(np.abs(tilt[3] - [0, 0, 0, 1])) > 1e-9 or np.max(np.abs(tilt[:3, 3])) > 1e-9:
+        raise ValueError(f"{where}: the tilt must be a 4x4 rotation without translation.")
+    if sequence[1].get("dropped_inputs") != [2] or sequence[1].get("created_outputs"):
+        raise ValueError(f"{where}: the projection must drop z (dropped_inputs [2]) and create no axis.")
+    in_plane = np.asarray(sequence[2].get("affine"), dtype=float)
+    if (
+        in_plane.shape != (3, 3)
+        or np.max(np.abs(in_plane[2] - [0, 0, 1])) > 1e-9
+        or np.max(np.abs(in_plane[:2, 2])) > 1e-9
+    ):
+        raise ValueError(f"{where}: the in-plane rotation must be a 3x3 rotation without translation.")
+    shift = sequence[3].get("translation") or []
+    if len(shift) != 2:
+        raise ValueError(f"{where}: the shift must have two components.")
+    try:
+        tilt_angle, x_tilt = decompose_tilt(tilt[:3, :3])
+        in_plane_rotation = decompose_in_plane(in_plane[:2, :2])
+    except ValueError as e:
+        raise ValueError(f"{where}: {e}") from e
+
+    return CopickSectionAlignment(
+        section=_section_of(projection.get("tilt_image_id"), ts_id, where),
+        tilt_angle=tilt_angle,
+        x_tilt=x_tilt,
+        in_plane_rotation=in_plane_rotation,
+        shift_x=float(shift[0]),
+        shift_y=float(shift[1]),
+    )
+
+
+def alignment_to_document(alignment: "CopickAlignmentFile") -> Dict[str, Any]:
+    """The stored JSON document of an alignment: a CETS ``Alignment`` with one ``ProjectionAlignment`` per aligned
+    section, the links to its tilt series and tomograms, and copick extensions."""
+    af = alignment
+    ts_id = tilt_series_cets_id(af.tilt_series, af.tilt_series_portal_id)
+    return {
+        "schema": ALIGNMENT_SCHEMA,
+        "cets_target": dict(CETS_TARGET),
+        "name": af.name,
+        "links": {
+            "tilt_series": af.tilt_series,
+            "tilt_series_portal_id": af.tilt_series_portal_id,
+            "tomograms": list(af.linked_tomograms),
+        },
+        "alignment": {
+            "tilt_series_id": ts_id,
+            "projection_alignments": [section_to_projection_alignment(s, ts_id, af.name) for s in af.sections],
+        },
+        "extensions": {
+            "id": af.name,
+            "run_name": af.run_name,
+            "alignment_type": af.alignment_type,
+            "method": af.method,
+            "source_format": af.source_format,
+            "native_frame": af.native_frame,
+            "status": af.status,
+            "is_portal_standard": af.is_portal_standard,
+            "preferred": af.preferred,
+            "rigid_part_of_local": af.rigid_part_of_local,
+            "reference_volume": None if af.reference_volume is None else af.reference_volume.model_dump(),
+            "tilt_offset": af.tilt_offset,
+            "x_rotation_offset": af.x_rotation_offset,
+            "excluded_sections": [e.model_dump() for e in af.excluded_sections],
+            "warnings": list(af.warnings),
+            "provenance": af.provenance,
+        },
+    }
+
+
+def alignment_from_document(document: Dict[str, Any]) -> "CopickAlignmentFile":
+    """Read an alignment document written by ``alignment_to_document``.
+
+    Raises:
+        ValueError: If the document has another schema or does not have the stored form.
+    """
+    from copick.models import CopickAlignmentFile
+
+    if document.get("schema") != ALIGNMENT_SCHEMA:
+        raise ValueError(f"Unsupported alignment schema {document.get('schema')!r}.")
+    links = document.get("links") or {}
+    extensions = dict(document.get("extensions") or {})
+    cets = document.get("alignment") or {}
+    ts_id = tilt_series_cets_id(links.get("tilt_series"), links.get("tilt_series_portal_id"))
+    if cets.get("tilt_series_id") != ts_id:
+        raise ValueError(f"The alignment's tilt_series_id {cets.get('tilt_series_id')!r} is not {ts_id!r}.")
+    sections = [projection_alignment_to_section(p, ts_id) for p in cets.get("projection_alignments") or []]
+    extensions.pop("id", None)
+    return CopickAlignmentFile(
+        name=document["name"],
+        tilt_series=links.get("tilt_series"),
+        tilt_series_portal_id=links.get("tilt_series_portal_id"),
+        linked_tomograms=links.get("tomograms") or [],
+        sections=sections,
+        **{k: v for k, v in extensions.items() if v is not None},
+    )
+
+
+def tomogram_link_to_attrs(tomogram_id: str, link: "CopickTomogramLink") -> Dict[str, Any]:
+    """The Zarr group attributes linking a tomogram to its tilt series and alignment."""
+    ts_id = None if link.tilt_series is None else tilt_series_cets_id(link.tilt_series, link.tilt_series_portal_id)
+    return {
+        COPICK_ATTRS_KEY: {
+            "schema": TOMOGRAM_SCHEMA,
+            "cets_target": dict(CETS_TARGET),
+            "tomogram": _drop_none({"id": tomogram_id, "tilt_series_id": ts_id}),
+            "extensions": {
+                "alignment_id": link.alignment,
+                "tilt_series": link.tilt_series,
+                "tilt_series_portal_id": link.tilt_series_portal_id,
+                "reference_offset": None if link.reference_offset is None else list(link.reference_offset),
+            },
+        },
+    }
+
+
+def tomogram_link_from_attrs(attrs: Dict[str, Any]) -> Optional["CopickTomogramLink"]:
+    """Read the link of a tomogram from its Zarr group attributes, or ``None`` if there is none."""
+    from copick.models import CopickTomogramLink
+
+    block = attrs.get(COPICK_ATTRS_KEY)
+    if not block:
+        return None
+    if block.get("schema") != TOMOGRAM_SCHEMA:
+        raise ValueError(f"Unsupported tomogram metadata schema {block.get('schema')!r}.")
+    extensions = block.get("extensions") or {}
+    if not extensions.get("alignment_id") and not extensions.get("tilt_series"):
+        return None
+    return CopickTomogramLink(
+        alignment=extensions.get("alignment_id"),
+        tilt_series=extensions.get("tilt_series"),
+        tilt_series_portal_id=extensions.get("tilt_series_portal_id"),
+        reference_offset=extensions.get("reference_offset"),
+        source="attrs",
+    )
