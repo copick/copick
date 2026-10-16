@@ -849,6 +849,7 @@ smb = [
     { name = "smbprotocol" },
 ]
 test = [
+    { name = "jsonschema" },
     { name = "moto", extra = ["s3", "server"] },
     { name = "pooch" },
     { name = "pytest" },
@@ -869,6 +870,7 @@ requires-dist = [
     { name = "filelock", specifier = ">=3.18.0" },
     { name = "fsspec", specifier = ">=2025.5.1" },
     { name = "ipython", marker = "extra == 'dev'", specifier = ">=8.18.1" },
+    { name = "jsonschema", marker = "extra == 'test'", specifier = ">=4.18.0" },
     { name = "mkdocstrings", extras = ["python"], marker = "extra == 'docs'", specifier = ">=0.29.1" },
     { name = "mlcroissant", specifier = ">=1.1.0" },
     { name = "moto", extras = ["s3", "server"], marker = "extra == 'test'", specifier = ">=5.0.0" },

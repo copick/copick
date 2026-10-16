@@ -48,6 +48,11 @@ See [mlcroissant setup](../../examples/setup/croissant.md) for a user-facing wal
 
 ****
 
+[](){#CopickTiltSeriesMLC}
+::: copick.impl.mlcroissant.CopickTiltSeriesMLC
+
+****
+
 [](){#CopickVoxelSpacingMLC}
 ::: copick.impl.mlcroissant.CopickVoxelSpacingMLC
 
