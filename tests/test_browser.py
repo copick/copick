@@ -23,8 +23,18 @@ RENDERED_TAGS = {
     "segmentation": "segmentation",
     "mesh": "mesh",
     "picks": "picks",
+    "tilt_series": "tilt_series",
+    "alignment": "alignment",
 }
-FOLDER_TAGS = ["objects_parent", "segmentation_parent", "picks_parent", "mesh_parent", "voxel_parent"]
+FOLDER_TAGS = [
+    "objects_parent",
+    "segmentation_parent",
+    "picks_parent",
+    "mesh_parent",
+    "voxel_parent",
+    "tilt_series_parent",
+    "alignment_parent",
+]
 
 
 def _highlight(tag, monkeypatch):

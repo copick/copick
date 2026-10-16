@@ -3,6 +3,7 @@ import os
 import click
 import tqdm
 
+from copick.cli.types import CopickURI
 from copick.cli.util import add_config_option, add_create_overwrite_options, add_debug_option
 from copick.util.log import get_logger
 
@@ -219,4 +220,81 @@ def voxelspacing(
     root = copick.from_file(config)
     add_voxelspacing(root, run, voxel_spacing, create=create, exist_ok=overwrite, log=debug)
 
+    return 0
+
+
+@new.command(
+    context_settings={"show_default": True},
+    short_help="Link a tomogram to the alignment it was reconstructed with.",
+    no_args_is_help=True,
+)
+@add_config_option
+@click.option("--run", required=True, type=str, help="Name of the run.", metavar="RUN")
+@click.option(
+    "--tomogram-uri",
+    required=True,
+    type=CopickURI("tomogram", "input"),
+    help="The tomogram, as tomo_type@voxel_spacing.",
+    metavar="URI",
+)
+@click.option(
+    "--alignment",
+    "alignment_name",
+    type=str,
+    default=None,
+    help="Name of the alignment of the run the tomogram was reconstructed with.",
+    metavar="NAME",
+)
+@click.option("--unlink", is_flag=True, default=False, help="Remove the tomogram's link instead.")
+@click.option(
+    "--strict/--no-strict",
+    is_flag=True,
+    default=False,
+    help="Refuse a tomogram whose extent differs from the alignment's reference volume by more than a voxel.",
+)
+@add_debug_option
+def link(
+    config: str,
+    run: str,
+    tomogram_uri: str,
+    alignment_name: str,
+    unlink: bool,
+    strict: bool,
+    debug: bool,
+) -> int:
+    """
+    Link a tomogram to the alignment it was reconstructed with.
+
+    Records which alignment (and thereby which tilt series) a tomogram was reconstructed with, so that
+    `tomogram.alignment` and `tomogram.tilt_series` find them. A writable tomogram records the link itself; a
+    read-only tomogram (e.g. of a static project or the CryoET Data Portal) is named by the alignment instead.
+
+    Examples:
+
+        \b
+        # Link a tomogram to an alignment
+        copick new link -c config.json --run TS_001 --tomogram-uri wbp@10.0 --alignment aretomo3
+
+        \b
+        # Remove the link
+        copick new link -c config.json --run TS_001 --tomogram-uri wbp@10.0 --unlink
+
+    See Also:
+
+        \b
+        copick rm alignment: remove alignments (and their links)
+    """
+    import copick
+    from copick.util.uri import resolve_copick_objects
+
+    logger = get_logger(__name__, debug=debug)
+    if unlink == (alignment_name is not None):
+        raise click.UsageError("Give either --alignment or --unlink.")
+
+    root = copick.from_file(config)
+    tomograms = resolve_copick_objects(tomogram_uri, root, "tomogram", run)
+    if len(tomograms) != 1:
+        raise click.UsageError(f"{tomogram_uri} matches {len(tomograms)} tomograms in run {run}; it must match one.")
+    tomograms[0].set_alignment(None if unlink else alignment_name, strict=strict)
+    logger.info(f"{'Unlinked' if unlink else f'Linked to {alignment_name}'}: {tomogram_uri} in run {run}")
     return 0

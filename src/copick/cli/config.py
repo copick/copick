@@ -716,6 +716,20 @@ def mlcroissant(
     help="Copick URI to filter segmentations (e.g. 'membrane:*/*@10.0'). Repeatable. Omit to include all segmentations.",
 )
 @click.option(
+    "--tiltseries",
+    "tilt_series_arg",
+    type=str,
+    multiple=True,
+    help="Copick URI to filter tilt series (e.g. 'raw'). Repeatable. Omit to include all tilt series.",
+)
+@click.option(
+    "--alignments",
+    "alignments_arg",
+    type=str,
+    multiple=True,
+    help="Copick URI to filter alignments (e.g. '*@raw?valid=true'). Repeatable. Omit to include all alignments.",
+)
+@click.option(
     "--objects",
     "objects_arg",
     type=str,
@@ -836,6 +850,8 @@ def export_croissant_cmd(
     picks_arg: tuple,
     meshes_arg: tuple,
     segmentations_arg: tuple,
+    tilt_series_arg: tuple,
+    alignments_arg: tuple,
     objects_arg: str,
     tomo_type_map_arg: str,
     object_name_map_arg: str,
@@ -949,6 +965,8 @@ def export_croissant_cmd(
             picks=list(picks_arg) if picks_arg else None,
             meshes=list(meshes_arg) if meshes_arg else None,
             segmentations=list(segmentations_arg) if segmentations_arg else None,
+            tilt_series=list(tilt_series_arg) if tilt_series_arg else None,
+            alignments=list(alignments_arg) if alignments_arg else None,
             objects=parse_list(objects_arg) if objects_arg else None,
             tomo_type_map=parse_mapping(tomo_type_map_arg) if tomo_type_map_arg else None,
             object_name_map=parse_mapping(object_name_map_arg) if object_name_map_arg else None,
@@ -1087,6 +1105,20 @@ def export_croissant_cmd(
     help="Copick URI to filter segmentations (e.g. 'membrane:*/*@10.0'). Repeatable.",
 )
 @click.option(
+    "--tiltseries",
+    "tilt_series_arg",
+    type=str,
+    multiple=True,
+    help="Copick URI to filter tilt series (e.g. 'raw'). Repeatable. Omit to include all tilt series.",
+)
+@click.option(
+    "--alignments",
+    "alignments_arg",
+    type=str,
+    multiple=True,
+    help="Copick URI to filter alignments (e.g. '*@raw?valid=true'). Repeatable. Omit to include all alignments.",
+)
+@click.option(
     "--objects",
     "objects_arg",
     type=str,
@@ -1195,6 +1227,8 @@ def append_croissant_cmd(
     picks_arg: tuple,
     meshes_arg: tuple,
     segmentations_arg: tuple,
+    tilt_series_arg: tuple,
+    alignments_arg: tuple,
     objects_arg: str,
     tomo_type_map_arg: str,
     object_name_map_arg: str,
@@ -1282,6 +1316,8 @@ def append_croissant_cmd(
             picks=list(picks_arg) if picks_arg else None,
             meshes=list(meshes_arg) if meshes_arg else None,
             segmentations=list(segmentations_arg) if segmentations_arg else None,
+            tilt_series=list(tilt_series_arg) if tilt_series_arg else None,
+            alignments=list(alignments_arg) if alignments_arg else None,
             objects=parse_list(objects_arg) if objects_arg else None,
             tomo_type_map=parse_mapping(tomo_type_map_arg) if tomo_type_map_arg else None,
             object_name_map=parse_mapping(object_name_map_arg) if object_name_map_arg else None,
