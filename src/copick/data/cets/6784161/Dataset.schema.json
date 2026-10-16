@@ -1,0 +1,5945 @@
+{
+ "$defs": {
+  "AcquisitionSession": {
+   "additionalProperties": false,
+   "description": "Parameters constant within one data-collection session; links to the Instrument used.",
+   "properties": {
+    "amplitude_contrast": {
+     "anyOf": [
+      {
+       "type": "number"
+      },
+      {
+       "type": "null"
+      }
+     ],
+     "default": null,
+     "description": "Amplitude contrast fraction (dimensionless, typically 0.07-0.1). CTF-model parameter.",
+     "title": "Amplitude Contrast"
+    },
+    "detector_dose_rate": {
+     "anyOf": [
+      {
+       "type": "number"
+      },
+      {
+       "type": "null"
+      }
+     ],
+     "default": null,
+     "description": "Dose rate at the detector in e-/pixel/s (post-specimen; counting-mode calibration).",
+     "title": "Detector Dose Rate"
+    },
+    "dose_rate": {
+     "anyOf": [
+      {
+       "type": "number"
+      },
+      {
+       "type": "null"
+      }
+     ],
+     "default": null,
+     "description": "Dose rate on the specimen during acquisition in e-/A^2/s (pre-specimen fluence).",
+     "title": "Dose Rate"
+    },
+    "handedness": {
+     "anyOf": [
+      {
+       "$ref": "#/$defs/Handedness"
+      },
+      {
+       "type": "null"
+      }
+     ],
+     "default": null,
+     "description": "Handedness (parity) of the tilt geometry for this acquisition session. It is constant across the session and determines whether defocus increases or decreases with Z, i.e. it subsumes the former per-image CTFMetadata.defocus_handedness (right_handed == +1, left_handed == -1)."
+    },
+    "id": {
+     "description": "Unique identifier for this entity",
+     "title": "Id",
+     "type": "string"
+    },
+    "instrument_id": {
+     "anyOf": [
+      {
+       "type": "string"
+      },
+      {
+       "type": "null"
+      }
+     ],
+     "default": null,
+     "description": "ID of the Instrument used for this acquisition session.",
+     "title": "Instrument Id"
+    },
+    "name": {
+     "anyOf": [
+      {
+       "type": "string"
+      },
+      {
+       "type": "null"
+      }
+     ],
+     "default": null,
+     "description": "A human-readable name or title for this entity",
+     "title": "Name"
+    },
+    "spherical_aberration": {
+     "anyOf": [
+      {
+       "type": "number"
+      },
+      {
+       "type": "null"
+      }
+     ],
+     "default": null,
+     "description": "Spherical aberration (Cs) of the objective lens in mm.",
+     "title": "Spherical Aberration"
+    },
+    "tilt_axis_angle": {
+     "anyOf": [
+      {
+       "type": "number"
+      },
+      {
+       "type": "null"
+      }
+     ],
+     "default": null,
+     "description": "Angle of the tilt axis relative to the detector x-axis, in degrees.",
+     "title": "Tilt Axis Angle"
+    }
+   },
+   "required": [
+    "id"
+   ],
+   "title": "AcquisitionSession",
+   "type": "object"
+  },
+  "Affine": {
+   "additionalProperties": false,
+   "description": "A homogeneous affine transformation in two or three dimensions",
+   "properties": {
+    "affine": {
+     "anyOf": [
+      {
+       "items": {
+        "items": {
+         "type": "number"
+        },
+        "maxItems": 3,
+        "minItems": 3,
+        "type": "array"
+       },
+       "maxItems": 3,
+       "minItems": 3,
+       "type": "array"
+      },
+      {
+       "items": {
+        "items": {
+         "type": "number"
+        },
+        "maxItems": 4,
+        "minItems": 4,
+        "type": "array"
+       },
+       "maxItems": 4,
+       "minItems": 4,
+       "type": "array"
+      },
+      {
+       "type": "null"
+      }
+     ],
+     "default": null,
+     "description": "A homogeneous affine matrix stored as a list of rows: 3x3 for a 2D transformation, 4x4 for a 3D transformation. It acts on column vectors: entry [i][j] of the upper-left block is the contribution of input axis j to output axis i, with axes in their declared order, and the last column is the translation. The bottom row is [0, 0, 1] or [0, 0, 0, 1], and all entries are finite. A 3x3 matrix is always a 2D transformation; a 3D rotation or linear block is embedded in a 4x4 matrix.",
+     "title": "Affine"
+    },
+    "input": {
+     "anyOf": [
+      {
+       "type": "string"
+      },
+      {
+       "type": "null"
+      }
+     ],
+     "default": null,
+     "description": "The source coordinate system name",
+     "title": "Input"
+    },
+    "name": {
+     "anyOf": [
+      {
+       "type": "string"
+      },
+      {
+       "type": "null"
+      }
+     ],
+     "default": null,
+     "description": "A human-readable name or title for this entity",
+     "title": "Name"
+    },
+    "output": {
+     "anyOf": [
+      {
+       "type": "string"
+      },
+      {
+       "type": "null"
+      }
+     ],
+     "default": null,
+     "description": "The target coordinate system name",
+     "title": "Output"
+    },
+    "transformation_type": {
+     "const": "affine",
+     "default": "affine",
+     "description": "The type of transformation.",
+     "title": "Transformation Type",
+     "type": "string"
+    }
+   },
+   "title": "Affine",
+   "type": "object"
+  },
+  "Alignment": {
+   "additionalProperties": false,
+   "description": "The tomographic alignment for a tilt series.",
+   "properties": {
+    "projection_alignments": {
+     "anyOf": [
+      {
+       "items": {
+        "$ref": "#/$defs/ProjectionAlignment"
+       },
+       "type": "array"
+      },
+      {
+       "type": "null"
+      }
+     ],
+     "default": [],
+     "description": "alignment for a specific projection",
+     "title": "Projection Alignments"
+    },
+    "tilt_series_id": {
+     "anyOf": [
+      {
+       "type": "string"
+      },
+      {
+       "type": "null"
+      }
+     ],
+     "default": null,
+     "description": "ID of the tilt-series this alignment set applies to. Multiple Alignments (e.g.  from different algorithms) may reference the same tilt-series.",
+     "title": "Tilt Series Id"
+    }
+   },
+   "title": "Alignment",
+   "type": "object"
+  },
+  "Average": {
+   "additionalProperties": false,
+   "description": "A particle averaging experiment.",
+   "properties": {
+    "name": {
+     "anyOf": [
+      {
+       "type": "string"
+      },
+      {
+       "type": "null"
+      }
+     ],
+     "default": null,
+     "description": "A human-readable name or title for this entity",
+     "title": "Name"
+    },
+    "particle_maps": {
+     "anyOf": [
+      {
+       "items": {
+        "$ref": "#/$defs/ParticleMap"
+       },
+       "type": "array"
+      },
+      {
+       "type": "null"
+      }
+     ],
+     "default": [],
+     "description": "The particle maps",
+     "title": "Particle Maps"
+    }
+   },
+   "title": "Average",
+   "type": "object"
+  },
+  "Axis": {
+   "additionalProperties": false,
+   "description": "An axis in a coordinate system",
+   "properties": {
+    "axis_type": {
+     "anyOf": [
+      {
+       "$ref": "#/$defs/AxisType"
+      },
+      {
+       "type": "null"
+      }
+     ],
+     "default": null,
+     "description": "The type of axis"
+    },
+    "axis_unit": {
+     "anyOf": [
+      {
+       "$ref": "#/$defs/AxisUnit"
+      },
+      {
+       "type": "null"
+      }
+     ],
+     "default": "angstrom",
+     "description": "The unit of the axis"
+    },
+    "name": {
+     "anyOf": [
+      {
+       "type": "string"
+      },
+      {
+       "type": "null"
+      }
+     ],
+     "default": null,
+     "description": "A human-readable name or title for this entity",
+     "title": "Name"
+    }
+   },
+   "title": "Axis",
+   "type": "object"
+  },
+  "AxisNameMapping": {
+   "additionalProperties": false,
+   "description": "Axis name to Axis name mapping",
+   "properties": {
+    "axis1_name": {
+     "anyOf": [
+      {
+       "type": "string"
+      },
+      {
+       "type": "null"
+      }
+     ],
+     "default": null,
+     "description": "The type of transformation",
+     "title": "Axis1 Name"
+    },
+    "axis2_name": {
+     "anyOf": [
+      {
+       "type": "string"
+      },
+      {
+       "type": "null"
+      }
+     ],
+     "default": null,
+     "description": "The mapping of the axis names",
+     "title": "Axis2 Name"
+    }
+   },
+   "title": "AxisNameMapping",
+   "type": "object"
+  },
+  "AxisType": {
+   "description": "The type of axis",
+   "enum": [
+    "space",
+    "array"
+   ],
+   "title": "AxisType",
+   "type": "string"
+  },
+  "AxisUnit": {
+   "description": "Unit of a coordinate-system axis. Array (index) axes use pixel, which the Python models fill in when an array axis has no unit; other axes default to angstrom.",
+   "enum": [
+    "angstrom",
+    "nanometer",
+    "micrometer",
+    "pixel"
+   ],
+   "title": "AxisUnit",
+   "type": "string"
+  },
+  "BoxSet": {
+   "additionalProperties": false,
+   "description": "A set of 2D boxes.",
+   "properties": {
+    "annotation_type": {
+     "const": "box_set",
+     "default": "box_set",
+     "description": "The type of annotation.",
+     "title": "Annotation Type",
+     "type": "string"
+    },
+    "coordinate_systems": {
+     "anyOf": [
+      {
+       "items": {
+        "$ref": "#/$defs/CoordinateSystem"
+       },
+       "type": "array"
+      },
+      {
+       "type": "null"
+      }
+     ],
+     "default": [],
+     "description": "Named coordinate systems for this entity",
+     "title": "Coordinate Systems"
+    },
+    "coordinate_transformations": {
+     "anyOf": [
+      {
+       "items": {
+        "discriminator": {
+         "mapping": {
+          "affine": "#/$defs/Affine",
+          "identity": "#/$defs/Identity",
+          "map_axis": "#/$defs/MapAxis",
+          "project_axis": "#/$defs/ProjectAxis",
+          "reflection": "#/$defs/Reflection",
+          "rot90": "#/$defs/Rot90",
+          "scale": "#/$defs/Scale",
+          "sequence": "#/$defs/Sequence",
+          "translation": "#/$defs/Translation"
+         },
+         "propertyName": "transformation_type"
+        },
+        "oneOf": [
+         {
+          "$ref": "#/$defs/Identity"
+         },
+         {
+          "$ref": "#/$defs/MapAxis"
+         },
+         {
+          "$ref": "#/$defs/Translation"
+         },
+         {
+          "$ref": "#/$defs/Scale"
+         },
+         {
+          "$ref": "#/$defs/Affine"
+         },
+         {
+          "$ref": "#/$defs/Rot90"
+         },
+         {
+          "$ref": "#/$defs/Reflection"
+         },
+         {
+          "$ref": "#/$defs/ProjectAxis"
+         },
+         {
+          "$ref": "#/$defs/Sequence"
+         }
+        ]
+       },
+       "type": "array"
+      },
+      {
+       "type": "null"
+      }
+     ],
+     "default": [],
+     "description": "Named coordinate transformations for this entity",
+     "title": "Coordinate Transformations"
+    },
+    "dimensions2D": {
+     "anyOf": [
+      {
+       "items": {
+        "items": {
+         "type": "number"
+        },
+        "maxItems": 2,
+        "minItems": 2,
+        "type": "array"
+       },
+       "minItems": 1,
+       "type": "array"
+      },
+      {
+       "type": "null"
+      }
+     ],
+     "default": null,
+     "description": "Dimensions of 2D objects (x, y).",
+     "title": "Dimensions2D"
+    },
+    "id": {
+     "description": "Unique identifier for this entity",
+     "title": "Id",
+     "type": "string"
+    },
+    "matrix2D": {
+     "anyOf": [
+      {
+       "items": {
+        "items": {
+         "items": {
+          "type": "number"
+         },
+         "maxItems": 2,
+         "minItems": 2,
+         "type": "array"
+        },
+        "maxItems": 2,
+        "minItems": 2,
+        "type": "array"
+       },
+       "minItems": 1,
+       "type": "array"
+      },
+      {
+       "type": "null"
+      }
+     ],
+     "default": null,
+     "description": "Rotation matrix associated with a point on a 2D image (Nx2x2).",
+     "title": "Matrix2D"
+    },
+    "name": {
+     "anyOf": [
+      {
+       "type": "string"
+      },
+      {
+       "type": "null"
+      }
+     ],
+     "default": null,
+     "description": "A human-readable name or title for this entity",
+     "title": "Name"
+    },
+    "origin2D": {
+     "anyOf": [
+      {
+       "items": {
+        "items": {
+         "type": "number"
+        },
+        "maxItems": 2,
+        "minItems": 2,
+        "type": "array"
+       },
+       "minItems": 1,
+       "type": "array"
+      },
+      {
+       "type": "null"
+      }
+     ],
+     "default": null,
+     "description": "Location on a 2D image (Nx2).",
+     "title": "Origin2D"
+    },
+    "source_tomogram_id": {
+     "anyOf": [
+      {
+       "type": "string"
+      },
+      {
+       "type": "null"
+      }
+     ],
+     "default": null,
+     "description": "ID of the tomogram from which this annotation was derived, such as the tomogram containing picked coordinates.",
+     "title": "Source Tomogram Id"
+    }
+   },
+   "required": [
+    "id"
+   ],
+   "title": "BoxSet",
+   "type": "object"
+  },
+  "CTFMetadata": {
+   "additionalProperties": false,
+   "description": "A set of CTF patameters for an image.",
+   "properties": {
+    "defocus_angle": {
+     "anyOf": [
+      {
+       "type": "number"
+      },
+      {
+       "type": "null"
+      }
+     ],
+     "default": null,
+     "description": "Estimated angle of astigmatism.",
+     "title": "Defocus Angle"
+    },
+    "defocus_u": {
+     "anyOf": [
+      {
+       "type": "number"
+      },
+      {
+       "type": "null"
+      }
+     ],
+     "default": null,
+     "description": "Estimated defocus U for this image in Angstrom, underfocus positive.",
+     "title": "Defocus U"
+    },
+    "defocus_v": {
+     "anyOf": [
+      {
+       "type": "number"
+      },
+      {
+       "type": "null"
+      }
+     ],
+     "default": null,
+     "description": "Estimated defocus V for this image in Angstrom, underfocus positive.",
+     "title": "Defocus V"
+    },
+    "phase_shift": {
+     "anyOf": [
+      {
+       "type": "number"
+      },
+      {
+       "type": "null"
+      }
+     ],
+     "default": null,
+     "description": "Phase shift value produced by the usage of a phase plate.",
+     "title": "Phase Shift"
+    }
+   },
+   "title": "CTFMetadata",
+   "type": "object"
+  },
+  "CircleSet": {
+   "additionalProperties": false,
+   "description": "A set of circles.",
+   "properties": {
+    "annotation_type": {
+     "const": "circle_set",
+     "default": "circle_set",
+     "description": "The type of annotation.",
+     "title": "Annotation Type",
+     "type": "string"
+    },
+    "coordinate_systems": {
+     "anyOf": [
+      {
+       "items": {
+        "$ref": "#/$defs/CoordinateSystem"
+       },
+       "type": "array"
+      },
+      {
+       "type": "null"
+      }
+     ],
+     "default": [],
+     "description": "Named coordinate systems for this entity",
+     "title": "Coordinate Systems"
+    },
+    "coordinate_transformations": {
+     "anyOf": [
+      {
+       "items": {
+        "discriminator": {
+         "mapping": {
+          "affine": "#/$defs/Affine",
+          "identity": "#/$defs/Identity",
+          "map_axis": "#/$defs/MapAxis",
+          "project_axis": "#/$defs/ProjectAxis",
+          "reflection": "#/$defs/Reflection",
+          "rot90": "#/$defs/Rot90",
+          "scale": "#/$defs/Scale",
+          "sequence": "#/$defs/Sequence",
+          "translation": "#/$defs/Translation"
+         },
+         "propertyName": "transformation_type"
+        },
+        "oneOf": [
+         {
+          "$ref": "#/$defs/Identity"
+         },
+         {
+          "$ref": "#/$defs/MapAxis"
+         },
+         {
+          "$ref": "#/$defs/Translation"
+         },
+         {
+          "$ref": "#/$defs/Scale"
+         },
+         {
+          "$ref": "#/$defs/Affine"
+         },
+         {
+          "$ref": "#/$defs/Rot90"
+         },
+         {
+          "$ref": "#/$defs/Reflection"
+         },
+         {
+          "$ref": "#/$defs/ProjectAxis"
+         },
+         {
+          "$ref": "#/$defs/Sequence"
+         }
+        ]
+       },
+       "type": "array"
+      },
+      {
+       "type": "null"
+      }
+     ],
+     "default": [],
+     "description": "Named coordinate transformations for this entity",
+     "title": "Coordinate Transformations"
+    },
+    "id": {
+     "description": "Unique identifier for this entity",
+     "title": "Id",
+     "type": "string"
+    },
+    "name": {
+     "anyOf": [
+      {
+       "type": "string"
+      },
+      {
+       "type": "null"
+      }
+     ],
+     "default": null,
+     "description": "A human-readable name or title for this entity",
+     "title": "Name"
+    },
+    "origin2D": {
+     "anyOf": [
+      {
+       "items": {
+        "items": {
+         "type": "number"
+        },
+        "maxItems": 2,
+        "minItems": 2,
+        "type": "array"
+       },
+       "minItems": 1,
+       "type": "array"
+      },
+      {
+       "type": "null"
+      }
+     ],
+     "default": null,
+     "description": "Location on a 2D image (Nx2).",
+     "title": "Origin2D"
+    },
+    "radii": {
+     "anyOf": [
+      {
+       "items": {
+        "type": "number"
+       },
+       "minItems": 1,
+       "type": "array"
+      },
+      {
+       "type": "null"
+      }
+     ],
+     "default": null,
+     "description": "Radii of circles, spheres, or cylinders (N).",
+     "title": "Radii"
+    },
+    "source_tomogram_id": {
+     "anyOf": [
+      {
+       "type": "string"
+      },
+      {
+       "type": "null"
+      }
+     ],
+     "default": null,
+     "description": "ID of the tomogram from which this annotation was derived, such as the tomogram containing picked coordinates.",
+     "title": "Source Tomogram Id"
+    }
+   },
+   "required": [
+    "id"
+   ],
+   "title": "CircleSet",
+   "type": "object"
+  },
+  "CoordinateSystem": {
+   "additionalProperties": false,
+   "description": "A coordinate system",
+   "properties": {
+    "axes": {
+     "description": "The axes of the coordinate system",
+     "items": {
+      "$ref": "#/$defs/Axis"
+     },
+     "title": "Axes",
+     "type": "array"
+    },
+    "name": {
+     "description": "The name of the coordinate system. Free-form to allow per-entity and intermediate systems; the canonical names are listed by CoordinateSpaceName.",
+     "title": "Name",
+     "type": "string"
+    }
+   },
+   "required": [
+    "name",
+    "axes"
+   ],
+   "title": "CoordinateSystem",
+   "type": "object"
+  },
+  "CuboidSet": {
+   "additionalProperties": false,
+   "description": "A set of oriented 3D boxes.",
+   "properties": {
+    "annotation_type": {
+     "const": "cuboid_set",
+     "default": "cuboid_set",
+     "description": "The type of annotation.",
+     "title": "Annotation Type",
+     "type": "string"
+    },
+    "coordinate_systems": {
+     "anyOf": [
+      {
+       "items": {
+        "$ref": "#/$defs/CoordinateSystem"
+       },
+       "type": "array"
+      },
+      {
+       "type": "null"
+      }
+     ],
+     "default": [],
+     "description": "Named coordinate systems for this entity",
+     "title": "Coordinate Systems"
+    },
+    "coordinate_transformations": {
+     "anyOf": [
+      {
+       "items": {
+        "discriminator": {
+         "mapping": {
+          "affine": "#/$defs/Affine",
+          "identity": "#/$defs/Identity",
+          "map_axis": "#/$defs/MapAxis",
+          "project_axis": "#/$defs/ProjectAxis",
+          "reflection": "#/$defs/Reflection",
+          "rot90": "#/$defs/Rot90",
+          "scale": "#/$defs/Scale",
+          "sequence": "#/$defs/Sequence",
+          "translation": "#/$defs/Translation"
+         },
+         "propertyName": "transformation_type"
+        },
+        "oneOf": [
+         {
+          "$ref": "#/$defs/Identity"
+         },
+         {
+          "$ref": "#/$defs/MapAxis"
+         },
+         {
+          "$ref": "#/$defs/Translation"
+         },
+         {
+          "$ref": "#/$defs/Scale"
+         },
+         {
+          "$ref": "#/$defs/Affine"
+         },
+         {
+          "$ref": "#/$defs/Rot90"
+         },
+         {
+          "$ref": "#/$defs/Reflection"
+         },
+         {
+          "$ref": "#/$defs/ProjectAxis"
+         },
+         {
+          "$ref": "#/$defs/Sequence"
+         }
+        ]
+       },
+       "type": "array"
+      },
+      {
+       "type": "null"
+      }
+     ],
+     "default": [],
+     "description": "Named coordinate transformations for this entity",
+     "title": "Coordinate Transformations"
+    },
+    "dimensions3D": {
+     "anyOf": [
+      {
+       "items": {
+        "items": {
+         "type": "number"
+        },
+        "maxItems": 3,
+        "minItems": 3,
+        "type": "array"
+       },
+       "minItems": 1,
+       "type": "array"
+      },
+      {
+       "type": "null"
+      }
+     ],
+     "default": null,
+     "description": "Dimensions of 3D objects (x, y, z).",
+     "title": "Dimensions3D"
+    },
+    "id": {
+     "description": "Unique identifier for this entity",
+     "title": "Id",
+     "type": "string"
+    },
+    "matrix3D": {
+     "anyOf": [
+      {
+       "items": {
+        "items": {
+         "items": {
+          "type": "number"
+         },
+         "maxItems": 3,
+         "minItems": 3,
+         "type": "array"
+        },
+        "maxItems": 3,
+        "minItems": 3,
+        "type": "array"
+       },
+       "minItems": 1,
+       "type": "array"
+      },
+      {
+       "type": "null"
+      }
+     ],
+     "default": null,
+     "description": "Rotation matrix associated with a point on a 3D image (Nx3x3).",
+     "title": "Matrix3D"
+    },
+    "name": {
+     "anyOf": [
+      {
+       "type": "string"
+      },
+      {
+       "type": "null"
+      }
+     ],
+     "default": null,
+     "description": "A human-readable name or title for this entity",
+     "title": "Name"
+    },
+    "origin3D": {
+     "anyOf": [
+      {
+       "items": {
+        "items": {
+         "type": "number"
+        },
+        "maxItems": 3,
+        "minItems": 3,
+        "type": "array"
+       },
+       "minItems": 1,
+       "type": "array"
+      },
+      {
+       "type": "null"
+      }
+     ],
+     "default": null,
+     "description": "Location on a 3D image (Nx3).",
+     "title": "Origin3D"
+    },
+    "source_tomogram_id": {
+     "anyOf": [
+      {
+       "type": "string"
+      },
+      {
+       "type": "null"
+      }
+     ],
+     "default": null,
+     "description": "ID of the tomogram from which this annotation was derived, such as the tomogram containing picked coordinates.",
+     "title": "Source Tomogram Id"
+    }
+   },
+   "required": [
+    "id"
+   ],
+   "title": "CuboidSet",
+   "type": "object"
+  },
+  "CylinderSet": {
+   "additionalProperties": false,
+   "description": "A set of cylinders,",
+   "properties": {
+    "annotation_type": {
+     "const": "cylinder_set",
+     "default": "cylinder_set",
+     "description": "The type of annotation.",
+     "title": "Annotation Type",
+     "type": "string"
+    },
+    "coordinate_systems": {
+     "anyOf": [
+      {
+       "items": {
+        "$ref": "#/$defs/CoordinateSystem"
+       },
+       "type": "array"
+      },
+      {
+       "type": "null"
+      }
+     ],
+     "default": [],
+     "description": "Named coordinate systems for this entity",
+     "title": "Coordinate Systems"
+    },
+    "coordinate_transformations": {
+     "anyOf": [
+      {
+       "items": {
+        "discriminator": {
+         "mapping": {
+          "affine": "#/$defs/Affine",
+          "identity": "#/$defs/Identity",
+          "map_axis": "#/$defs/MapAxis",
+          "project_axis": "#/$defs/ProjectAxis",
+          "reflection": "#/$defs/Reflection",
+          "rot90": "#/$defs/Rot90",
+          "scale": "#/$defs/Scale",
+          "sequence": "#/$defs/Sequence",
+          "translation": "#/$defs/Translation"
+         },
+         "propertyName": "transformation_type"
+        },
+        "oneOf": [
+         {
+          "$ref": "#/$defs/Identity"
+         },
+         {
+          "$ref": "#/$defs/MapAxis"
+         },
+         {
+          "$ref": "#/$defs/Translation"
+         },
+         {
+          "$ref": "#/$defs/Scale"
+         },
+         {
+          "$ref": "#/$defs/Affine"
+         },
+         {
+          "$ref": "#/$defs/Rot90"
+         },
+         {
+          "$ref": "#/$defs/Reflection"
+         },
+         {
+          "$ref": "#/$defs/ProjectAxis"
+         },
+         {
+          "$ref": "#/$defs/Sequence"
+         }
+        ]
+       },
+       "type": "array"
+      },
+      {
+       "type": "null"
+      }
+     ],
+     "default": [],
+     "description": "Named coordinate transformations for this entity",
+     "title": "Coordinate Transformations"
+    },
+    "id": {
+     "description": "Unique identifier for this entity",
+     "title": "Id",
+     "type": "string"
+    },
+    "name": {
+     "anyOf": [
+      {
+       "type": "string"
+      },
+      {
+       "type": "null"
+      }
+     ],
+     "default": null,
+     "description": "A human-readable name or title for this entity",
+     "title": "Name"
+    },
+    "radii": {
+     "anyOf": [
+      {
+       "items": {
+        "type": "number"
+       },
+       "minItems": 1,
+       "type": "array"
+      },
+      {
+       "type": "null"
+      }
+     ],
+     "default": null,
+     "description": "Radii of circles, spheres, or cylinders (N).",
+     "title": "Radii"
+    },
+    "source_tomogram_id": {
+     "anyOf": [
+      {
+       "type": "string"
+      },
+      {
+       "type": "null"
+      }
+     ],
+     "default": null,
+     "description": "ID of the tomogram from which this annotation was derived, such as the tomogram containing picked coordinates.",
+     "title": "Source Tomogram Id"
+    },
+    "vector3D": {
+     "anyOf": [
+      {
+       "items": {
+        "items": {
+         "type": "number"
+        },
+        "maxItems": 3,
+        "minItems": 3,
+        "type": "array"
+       },
+       "minItems": 1,
+       "type": "array"
+      },
+      {
+       "type": "null"
+      }
+     ],
+     "default": null,
+     "description": "Orientation vector associated with a point on a 3D image (Nx3).",
+     "title": "Vector3D"
+    }
+   },
+   "required": [
+    "id"
+   ],
+   "title": "CylinderSet",
+   "type": "object"
+  },
+  "DefectFile": {
+   "additionalProperties": false,
+   "description": "A detector defect file.",
+   "properties": {
+    "coordinate_systems": {
+     "anyOf": [
+      {
+       "items": {
+        "$ref": "#/$defs/CoordinateSystem"
+       },
+       "type": "array"
+      },
+      {
+       "type": "null"
+      }
+     ],
+     "default": [],
+     "description": "Named coordinate systems for this entity",
+     "title": "Coordinate Systems"
+    },
+    "coordinate_transformations": {
+     "anyOf": [
+      {
+       "items": {
+        "discriminator": {
+         "mapping": {
+          "affine": "#/$defs/Affine",
+          "identity": "#/$defs/Identity",
+          "map_axis": "#/$defs/MapAxis",
+          "project_axis": "#/$defs/ProjectAxis",
+          "reflection": "#/$defs/Reflection",
+          "rot90": "#/$defs/Rot90",
+          "scale": "#/$defs/Scale",
+          "sequence": "#/$defs/Sequence",
+          "translation": "#/$defs/Translation"
+         },
+         "propertyName": "transformation_type"
+        },
+        "oneOf": [
+         {
+          "$ref": "#/$defs/Identity"
+         },
+         {
+          "$ref": "#/$defs/MapAxis"
+         },
+         {
+          "$ref": "#/$defs/Translation"
+         },
+         {
+          "$ref": "#/$defs/Scale"
+         },
+         {
+          "$ref": "#/$defs/Affine"
+         },
+         {
+          "$ref": "#/$defs/Rot90"
+         },
+         {
+          "$ref": "#/$defs/Reflection"
+         },
+         {
+          "$ref": "#/$defs/ProjectAxis"
+         },
+         {
+          "$ref": "#/$defs/Sequence"
+         }
+        ]
+       },
+       "type": "array"
+      },
+      {
+       "type": "null"
+      }
+     ],
+     "default": [],
+     "description": "Named coordinate transformations for this image. The transformation named array_to_physical is the image frame. It maps the coordinate system named array (axes x, y and z by position, of type array, in pixel) to the one named physical (of type space, in angstrom). It is a Sequence of an optional Rot90, an optional Reflection, a Translation and a Scale, in that order and each at most once, so that physical = diag(scale) (F R index + translation). The translation is in pixels along the oriented axes, and the scale is the pixel or voxel spacing in angstrom along the final axes. A missing step means no rotation, no reflection, zero translation or unit spacing. Other named transformations are not restricted.",
+     "title": "Coordinate Transformations"
+    },
+    "height": {
+     "anyOf": [
+      {
+       "type": "integer"
+      },
+      {
+       "type": "null"
+      }
+     ],
+     "default": null,
+     "description": "The height of the image (y-axis) in pixels",
+     "title": "Height"
+    },
+    "path": {
+     "anyOf": [
+      {
+       "type": "string"
+      },
+      {
+       "type": "null"
+      }
+     ],
+     "default": null,
+     "description": "Path to a file.",
+     "title": "Path"
+    },
+    "width": {
+     "anyOf": [
+      {
+       "type": "integer"
+      },
+      {
+       "type": "null"
+      }
+     ],
+     "default": null,
+     "description": "The width of the image (x-axis) in pixels",
+     "title": "Width"
+    }
+   },
+   "title": "DefectFile",
+   "type": "object"
+  },
+  "DensityMap": {
+   "additionalProperties": false,
+   "description": "A density map fit into a volume.",
+   "properties": {
+    "annotation_type": {
+     "const": "density_map",
+     "default": "density_map",
+     "description": "The type of annotation.",
+     "title": "Annotation Type",
+     "type": "string"
+    },
+    "coordinate_systems": {
+     "anyOf": [
+      {
+       "items": {
+        "$ref": "#/$defs/CoordinateSystem"
+       },
+       "type": "array"
+      },
+      {
+       "type": "null"
+      }
+     ],
+     "default": [],
+     "description": "Named coordinate systems for this entity",
+     "title": "Coordinate Systems"
+    },
+    "coordinate_transformations": {
+     "anyOf": [
+      {
+       "items": {
+        "discriminator": {
+         "mapping": {
+          "affine": "#/$defs/Affine",
+          "identity": "#/$defs/Identity",
+          "map_axis": "#/$defs/MapAxis",
+          "project_axis": "#/$defs/ProjectAxis",
+          "reflection": "#/$defs/Reflection",
+          "rot90": "#/$defs/Rot90",
+          "scale": "#/$defs/Scale",
+          "sequence": "#/$defs/Sequence",
+          "translation": "#/$defs/Translation"
+         },
+         "propertyName": "transformation_type"
+        },
+        "oneOf": [
+         {
+          "$ref": "#/$defs/Identity"
+         },
+         {
+          "$ref": "#/$defs/MapAxis"
+         },
+         {
+          "$ref": "#/$defs/Translation"
+         },
+         {
+          "$ref": "#/$defs/Scale"
+         },
+         {
+          "$ref": "#/$defs/Affine"
+         },
+         {
+          "$ref": "#/$defs/Rot90"
+         },
+         {
+          "$ref": "#/$defs/Reflection"
+         },
+         {
+          "$ref": "#/$defs/ProjectAxis"
+         },
+         {
+          "$ref": "#/$defs/Sequence"
+         }
+        ]
+       },
+       "type": "array"
+      },
+      {
+       "type": "null"
+      }
+     ],
+     "default": [],
+     "description": "Named coordinate transformations for this image. The transformation named array_to_physical is the image frame. It maps the coordinate system named array (axes x, y and z by position, of type array, in pixel) to the one named physical (of type space, in angstrom). It is a Sequence of an optional Rot90, an optional Reflection, a Translation and a Scale, in that order and each at most once, so that physical = diag(scale) (F R index + translation). The translation is in pixels along the oriented axes, and the scale is the pixel or voxel spacing in angstrom along the final axes. A missing step means no rotation, no reflection, zero translation or unit spacing. Other named transformations are not restricted.",
+     "title": "Coordinate Transformations"
+    },
+    "depth": {
+     "anyOf": [
+      {
+       "type": "integer"
+      },
+      {
+       "type": "null"
+      }
+     ],
+     "default": null,
+     "description": "The depth of the image (z-axis) in pixels",
+     "title": "Depth"
+    },
+    "height": {
+     "anyOf": [
+      {
+       "type": "integer"
+      },
+      {
+       "type": "null"
+      }
+     ],
+     "default": null,
+     "description": "The height of the image (y-axis) in pixels",
+     "title": "Height"
+    },
+    "id": {
+     "description": "Unique identifier for this entity",
+     "title": "Id",
+     "type": "string"
+    },
+    "matrix3D": {
+     "anyOf": [
+      {
+       "items": {
+        "items": {
+         "items": {
+          "type": "number"
+         },
+         "maxItems": 3,
+         "minItems": 3,
+         "type": "array"
+        },
+        "maxItems": 3,
+        "minItems": 3,
+        "type": "array"
+       },
+       "minItems": 1,
+       "type": "array"
+      },
+      {
+       "type": "null"
+      }
+     ],
+     "default": null,
+     "description": "Rotation matrix associated with a point on a 3D image (Nx3x3).",
+     "title": "Matrix3D"
+    },
+    "name": {
+     "anyOf": [
+      {
+       "type": "string"
+      },
+      {
+       "type": "null"
+      }
+     ],
+     "default": null,
+     "description": "A human-readable name or title for this entity",
+     "title": "Name"
+    },
+    "path": {
+     "anyOf": [
+      {
+       "type": "string"
+      },
+      {
+       "type": "null"
+      }
+     ],
+     "default": null,
+     "description": "Path to a file.",
+     "title": "Path"
+    },
+    "source_tomogram_id": {
+     "anyOf": [
+      {
+       "type": "string"
+      },
+      {
+       "type": "null"
+      }
+     ],
+     "default": null,
+     "description": "ID of the tomogram from which this annotation was derived, such as the tomogram containing picked coordinates.",
+     "title": "Source Tomogram Id"
+    },
+    "width": {
+     "anyOf": [
+      {
+       "type": "integer"
+      },
+      {
+       "type": "null"
+      }
+     ],
+     "default": null,
+     "description": "The width of the image (x-axis) in pixels",
+     "title": "Width"
+    }
+   },
+   "required": [
+    "id"
+   ],
+   "title": "DensityMap",
+   "type": "object"
+  },
+  "ElectronSource": {
+   "description": "Type of electron source (mirrors OSC-EM permissible values).",
+   "enum": [
+    "FEG",
+    "cold_FEG",
+    "LaB6",
+    "tungsten"
+   ],
+   "title": "ElectronSource",
+   "type": "string"
+  },
+  "GainFile": {
+   "additionalProperties": false,
+   "description": "A gain reference file.",
+   "properties": {
+    "coordinate_systems": {
+     "anyOf": [
+      {
+       "items": {
+        "$ref": "#/$defs/CoordinateSystem"
+       },
+       "type": "array"
+      },
+      {
+       "type": "null"
+      }
+     ],
+     "default": [],
+     "description": "Named coordinate systems for this entity",
+     "title": "Coordinate Systems"
+    },
+    "coordinate_transformations": {
+     "anyOf": [
+      {
+       "items": {
+        "discriminator": {
+         "mapping": {
+          "affine": "#/$defs/Affine",
+          "identity": "#/$defs/Identity",
+          "map_axis": "#/$defs/MapAxis",
+          "project_axis": "#/$defs/ProjectAxis",
+          "reflection": "#/$defs/Reflection",
+          "rot90": "#/$defs/Rot90",
+          "scale": "#/$defs/Scale",
+          "sequence": "#/$defs/Sequence",
+          "translation": "#/$defs/Translation"
+         },
+         "propertyName": "transformation_type"
+        },
+        "oneOf": [
+         {
+          "$ref": "#/$defs/Identity"
+         },
+         {
+          "$ref": "#/$defs/MapAxis"
+         },
+         {
+          "$ref": "#/$defs/Translation"
+         },
+         {
+          "$ref": "#/$defs/Scale"
+         },
+         {
+          "$ref": "#/$defs/Affine"
+         },
+         {
+          "$ref": "#/$defs/Rot90"
+         },
+         {
+          "$ref": "#/$defs/Reflection"
+         },
+         {
+          "$ref": "#/$defs/ProjectAxis"
+         },
+         {
+          "$ref": "#/$defs/Sequence"
+         }
+        ]
+       },
+       "type": "array"
+      },
+      {
+       "type": "null"
+      }
+     ],
+     "default": [],
+     "description": "Named coordinate transformations for this image. The transformation named array_to_physical is the image frame. It maps the coordinate system named array (axes x, y and z by position, of type array, in pixel) to the one named physical (of type space, in angstrom). It is a Sequence of an optional Rot90, an optional Reflection, a Translation and a Scale, in that order and each at most once, so that physical = diag(scale) (F R index + translation). The translation is in pixels along the oriented axes, and the scale is the pixel or voxel spacing in angstrom along the final axes. A missing step means no rotation, no reflection, zero translation or unit spacing. Other named transformations are not restricted.",
+     "title": "Coordinate Transformations"
+    },
+    "height": {
+     "anyOf": [
+      {
+       "type": "integer"
+      },
+      {
+       "type": "null"
+      }
+     ],
+     "default": null,
+     "description": "The height of the image (y-axis) in pixels",
+     "title": "Height"
+    },
+    "path": {
+     "anyOf": [
+      {
+       "type": "string"
+      },
+      {
+       "type": "null"
+      }
+     ],
+     "default": null,
+     "description": "Path to a file.",
+     "title": "Path"
+    },
+    "width": {
+     "anyOf": [
+      {
+       "type": "integer"
+      },
+      {
+       "type": "null"
+      }
+     ],
+     "default": null,
+     "description": "The width of the image (x-axis) in pixels",
+     "title": "Width"
+    }
+   },
+   "title": "GainFile",
+   "type": "object"
+  },
+  "Handedness": {
+   "description": "Handedness (parity) of the tilt geometry / coordinate frame, constant for an acquisition session. right_handed == +1, left_handed == -1 (the sign the former CTFMetadata.defocus_handedness carried).",
+   "enum": [
+    "right_handed",
+    "left_handed"
+   ],
+   "title": "Handedness",
+   "type": "string"
+  },
+  "Identity": {
+   "additionalProperties": false,
+   "description": "The identity transformation",
+   "properties": {
+    "input": {
+     "anyOf": [
+      {
+       "type": "string"
+      },
+      {
+       "type": "null"
+      }
+     ],
+     "default": null,
+     "description": "The source coordinate system name",
+     "title": "Input"
+    },
+    "name": {
+     "anyOf": [
+      {
+       "type": "string"
+      },
+      {
+       "type": "null"
+      }
+     ],
+     "default": null,
+     "description": "A human-readable name or title for this entity",
+     "title": "Name"
+    },
+    "output": {
+     "anyOf": [
+      {
+       "type": "string"
+      },
+      {
+       "type": "null"
+      }
+     ],
+     "default": null,
+     "description": "The target coordinate system name",
+     "title": "Output"
+    },
+    "transformation_type": {
+     "const": "identity",
+     "default": "identity",
+     "description": "The type of transformation.",
+     "title": "Transformation Type",
+     "type": "string"
+    }
+   },
+   "title": "Identity",
+   "type": "object"
+  },
+  "Instrument": {
+   "additionalProperties": false,
+   "description": "A microscope/instrument used to acquire data. Physical, rarely-changing hardware.",
+   "properties": {
+    "detector_model": {
+     "anyOf": [
+      {
+       "type": "string"
+      },
+      {
+       "type": "null"
+      }
+     ],
+     "default": null,
+     "description": "Manufacturer/model of the detector/camera.",
+     "title": "Detector Model"
+    },
+    "electron_source": {
+     "anyOf": [
+      {
+       "$ref": "#/$defs/ElectronSource"
+      },
+      {
+       "type": "null"
+      }
+     ],
+     "default": null,
+     "description": "Type of electron source."
+    },
+    "id": {
+     "description": "Unique identifier for this entity",
+     "title": "Id",
+     "type": "string"
+    },
+    "microscope_model": {
+     "anyOf": [
+      {
+       "type": "string"
+      },
+      {
+       "type": "null"
+      }
+     ],
+     "default": null,
+     "description": "Manufacturer/model of the microscope, e.g. \"Titan Krios G4\".",
+     "title": "Microscope Model"
+    },
+    "name": {
+     "anyOf": [
+      {
+       "type": "string"
+      },
+      {
+       "type": "null"
+      }
+     ],
+     "default": null,
+     "description": "A human-readable name or title for this entity",
+     "title": "Name"
+    },
+    "voltage": {
+     "anyOf": [
+      {
+       "type": "number"
+      },
+      {
+       "type": "null"
+      }
+     ],
+     "default": null,
+     "description": "Acceleration voltage of the microscope in kV.",
+     "title": "Voltage"
+    }
+   },
+   "required": [
+    "id"
+   ],
+   "title": "Instrument",
+   "type": "object"
+  },
+  "MapAxis": {
+   "additionalProperties": false,
+   "description": "Axis permutation transformation",
+   "properties": {
+    "input": {
+     "anyOf": [
+      {
+       "type": "string"
+      },
+      {
+       "type": "null"
+      }
+     ],
+     "default": null,
+     "description": "The source coordinate system name",
+     "title": "Input"
+    },
+    "map_axis": {
+     "anyOf": [
+      {
+       "items": {
+        "$ref": "#/$defs/AxisNameMapping"
+       },
+       "type": "array"
+      },
+      {
+       "type": "null"
+      }
+     ],
+     "default": [],
+     "description": "The permutation of the axes",
+     "title": "Map Axis"
+    },
+    "name": {
+     "anyOf": [
+      {
+       "type": "string"
+      },
+      {
+       "type": "null"
+      }
+     ],
+     "default": null,
+     "description": "A human-readable name or title for this entity",
+     "title": "Name"
+    },
+    "output": {
+     "anyOf": [
+      {
+       "type": "string"
+      },
+      {
+       "type": "null"
+      }
+     ],
+     "default": null,
+     "description": "The target coordinate system name",
+     "title": "Output"
+    },
+    "transformation_type": {
+     "const": "map_axis",
+     "default": "map_axis",
+     "description": "The type of transformation.",
+     "title": "Transformation Type",
+     "type": "string"
+    }
+   },
+   "title": "MapAxis",
+   "type": "object"
+  },
+  "MovieFrame": {
+   "additionalProperties": false,
+   "description": "An individual movie frame",
+   "properties": {
+    "accumulated_dose": {
+     "anyOf": [
+      {
+       "type": "number"
+      },
+      {
+       "type": "null"
+      }
+     ],
+     "default": null,
+     "description": "The pre-exposure up to this image in e-/A^2",
+     "title": "Accumulated Dose"
+    },
+    "coordinate_systems": {
+     "anyOf": [
+      {
+       "items": {
+        "$ref": "#/$defs/CoordinateSystem"
+       },
+       "type": "array"
+      },
+      {
+       "type": "null"
+      }
+     ],
+     "default": [],
+     "description": "Named coordinate systems for this entity",
+     "title": "Coordinate Systems"
+    },
+    "coordinate_transformations": {
+     "anyOf": [
+      {
+       "items": {
+        "discriminator": {
+         "mapping": {
+          "affine": "#/$defs/Affine",
+          "identity": "#/$defs/Identity",
+          "map_axis": "#/$defs/MapAxis",
+          "project_axis": "#/$defs/ProjectAxis",
+          "reflection": "#/$defs/Reflection",
+          "rot90": "#/$defs/Rot90",
+          "scale": "#/$defs/Scale",
+          "sequence": "#/$defs/Sequence",
+          "translation": "#/$defs/Translation"
+         },
+         "propertyName": "transformation_type"
+        },
+        "oneOf": [
+         {
+          "$ref": "#/$defs/Identity"
+         },
+         {
+          "$ref": "#/$defs/MapAxis"
+         },
+         {
+          "$ref": "#/$defs/Translation"
+         },
+         {
+          "$ref": "#/$defs/Scale"
+         },
+         {
+          "$ref": "#/$defs/Affine"
+         },
+         {
+          "$ref": "#/$defs/Rot90"
+         },
+         {
+          "$ref": "#/$defs/Reflection"
+         },
+         {
+          "$ref": "#/$defs/ProjectAxis"
+         },
+         {
+          "$ref": "#/$defs/Sequence"
+         }
+        ]
+       },
+       "type": "array"
+      },
+      {
+       "type": "null"
+      }
+     ],
+     "default": [],
+     "description": "Named coordinate transformations for this image. The transformation named array_to_physical is the image frame. It maps the coordinate system named array (axes x, y and z by position, of type array, in pixel) to the one named physical (of type space, in angstrom). It is a Sequence of an optional Rot90, an optional Reflection, a Translation and a Scale, in that order and each at most once, so that physical = diag(scale) (F R index + translation). The translation is in pixels along the oriented axes, and the scale is the pixel or voxel spacing in angstrom along the final axes. A missing step means no rotation, no reflection, zero translation or unit spacing. Other named transformations are not restricted.",
+     "title": "Coordinate Transformations"
+    },
+    "ctf_metadata": {
+     "anyOf": [
+      {
+       "$ref": "#/$defs/CTFMetadata"
+      },
+      {
+       "type": "null"
+      }
+     ],
+     "default": null,
+     "description": "A set of CTF patameters for an image."
+    },
+    "exposure_time": {
+     "anyOf": [
+      {
+       "type": "number"
+      },
+      {
+       "type": "null"
+      }
+     ],
+     "default": null,
+     "description": "Total exposure time per movie/record in seconds.",
+     "title": "Exposure Time"
+    },
+    "height": {
+     "anyOf": [
+      {
+       "type": "integer"
+      },
+      {
+       "type": "null"
+      }
+     ],
+     "default": null,
+     "description": "The height of the image (y-axis) in pixels",
+     "title": "Height"
+    },
+    "nominal_tilt_angle": {
+     "anyOf": [
+      {
+       "type": "number"
+      },
+      {
+       "type": "null"
+      }
+     ],
+     "default": null,
+     "description": "The tilt angle reported by the microscope",
+     "title": "Nominal Tilt Angle"
+    },
+    "path": {
+     "anyOf": [
+      {
+       "type": "string"
+      },
+      {
+       "type": "null"
+      }
+     ],
+     "default": null,
+     "description": "Path to a file.",
+     "title": "Path"
+    },
+    "section": {
+     "anyOf": [
+      {
+       "type": "integer"
+      },
+      {
+       "type": "null"
+      }
+     ],
+     "default": null,
+     "description": "0-based section index to the entity inside a stack.",
+     "title": "Section"
+    },
+    "width": {
+     "anyOf": [
+      {
+       "type": "integer"
+      },
+      {
+       "type": "null"
+      }
+     ],
+     "default": null,
+     "description": "The width of the image (x-axis) in pixels",
+     "title": "Width"
+    }
+   },
+   "title": "MovieFrame",
+   "type": "object"
+  },
+  "MovieStack": {
+   "additionalProperties": false,
+   "description": "A stack of movie frames.",
+   "properties": {
+    "id": {
+     "description": "Unique identifier for this entity",
+     "title": "Id",
+     "type": "string"
+    },
+    "images": {
+     "anyOf": [
+      {
+       "items": {
+        "$ref": "#/$defs/MovieFrame"
+       },
+       "type": "array"
+      },
+      {
+       "type": "null"
+      }
+     ],
+     "default": [],
+     "description": "The movie frames in the stack",
+     "title": "Images"
+    },
+    "path": {
+     "anyOf": [
+      {
+       "type": "string"
+      },
+      {
+       "type": "null"
+      }
+     ],
+     "default": null,
+     "description": "Path to a file.",
+     "title": "Path"
+    }
+   },
+   "required": [
+    "id"
+   ],
+   "title": "MovieStack",
+   "type": "object"
+  },
+  "MovieStackCollection": {
+   "additionalProperties": false,
+   "description": "A collection of movie stacks using the same gain and defect files.",
+   "properties": {
+    "defect_file": {
+     "anyOf": [
+      {
+       "$ref": "#/$defs/DefectFile"
+      },
+      {
+       "type": "null"
+      }
+     ],
+     "default": null,
+     "description": "The defect file for the movie stacks"
+    },
+    "gain_file": {
+     "anyOf": [
+      {
+       "$ref": "#/$defs/GainFile"
+      },
+      {
+       "type": "null"
+      }
+     ],
+     "default": null,
+     "description": "The gain file for the movie stacks"
+    },
+    "movie_stacks": {
+     "anyOf": [
+      {
+       "items": {
+        "$ref": "#/$defs/MovieStackSeries"
+       },
+       "type": "array"
+      },
+      {
+       "type": "null"
+      }
+     ],
+     "default": [],
+     "description": "The movie stacks in the collection",
+     "title": "Movie Stacks"
+    }
+   },
+   "title": "MovieStackCollection",
+   "type": "object"
+  },
+  "MovieStackSeries": {
+   "additionalProperties": false,
+   "description": "A group of movie stacks that belong to a single tilt series.",
+   "properties": {
+    "acquisition_session_id": {
+     "anyOf": [
+      {
+       "type": "string"
+      },
+      {
+       "type": "null"
+      }
+     ],
+     "default": null,
+     "description": "The ID of the acquisition session this movie stack series was collected in.",
+     "title": "Acquisition Session Id"
+    },
+    "id": {
+     "description": "Unique identifier for this entity",
+     "title": "Id",
+     "type": "string"
+    },
+    "stacks": {
+     "anyOf": [
+      {
+       "items": {
+        "$ref": "#/$defs/MovieStack"
+       },
+       "type": "array"
+      },
+      {
+       "type": "null"
+      }
+     ],
+     "default": [],
+     "description": "The movie stacks.",
+     "title": "Stacks"
+    }
+   },
+   "required": [
+    "id"
+   ],
+   "title": "MovieStackSeries",
+   "type": "object"
+  },
+  "ParticleMap": {
+   "additionalProperties": false,
+   "description": "A 3D particle density map.",
+   "properties": {
+    "coord_index": {
+     "anyOf": [
+      {
+       "type": "integer"
+      },
+      {
+       "type": "null"
+      }
+     ],
+     "default": null,
+     "description": "0-based index of the coordinate inside the resolved source annotation.",
+     "title": "Coord Index"
+    },
+    "coordinate_systems": {
+     "anyOf": [
+      {
+       "items": {
+        "$ref": "#/$defs/CoordinateSystem"
+       },
+       "type": "array"
+      },
+      {
+       "type": "null"
+      }
+     ],
+     "default": [],
+     "description": "Named coordinate systems for this entity",
+     "title": "Coordinate Systems"
+    },
+    "coordinate_transformations": {
+     "anyOf": [
+      {
+       "items": {
+        "discriminator": {
+         "mapping": {
+          "affine": "#/$defs/Affine",
+          "identity": "#/$defs/Identity",
+          "map_axis": "#/$defs/MapAxis",
+          "project_axis": "#/$defs/ProjectAxis",
+          "reflection": "#/$defs/Reflection",
+          "rot90": "#/$defs/Rot90",
+          "scale": "#/$defs/Scale",
+          "sequence": "#/$defs/Sequence",
+          "translation": "#/$defs/Translation"
+         },
+         "propertyName": "transformation_type"
+        },
+        "oneOf": [
+         {
+          "$ref": "#/$defs/Identity"
+         },
+         {
+          "$ref": "#/$defs/MapAxis"
+         },
+         {
+          "$ref": "#/$defs/Translation"
+         },
+         {
+          "$ref": "#/$defs/Scale"
+         },
+         {
+          "$ref": "#/$defs/Affine"
+         },
+         {
+          "$ref": "#/$defs/Rot90"
+         },
+         {
+          "$ref": "#/$defs/Reflection"
+         },
+         {
+          "$ref": "#/$defs/ProjectAxis"
+         },
+         {
+          "$ref": "#/$defs/Sequence"
+         }
+        ]
+       },
+       "type": "array"
+      },
+      {
+       "type": "null"
+      }
+     ],
+     "default": [],
+     "description": "Named coordinate transformations for this image. The transformation named array_to_physical is the image frame. It maps the coordinate system named array (axes x, y and z by position, of type array, in pixel) to the one named physical (of type space, in angstrom). It is a Sequence of an optional Rot90, an optional Reflection, a Translation and a Scale, in that order and each at most once, so that physical = diag(scale) (F R index + translation). The translation is in pixels along the oriented axes, and the scale is the pixel or voxel spacing in angstrom along the final axes. A missing step means no rotation, no reflection, zero translation or unit spacing. Other named transformations are not restricted.",
+     "title": "Coordinate Transformations"
+    },
+    "depth": {
+     "anyOf": [
+      {
+       "type": "integer"
+      },
+      {
+       "type": "null"
+      }
+     ],
+     "default": null,
+     "description": "The depth of the image (z-axis) in pixels",
+     "title": "Depth"
+    },
+    "height": {
+     "anyOf": [
+      {
+       "type": "integer"
+      },
+      {
+       "type": "null"
+      }
+     ],
+     "default": null,
+     "description": "The height of the image (y-axis) in pixels",
+     "title": "Height"
+    },
+    "path": {
+     "anyOf": [
+      {
+       "type": "string"
+      },
+      {
+       "type": "null"
+      }
+     ],
+     "default": null,
+     "description": "Path to a file.",
+     "title": "Path"
+    },
+    "source_annotation_id": {
+     "anyOf": [
+      {
+       "type": "string"
+      },
+      {
+       "type": "null"
+      }
+     ],
+     "default": null,
+     "description": "ID of the source annotation used to extract this particle map.",
+     "title": "Source Annotation Id"
+    },
+    "source_region_id": {
+     "anyOf": [
+      {
+       "type": "string"
+      },
+      {
+       "type": "null"
+      }
+     ],
+     "default": null,
+     "description": "ID of the region containing the source annotation used to extract this particle map.",
+     "title": "Source Region Id"
+    },
+    "width": {
+     "anyOf": [
+      {
+       "type": "integer"
+      },
+      {
+       "type": "null"
+      }
+     ],
+     "default": null,
+     "description": "The width of the image (x-axis) in pixels",
+     "title": "Width"
+    }
+   },
+   "title": "ParticleMap",
+   "type": "object"
+  },
+  "PointMatrixSet2D": {
+   "additionalProperties": false,
+   "description": "A set of 2D points with an associated rotation matrix.",
+   "properties": {
+    "annotation_type": {
+     "const": "point_matrix_set_2D",
+     "default": "point_matrix_set_2D",
+     "description": "The type of annotation.",
+     "title": "Annotation Type",
+     "type": "string"
+    },
+    "coordinate_systems": {
+     "anyOf": [
+      {
+       "items": {
+        "$ref": "#/$defs/CoordinateSystem"
+       },
+       "type": "array"
+      },
+      {
+       "type": "null"
+      }
+     ],
+     "default": [],
+     "description": "Named coordinate systems for this entity",
+     "title": "Coordinate Systems"
+    },
+    "coordinate_transformations": {
+     "anyOf": [
+      {
+       "items": {
+        "discriminator": {
+         "mapping": {
+          "affine": "#/$defs/Affine",
+          "identity": "#/$defs/Identity",
+          "map_axis": "#/$defs/MapAxis",
+          "project_axis": "#/$defs/ProjectAxis",
+          "reflection": "#/$defs/Reflection",
+          "rot90": "#/$defs/Rot90",
+          "scale": "#/$defs/Scale",
+          "sequence": "#/$defs/Sequence",
+          "translation": "#/$defs/Translation"
+         },
+         "propertyName": "transformation_type"
+        },
+        "oneOf": [
+         {
+          "$ref": "#/$defs/Identity"
+         },
+         {
+          "$ref": "#/$defs/MapAxis"
+         },
+         {
+          "$ref": "#/$defs/Translation"
+         },
+         {
+          "$ref": "#/$defs/Scale"
+         },
+         {
+          "$ref": "#/$defs/Affine"
+         },
+         {
+          "$ref": "#/$defs/Rot90"
+         },
+         {
+          "$ref": "#/$defs/Reflection"
+         },
+         {
+          "$ref": "#/$defs/ProjectAxis"
+         },
+         {
+          "$ref": "#/$defs/Sequence"
+         }
+        ]
+       },
+       "type": "array"
+      },
+      {
+       "type": "null"
+      }
+     ],
+     "default": [],
+     "description": "Named coordinate transformations for this entity",
+     "title": "Coordinate Transformations"
+    },
+    "id": {
+     "description": "Unique identifier for this entity",
+     "title": "Id",
+     "type": "string"
+    },
+    "matrix2D": {
+     "anyOf": [
+      {
+       "items": {
+        "items": {
+         "items": {
+          "type": "number"
+         },
+         "maxItems": 2,
+         "minItems": 2,
+         "type": "array"
+        },
+        "maxItems": 2,
+        "minItems": 2,
+        "type": "array"
+       },
+       "minItems": 1,
+       "type": "array"
+      },
+      {
+       "type": "null"
+      }
+     ],
+     "default": null,
+     "description": "Rotation matrix associated with a point on a 2D image (Nx2x2).",
+     "title": "Matrix2D"
+    },
+    "name": {
+     "anyOf": [
+      {
+       "type": "string"
+      },
+      {
+       "type": "null"
+      }
+     ],
+     "default": null,
+     "description": "A human-readable name or title for this entity",
+     "title": "Name"
+    },
+    "origin2D": {
+     "anyOf": [
+      {
+       "items": {
+        "items": {
+         "type": "number"
+        },
+        "maxItems": 2,
+        "minItems": 2,
+        "type": "array"
+       },
+       "minItems": 1,
+       "type": "array"
+      },
+      {
+       "type": "null"
+      }
+     ],
+     "default": null,
+     "description": "Location on a 2D image (Nx2).",
+     "title": "Origin2D"
+    },
+    "source_tomogram_id": {
+     "anyOf": [
+      {
+       "type": "string"
+      },
+      {
+       "type": "null"
+      }
+     ],
+     "default": null,
+     "description": "ID of the tomogram from which this annotation was derived, such as the tomogram containing picked coordinates.",
+     "title": "Source Tomogram Id"
+    }
+   },
+   "required": [
+    "id"
+   ],
+   "title": "PointMatrixSet2D",
+   "type": "object"
+  },
+  "PointMatrixSet3D": {
+   "additionalProperties": false,
+   "description": "A set of 3D points with an associated rotation matrix.",
+   "properties": {
+    "annotation_type": {
+     "const": "point_matrix_set_3D",
+     "default": "point_matrix_set_3D",
+     "description": "The type of annotation.",
+     "title": "Annotation Type",
+     "type": "string"
+    },
+    "coordinate_systems": {
+     "anyOf": [
+      {
+       "items": {
+        "$ref": "#/$defs/CoordinateSystem"
+       },
+       "type": "array"
+      },
+      {
+       "type": "null"
+      }
+     ],
+     "default": [],
+     "description": "Named coordinate systems for this entity",
+     "title": "Coordinate Systems"
+    },
+    "coordinate_transformations": {
+     "anyOf": [
+      {
+       "items": {
+        "discriminator": {
+         "mapping": {
+          "affine": "#/$defs/Affine",
+          "identity": "#/$defs/Identity",
+          "map_axis": "#/$defs/MapAxis",
+          "project_axis": "#/$defs/ProjectAxis",
+          "reflection": "#/$defs/Reflection",
+          "rot90": "#/$defs/Rot90",
+          "scale": "#/$defs/Scale",
+          "sequence": "#/$defs/Sequence",
+          "translation": "#/$defs/Translation"
+         },
+         "propertyName": "transformation_type"
+        },
+        "oneOf": [
+         {
+          "$ref": "#/$defs/Identity"
+         },
+         {
+          "$ref": "#/$defs/MapAxis"
+         },
+         {
+          "$ref": "#/$defs/Translation"
+         },
+         {
+          "$ref": "#/$defs/Scale"
+         },
+         {
+          "$ref": "#/$defs/Affine"
+         },
+         {
+          "$ref": "#/$defs/Rot90"
+         },
+         {
+          "$ref": "#/$defs/Reflection"
+         },
+         {
+          "$ref": "#/$defs/ProjectAxis"
+         },
+         {
+          "$ref": "#/$defs/Sequence"
+         }
+        ]
+       },
+       "type": "array"
+      },
+      {
+       "type": "null"
+      }
+     ],
+     "default": [],
+     "description": "Named coordinate transformations for this entity",
+     "title": "Coordinate Transformations"
+    },
+    "id": {
+     "description": "Unique identifier for this entity",
+     "title": "Id",
+     "type": "string"
+    },
+    "matrix3D": {
+     "anyOf": [
+      {
+       "items": {
+        "items": {
+         "items": {
+          "type": "number"
+         },
+         "maxItems": 3,
+         "minItems": 3,
+         "type": "array"
+        },
+        "maxItems": 3,
+        "minItems": 3,
+        "type": "array"
+       },
+       "minItems": 1,
+       "type": "array"
+      },
+      {
+       "type": "null"
+      }
+     ],
+     "default": null,
+     "description": "Rotation matrix associated with a point on a 3D image (Nx3x3).",
+     "title": "Matrix3D"
+    },
+    "name": {
+     "anyOf": [
+      {
+       "type": "string"
+      },
+      {
+       "type": "null"
+      }
+     ],
+     "default": null,
+     "description": "A human-readable name or title for this entity",
+     "title": "Name"
+    },
+    "origin3D": {
+     "anyOf": [
+      {
+       "items": {
+        "items": {
+         "type": "number"
+        },
+        "maxItems": 3,
+        "minItems": 3,
+        "type": "array"
+       },
+       "minItems": 1,
+       "type": "array"
+      },
+      {
+       "type": "null"
+      }
+     ],
+     "default": null,
+     "description": "Location on a 3D image (Nx3).",
+     "title": "Origin3D"
+    },
+    "source_tomogram_id": {
+     "anyOf": [
+      {
+       "type": "string"
+      },
+      {
+       "type": "null"
+      }
+     ],
+     "default": null,
+     "description": "ID of the tomogram from which this annotation was derived, such as the tomogram containing picked coordinates.",
+     "title": "Source Tomogram Id"
+    }
+   },
+   "required": [
+    "id"
+   ],
+   "title": "PointMatrixSet3D",
+   "type": "object"
+  },
+  "PointSet2D": {
+   "additionalProperties": false,
+   "description": "A set of 2D point annotations.",
+   "properties": {
+    "annotation_type": {
+     "const": "point_set_2D",
+     "default": "point_set_2D",
+     "description": "The type of annotation.",
+     "title": "Annotation Type",
+     "type": "string"
+    },
+    "coordinate_systems": {
+     "anyOf": [
+      {
+       "items": {
+        "$ref": "#/$defs/CoordinateSystem"
+       },
+       "type": "array"
+      },
+      {
+       "type": "null"
+      }
+     ],
+     "default": [],
+     "description": "Named coordinate systems for this entity",
+     "title": "Coordinate Systems"
+    },
+    "coordinate_transformations": {
+     "anyOf": [
+      {
+       "items": {
+        "discriminator": {
+         "mapping": {
+          "affine": "#/$defs/Affine",
+          "identity": "#/$defs/Identity",
+          "map_axis": "#/$defs/MapAxis",
+          "project_axis": "#/$defs/ProjectAxis",
+          "reflection": "#/$defs/Reflection",
+          "rot90": "#/$defs/Rot90",
+          "scale": "#/$defs/Scale",
+          "sequence": "#/$defs/Sequence",
+          "translation": "#/$defs/Translation"
+         },
+         "propertyName": "transformation_type"
+        },
+        "oneOf": [
+         {
+          "$ref": "#/$defs/Identity"
+         },
+         {
+          "$ref": "#/$defs/MapAxis"
+         },
+         {
+          "$ref": "#/$defs/Translation"
+         },
+         {
+          "$ref": "#/$defs/Scale"
+         },
+         {
+          "$ref": "#/$defs/Affine"
+         },
+         {
+          "$ref": "#/$defs/Rot90"
+         },
+         {
+          "$ref": "#/$defs/Reflection"
+         },
+         {
+          "$ref": "#/$defs/ProjectAxis"
+         },
+         {
+          "$ref": "#/$defs/Sequence"
+         }
+        ]
+       },
+       "type": "array"
+      },
+      {
+       "type": "null"
+      }
+     ],
+     "default": [],
+     "description": "Named coordinate transformations for this entity",
+     "title": "Coordinate Transformations"
+    },
+    "id": {
+     "description": "Unique identifier for this entity",
+     "title": "Id",
+     "type": "string"
+    },
+    "name": {
+     "anyOf": [
+      {
+       "type": "string"
+      },
+      {
+       "type": "null"
+      }
+     ],
+     "default": null,
+     "description": "A human-readable name or title for this entity",
+     "title": "Name"
+    },
+    "origin2D": {
+     "anyOf": [
+      {
+       "items": {
+        "items": {
+         "type": "number"
+        },
+        "maxItems": 2,
+        "minItems": 2,
+        "type": "array"
+       },
+       "minItems": 1,
+       "type": "array"
+      },
+      {
+       "type": "null"
+      }
+     ],
+     "default": null,
+     "description": "Location on a 2D image (Nx2).",
+     "title": "Origin2D"
+    },
+    "source_tomogram_id": {
+     "anyOf": [
+      {
+       "type": "string"
+      },
+      {
+       "type": "null"
+      }
+     ],
+     "default": null,
+     "description": "ID of the tomogram from which this annotation was derived, such as the tomogram containing picked coordinates.",
+     "title": "Source Tomogram Id"
+    }
+   },
+   "required": [
+    "id"
+   ],
+   "title": "PointSet2D",
+   "type": "object"
+  },
+  "PointSet3D": {
+   "additionalProperties": false,
+   "description": "A set of 3D point annotations.",
+   "properties": {
+    "annotation_type": {
+     "const": "point_set_3D",
+     "default": "point_set_3D",
+     "description": "The type of annotation.",
+     "title": "Annotation Type",
+     "type": "string"
+    },
+    "coordinate_systems": {
+     "anyOf": [
+      {
+       "items": {
+        "$ref": "#/$defs/CoordinateSystem"
+       },
+       "type": "array"
+      },
+      {
+       "type": "null"
+      }
+     ],
+     "default": [],
+     "description": "Named coordinate systems for this entity",
+     "title": "Coordinate Systems"
+    },
+    "coordinate_transformations": {
+     "anyOf": [
+      {
+       "items": {
+        "discriminator": {
+         "mapping": {
+          "affine": "#/$defs/Affine",
+          "identity": "#/$defs/Identity",
+          "map_axis": "#/$defs/MapAxis",
+          "project_axis": "#/$defs/ProjectAxis",
+          "reflection": "#/$defs/Reflection",
+          "rot90": "#/$defs/Rot90",
+          "scale": "#/$defs/Scale",
+          "sequence": "#/$defs/Sequence",
+          "translation": "#/$defs/Translation"
+         },
+         "propertyName": "transformation_type"
+        },
+        "oneOf": [
+         {
+          "$ref": "#/$defs/Identity"
+         },
+         {
+          "$ref": "#/$defs/MapAxis"
+         },
+         {
+          "$ref": "#/$defs/Translation"
+         },
+         {
+          "$ref": "#/$defs/Scale"
+         },
+         {
+          "$ref": "#/$defs/Affine"
+         },
+         {
+          "$ref": "#/$defs/Rot90"
+         },
+         {
+          "$ref": "#/$defs/Reflection"
+         },
+         {
+          "$ref": "#/$defs/ProjectAxis"
+         },
+         {
+          "$ref": "#/$defs/Sequence"
+         }
+        ]
+       },
+       "type": "array"
+      },
+      {
+       "type": "null"
+      }
+     ],
+     "default": [],
+     "description": "Named coordinate transformations for this entity",
+     "title": "Coordinate Transformations"
+    },
+    "id": {
+     "description": "Unique identifier for this entity",
+     "title": "Id",
+     "type": "string"
+    },
+    "name": {
+     "anyOf": [
+      {
+       "type": "string"
+      },
+      {
+       "type": "null"
+      }
+     ],
+     "default": null,
+     "description": "A human-readable name or title for this entity",
+     "title": "Name"
+    },
+    "origin3D": {
+     "anyOf": [
+      {
+       "items": {
+        "items": {
+         "type": "number"
+        },
+        "maxItems": 3,
+        "minItems": 3,
+        "type": "array"
+       },
+       "minItems": 1,
+       "type": "array"
+      },
+      {
+       "type": "null"
+      }
+     ],
+     "default": null,
+     "description": "Location on a 3D image (Nx3).",
+     "title": "Origin3D"
+    },
+    "source_tomogram_id": {
+     "anyOf": [
+      {
+       "type": "string"
+      },
+      {
+       "type": "null"
+      }
+     ],
+     "default": null,
+     "description": "ID of the tomogram from which this annotation was derived, such as the tomogram containing picked coordinates.",
+     "title": "Source Tomogram Id"
+    }
+   },
+   "required": [
+    "id"
+   ],
+   "title": "PointSet3D",
+   "type": "object"
+  },
+  "PointVectorSet2D": {
+   "additionalProperties": false,
+   "description": "A set of 2D points with an associated direction vector.",
+   "properties": {
+    "annotation_type": {
+     "const": "point_vector_set_2D",
+     "default": "point_vector_set_2D",
+     "description": "The type of annotation.",
+     "title": "Annotation Type",
+     "type": "string"
+    },
+    "coordinate_systems": {
+     "anyOf": [
+      {
+       "items": {
+        "$ref": "#/$defs/CoordinateSystem"
+       },
+       "type": "array"
+      },
+      {
+       "type": "null"
+      }
+     ],
+     "default": [],
+     "description": "Named coordinate systems for this entity",
+     "title": "Coordinate Systems"
+    },
+    "coordinate_transformations": {
+     "anyOf": [
+      {
+       "items": {
+        "discriminator": {
+         "mapping": {
+          "affine": "#/$defs/Affine",
+          "identity": "#/$defs/Identity",
+          "map_axis": "#/$defs/MapAxis",
+          "project_axis": "#/$defs/ProjectAxis",
+          "reflection": "#/$defs/Reflection",
+          "rot90": "#/$defs/Rot90",
+          "scale": "#/$defs/Scale",
+          "sequence": "#/$defs/Sequence",
+          "translation": "#/$defs/Translation"
+         },
+         "propertyName": "transformation_type"
+        },
+        "oneOf": [
+         {
+          "$ref": "#/$defs/Identity"
+         },
+         {
+          "$ref": "#/$defs/MapAxis"
+         },
+         {
+          "$ref": "#/$defs/Translation"
+         },
+         {
+          "$ref": "#/$defs/Scale"
+         },
+         {
+          "$ref": "#/$defs/Affine"
+         },
+         {
+          "$ref": "#/$defs/Rot90"
+         },
+         {
+          "$ref": "#/$defs/Reflection"
+         },
+         {
+          "$ref": "#/$defs/ProjectAxis"
+         },
+         {
+          "$ref": "#/$defs/Sequence"
+         }
+        ]
+       },
+       "type": "array"
+      },
+      {
+       "type": "null"
+      }
+     ],
+     "default": [],
+     "description": "Named coordinate transformations for this entity",
+     "title": "Coordinate Transformations"
+    },
+    "id": {
+     "description": "Unique identifier for this entity",
+     "title": "Id",
+     "type": "string"
+    },
+    "name": {
+     "anyOf": [
+      {
+       "type": "string"
+      },
+      {
+       "type": "null"
+      }
+     ],
+     "default": null,
+     "description": "A human-readable name or title for this entity",
+     "title": "Name"
+    },
+    "origin2D": {
+     "anyOf": [
+      {
+       "items": {
+        "items": {
+         "type": "number"
+        },
+        "maxItems": 2,
+        "minItems": 2,
+        "type": "array"
+       },
+       "minItems": 1,
+       "type": "array"
+      },
+      {
+       "type": "null"
+      }
+     ],
+     "default": null,
+     "description": "Location on a 2D image (Nx2).",
+     "title": "Origin2D"
+    },
+    "source_tomogram_id": {
+     "anyOf": [
+      {
+       "type": "string"
+      },
+      {
+       "type": "null"
+      }
+     ],
+     "default": null,
+     "description": "ID of the tomogram from which this annotation was derived, such as the tomogram containing picked coordinates.",
+     "title": "Source Tomogram Id"
+    },
+    "vector2D": {
+     "anyOf": [
+      {
+       "items": {
+        "items": {
+         "type": "number"
+        },
+        "maxItems": 2,
+        "minItems": 2,
+        "type": "array"
+       },
+       "minItems": 1,
+       "type": "array"
+      },
+      {
+       "type": "null"
+      }
+     ],
+     "default": null,
+     "description": "Orientation vector associated with a point on a 2D image (Nx2).",
+     "title": "Vector2D"
+    }
+   },
+   "required": [
+    "id"
+   ],
+   "title": "PointVectorSet2D",
+   "type": "object"
+  },
+  "PointVectorSet3D": {
+   "additionalProperties": false,
+   "description": "A set of 3D points with an associated direction vector.",
+   "properties": {
+    "annotation_type": {
+     "const": "point_vector_set_3D",
+     "default": "point_vector_set_3D",
+     "description": "The type of annotation.",
+     "title": "Annotation Type",
+     "type": "string"
+    },
+    "coordinate_systems": {
+     "anyOf": [
+      {
+       "items": {
+        "$ref": "#/$defs/CoordinateSystem"
+       },
+       "type": "array"
+      },
+      {
+       "type": "null"
+      }
+     ],
+     "default": [],
+     "description": "Named coordinate systems for this entity",
+     "title": "Coordinate Systems"
+    },
+    "coordinate_transformations": {
+     "anyOf": [
+      {
+       "items": {
+        "discriminator": {
+         "mapping": {
+          "affine": "#/$defs/Affine",
+          "identity": "#/$defs/Identity",
+          "map_axis": "#/$defs/MapAxis",
+          "project_axis": "#/$defs/ProjectAxis",
+          "reflection": "#/$defs/Reflection",
+          "rot90": "#/$defs/Rot90",
+          "scale": "#/$defs/Scale",
+          "sequence": "#/$defs/Sequence",
+          "translation": "#/$defs/Translation"
+         },
+         "propertyName": "transformation_type"
+        },
+        "oneOf": [
+         {
+          "$ref": "#/$defs/Identity"
+         },
+         {
+          "$ref": "#/$defs/MapAxis"
+         },
+         {
+          "$ref": "#/$defs/Translation"
+         },
+         {
+          "$ref": "#/$defs/Scale"
+         },
+         {
+          "$ref": "#/$defs/Affine"
+         },
+         {
+          "$ref": "#/$defs/Rot90"
+         },
+         {
+          "$ref": "#/$defs/Reflection"
+         },
+         {
+          "$ref": "#/$defs/ProjectAxis"
+         },
+         {
+          "$ref": "#/$defs/Sequence"
+         }
+        ]
+       },
+       "type": "array"
+      },
+      {
+       "type": "null"
+      }
+     ],
+     "default": [],
+     "description": "Named coordinate transformations for this entity",
+     "title": "Coordinate Transformations"
+    },
+    "id": {
+     "description": "Unique identifier for this entity",
+     "title": "Id",
+     "type": "string"
+    },
+    "name": {
+     "anyOf": [
+      {
+       "type": "string"
+      },
+      {
+       "type": "null"
+      }
+     ],
+     "default": null,
+     "description": "A human-readable name or title for this entity",
+     "title": "Name"
+    },
+    "origin3D": {
+     "anyOf": [
+      {
+       "items": {
+        "items": {
+         "type": "number"
+        },
+        "maxItems": 3,
+        "minItems": 3,
+        "type": "array"
+       },
+       "minItems": 1,
+       "type": "array"
+      },
+      {
+       "type": "null"
+      }
+     ],
+     "default": null,
+     "description": "Location on a 3D image (Nx3).",
+     "title": "Origin3D"
+    },
+    "source_tomogram_id": {
+     "anyOf": [
+      {
+       "type": "string"
+      },
+      {
+       "type": "null"
+      }
+     ],
+     "default": null,
+     "description": "ID of the tomogram from which this annotation was derived, such as the tomogram containing picked coordinates.",
+     "title": "Source Tomogram Id"
+    },
+    "vector3D": {
+     "anyOf": [
+      {
+       "items": {
+        "items": {
+         "type": "number"
+        },
+        "maxItems": 3,
+        "minItems": 3,
+        "type": "array"
+       },
+       "minItems": 1,
+       "type": "array"
+      },
+      {
+       "type": "null"
+      }
+     ],
+     "default": null,
+     "description": "Orientation vector associated with a point on a 3D image (Nx3).",
+     "title": "Vector3D"
+    }
+   },
+   "required": [
+    "id"
+   ],
+   "title": "PointVectorSet3D",
+   "type": "object"
+  },
+  "ProbabilityMap2D": {
+   "additionalProperties": false,
+   "description": "An annotation image with real-valued labels.",
+   "properties": {
+    "annotation_type": {
+     "const": "probability_map_2D",
+     "default": "probability_map_2D",
+     "description": "The type of annotation.",
+     "title": "Annotation Type",
+     "type": "string"
+    },
+    "coordinate_systems": {
+     "anyOf": [
+      {
+       "items": {
+        "$ref": "#/$defs/CoordinateSystem"
+       },
+       "type": "array"
+      },
+      {
+       "type": "null"
+      }
+     ],
+     "default": [],
+     "description": "Named coordinate systems for this entity",
+     "title": "Coordinate Systems"
+    },
+    "coordinate_transformations": {
+     "anyOf": [
+      {
+       "items": {
+        "discriminator": {
+         "mapping": {
+          "affine": "#/$defs/Affine",
+          "identity": "#/$defs/Identity",
+          "map_axis": "#/$defs/MapAxis",
+          "project_axis": "#/$defs/ProjectAxis",
+          "reflection": "#/$defs/Reflection",
+          "rot90": "#/$defs/Rot90",
+          "scale": "#/$defs/Scale",
+          "sequence": "#/$defs/Sequence",
+          "translation": "#/$defs/Translation"
+         },
+         "propertyName": "transformation_type"
+        },
+        "oneOf": [
+         {
+          "$ref": "#/$defs/Identity"
+         },
+         {
+          "$ref": "#/$defs/MapAxis"
+         },
+         {
+          "$ref": "#/$defs/Translation"
+         },
+         {
+          "$ref": "#/$defs/Scale"
+         },
+         {
+          "$ref": "#/$defs/Affine"
+         },
+         {
+          "$ref": "#/$defs/Rot90"
+         },
+         {
+          "$ref": "#/$defs/Reflection"
+         },
+         {
+          "$ref": "#/$defs/ProjectAxis"
+         },
+         {
+          "$ref": "#/$defs/Sequence"
+         }
+        ]
+       },
+       "type": "array"
+      },
+      {
+       "type": "null"
+      }
+     ],
+     "default": [],
+     "description": "Named coordinate transformations for this image. The transformation named array_to_physical is the image frame. It maps the coordinate system named array (axes x, y and z by position, of type array, in pixel) to the one named physical (of type space, in angstrom). It is a Sequence of an optional Rot90, an optional Reflection, a Translation and a Scale, in that order and each at most once, so that physical = diag(scale) (F R index + translation). The translation is in pixels along the oriented axes, and the scale is the pixel or voxel spacing in angstrom along the final axes. A missing step means no rotation, no reflection, zero translation or unit spacing. Other named transformations are not restricted.",
+     "title": "Coordinate Transformations"
+    },
+    "height": {
+     "anyOf": [
+      {
+       "type": "integer"
+      },
+      {
+       "type": "null"
+      }
+     ],
+     "default": null,
+     "description": "The height of the image (y-axis) in pixels",
+     "title": "Height"
+    },
+    "id": {
+     "description": "Unique identifier for this entity",
+     "title": "Id",
+     "type": "string"
+    },
+    "name": {
+     "anyOf": [
+      {
+       "type": "string"
+      },
+      {
+       "type": "null"
+      }
+     ],
+     "default": null,
+     "description": "A human-readable name or title for this entity",
+     "title": "Name"
+    },
+    "path": {
+     "anyOf": [
+      {
+       "type": "string"
+      },
+      {
+       "type": "null"
+      }
+     ],
+     "default": null,
+     "description": "Path to a file.",
+     "title": "Path"
+    },
+    "source_tomogram_id": {
+     "anyOf": [
+      {
+       "type": "string"
+      },
+      {
+       "type": "null"
+      }
+     ],
+     "default": null,
+     "description": "ID of the tomogram from which this annotation was derived, such as the tomogram containing picked coordinates.",
+     "title": "Source Tomogram Id"
+    },
+    "width": {
+     "anyOf": [
+      {
+       "type": "integer"
+      },
+      {
+       "type": "null"
+      }
+     ],
+     "default": null,
+     "description": "The width of the image (x-axis) in pixels",
+     "title": "Width"
+    }
+   },
+   "required": [
+    "id"
+   ],
+   "title": "ProbabilityMap2D",
+   "type": "object"
+  },
+  "ProbabilityMap3D": {
+   "additionalProperties": false,
+   "description": "An annotation volume with real-valued labels.",
+   "properties": {
+    "annotation_type": {
+     "const": "probability_map_3D",
+     "default": "probability_map_3D",
+     "description": "The type of annotation.",
+     "title": "Annotation Type",
+     "type": "string"
+    },
+    "coordinate_systems": {
+     "anyOf": [
+      {
+       "items": {
+        "$ref": "#/$defs/CoordinateSystem"
+       },
+       "type": "array"
+      },
+      {
+       "type": "null"
+      }
+     ],
+     "default": [],
+     "description": "Named coordinate systems for this entity",
+     "title": "Coordinate Systems"
+    },
+    "coordinate_transformations": {
+     "anyOf": [
+      {
+       "items": {
+        "discriminator": {
+         "mapping": {
+          "affine": "#/$defs/Affine",
+          "identity": "#/$defs/Identity",
+          "map_axis": "#/$defs/MapAxis",
+          "project_axis": "#/$defs/ProjectAxis",
+          "reflection": "#/$defs/Reflection",
+          "rot90": "#/$defs/Rot90",
+          "scale": "#/$defs/Scale",
+          "sequence": "#/$defs/Sequence",
+          "translation": "#/$defs/Translation"
+         },
+         "propertyName": "transformation_type"
+        },
+        "oneOf": [
+         {
+          "$ref": "#/$defs/Identity"
+         },
+         {
+          "$ref": "#/$defs/MapAxis"
+         },
+         {
+          "$ref": "#/$defs/Translation"
+         },
+         {
+          "$ref": "#/$defs/Scale"
+         },
+         {
+          "$ref": "#/$defs/Affine"
+         },
+         {
+          "$ref": "#/$defs/Rot90"
+         },
+         {
+          "$ref": "#/$defs/Reflection"
+         },
+         {
+          "$ref": "#/$defs/ProjectAxis"
+         },
+         {
+          "$ref": "#/$defs/Sequence"
+         }
+        ]
+       },
+       "type": "array"
+      },
+      {
+       "type": "null"
+      }
+     ],
+     "default": [],
+     "description": "Named coordinate transformations for this image. The transformation named array_to_physical is the image frame. It maps the coordinate system named array (axes x, y and z by position, of type array, in pixel) to the one named physical (of type space, in angstrom). It is a Sequence of an optional Rot90, an optional Reflection, a Translation and a Scale, in that order and each at most once, so that physical = diag(scale) (F R index + translation). The translation is in pixels along the oriented axes, and the scale is the pixel or voxel spacing in angstrom along the final axes. A missing step means no rotation, no reflection, zero translation or unit spacing. Other named transformations are not restricted.",
+     "title": "Coordinate Transformations"
+    },
+    "depth": {
+     "anyOf": [
+      {
+       "type": "integer"
+      },
+      {
+       "type": "null"
+      }
+     ],
+     "default": null,
+     "description": "The depth of the image (z-axis) in pixels",
+     "title": "Depth"
+    },
+    "height": {
+     "anyOf": [
+      {
+       "type": "integer"
+      },
+      {
+       "type": "null"
+      }
+     ],
+     "default": null,
+     "description": "The height of the image (y-axis) in pixels",
+     "title": "Height"
+    },
+    "id": {
+     "description": "Unique identifier for this entity",
+     "title": "Id",
+     "type": "string"
+    },
+    "name": {
+     "anyOf": [
+      {
+       "type": "string"
+      },
+      {
+       "type": "null"
+      }
+     ],
+     "default": null,
+     "description": "A human-readable name or title for this entity",
+     "title": "Name"
+    },
+    "path": {
+     "anyOf": [
+      {
+       "type": "string"
+      },
+      {
+       "type": "null"
+      }
+     ],
+     "default": null,
+     "description": "Path to a file.",
+     "title": "Path"
+    },
+    "source_tomogram_id": {
+     "anyOf": [
+      {
+       "type": "string"
+      },
+      {
+       "type": "null"
+      }
+     ],
+     "default": null,
+     "description": "ID of the tomogram from which this annotation was derived, such as the tomogram containing picked coordinates.",
+     "title": "Source Tomogram Id"
+    },
+    "width": {
+     "anyOf": [
+      {
+       "type": "integer"
+      },
+      {
+       "type": "null"
+      }
+     ],
+     "default": null,
+     "description": "The width of the image (x-axis) in pixels",
+     "title": "Width"
+    }
+   },
+   "required": [
+    "id"
+   ],
+   "title": "ProbabilityMap3D",
+   "type": "object"
+  },
+  "ProjectAxis": {
+   "additionalProperties": false,
+   "description": "A change in the number of axes, by dropping input axes and creating output axes at given positions",
+   "properties": {
+    "created_outputs": {
+     "anyOf": [
+      {
+       "items": {
+        "type": "integer"
+       },
+       "type": "array"
+      },
+      {
+       "type": "null"
+      }
+     ],
+     "default": [],
+     "description": "Positions of the output axes that are created, counted from 0, each listed once. Their coordinate is 0. The other output positions take the kept input axes in their order, so the output has as many axes as the input, minus the dropped and plus the created ones.",
+     "title": "Created Outputs"
+    },
+    "dropped_inputs": {
+     "anyOf": [
+      {
+       "items": {
+        "type": "integer"
+       },
+       "type": "array"
+      },
+      {
+       "type": "null"
+      }
+     ],
+     "default": [],
+     "description": "Positions of the input axes that are dropped, counted from 0, each listed once.",
+     "title": "Dropped Inputs"
+    },
+    "input": {
+     "anyOf": [
+      {
+       "type": "string"
+      },
+      {
+       "type": "null"
+      }
+     ],
+     "default": null,
+     "description": "The source coordinate system name",
+     "title": "Input"
+    },
+    "name": {
+     "anyOf": [
+      {
+       "type": "string"
+      },
+      {
+       "type": "null"
+      }
+     ],
+     "default": null,
+     "description": "A human-readable name or title for this entity",
+     "title": "Name"
+    },
+    "output": {
+     "anyOf": [
+      {
+       "type": "string"
+      },
+      {
+       "type": "null"
+      }
+     ],
+     "default": null,
+     "description": "The target coordinate system name",
+     "title": "Output"
+    },
+    "transformation_type": {
+     "const": "project_axis",
+     "default": "project_axis",
+     "description": "The type of transformation.",
+     "title": "Transformation Type",
+     "type": "string"
+    }
+   },
+   "title": "ProjectAxis",
+   "type": "object"
+  },
+  "ProjectionAlignment": {
+   "additionalProperties": false,
+   "description": "The tomographic alignment for a single projection.",
+   "properties": {
+    "id": {
+     "description": "Unique identifier for this entity",
+     "title": "Id",
+     "type": "string"
+    },
+    "input": {
+     "anyOf": [
+      {
+       "type": "string"
+      },
+      {
+       "type": "null"
+      }
+     ],
+     "default": null,
+     "description": "The source coordinate system name",
+     "title": "Input"
+    },
+    "name": {
+     "anyOf": [
+      {
+       "type": "string"
+      },
+      {
+       "type": "null"
+      }
+     ],
+     "default": null,
+     "description": "A human-readable name or title for this entity",
+     "title": "Name"
+    },
+    "output": {
+     "anyOf": [
+      {
+       "type": "string"
+      },
+      {
+       "type": "null"
+      }
+     ],
+     "default": null,
+     "description": "The target coordinate system name",
+     "title": "Output"
+    },
+    "sequence": {
+     "anyOf": [
+      {
+       "items": {
+        "anyOf": [
+         {
+          "$ref": "#/$defs/Affine"
+         },
+         {
+          "$ref": "#/$defs/ProjectAxis"
+         },
+         {
+          "$ref": "#/$defs/Translation"
+         }
+        ]
+       },
+       "maxItems": 4,
+       "type": "array"
+      },
+      {
+       "type": "null"
+      }
+     ],
+     "default": [],
+     "description": "The ordered steps from the tomogram to the projection: a tilt, a projection that drops the beam axis, an in-plane rotation and a shift. A 3D step before the projection is a 4x4 affine; the 2D steps after it are a 3x3 affine and a two-component translation.",
+     "title": "Sequence"
+    },
+    "tilt_image_id": {
+     "anyOf": [
+      {
+       "type": "string"
+      },
+      {
+       "type": "null"
+      }
+     ],
+     "default": null,
+     "description": "ID of the tilt-image this alignment applies to. Multiple alignments (e.g. produced  by different algorithms) may reference the same tilt-image.",
+     "title": "Tilt Image Id"
+    },
+    "transformation_type": {
+     "const": "projection_alignment",
+     "default": "projection_alignment",
+     "description": "The type of transformation.",
+     "title": "Transformation Type",
+     "type": "string"
+    }
+   },
+   "required": [
+    "id"
+   ],
+   "title": "ProjectionAlignment",
+   "type": "object"
+  },
+  "Reflection": {
+   "additionalProperties": false,
+   "description": "A reflection that negates the coordinates along one or more axes",
+   "properties": {
+    "axes": {
+     "description": "The axes whose coordinates are negated, each listed once. Axes are named by position: x is the first axis of the coordinate system, y the second and z the third. The reflection is about the origin, and the coordinates along the other axes are unchanged.",
+     "items": {
+      "$ref": "#/$defs/ReflectionAxis"
+     },
+     "minItems": 1,
+     "title": "Axes",
+     "type": "array"
+    },
+    "input": {
+     "anyOf": [
+      {
+       "type": "string"
+      },
+      {
+       "type": "null"
+      }
+     ],
+     "default": null,
+     "description": "The source coordinate system name",
+     "title": "Input"
+    },
+    "name": {
+     "anyOf": [
+      {
+       "type": "string"
+      },
+      {
+       "type": "null"
+      }
+     ],
+     "default": null,
+     "description": "A human-readable name or title for this entity",
+     "title": "Name"
+    },
+    "output": {
+     "anyOf": [
+      {
+       "type": "string"
+      },
+      {
+       "type": "null"
+      }
+     ],
+     "default": null,
+     "description": "The target coordinate system name",
+     "title": "Output"
+    },
+    "transformation_type": {
+     "const": "reflection",
+     "default": "reflection",
+     "description": "The type of transformation.",
+     "title": "Transformation Type",
+     "type": "string"
+    }
+   },
+   "required": [
+    "axes"
+   ],
+   "title": "Reflection",
+   "type": "object"
+  },
+  "ReflectionAxis": {
+   "description": "An axis named by its position in a coordinate system.",
+   "enum": [
+    "x",
+    "y",
+    "z"
+   ],
+   "title": "ReflectionAxis",
+   "type": "string"
+  },
+  "Region": {
+   "additionalProperties": false,
+   "description": "Raw data (movie stacks) and derived data (tilt series, tomograms, annotations) from a single region of a specimen.",
+   "properties": {
+    "alignments": {
+     "anyOf": [
+      {
+       "items": {
+        "$ref": "#/$defs/Alignment"
+       },
+       "type": "array"
+      },
+      {
+       "type": "null"
+      }
+     ],
+     "default": [],
+     "description": "The alignments",
+     "title": "Alignments"
+    },
+    "annotations": {
+     "anyOf": [
+      {
+       "items": {
+        "discriminator": {
+         "mapping": {
+          "box_set": "#/$defs/BoxSet",
+          "circle_set": "#/$defs/CircleSet",
+          "cuboid_set": "#/$defs/CuboidSet",
+          "cylinder_set": "#/$defs/CylinderSet",
+          "density_map": "#/$defs/DensityMap",
+          "point_matrix_set_2D": "#/$defs/PointMatrixSet2D",
+          "point_matrix_set_3D": "#/$defs/PointMatrixSet3D",
+          "point_set_2D": "#/$defs/PointSet2D",
+          "point_set_3D": "#/$defs/PointSet3D",
+          "point_vector_set_2D": "#/$defs/PointVectorSet2D",
+          "point_vector_set_3D": "#/$defs/PointVectorSet3D",
+          "probability_map_2D": "#/$defs/ProbabilityMap2D",
+          "probability_map_3D": "#/$defs/ProbabilityMap3D",
+          "segmentation_mask_2D": "#/$defs/SegmentationMask2D",
+          "segmentation_mask_3D": "#/$defs/SegmentationMask3D",
+          "sphere_set": "#/$defs/SphereSet",
+          "spline_2D": "#/$defs/Spline2D",
+          "spline_3D": "#/$defs/Spline3D",
+          "tri_mesh": "#/$defs/TriMesh"
+         },
+         "propertyName": "annotation_type"
+        },
+        "oneOf": [
+         {
+          "$ref": "#/$defs/SegmentationMask2D"
+         },
+         {
+          "$ref": "#/$defs/SegmentationMask3D"
+         },
+         {
+          "$ref": "#/$defs/ProbabilityMap2D"
+         },
+         {
+          "$ref": "#/$defs/ProbabilityMap3D"
+         },
+         {
+          "$ref": "#/$defs/PointSet2D"
+         },
+         {
+          "$ref": "#/$defs/PointSet3D"
+         },
+         {
+          "$ref": "#/$defs/PointVectorSet2D"
+         },
+         {
+          "$ref": "#/$defs/PointVectorSet3D"
+         },
+         {
+          "$ref": "#/$defs/PointMatrixSet2D"
+         },
+         {
+          "$ref": "#/$defs/PointMatrixSet3D"
+         },
+         {
+          "$ref": "#/$defs/TriMesh"
+         },
+         {
+          "$ref": "#/$defs/SphereSet"
+         },
+         {
+          "$ref": "#/$defs/CircleSet"
+         },
+         {
+          "$ref": "#/$defs/CylinderSet"
+         },
+         {
+          "$ref": "#/$defs/CuboidSet"
+         },
+         {
+          "$ref": "#/$defs/BoxSet"
+         },
+         {
+          "$ref": "#/$defs/Spline2D"
+         },
+         {
+          "$ref": "#/$defs/Spline3D"
+         },
+         {
+          "$ref": "#/$defs/DensityMap"
+         }
+        ]
+       },
+       "type": "array"
+      },
+      {
+       "type": "null"
+      }
+     ],
+     "default": [],
+     "description": "The annotations for this region",
+     "title": "Annotations"
+    },
+    "id": {
+     "description": "Unique identifier for this entity",
+     "title": "Id",
+     "type": "string"
+    },
+    "movie_stack_collection": {
+     "anyOf": [
+      {
+       "$ref": "#/$defs/MovieStackCollection"
+      },
+      {
+       "type": "null"
+      }
+     ],
+     "default": null,
+     "description": "The movie stack"
+    },
+    "tilt_series": {
+     "anyOf": [
+      {
+       "items": {
+        "$ref": "#/$defs/TiltSeries"
+       },
+       "type": "array"
+      },
+      {
+       "type": "null"
+      }
+     ],
+     "default": [],
+     "description": "The tilt series",
+     "title": "Tilt Series"
+    },
+    "tomograms": {
+     "anyOf": [
+      {
+       "items": {
+        "$ref": "#/$defs/Tomogram"
+       },
+       "type": "array"
+      },
+      {
+       "type": "null"
+      }
+     ],
+     "default": [],
+     "description": "The tomograms",
+     "title": "Tomograms"
+    }
+   },
+   "required": [
+    "id"
+   ],
+   "title": "Region",
+   "type": "object"
+  },
+  "Rot90": {
+   "additionalProperties": false,
+   "description": "A rotation by quarter turns about coordinate axes, in two or three dimensions",
+   "properties": {
+    "input": {
+     "anyOf": [
+      {
+       "type": "string"
+      },
+      {
+       "type": "null"
+      }
+     ],
+     "default": null,
+     "description": "The source coordinate system name",
+     "title": "Input"
+    },
+    "name": {
+     "anyOf": [
+      {
+       "type": "string"
+      },
+      {
+       "type": "null"
+      }
+     ],
+     "default": null,
+     "description": "A human-readable name or title for this entity",
+     "title": "Name"
+    },
+    "output": {
+     "anyOf": [
+      {
+       "type": "string"
+      },
+      {
+       "type": "null"
+      }
+     ],
+     "default": null,
+     "description": "The target coordinate system name",
+     "title": "Output"
+    },
+    "rot90": {
+     "anyOf": [
+      {
+       "items": {
+        "items": {
+         "type": "integer"
+        },
+        "maxItems": 3,
+        "minItems": 3,
+        "type": "array"
+       },
+       "maxItems": 3,
+       "minItems": 3,
+       "type": "array"
+      },
+      {
+       "items": {
+        "items": {
+         "type": "integer"
+        },
+        "maxItems": 4,
+        "minItems": 4,
+        "type": "array"
+       },
+       "maxItems": 4,
+       "minItems": 4,
+       "type": "array"
+      }
+     ],
+     "description": "A homogeneous matrix stored as a list of rows, with the same layout as an affine matrix: 3x3 for a 2D rotation, 4x4 for a 3D rotation. Each row and each column of the upper-left block has exactly one nonzero entry, 1 or -1, and the block has determinant +1. The last column and the bottom row are both [0, 0, 1] in 2D or [0, 0, 0, 1] in 3D, so there is no translation.",
+     "title": "Rot90"
+    },
+    "transformation_type": {
+     "const": "rot90",
+     "default": "rot90",
+     "description": "The type of transformation.",
+     "title": "Transformation Type",
+     "type": "string"
+    }
+   },
+   "required": [
+    "rot90"
+   ],
+   "title": "Rot90",
+   "type": "object"
+  },
+  "Scale": {
+   "additionalProperties": false,
+   "description": "A scaling transformation",
+   "properties": {
+    "input": {
+     "anyOf": [
+      {
+       "type": "string"
+      },
+      {
+       "type": "null"
+      }
+     ],
+     "default": null,
+     "description": "The source coordinate system name",
+     "title": "Input"
+    },
+    "name": {
+     "anyOf": [
+      {
+       "type": "string"
+      },
+      {
+       "type": "null"
+      }
+     ],
+     "default": null,
+     "description": "A human-readable name or title for this entity",
+     "title": "Name"
+    },
+    "output": {
+     "anyOf": [
+      {
+       "type": "string"
+      },
+      {
+       "type": "null"
+      }
+     ],
+     "default": null,
+     "description": "The target coordinate system name",
+     "title": "Output"
+    },
+    "scale": {
+     "anyOf": [
+      {
+       "items": {
+        "type": "number"
+       },
+       "type": "array"
+      },
+      {
+       "type": "null"
+      }
+     ],
+     "default": [],
+     "description": "The scale factor along each axis. Factors are finite and strictly positive; a reversed axis is expressed with Reflection.",
+     "title": "Scale"
+    },
+    "transformation_type": {
+     "const": "scale",
+     "default": "scale",
+     "description": "The type of transformation.",
+     "title": "Transformation Type",
+     "type": "string"
+    }
+   },
+   "title": "Scale",
+   "type": "object"
+  },
+  "SegmentationMask2D": {
+   "additionalProperties": false,
+   "description": "An annotation image with categorical labels.",
+   "properties": {
+    "annotation_type": {
+     "const": "segmentation_mask_2D",
+     "default": "segmentation_mask_2D",
+     "description": "The type of annotation.",
+     "title": "Annotation Type",
+     "type": "string"
+    },
+    "coordinate_systems": {
+     "anyOf": [
+      {
+       "items": {
+        "$ref": "#/$defs/CoordinateSystem"
+       },
+       "type": "array"
+      },
+      {
+       "type": "null"
+      }
+     ],
+     "default": [],
+     "description": "Named coordinate systems for this entity",
+     "title": "Coordinate Systems"
+    },
+    "coordinate_transformations": {
+     "anyOf": [
+      {
+       "items": {
+        "discriminator": {
+         "mapping": {
+          "affine": "#/$defs/Affine",
+          "identity": "#/$defs/Identity",
+          "map_axis": "#/$defs/MapAxis",
+          "project_axis": "#/$defs/ProjectAxis",
+          "reflection": "#/$defs/Reflection",
+          "rot90": "#/$defs/Rot90",
+          "scale": "#/$defs/Scale",
+          "sequence": "#/$defs/Sequence",
+          "translation": "#/$defs/Translation"
+         },
+         "propertyName": "transformation_type"
+        },
+        "oneOf": [
+         {
+          "$ref": "#/$defs/Identity"
+         },
+         {
+          "$ref": "#/$defs/MapAxis"
+         },
+         {
+          "$ref": "#/$defs/Translation"
+         },
+         {
+          "$ref": "#/$defs/Scale"
+         },
+         {
+          "$ref": "#/$defs/Affine"
+         },
+         {
+          "$ref": "#/$defs/Rot90"
+         },
+         {
+          "$ref": "#/$defs/Reflection"
+         },
+         {
+          "$ref": "#/$defs/ProjectAxis"
+         },
+         {
+          "$ref": "#/$defs/Sequence"
+         }
+        ]
+       },
+       "type": "array"
+      },
+      {
+       "type": "null"
+      }
+     ],
+     "default": [],
+     "description": "Named coordinate transformations for this image. The transformation named array_to_physical is the image frame. It maps the coordinate system named array (axes x, y and z by position, of type array, in pixel) to the one named physical (of type space, in angstrom). It is a Sequence of an optional Rot90, an optional Reflection, a Translation and a Scale, in that order and each at most once, so that physical = diag(scale) (F R index + translation). The translation is in pixels along the oriented axes, and the scale is the pixel or voxel spacing in angstrom along the final axes. A missing step means no rotation, no reflection, zero translation or unit spacing. Other named transformations are not restricted.",
+     "title": "Coordinate Transformations"
+    },
+    "height": {
+     "anyOf": [
+      {
+       "type": "integer"
+      },
+      {
+       "type": "null"
+      }
+     ],
+     "default": null,
+     "description": "The height of the image (y-axis) in pixels",
+     "title": "Height"
+    },
+    "id": {
+     "description": "Unique identifier for this entity",
+     "title": "Id",
+     "type": "string"
+    },
+    "name": {
+     "anyOf": [
+      {
+       "type": "string"
+      },
+      {
+       "type": "null"
+      }
+     ],
+     "default": null,
+     "description": "A human-readable name or title for this entity",
+     "title": "Name"
+    },
+    "path": {
+     "anyOf": [
+      {
+       "type": "string"
+      },
+      {
+       "type": "null"
+      }
+     ],
+     "default": null,
+     "description": "Path to a file.",
+     "title": "Path"
+    },
+    "source_tomogram_id": {
+     "anyOf": [
+      {
+       "type": "string"
+      },
+      {
+       "type": "null"
+      }
+     ],
+     "default": null,
+     "description": "ID of the tomogram from which this annotation was derived, such as the tomogram containing picked coordinates.",
+     "title": "Source Tomogram Id"
+    },
+    "width": {
+     "anyOf": [
+      {
+       "type": "integer"
+      },
+      {
+       "type": "null"
+      }
+     ],
+     "default": null,
+     "description": "The width of the image (x-axis) in pixels",
+     "title": "Width"
+    }
+   },
+   "required": [
+    "id"
+   ],
+   "title": "SegmentationMask2D",
+   "type": "object"
+  },
+  "SegmentationMask3D": {
+   "additionalProperties": false,
+   "description": "An annotation volume with categorical labels.",
+   "properties": {
+    "annotation_type": {
+     "const": "segmentation_mask_3D",
+     "default": "segmentation_mask_3D",
+     "description": "The type of annotation.",
+     "title": "Annotation Type",
+     "type": "string"
+    },
+    "coordinate_systems": {
+     "anyOf": [
+      {
+       "items": {
+        "$ref": "#/$defs/CoordinateSystem"
+       },
+       "type": "array"
+      },
+      {
+       "type": "null"
+      }
+     ],
+     "default": [],
+     "description": "Named coordinate systems for this entity",
+     "title": "Coordinate Systems"
+    },
+    "coordinate_transformations": {
+     "anyOf": [
+      {
+       "items": {
+        "discriminator": {
+         "mapping": {
+          "affine": "#/$defs/Affine",
+          "identity": "#/$defs/Identity",
+          "map_axis": "#/$defs/MapAxis",
+          "project_axis": "#/$defs/ProjectAxis",
+          "reflection": "#/$defs/Reflection",
+          "rot90": "#/$defs/Rot90",
+          "scale": "#/$defs/Scale",
+          "sequence": "#/$defs/Sequence",
+          "translation": "#/$defs/Translation"
+         },
+         "propertyName": "transformation_type"
+        },
+        "oneOf": [
+         {
+          "$ref": "#/$defs/Identity"
+         },
+         {
+          "$ref": "#/$defs/MapAxis"
+         },
+         {
+          "$ref": "#/$defs/Translation"
+         },
+         {
+          "$ref": "#/$defs/Scale"
+         },
+         {
+          "$ref": "#/$defs/Affine"
+         },
+         {
+          "$ref": "#/$defs/Rot90"
+         },
+         {
+          "$ref": "#/$defs/Reflection"
+         },
+         {
+          "$ref": "#/$defs/ProjectAxis"
+         },
+         {
+          "$ref": "#/$defs/Sequence"
+         }
+        ]
+       },
+       "type": "array"
+      },
+      {
+       "type": "null"
+      }
+     ],
+     "default": [],
+     "description": "Named coordinate transformations for this image. The transformation named array_to_physical is the image frame. It maps the coordinate system named array (axes x, y and z by position, of type array, in pixel) to the one named physical (of type space, in angstrom). It is a Sequence of an optional Rot90, an optional Reflection, a Translation and a Scale, in that order and each at most once, so that physical = diag(scale) (F R index + translation). The translation is in pixels along the oriented axes, and the scale is the pixel or voxel spacing in angstrom along the final axes. A missing step means no rotation, no reflection, zero translation or unit spacing. Other named transformations are not restricted.",
+     "title": "Coordinate Transformations"
+    },
+    "depth": {
+     "anyOf": [
+      {
+       "type": "integer"
+      },
+      {
+       "type": "null"
+      }
+     ],
+     "default": null,
+     "description": "The depth of the image (z-axis) in pixels",
+     "title": "Depth"
+    },
+    "height": {
+     "anyOf": [
+      {
+       "type": "integer"
+      },
+      {
+       "type": "null"
+      }
+     ],
+     "default": null,
+     "description": "The height of the image (y-axis) in pixels",
+     "title": "Height"
+    },
+    "id": {
+     "description": "Unique identifier for this entity",
+     "title": "Id",
+     "type": "string"
+    },
+    "name": {
+     "anyOf": [
+      {
+       "type": "string"
+      },
+      {
+       "type": "null"
+      }
+     ],
+     "default": null,
+     "description": "A human-readable name or title for this entity",
+     "title": "Name"
+    },
+    "path": {
+     "anyOf": [
+      {
+       "type": "string"
+      },
+      {
+       "type": "null"
+      }
+     ],
+     "default": null,
+     "description": "Path to a file.",
+     "title": "Path"
+    },
+    "source_tomogram_id": {
+     "anyOf": [
+      {
+       "type": "string"
+      },
+      {
+       "type": "null"
+      }
+     ],
+     "default": null,
+     "description": "ID of the tomogram from which this annotation was derived, such as the tomogram containing picked coordinates.",
+     "title": "Source Tomogram Id"
+    },
+    "width": {
+     "anyOf": [
+      {
+       "type": "integer"
+      },
+      {
+       "type": "null"
+      }
+     ],
+     "default": null,
+     "description": "The width of the image (x-axis) in pixels",
+     "title": "Width"
+    }
+   },
+   "required": [
+    "id"
+   ],
+   "title": "SegmentationMask3D",
+   "type": "object"
+  },
+  "Sequence": {
+   "additionalProperties": false,
+   "description": "A sequence of transformations",
+   "properties": {
+    "input": {
+     "anyOf": [
+      {
+       "type": "string"
+      },
+      {
+       "type": "null"
+      }
+     ],
+     "default": null,
+     "description": "The source coordinate system name",
+     "title": "Input"
+    },
+    "name": {
+     "anyOf": [
+      {
+       "type": "string"
+      },
+      {
+       "type": "null"
+      }
+     ],
+     "default": null,
+     "description": "A human-readable name or title for this entity",
+     "title": "Name"
+    },
+    "output": {
+     "anyOf": [
+      {
+       "type": "string"
+      },
+      {
+       "type": "null"
+      }
+     ],
+     "default": null,
+     "description": "The target coordinate system name",
+     "title": "Output"
+    },
+    "sequence": {
+     "anyOf": [
+      {
+       "items": {
+        "discriminator": {
+         "mapping": {
+          "affine": "#/$defs/Affine",
+          "identity": "#/$defs/Identity",
+          "map_axis": "#/$defs/MapAxis",
+          "project_axis": "#/$defs/ProjectAxis",
+          "reflection": "#/$defs/Reflection",
+          "rot90": "#/$defs/Rot90",
+          "scale": "#/$defs/Scale",
+          "translation": "#/$defs/Translation"
+         },
+         "propertyName": "transformation_type"
+        },
+        "oneOf": [
+         {
+          "$ref": "#/$defs/Identity"
+         },
+         {
+          "$ref": "#/$defs/MapAxis"
+         },
+         {
+          "$ref": "#/$defs/Translation"
+         },
+         {
+          "$ref": "#/$defs/Scale"
+         },
+         {
+          "$ref": "#/$defs/Affine"
+         },
+         {
+          "$ref": "#/$defs/Rot90"
+         },
+         {
+          "$ref": "#/$defs/Reflection"
+         },
+         {
+          "$ref": "#/$defs/ProjectAxis"
+         }
+        ]
+       },
+       "type": "array"
+      },
+      {
+       "type": "null"
+      }
+     ],
+     "default": [],
+     "description": "The sequence of transformations",
+     "title": "Sequence"
+    },
+    "transformation_type": {
+     "const": "sequence",
+     "default": "sequence",
+     "description": "The type of transformation.",
+     "title": "Transformation Type",
+     "type": "string"
+    }
+   },
+   "title": "Sequence",
+   "type": "object"
+  },
+  "SphereSet": {
+   "additionalProperties": false,
+   "description": "A set of spheres.",
+   "properties": {
+    "annotation_type": {
+     "const": "sphere_set",
+     "default": "sphere_set",
+     "description": "The type of annotation.",
+     "title": "Annotation Type",
+     "type": "string"
+    },
+    "coordinate_systems": {
+     "anyOf": [
+      {
+       "items": {
+        "$ref": "#/$defs/CoordinateSystem"
+       },
+       "type": "array"
+      },
+      {
+       "type": "null"
+      }
+     ],
+     "default": [],
+     "description": "Named coordinate systems for this entity",
+     "title": "Coordinate Systems"
+    },
+    "coordinate_transformations": {
+     "anyOf": [
+      {
+       "items": {
+        "discriminator": {
+         "mapping": {
+          "affine": "#/$defs/Affine",
+          "identity": "#/$defs/Identity",
+          "map_axis": "#/$defs/MapAxis",
+          "project_axis": "#/$defs/ProjectAxis",
+          "reflection": "#/$defs/Reflection",
+          "rot90": "#/$defs/Rot90",
+          "scale": "#/$defs/Scale",
+          "sequence": "#/$defs/Sequence",
+          "translation": "#/$defs/Translation"
+         },
+         "propertyName": "transformation_type"
+        },
+        "oneOf": [
+         {
+          "$ref": "#/$defs/Identity"
+         },
+         {
+          "$ref": "#/$defs/MapAxis"
+         },
+         {
+          "$ref": "#/$defs/Translation"
+         },
+         {
+          "$ref": "#/$defs/Scale"
+         },
+         {
+          "$ref": "#/$defs/Affine"
+         },
+         {
+          "$ref": "#/$defs/Rot90"
+         },
+         {
+          "$ref": "#/$defs/Reflection"
+         },
+         {
+          "$ref": "#/$defs/ProjectAxis"
+         },
+         {
+          "$ref": "#/$defs/Sequence"
+         }
+        ]
+       },
+       "type": "array"
+      },
+      {
+       "type": "null"
+      }
+     ],
+     "default": [],
+     "description": "Named coordinate transformations for this entity",
+     "title": "Coordinate Transformations"
+    },
+    "id": {
+     "description": "Unique identifier for this entity",
+     "title": "Id",
+     "type": "string"
+    },
+    "name": {
+     "anyOf": [
+      {
+       "type": "string"
+      },
+      {
+       "type": "null"
+      }
+     ],
+     "default": null,
+     "description": "A human-readable name or title for this entity",
+     "title": "Name"
+    },
+    "origin3D": {
+     "anyOf": [
+      {
+       "items": {
+        "items": {
+         "type": "number"
+        },
+        "maxItems": 3,
+        "minItems": 3,
+        "type": "array"
+       },
+       "minItems": 1,
+       "type": "array"
+      },
+      {
+       "type": "null"
+      }
+     ],
+     "default": null,
+     "description": "Location on a 3D image (Nx3).",
+     "title": "Origin3D"
+    },
+    "radii": {
+     "anyOf": [
+      {
+       "items": {
+        "type": "number"
+       },
+       "minItems": 1,
+       "type": "array"
+      },
+      {
+       "type": "null"
+      }
+     ],
+     "default": null,
+     "description": "Radii of circles, spheres, or cylinders (N).",
+     "title": "Radii"
+    },
+    "source_tomogram_id": {
+     "anyOf": [
+      {
+       "type": "string"
+      },
+      {
+       "type": "null"
+      }
+     ],
+     "default": null,
+     "description": "ID of the tomogram from which this annotation was derived, such as the tomogram containing picked coordinates.",
+     "title": "Source Tomogram Id"
+    }
+   },
+   "required": [
+    "id"
+   ],
+   "title": "SphereSet",
+   "type": "object"
+  },
+  "Spline2D": {
+   "additionalProperties": false,
+   "description": "A 2D spline.",
+   "properties": {
+    "annotation_type": {
+     "const": "spline_2D",
+     "default": "spline_2D",
+     "description": "The type of annotation.",
+     "title": "Annotation Type",
+     "type": "string"
+    },
+    "coordinate_systems": {
+     "anyOf": [
+      {
+       "items": {
+        "$ref": "#/$defs/CoordinateSystem"
+       },
+       "type": "array"
+      },
+      {
+       "type": "null"
+      }
+     ],
+     "default": [],
+     "description": "Named coordinate systems for this entity",
+     "title": "Coordinate Systems"
+    },
+    "coordinate_transformations": {
+     "anyOf": [
+      {
+       "items": {
+        "discriminator": {
+         "mapping": {
+          "affine": "#/$defs/Affine",
+          "identity": "#/$defs/Identity",
+          "map_axis": "#/$defs/MapAxis",
+          "project_axis": "#/$defs/ProjectAxis",
+          "reflection": "#/$defs/Reflection",
+          "rot90": "#/$defs/Rot90",
+          "scale": "#/$defs/Scale",
+          "sequence": "#/$defs/Sequence",
+          "translation": "#/$defs/Translation"
+         },
+         "propertyName": "transformation_type"
+        },
+        "oneOf": [
+         {
+          "$ref": "#/$defs/Identity"
+         },
+         {
+          "$ref": "#/$defs/MapAxis"
+         },
+         {
+          "$ref": "#/$defs/Translation"
+         },
+         {
+          "$ref": "#/$defs/Scale"
+         },
+         {
+          "$ref": "#/$defs/Affine"
+         },
+         {
+          "$ref": "#/$defs/Rot90"
+         },
+         {
+          "$ref": "#/$defs/Reflection"
+         },
+         {
+          "$ref": "#/$defs/ProjectAxis"
+         },
+         {
+          "$ref": "#/$defs/Sequence"
+         }
+        ]
+       },
+       "type": "array"
+      },
+      {
+       "type": "null"
+      }
+     ],
+     "default": [],
+     "description": "Named coordinate transformations for this entity",
+     "title": "Coordinate Transformations"
+    },
+    "id": {
+     "description": "Unique identifier for this entity",
+     "title": "Id",
+     "type": "string"
+    },
+    "name": {
+     "anyOf": [
+      {
+       "type": "string"
+      },
+      {
+       "type": "null"
+      }
+     ],
+     "default": null,
+     "description": "A human-readable name or title for this entity",
+     "title": "Name"
+    },
+    "origin2D": {
+     "anyOf": [
+      {
+       "items": {
+        "items": {
+         "type": "number"
+        },
+        "maxItems": 2,
+        "minItems": 2,
+        "type": "array"
+       },
+       "minItems": 1,
+       "type": "array"
+      },
+      {
+       "type": "null"
+      }
+     ],
+     "default": null,
+     "description": "Location on a 2D image (Nx2).",
+     "title": "Origin2D"
+    },
+    "source_tomogram_id": {
+     "anyOf": [
+      {
+       "type": "string"
+      },
+      {
+       "type": "null"
+      }
+     ],
+     "default": null,
+     "description": "ID of the tomogram from which this annotation was derived, such as the tomogram containing picked coordinates.",
+     "title": "Source Tomogram Id"
+    }
+   },
+   "required": [
+    "id"
+   ],
+   "title": "Spline2D",
+   "type": "object"
+  },
+  "Spline3D": {
+   "additionalProperties": false,
+   "description": "A 3D spline.",
+   "properties": {
+    "annotation_type": {
+     "const": "spline_3D",
+     "default": "spline_3D",
+     "description": "The type of annotation.",
+     "title": "Annotation Type",
+     "type": "string"
+    },
+    "coordinate_systems": {
+     "anyOf": [
+      {
+       "items": {
+        "$ref": "#/$defs/CoordinateSystem"
+       },
+       "type": "array"
+      },
+      {
+       "type": "null"
+      }
+     ],
+     "default": [],
+     "description": "Named coordinate systems for this entity",
+     "title": "Coordinate Systems"
+    },
+    "coordinate_transformations": {
+     "anyOf": [
+      {
+       "items": {
+        "discriminator": {
+         "mapping": {
+          "affine": "#/$defs/Affine",
+          "identity": "#/$defs/Identity",
+          "map_axis": "#/$defs/MapAxis",
+          "project_axis": "#/$defs/ProjectAxis",
+          "reflection": "#/$defs/Reflection",
+          "rot90": "#/$defs/Rot90",
+          "scale": "#/$defs/Scale",
+          "sequence": "#/$defs/Sequence",
+          "translation": "#/$defs/Translation"
+         },
+         "propertyName": "transformation_type"
+        },
+        "oneOf": [
+         {
+          "$ref": "#/$defs/Identity"
+         },
+         {
+          "$ref": "#/$defs/MapAxis"
+         },
+         {
+          "$ref": "#/$defs/Translation"
+         },
+         {
+          "$ref": "#/$defs/Scale"
+         },
+         {
+          "$ref": "#/$defs/Affine"
+         },
+         {
+          "$ref": "#/$defs/Rot90"
+         },
+         {
+          "$ref": "#/$defs/Reflection"
+         },
+         {
+          "$ref": "#/$defs/ProjectAxis"
+         },
+         {
+          "$ref": "#/$defs/Sequence"
+         }
+        ]
+       },
+       "type": "array"
+      },
+      {
+       "type": "null"
+      }
+     ],
+     "default": [],
+     "description": "Named coordinate transformations for this entity",
+     "title": "Coordinate Transformations"
+    },
+    "id": {
+     "description": "Unique identifier for this entity",
+     "title": "Id",
+     "type": "string"
+    },
+    "name": {
+     "anyOf": [
+      {
+       "type": "string"
+      },
+      {
+       "type": "null"
+      }
+     ],
+     "default": null,
+     "description": "A human-readable name or title for this entity",
+     "title": "Name"
+    },
+    "origin3D": {
+     "anyOf": [
+      {
+       "items": {
+        "items": {
+         "type": "number"
+        },
+        "maxItems": 3,
+        "minItems": 3,
+        "type": "array"
+       },
+       "minItems": 1,
+       "type": "array"
+      },
+      {
+       "type": "null"
+      }
+     ],
+     "default": null,
+     "description": "Location on a 3D image (Nx3).",
+     "title": "Origin3D"
+    },
+    "source_tomogram_id": {
+     "anyOf": [
+      {
+       "type": "string"
+      },
+      {
+       "type": "null"
+      }
+     ],
+     "default": null,
+     "description": "ID of the tomogram from which this annotation was derived, such as the tomogram containing picked coordinates.",
+     "title": "Source Tomogram Id"
+    }
+   },
+   "required": [
+    "id"
+   ],
+   "title": "Spline3D",
+   "type": "object"
+  },
+  "TiltImage": {
+   "additionalProperties": false,
+   "description": "A projection image that belongs to a tilt series.",
+   "properties": {
+    "accumulated_dose": {
+     "anyOf": [
+      {
+       "type": "number"
+      },
+      {
+       "type": "null"
+      }
+     ],
+     "default": null,
+     "description": "The pre-exposure up to this image in e-/A^2",
+     "title": "Accumulated Dose"
+    },
+    "acquisition_order": {
+     "anyOf": [
+      {
+       "type": "integer"
+      },
+      {
+       "type": "null"
+      }
+     ],
+     "default": null,
+     "description": "Index giving the temporal order in which this tilt image was acquired during tilt-series collection (i.e. the dose-accumulation / tilt-scheme order), independent of its section index or nominal tilt angle within the stack.",
+     "title": "Acquisition Order"
+    },
+    "coordinate_systems": {
+     "anyOf": [
+      {
+       "items": {
+        "$ref": "#/$defs/CoordinateSystem"
+       },
+       "type": "array"
+      },
+      {
+       "type": "null"
+      }
+     ],
+     "default": [],
+     "description": "Named coordinate systems for this entity",
+     "title": "Coordinate Systems"
+    },
+    "coordinate_transformations": {
+     "anyOf": [
+      {
+       "items": {
+        "discriminator": {
+         "mapping": {
+          "affine": "#/$defs/Affine",
+          "identity": "#/$defs/Identity",
+          "map_axis": "#/$defs/MapAxis",
+          "project_axis": "#/$defs/ProjectAxis",
+          "reflection": "#/$defs/Reflection",
+          "rot90": "#/$defs/Rot90",
+          "scale": "#/$defs/Scale",
+          "sequence": "#/$defs/Sequence",
+          "translation": "#/$defs/Translation"
+         },
+         "propertyName": "transformation_type"
+        },
+        "oneOf": [
+         {
+          "$ref": "#/$defs/Identity"
+         },
+         {
+          "$ref": "#/$defs/MapAxis"
+         },
+         {
+          "$ref": "#/$defs/Translation"
+         },
+         {
+          "$ref": "#/$defs/Scale"
+         },
+         {
+          "$ref": "#/$defs/Affine"
+         },
+         {
+          "$ref": "#/$defs/Rot90"
+         },
+         {
+          "$ref": "#/$defs/Reflection"
+         },
+         {
+          "$ref": "#/$defs/ProjectAxis"
+         },
+         {
+          "$ref": "#/$defs/Sequence"
+         }
+        ]
+       },
+       "type": "array"
+      },
+      {
+       "type": "null"
+      }
+     ],
+     "default": [],
+     "description": "Named coordinate transformations for this image. The transformation named array_to_physical is the image frame. It maps the coordinate system named array (axes x, y and z by position, of type array, in pixel) to the one named physical (of type space, in angstrom). It is a Sequence of an optional Rot90, an optional Reflection, a Translation and a Scale, in that order and each at most once, so that physical = diag(scale) (F R index + translation). The translation is in pixels along the oriented axes, and the scale is the pixel or voxel spacing in angstrom along the final axes. A missing step means no rotation, no reflection, zero translation or unit spacing. Other named transformations are not restricted.",
+     "title": "Coordinate Transformations"
+    },
+    "ctf_metadata": {
+     "anyOf": [
+      {
+       "$ref": "#/$defs/CTFMetadata"
+      },
+      {
+       "type": "null"
+      }
+     ],
+     "default": null,
+     "description": "A set of CTF patameters for an image."
+    },
+    "exposure_time": {
+     "anyOf": [
+      {
+       "type": "number"
+      },
+      {
+       "type": "null"
+      }
+     ],
+     "default": null,
+     "description": "Total exposure time per movie/record in seconds.",
+     "title": "Exposure Time"
+    },
+    "height": {
+     "anyOf": [
+      {
+       "type": "integer"
+      },
+      {
+       "type": "null"
+      }
+     ],
+     "default": null,
+     "description": "The height of the image (y-axis) in pixels",
+     "title": "Height"
+    },
+    "id": {
+     "description": "Unique identifier for this entity",
+     "title": "Id",
+     "type": "string"
+    },
+    "movie_stack_id": {
+     "anyOf": [
+      {
+       "type": "string"
+      },
+      {
+       "type": "null"
+      }
+     ],
+     "default": null,
+     "description": "The ID of the movie stack for this tilt image.",
+     "title": "Movie Stack Id"
+    },
+    "nominal_tilt_angle": {
+     "anyOf": [
+      {
+       "type": "number"
+      },
+      {
+       "type": "null"
+      }
+     ],
+     "default": null,
+     "description": "The tilt angle reported by the microscope",
+     "title": "Nominal Tilt Angle"
+    },
+    "path": {
+     "anyOf": [
+      {
+       "type": "string"
+      },
+      {
+       "type": "null"
+      }
+     ],
+     "default": null,
+     "description": "Path to a file.",
+     "title": "Path"
+    },
+    "section": {
+     "anyOf": [
+      {
+       "type": "integer"
+      },
+      {
+       "type": "null"
+      }
+     ],
+     "default": null,
+     "description": "0-based section index to the entity inside a stack.",
+     "title": "Section"
+    },
+    "width": {
+     "anyOf": [
+      {
+       "type": "integer"
+      },
+      {
+       "type": "null"
+      }
+     ],
+     "default": null,
+     "description": "The width of the image (x-axis) in pixels",
+     "title": "Width"
+    }
+   },
+   "required": [
+    "id"
+   ],
+   "title": "TiltImage",
+   "type": "object"
+  },
+  "TiltSeries": {
+   "additionalProperties": false,
+   "description": "A stack of projection images.",
+   "properties": {
+    "acquisition_session_id": {
+     "anyOf": [
+      {
+       "type": "string"
+      },
+      {
+       "type": "null"
+      }
+     ],
+     "default": null,
+     "description": "The ID of the acquisition session this tilt series was collected in.",
+     "title": "Acquisition Session Id"
+    },
+    "ctf_corrected": {
+     "anyOf": [
+      {
+       "type": "boolean"
+      },
+      {
+       "type": "null"
+      }
+     ],
+     "default": null,
+     "description": "Flag to indicate if this was reconstructed from a tilt-series with the ctf corrected.",
+     "title": "Ctf Corrected"
+    },
+    "even_path": {
+     "anyOf": [
+      {
+       "type": "string"
+      },
+      {
+       "type": "null"
+      }
+     ],
+     "default": null,
+     "description": "Path of the even file.",
+     "title": "Even Path"
+    },
+    "id": {
+     "description": "Unique identifier for this entity",
+     "title": "Id",
+     "type": "string"
+    },
+    "images": {
+     "anyOf": [
+      {
+       "items": {
+        "$ref": "#/$defs/TiltImage"
+       },
+       "type": "array"
+      },
+      {
+       "type": "null"
+      }
+     ],
+     "default": [],
+     "description": "The projections in the stack.",
+     "title": "Images"
+    },
+    "movie_stack_series_id": {
+     "anyOf": [
+      {
+       "type": "string"
+      },
+      {
+       "type": "null"
+      }
+     ],
+     "default": null,
+     "description": "The ID of the movie stack series for this tilt series.",
+     "title": "Movie Stack Series Id"
+    },
+    "odd_path": {
+     "anyOf": [
+      {
+       "type": "string"
+      },
+      {
+       "type": "null"
+      }
+     ],
+     "default": null,
+     "description": "Path of the odd file.",
+     "title": "Odd Path"
+    },
+    "path": {
+     "anyOf": [
+      {
+       "type": "string"
+      },
+      {
+       "type": "null"
+      }
+     ],
+     "default": null,
+     "description": "Path to a file.",
+     "title": "Path"
+    }
+   },
+   "required": [
+    "id"
+   ],
+   "title": "TiltSeries",
+   "type": "object"
+  },
+  "Tomogram": {
+   "additionalProperties": false,
+   "description": "A 3D tomogram.",
+   "properties": {
+    "coordinate_systems": {
+     "anyOf": [
+      {
+       "items": {
+        "$ref": "#/$defs/CoordinateSystem"
+       },
+       "type": "array"
+      },
+      {
+       "type": "null"
+      }
+     ],
+     "default": [],
+     "description": "Named coordinate systems for this entity",
+     "title": "Coordinate Systems"
+    },
+    "coordinate_transformations": {
+     "anyOf": [
+      {
+       "items": {
+        "discriminator": {
+         "mapping": {
+          "affine": "#/$defs/Affine",
+          "identity": "#/$defs/Identity",
+          "map_axis": "#/$defs/MapAxis",
+          "project_axis": "#/$defs/ProjectAxis",
+          "reflection": "#/$defs/Reflection",
+          "rot90": "#/$defs/Rot90",
+          "scale": "#/$defs/Scale",
+          "sequence": "#/$defs/Sequence",
+          "translation": "#/$defs/Translation"
+         },
+         "propertyName": "transformation_type"
+        },
+        "oneOf": [
+         {
+          "$ref": "#/$defs/Identity"
+         },
+         {
+          "$ref": "#/$defs/MapAxis"
+         },
+         {
+          "$ref": "#/$defs/Translation"
+         },
+         {
+          "$ref": "#/$defs/Scale"
+         },
+         {
+          "$ref": "#/$defs/Affine"
+         },
+         {
+          "$ref": "#/$defs/Rot90"
+         },
+         {
+          "$ref": "#/$defs/Reflection"
+         },
+         {
+          "$ref": "#/$defs/ProjectAxis"
+         },
+         {
+          "$ref": "#/$defs/Sequence"
+         }
+        ]
+       },
+       "type": "array"
+      },
+      {
+       "type": "null"
+      }
+     ],
+     "default": [],
+     "description": "Named coordinate transformations for this image. The transformation named array_to_physical is the image frame. It maps the coordinate system named array (axes x, y and z by position, of type array, in pixel) to the one named physical (of type space, in angstrom). It is a Sequence of an optional Rot90, an optional Reflection, a Translation and a Scale, in that order and each at most once, so that physical = diag(scale) (F R index + translation). The translation is in pixels along the oriented axes, and the scale is the pixel or voxel spacing in angstrom along the final axes. A missing step means no rotation, no reflection, zero translation or unit spacing. Other named transformations are not restricted.",
+     "title": "Coordinate Transformations"
+    },
+    "ctf_corrected": {
+     "anyOf": [
+      {
+       "type": "boolean"
+      },
+      {
+       "type": "null"
+      }
+     ],
+     "default": null,
+     "description": "Flag to indicate if this was reconstructed from a tilt-series with the ctf corrected.",
+     "title": "Ctf Corrected"
+    },
+    "depth": {
+     "anyOf": [
+      {
+       "type": "integer"
+      },
+      {
+       "type": "null"
+      }
+     ],
+     "default": null,
+     "description": "The depth of the image (z-axis) in pixels",
+     "title": "Depth"
+    },
+    "even_path": {
+     "anyOf": [
+      {
+       "type": "string"
+      },
+      {
+       "type": "null"
+      }
+     ],
+     "default": null,
+     "description": "Path of the even file.",
+     "title": "Even Path"
+    },
+    "height": {
+     "anyOf": [
+      {
+       "type": "integer"
+      },
+      {
+       "type": "null"
+      }
+     ],
+     "default": null,
+     "description": "The height of the image (y-axis) in pixels",
+     "title": "Height"
+    },
+    "id": {
+     "description": "Unique identifier for this entity",
+     "title": "Id",
+     "type": "string"
+    },
+    "odd_path": {
+     "anyOf": [
+      {
+       "type": "string"
+      },
+      {
+       "type": "null"
+      }
+     ],
+     "default": null,
+     "description": "Path of the odd file.",
+     "title": "Odd Path"
+    },
+    "path": {
+     "anyOf": [
+      {
+       "type": "string"
+      },
+      {
+       "type": "null"
+      }
+     ],
+     "default": null,
+     "description": "Path to a file.",
+     "title": "Path"
+    },
+    "tilt_series_id": {
+     "anyOf": [
+      {
+       "type": "string"
+      },
+      {
+       "type": "null"
+      }
+     ],
+     "default": null,
+     "description": "The ID of the tilt series for this tomogram.",
+     "title": "Tilt Series Id"
+    },
+    "width": {
+     "anyOf": [
+      {
+       "type": "integer"
+      },
+      {
+       "type": "null"
+      }
+     ],
+     "default": null,
+     "description": "The width of the image (x-axis) in pixels",
+     "title": "Width"
+    }
+   },
+   "required": [
+    "id"
+   ],
+   "title": "Tomogram",
+   "type": "object"
+  },
+  "Translation": {
+   "additionalProperties": false,
+   "description": "A translation transformation",
+   "properties": {
+    "input": {
+     "anyOf": [
+      {
+       "type": "string"
+      },
+      {
+       "type": "null"
+      }
+     ],
+     "default": null,
+     "description": "The source coordinate system name",
+     "title": "Input"
+    },
+    "name": {
+     "anyOf": [
+      {
+       "type": "string"
+      },
+      {
+       "type": "null"
+      }
+     ],
+     "default": null,
+     "description": "A human-readable name or title for this entity",
+     "title": "Name"
+    },
+    "output": {
+     "anyOf": [
+      {
+       "type": "string"
+      },
+      {
+       "type": "null"
+      }
+     ],
+     "default": null,
+     "description": "The target coordinate system name",
+     "title": "Output"
+    },
+    "transformation_type": {
+     "const": "translation",
+     "default": "translation",
+     "description": "The type of transformation.",
+     "title": "Transformation Type",
+     "type": "string"
+    },
+    "translation": {
+     "anyOf": [
+      {
+       "items": {
+        "type": "number"
+       },
+       "type": "array"
+      },
+      {
+       "type": "null"
+      }
+     ],
+     "default": [],
+     "description": "The translation vector",
+     "title": "Translation"
+    }
+   },
+   "title": "Translation",
+   "type": "object"
+  },
+  "TriMesh": {
+   "additionalProperties": false,
+   "description": "A mesh annotation.",
+   "properties": {
+    "annotation_type": {
+     "const": "tri_mesh",
+     "default": "tri_mesh",
+     "description": "The type of annotation.",
+     "title": "Annotation Type",
+     "type": "string"
+    },
+    "coordinate_systems": {
+     "anyOf": [
+      {
+       "items": {
+        "$ref": "#/$defs/CoordinateSystem"
+       },
+       "type": "array"
+      },
+      {
+       "type": "null"
+      }
+     ],
+     "default": [],
+     "description": "Named coordinate systems for this entity",
+     "title": "Coordinate Systems"
+    },
+    "coordinate_transformations": {
+     "anyOf": [
+      {
+       "items": {
+        "discriminator": {
+         "mapping": {
+          "affine": "#/$defs/Affine",
+          "identity": "#/$defs/Identity",
+          "map_axis": "#/$defs/MapAxis",
+          "project_axis": "#/$defs/ProjectAxis",
+          "reflection": "#/$defs/Reflection",
+          "rot90": "#/$defs/Rot90",
+          "scale": "#/$defs/Scale",
+          "sequence": "#/$defs/Sequence",
+          "translation": "#/$defs/Translation"
+         },
+         "propertyName": "transformation_type"
+        },
+        "oneOf": [
+         {
+          "$ref": "#/$defs/Identity"
+         },
+         {
+          "$ref": "#/$defs/MapAxis"
+         },
+         {
+          "$ref": "#/$defs/Translation"
+         },
+         {
+          "$ref": "#/$defs/Scale"
+         },
+         {
+          "$ref": "#/$defs/Affine"
+         },
+         {
+          "$ref": "#/$defs/Rot90"
+         },
+         {
+          "$ref": "#/$defs/Reflection"
+         },
+         {
+          "$ref": "#/$defs/ProjectAxis"
+         },
+         {
+          "$ref": "#/$defs/Sequence"
+         }
+        ]
+       },
+       "type": "array"
+      },
+      {
+       "type": "null"
+      }
+     ],
+     "default": [],
+     "description": "Named coordinate transformations for this entity",
+     "title": "Coordinate Transformations"
+    },
+    "id": {
+     "description": "Unique identifier for this entity",
+     "title": "Id",
+     "type": "string"
+    },
+    "name": {
+     "anyOf": [
+      {
+       "type": "string"
+      },
+      {
+       "type": "null"
+      }
+     ],
+     "default": null,
+     "description": "A human-readable name or title for this entity",
+     "title": "Name"
+    },
+    "source_tomogram_id": {
+     "anyOf": [
+      {
+       "type": "string"
+      },
+      {
+       "type": "null"
+      }
+     ],
+     "default": null,
+     "description": "ID of the tomogram from which this annotation was derived, such as the tomogram containing picked coordinates.",
+     "title": "Source Tomogram Id"
+    }
+   },
+   "required": [
+    "id"
+   ],
+   "title": "TriMesh",
+   "type": "object"
+  }
+ },
+ "additionalProperties": false,
+ "description": "A dataset",
+ "properties": {
+  "acquisition_sessions": {
+   "anyOf": [
+    {
+     "items": {
+      "$ref": "#/$defs/AcquisitionSession"
+     },
+     "type": "array"
+    },
+    {
+     "type": "null"
+    }
+   ],
+   "default": [],
+   "description": "The acquisition sessions in this dataset.",
+   "title": "Acquisition Sessions"
+  },
+  "averages": {
+   "anyOf": [
+    {
+     "items": {
+      "$ref": "#/$defs/Average"
+     },
+     "type": "array"
+    },
+    {
+     "type": "null"
+    }
+   ],
+   "default": [],
+   "description": "The averages in the dataset",
+   "title": "Averages"
+  },
+  "instruments": {
+   "anyOf": [
+    {
+     "items": {
+      "$ref": "#/$defs/Instrument"
+     },
+     "type": "array"
+    },
+    {
+     "type": "null"
+    }
+   ],
+   "default": [],
+   "description": "The instruments used in this dataset.",
+   "title": "Instruments"
+  },
+  "name": {
+   "anyOf": [
+    {
+     "type": "string"
+    },
+    {
+     "type": "null"
+    }
+   ],
+   "default": null,
+   "description": "A human-readable name or title for this entity",
+   "title": "Name"
+  },
+  "regions": {
+   "anyOf": [
+    {
+     "items": {
+      "$ref": "#/$defs/Region"
+     },
+     "type": "array"
+    },
+    {
+     "type": "null"
+    }
+   ],
+   "default": [],
+   "description": "The regions in the dataset",
+   "title": "Regions"
+  }
+ },
+ "title": "Dataset",
+ "type": "object"
+}

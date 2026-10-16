@@ -525,3 +525,96 @@ def segmentation(
     except Exception as e:
         logger.critical(f"Export failed: {e}")
         ctx.fail(f"Export failed: {e}")
+
+
+@export.command(
+    context_settings={"show_default": True},
+    short_help="Export a project's tilt series, alignments and tomograms as a CETS dataset.",
+    no_args_is_help=True,
+)
+@add_config_option
+@click.option(
+    "--output",
+    "-o",
+    type=click.Path(dir_okay=False),
+    required=True,
+    help="Path of the CETS JSON document to write.",
+    metavar="PATH",
+)
+@click.option(
+    "--run-names",
+    type=str,
+    default="",
+    help="Comma-separated run names to export. Omit to export all runs.",
+)
+@click.option(
+    "--tomograms/--no-tomograms",
+    "include_tomograms",
+    default=True,
+    help="Export the runs' tomograms (with their frames and the tilt series they were reconstructed from).",
+)
+@click.option(
+    "--paths/--no-paths",
+    "with_paths",
+    default=True,
+    help="Record the URL of each tilt series and tomogram store.",
+)
+@click.option(
+    "--validate/--no-validate",
+    default=True,
+    help="Validate the document against the targeted CETS schema (needs jsonschema: pip install 'copick[cets]').",
+)
+@click.option(
+    "--companion/--no-companion",
+    default=True,
+    help="Write <output>.copick-companion.json with the data CETS has no field for.",
+)
+@click.option("--name", type=str, default=None, help="Name of the dataset. Default: the project's name.")
+@add_debug_option
+@click.pass_context
+def cets(ctx, config, output, run_names, include_tomograms, with_paths, validate, companion, name, debug):
+    """
+    Export a project's tilt series, alignments and tomograms as a CETS dataset.
+
+    Writes one CETS (https://github.com/TomoBabel/cets-data-models) `Dataset` document: a `Region` per run with its
+    tilt series (per-image stage angle, acquisition order, dose and CTF), alignments (one `ProjectionAlignment` per
+    aligned image) and tomograms (with the tilt series they were reconstructed from), and the instruments and
+    acquisition sessions. Identifiers are prefixed with the run name. What CETS has no field for (copick's extensions,
+    alignment names and reference volumes, tomogram links) goes to a companion file next to it.
+
+    Examples:
+
+        \b
+        # Export all runs
+        copick export cets -c config.json -o dataset.cets.json
+
+        \b
+        # Export two runs without their tomograms
+        copick export cets -c config.json -o dataset.cets.json --run-names TS_001,TS_002 --no-tomograms
+
+    See Also:
+
+        \b
+        copick sync tiltseries: copy tilt series (e.g. of the CryoET Data Portal) into a project
+    """
+    import copick
+    from copick.ops.cets_export import export_cets
+
+    logger = get_logger(__name__, debug=debug)
+    root = copick.from_file(config)
+    runs = [r.strip() for r in run_names.split(",") if r.strip()] or None
+    try:
+        path = export_cets(
+            root,
+            output,
+            runs=runs,
+            include_tomograms=include_tomograms,
+            with_paths=with_paths,
+            validate=validate,
+            companion=companion,
+            name=name,
+        )
+        logger.info(f"Wrote {path}")
+    except Exception as e:
+        logger.critical(f"Export failed: {e}")
+        ctx.fail(f"Export failed: {e}")

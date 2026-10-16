@@ -431,3 +431,25 @@ def test_croissant_export_of_portal_tilt_series(portal):
     tomograms = [t for vs in run.voxel_spacings for t in vs.tomograms]
     assert len(tomograms) == 4
     assert all(t.alignment_link.source == "croissant" and t.alignment is alignment for t in tomograms)
+
+
+def test_cets_export_of_a_portal_project(portal):
+    from cets_schema import validate_cets
+    from copick.ops.cets_export import export_cets
+
+    output = export_cets(portal["open"](), portal["tmp_path"] / "portal.cets.json")
+    dataset = json.loads(output.read_text())
+    validate_cets(dataset, "Dataset")
+    (region,) = dataset["regions"]
+    (ts,) = region["tilt_series"]
+    assert ts["id"] == f"{RUN_ID}/raw-{TS_ID}" and len(ts["images"]) == 31
+    assert ts["path"].startswith("s3://cryoet-data-portal-public/10445/TS_105_5/TiltSeries/")
+    assert ts["images"][0]["ctf_metadata"]["defocus_u"] == pytest.approx(22481.63)
+    (alignment,) = region["alignments"]
+    assert alignment["tilt_series_id"] == ts["id"] and len(alignment["projection_alignments"]) == 31
+    assert len(region["tomograms"]) == 4
+    assert all(t["tilt_series_id"] == ts["id"] for t in region["tomograms"])
+    sizes = sorted((t["width"], t["depth"]) for t in region["tomograms"])
+    assert sizes == [(630, 184), (630, 184), (1260, 368), (1260, 368)]
+    companion = json.loads((portal["tmp_path"] / "portal.cets.json.copick-companion.json").read_text())
+    assert companion["alignments"][f"{RUN_ID}/projectionMatching-local-18924"]["extensions"]["status"] == "author"

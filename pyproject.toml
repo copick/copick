@@ -68,6 +68,9 @@ make_cli_docs = "copick.cli.make_cli_docs:main [docs]"
 smb = [
     "smbprotocol>=1.15.0",
 ]
+cets = [
+    "jsonschema>=4.18.0",
+]
 all = [
     "smbprotocol>=1.15.0",
 ]
