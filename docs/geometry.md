@@ -372,3 +372,73 @@ shifts.
 | Voxel | Physical (Å) | $\mathbf{p}_\text{Å} = \mathbf{p}_\text{voxel} \cdot s$ |
 | Object space | Tomogram space | $\mathbf{p}_\text{tomo} = \mathbf{T} \cdot \mathbf{p}_\text{obj}$ |
 | Array index `[z,y,x]` | Physical `(x,y,z)` | $(x, y, z) = (i_x \cdot s, i_y \cdot s, i_z \cdot s)$ |
+
+---
+
+## 7. Tilt Series and Alignments
+
+### 7.1 Tilt Images
+
+A tilt series is stored as an array `(section, y, x)`; image `i` is the slice `[i]`. Within an image, pixel `(x, y)`
+covers `[x·s, (x+1)·s) × [y·s, (y+1)·s)` Å from the image corner, with `s` the pixel size, as for volumes (§1.2).
+
+Alignments refer to the **centre** of an image at pixel `floor(N/2)` on each axis (`N` = width or height), as in
+[CETS](https://github.com/TomoBabel/cets-data-models) and RELION: a length-64 and a length-65 axis both have their
+centre at pixel 32. In physical image coordinates the centre is at 0 Å.
+
+### 7.2 Projection Alignments
+
+An alignment holds, per aligned section, a rigid projection of the alignment's **reference volume** onto the image:
+
+```
+q = drop_z(R · p) + t,      R = Rz(in_plane_rotation) · Ry(tilt_angle) · Rx(x_tilt)
+```
+
+- `p`: a point of the reference volume in Å, relative to the volume's centre at voxel `floor(N/2)` on each axis;
+- `q`: the projected point in Å, relative to the image centre (§7.1); `t = (shift_x, shift_y)` in Å;
+- `Rx`, `Ry`, `Rz`: active, right-handed rotations in degrees, e.g.
+  `Ry(θ) = [[cos θ, 0, sin θ], [0, 1, 0], [-sin θ, 0, cos θ]]`;
+- `tilt_angle` is the **refined** tilt angle. The tilt series records the nominal (stage) angle of each image separately.
+
+The alignment's JSON stores each section as a CETS `ProjectionAlignment` named `tomogram_to_projection`: a 4×4 affine
+`tilt` (`Ry · Rx`), a `project` step dropping z (`dropped_inputs: [2]`), a 3×3 affine `in_plane_rotation` (`Rz`) and a
+`shift` translation in Å. The pixel coordinates of a projected point are `q / s + floor((W, H) / 2)`.
+
+### 7.3 Centre Conventions of Other Tools
+
+Tools put the centres elsewhere; imported alignments are converted, and exported ones converted back:
+
+| Source | Image centre | Volume centre | Shift unit |
+|---|---|---|---|
+| copick (CETS) | `floor(N/2)` | `floor(N/2)` | Å |
+| RELION 5 | `floor(N/2)` | `floor(N/2)` | Å |
+| AreTomo3 `.aln` | `N/2` | `V/2` | tilt-series pixels |
+| Warp | `N/2` | `V/2` | Å |
+| CryoET Data Portal | `N/2` | `V/2` | tilt-series pixels |
+
+Here `N/2` is half the number of pixels (or voxels) times their size, and `V` the volume extent the tool used, in Å. A
+shift `t_native` converts as
+
+```
+t = t_native + d_img − (R · d_vol)[:2]
+d_img = c_img_native − floor((W, H)/2) · s
+d_vol = c_vol_native − floor(N_ref/2) · s_ref
+```
+
+with `c_img_native` and `c_vol_native` the native centres in Å from the corners. On odd sizes, ignoring this conversion
+displaces projections by up to a pixel. The conventions are implemented in `copick.util.alignment_geometry`.
+
+### 7.4 Tomograms and the Reference Volume
+
+The reference volume of an alignment (`size` in voxels, `voxel_size`, and the tool's `native_extent` if it differs)
+need not be the tomogram a user works with. A tomogram linked to the alignment (`tomogram.set_alignment(...)`) is
+assumed to share the alignment's rotation centre in the tool's convention: its centre (half or floor of its size)
+coincides with the reference volume's. A tomogram reconstructed about another point records a `reference_offset`: the
+offset in Å from its own centre (`floor(N/2)`) to the reference volume's.
+
+To find picks of a tomogram on the tilt images:
+
+```python
+alignment = tomogram.alignment
+pixels = alignment.project(picks.numpy()[0], tomogram=tomogram)   # {section: (n, 2) array of (x, y) pixels}
+```
