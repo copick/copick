@@ -2,6 +2,7 @@
 
 import click
 
+from copick.cli.acquisition import export_alignment, export_ctf, export_tiltseries
 from copick.cli.util import (
     add_config_option,
     add_debug_option,
@@ -618,3 +619,8 @@ def cets(ctx, config, output, run_names, include_tomograms, with_paths, validate
     except Exception as e:
         logger.critical(f"Export failed: {e}")
         ctx.fail(f"Export failed: {e}")
+
+
+export.add_command(export_tiltseries)
+export.add_command(export_alignment)
+export.add_command(export_ctf)
