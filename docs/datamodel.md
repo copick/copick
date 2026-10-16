@@ -235,6 +235,39 @@ degrees. The metadata is read only when needed, so listing a run's tilt series d
 
     The `raw` part of the filename is the type of the tilt series. Types must not contain `@`.
 
+#### Alignments
+
+An alignment holds, for one tilt series, the rigid projection of each aligned image: its refined tilt angle, tilt
+about x, in-plane rotation and shift (see [Geometry](geometry.md#7-tilt-series-and-alignments)), the sections it
+leaves out (e.g. dark images), and the reference volume the parameters refer to. A tilt series can have several
+alignments (e.g. from different programs, or global and local ones). Alignments are stored as JSON files in the
+`Alignments` directory of the run, holding a CETS `Alignment` (one `ProjectionAlignment` per aligned section) next to
+copick extensions such as the alignment type (`GLOBAL` or `LOCAL`; of a local alignment only the rigid part is stored),
+the method, the source format and a status:
+
+- `author`: an alignment from its author;
+- `portal_default`: a CryoET Data Portal placeholder, created when a deposition holds no alignment;
+- `no_per_section`: another alignment without per-section parameters;
+- `inconsistent`: an alignment that does not fit its tilt series.
+
+`tilt_series.alignments` lists all alignments of a tilt series, best first (preferred, then the CryoET Data Portal's
+standard ones, local before global ones); `tilt_series.valid_alignments` only those from their authors with
+per-section parameters, and `tilt_series.default_alignment` the first of these.
+
+A tomogram records the alignment it was reconstructed with in the `copick` attributes of its zarr group (a CETS
+`Tomogram` with its `tilt_series_id`, and the alignment's name), set with `tomogram.set_alignment(...)` and read as
+`tomogram.alignment` and `tomogram.tilt_series`. A read-only tomogram (e.g. in a static project) cannot record it; the
+alignment names the tomogram instead (`"{tomo_type}@{voxel_size}"`, in its `links.tomograms`). Tomograms of the CryoET
+Data Portal report the alignment the portal links them to. Rewriting a tomogram's data keeps its link.
+
+??? example "Example Code - Navigate between tomograms, alignments and tilt series"
+    ```python
+    --8<-- "alignment_navigate.py"
+    ```
+
+    Refer to the [API Reference](api_reference/base_classes/data_entity_models/CopickAlignment.md) for more
+    information on the CopickAlignment API.
+
 ### Annotation data
 #### Point Annotations
 Point annotations are stored as JSON files in the `Picks` directory of the run. Each file contains a list of points in
@@ -549,6 +582,8 @@ The on-disk data model of copick is as follows:
       ├─ 📁 TiltSeries/
       │  └─ 📁 [ts_type].zarr/
       │     └─ [OME-NGFF spec, axes z/y/x, at 100%, 50% and 25% scale of y and x; CETS-shaped metadata]
+      ├─ 📁 Alignments/
+      │  └─ 📄 [alignment_name].json
       ├─ 📁 Picks/
       │  └─ 📄 [user_id | tool_name]_[session_id | 0]_[object_name].json
       ├─ 📁 Meshes/

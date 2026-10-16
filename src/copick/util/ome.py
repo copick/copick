@@ -153,12 +153,28 @@ def ome_metadata(pyramid: Dict[float, np.ndarray], channel_axis: bool = False) -
     }
 
 
+#: Group attributes that rewriting an image's data keeps (copick's own metadata, e.g. a tomogram's alignment link).
+PRESERVED_ATTRS = ("copick",)
+
+
+def read_preserved_attrs(store: MutableMapping, keys: Tuple[str, ...] = PRESERVED_ATTRS) -> Dict[str, Any]:
+    """The attributes ``keys`` of the group in ``store``, to restore after its data is rewritten."""
+    if not keys:
+        return {}
+    try:
+        attrs = zarr.open_group(store=store, mode="r").attrs.asdict()
+    except (zarr.errors.GroupNotFoundError, FileNotFoundError, KeyError):
+        return {}
+    return {key: attrs[key] for key in keys if key in attrs}
+
+
 def write_ome_zarr_3d(
     store: MutableMapping,
     pyramid: Dict[float, np.ndarray],
     chunk_size: Tuple[int, ...] = (256, 256, 256),
     channel_axis: bool = False,
     metadata: Optional[Dict[str, Any]] = None,
+    preserve_attrs: Tuple[str, ...] = PRESERVED_ATTRS,
 ) -> None:
     """Write a 3D pyramid to an OME-Zarr store.
 
@@ -169,12 +185,14 @@ def write_ome_zarr_3d(
         channel_axis: The arrays are channel-first ``(C, Z, Y, X)``; written with a leading ``c`` axis of type
             ``channel``, one channel per chunk.
         metadata: Extra entries for the multiscales metadata.
+        preserve_attrs: Group attributes of an existing image to keep.
     """
     # This is a super heavy import, so we do it here to avoid loading it before it's needed.
     # Writing is slow anyway.
     from ome_zarr.writer import write_multiscale
 
     ome_meta = ome_metadata(pyramid, channel_axis)
+    preserved = read_preserved_attrs(store, preserve_attrs)
     root_group = zarr.group(store=store, overwrite=True)
     if channel_axis and len(chunk_size) == 3:
         chunk_size = (1, *chunk_size)
@@ -188,6 +206,8 @@ def write_ome_zarr_3d(
         compute=True,
         metadata={} if metadata is None else metadata,
     )
+    if preserved:
+        root_group.attrs.update(preserved)
 
 
 #: Chunks of every level of a tilt series ``(section, y, x)``: one image per chunk along the stack, as the CryoET Data
