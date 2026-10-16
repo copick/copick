@@ -1,5 +1,17 @@
 # Changelog
 
+## [1.30.0](https://github.com/copick/copick/compare/copick-v1.29.0...copick-v1.30.0) (2026-10-16)
+
+
+### ✨ Features
+
+* per-filament polarity and the RELION import-coordinates layout in STAR export ([#506](https://github.com/copick/copick/issues/506)) ([864fe03](https://github.com/copick/copick/commit/864fe03ee67a5e41498e117c6750f0d09e2950bd))
+
+
+### 🐞 Bug Fixes
+
+* bump dependencies ([#519](https://github.com/copick/copick/issues/519)) ([d4ad187](https://github.com/copick/copick/commit/d4ad1879a8a4cad661d4915b0998499092677e99))
+
 ## [1.29.0](https://github.com/copick/copick/compare/copick-v1.28.1...copick-v1.29.0) (2026-10-06)
 
 
