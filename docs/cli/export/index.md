@@ -15,6 +15,7 @@ copick export [OPTIONS] COMMAND [ARGS]...
 
 | Command | Description |
 |---------|-------------|
+| [`cets`](cets.md) | Export a project's tilt series, alignments and tomograms as a CETS dataset. |
 | [`picks`](picks.md) | Export picks to external formats (EM, STAR, Dynamo, CSV). |
 | [`segmentation`](segmentation.md) | Export segmentations to MRC, TIFF, Zarr, or EM. |
 | [`tomogram`](tomogram.md) | Export tomograms to external formats (MRC, TIFF, Zarr). |

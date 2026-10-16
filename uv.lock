@@ -827,6 +827,9 @@ dependencies = [
 all = [
     { name = "smbprotocol" },
 ]
+cets = [
+    { name = "jsonschema" },
+]
 dev = [
     { name = "black" },
     { name = "ipython" },
@@ -870,6 +873,7 @@ requires-dist = [
     { name = "filelock", specifier = ">=3.18.0" },
     { name = "fsspec", specifier = ">=2025.5.1" },
     { name = "ipython", marker = "extra == 'dev'", specifier = ">=8.18.1" },
+    { name = "jsonschema", marker = "extra == 'cets'", specifier = ">=4.18.0" },
     { name = "jsonschema", marker = "extra == 'test'", specifier = ">=4.18.0" },
     { name = "mkdocstrings", extras = ["python"], marker = "extra == 'docs'", specifier = ">=0.29.1" },
     { name = "mlcroissant", specifier = ">=1.1.0" },
@@ -907,7 +911,7 @@ requires-dist = [
     { name = "zarr", specifier = "<3" },
     { name = "zensical", marker = "extra == 'docs'" },
 ]
-provides-extras = ["all", "dev", "docs", "fledgeling", "smb", "test"]
+provides-extras = ["all", "cets", "dev", "docs", "fledgeling", "smb", "test"]
 
 [[package]]
 name = "coverage"
