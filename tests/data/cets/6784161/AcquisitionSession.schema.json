@@ -1,0 +1,130 @@
+{
+ "$defs": {
+  "Handedness": {
+   "description": "Handedness (parity) of the tilt geometry / coordinate frame, constant for an acquisition session. right_handed == +1, left_handed == -1 (the sign the former CTFMetadata.defocus_handedness carried).",
+   "enum": [
+    "right_handed",
+    "left_handed"
+   ],
+   "title": "Handedness",
+   "type": "string"
+  }
+ },
+ "additionalProperties": false,
+ "description": "Parameters constant within one data-collection session; links to the Instrument used.",
+ "properties": {
+  "amplitude_contrast": {
+   "anyOf": [
+    {
+     "type": "number"
+    },
+    {
+     "type": "null"
+    }
+   ],
+   "default": null,
+   "description": "Amplitude contrast fraction (dimensionless, typically 0.07-0.1). CTF-model parameter.",
+   "title": "Amplitude Contrast"
+  },
+  "detector_dose_rate": {
+   "anyOf": [
+    {
+     "type": "number"
+    },
+    {
+     "type": "null"
+    }
+   ],
+   "default": null,
+   "description": "Dose rate at the detector in e-/pixel/s (post-specimen; counting-mode calibration).",
+   "title": "Detector Dose Rate"
+  },
+  "dose_rate": {
+   "anyOf": [
+    {
+     "type": "number"
+    },
+    {
+     "type": "null"
+    }
+   ],
+   "default": null,
+   "description": "Dose rate on the specimen during acquisition in e-/A^2/s (pre-specimen fluence).",
+   "title": "Dose Rate"
+  },
+  "handedness": {
+   "anyOf": [
+    {
+     "$ref": "#/$defs/Handedness"
+    },
+    {
+     "type": "null"
+    }
+   ],
+   "default": null,
+   "description": "Handedness (parity) of the tilt geometry for this acquisition session. It is constant across the session and determines whether defocus increases or decreases with Z, i.e. it subsumes the former per-image CTFMetadata.defocus_handedness (right_handed == +1, left_handed == -1)."
+  },
+  "id": {
+   "description": "Unique identifier for this entity",
+   "title": "Id",
+   "type": "string"
+  },
+  "instrument_id": {
+   "anyOf": [
+    {
+     "type": "string"
+    },
+    {
+     "type": "null"
+    }
+   ],
+   "default": null,
+   "description": "ID of the Instrument used for this acquisition session.",
+   "title": "Instrument Id"
+  },
+  "name": {
+   "anyOf": [
+    {
+     "type": "string"
+    },
+    {
+     "type": "null"
+    }
+   ],
+   "default": null,
+   "description": "A human-readable name or title for this entity",
+   "title": "Name"
+  },
+  "spherical_aberration": {
+   "anyOf": [
+    {
+     "type": "number"
+    },
+    {
+     "type": "null"
+    }
+   ],
+   "default": null,
+   "description": "Spherical aberration (Cs) of the objective lens in mm.",
+   "title": "Spherical Aberration"
+  },
+  "tilt_axis_angle": {
+   "anyOf": [
+    {
+     "type": "number"
+    },
+    {
+     "type": "null"
+    }
+   ],
+   "default": null,
+   "description": "Angle of the tilt axis relative to the detector x-axis, in degrees.",
+   "title": "Tilt Axis Angle"
+  }
+ },
+ "required": [
+  "id"
+ ],
+ "title": "AcquisitionSession",
+ "type": "object"
+}

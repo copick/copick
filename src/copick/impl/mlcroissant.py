@@ -47,6 +47,7 @@ from copick.impl.overlay import (
     CopickPicksOverlay,
     CopickRunOverlay,
     CopickSegmentationOverlay,
+    CopickTiltSeriesOverlay,
     CopickTomogramOverlay,
     CopickVoxelSpacingOverlay,
 )
@@ -61,6 +62,7 @@ from copick.models import (
     CopickRoot,
     CopickRunMeta,
     CopickSegmentationMeta,
+    CopickTiltSeriesMeta,
     CopickTomogramMeta,
     CopickVoxelSpacingMeta,
     PickableObject,
@@ -312,6 +314,22 @@ CSV_SCHEMA: Dict[str, Dict[str, Any]] = {
             "portal_annotation_file_id": "sc:Text",
         },
     },
+    # Tilt series of a run. ``metadata_url`` optionally points to a JSON file holding the tilt series' copick metadata
+    # block, for images whose Zarr store does not carry it (e.g. tilt series served by the CryoET Data Portal).
+    "copick/tilt_series": {
+        "csv_name": "tilt_series.csv",
+        "file_object_id": "tilt-series-csv",
+        "recordset_name": "tilt_series",
+        "columns": ["run", "ts_type", "url", "metadata_url", "portal_tiltseries_id"],
+        "key_fields": ("run", "ts_type", "portal_tiltseries_id"),
+        "types": {
+            "run": "sc:Text",
+            "ts_type": "sc:Text",
+            "url": "sc:Text",
+            "metadata_url": "sc:Text",
+            "portal_tiltseries_id": "sc:Text",
+        },
+    },
     "copick/objects": {
         "csv_name": "objects.csv",
         "file_object_id": "objects-csv",
@@ -333,6 +351,7 @@ RECORDSET_ORDER = [
     "copick/segmentations",
     "copick/instance_segmentations",
     "copick/panoptic_segmentations",
+    "copick/tilt_series",
     "copick/objects",
 ]
 
@@ -556,6 +575,7 @@ class CroissantIndex:
     segmentations: List[Dict[str, Any]] = field(default_factory=list)
     instance_segmentations: List[Dict[str, Any]] = field(default_factory=list)
     panoptic_segmentations: List[Dict[str, Any]] = field(default_factory=list)
+    tilt_series: List[Dict[str, Any]] = field(default_factory=list)
     objects: List[Dict[str, Any]] = field(default_factory=list)
 
     # Write-side state
@@ -737,6 +757,7 @@ class CroissantIndex:
             "copick/segmentations": self.segmentations,
             "copick/instance_segmentations": self.instance_segmentations,
             "copick/panoptic_segmentations": self.panoptic_segmentations,
+            "copick/tilt_series": self.tilt_series,
             "copick/objects": self.objects,
         }[recordset_id]
 
@@ -829,6 +850,7 @@ class CroissantIndex:
             self.segmentations.clear()
             self.instance_segmentations.clear()
             self.panoptic_segmentations.clear()
+            self.tilt_series.clear()
             self.objects.clear()
             self._dirty.clear()
             self._load_records()
@@ -1733,6 +1755,108 @@ class CopickTomogramMLC(CopickTomogramOverlay):
 
 
 # -----------------------------------------------------------------------------
+# Tilt series
+# -----------------------------------------------------------------------------
+
+
+class CopickTiltSeriesMetaMLC(CopickTiltSeriesMeta):
+    """Identity of a tilt series listed in a Croissant: its type and, for tilt series from the CryoET Data Portal,
+    the portal identifier that tells apart tilt series of the same type."""
+
+    portal_tiltseries_id: Optional[str] = None
+
+
+class CopickTiltSeriesMLC(CopickTiltSeriesOverlay):
+    meta: CopickTiltSeriesMetaMLC
+
+    @property
+    def _index(self) -> CroissantIndex:
+        return self.run.root.index
+
+    @property
+    def _row_key(self) -> Dict[str, Any]:
+        return {
+            "run": self.run.name,
+            "ts_type": self.ts_type,
+            "portal_tiltseries_id": getattr(self.meta, "portal_tiltseries_id", None),
+        }
+
+    def _find_row(self) -> Optional[Dict[str, Any]]:
+        key = self._row_key
+        for row in self._index.tilt_series:
+            if all(row.get(k) == v for k, v in key.items()):
+                return row
+        return None
+
+    @property
+    def cets_id(self) -> str:
+        portal_id = getattr(self.meta, "portal_tiltseries_id", None)
+        return f"{self.ts_type}-{portal_id}" if portal_id else self.ts_type
+
+    @property
+    def static_path(self) -> Optional[str]:
+        row = self._find_row()
+        if row is None:
+            return None
+        return _join_url(self._index.base_url, row["url"])
+
+    @property
+    def overlay_path(self) -> str:
+        return f"{self.run.overlay_path}/TiltSeries/{self.ts_type}.zarr"
+
+    @property
+    def fs_overlay(self) -> AbstractFileSystem:
+        return self.run.fs_overlay
+
+    def _load_metadata(self):
+        from copick.util.cets import COPICK_ATTRS_KEY, tilt_series_from_attrs
+
+        row = self._find_row() if self.read_only else None
+        if row is not None and row.get("metadata_url"):
+            fs, path = self._index.resolve_url(row["metadata_url"])
+            with fs.open(path, "r") as f:
+                return tilt_series_from_attrs({COPICK_ATTRS_KEY: json.load(f)})
+        return super()._load_metadata()
+
+    def zarr(self) -> zarr.storage.FSStore:
+        if self.read_only:
+            fs, abs_path = self._index.resolve_url(self._find_row()["url"])
+            return zarr.storage.FSStore(
+                abs_path,
+                fs=fs,
+                mode="r",
+                key_separator="/",
+                dimension_separator="/",
+                create=False,
+            )
+        fs = self.fs_overlay
+        path = self.overlay_path
+        create = not fs.exists(path)
+        store = zarr.storage.FSStore(
+            path,
+            fs=fs,
+            mode="w",
+            key_separator="/",
+            dimension_separator="/",
+            create=create,
+        )
+        if create and self.run.root.mode == "A":
+            self._index.add_row("copick/tilt_series", {**self._row_key, "url": self._relative_url()})
+        return store
+
+    def _delete_data(self) -> None:
+        if self.fs_overlay.exists(self.overlay_path):
+            self.fs_overlay.rm(self.overlay_path, recursive=True)
+        else:
+            raise FileNotFoundError(f"File not found: {self.overlay_path}")
+        if self.run.root.mode == "A":
+            self._index.remove_row("copick/tilt_series", self._row_key)
+
+    def _relative_url(self) -> str:
+        return f"ExperimentRuns/{self.run.name}/TiltSeries/{self.ts_type}.zarr"
+
+
+# -----------------------------------------------------------------------------
 # Voxel spacings
 # -----------------------------------------------------------------------------
 
@@ -1889,6 +2013,39 @@ class CopickRunMLC(CopickRunOverlay):
 
     def _segmentation_factory(self) -> Tuple[Type[CopickSegmentationMLC], Type[CopickSegmentationMeta]]:
         return CopickSegmentationMLC, CopickSegmentationMeta
+
+    def _tilt_series_factory(self) -> Tuple[Type[CopickTiltSeriesMLC], Type[CopickTiltSeriesMetaMLC]]:
+        return CopickTiltSeriesMLC, CopickTiltSeriesMetaMLC
+
+    def _tilt_series_from_rows(self, read_only: bool) -> List[CopickTiltSeriesMLC]:
+        return [
+            CopickTiltSeriesMLC(
+                run=self,
+                meta=CopickTiltSeriesMetaMLC(
+                    ts_type=row["ts_type"],
+                    portal_tiltseries_id=row.get("portal_tiltseries_id"),
+                ),
+                read_only=read_only,
+            )
+            for row in self._index.tilt_series
+            if row.get("run") == self.name
+        ]
+
+    def _query_static_tilt_series(self) -> List[CopickTiltSeriesMLC]:
+        if self.static_is_overlay:
+            return []
+        return self._tilt_series_from_rows(read_only=True)
+
+    def _query_overlay_tilt_series(self) -> List[CopickTiltSeriesMLC]:
+        if self.root.mode == "A":
+            # Mode A: the Croissant index is the authoritative list of writable tilt series.
+            return self._tilt_series_from_rows(read_only=False)
+        from copick.impl.filesystem import list_tilt_series_types
+
+        return [
+            CopickTiltSeriesMLC(run=self, meta=CopickTiltSeriesMetaMLC(ts_type=ts_type), read_only=False)
+            for ts_type in list_tilt_series_types(self.fs_overlay, self.overlay_path)
+        ]
 
     @property
     def _index(self) -> CroissantIndex:

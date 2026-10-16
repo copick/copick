@@ -125,8 +125,8 @@ filament ID, points are ordered along each filament, and the transform's +Z axis
 
 A run is a collection of data that is associated with a particular location on the sample. Run objects allow access to
 any 3D image data, segmentations, and annotations that are associated with a particular location on the sample. Images
-are stored in groups based on their voxel spacing, while point annotations, mesh annotations, and dense segmentations
-are related to the run as a whole.
+are stored in groups based on their voxel spacing, while tilt series, point annotations, mesh annotations, and dense
+segmentations are related to the run as a whole.
 
 ??? example "Example Code - List available segmentations for a run"
     ```python
@@ -199,6 +199,41 @@ interactive segmentation tasks.
     The `wbp` part of the filename is the type of tomogram that the feature map was computed from. The `sobel` part of
     the filename is the type of feature that the feature map represents. This could be `density`, `gradient`, `curvature`,
     etc.
+
+#### Tilt Series
+
+A tilt series is the stack of 2D projection images a run's tomograms are reconstructed from. Each run can hold several
+tilt series, identified by their type (e.g. `raw`, `aligned`, `dose-weighted`, `denoised`). They are stored as OME-NGFF
+images with the axes `z, y, x`, where `z` is the section (image) index in the stack, using the same layout as the
+CryoET Data Portal:
+
+- chunks of one image (`(1, 1024, 1024)`) at every level;
+- three levels, binned by 2 along `y` and `x` only (local mean); sections are never binned;
+- the scale of level `i` is `[pixel_size, pixel_size·2^i, pixel_size·2^i]` in Angstrom.
+
+The metadata of a tilt series is stored in the `copick` attributes of its zarr group, in the shape of the
+[CETS](https://github.com/TomoBabel/cets-data-models) data models (a CETS `TiltSeries` with one `TiltImage` per section,
+an `AcquisitionSession` and an `Instrument`, next to copick extensions). Per image it records the section, the nominal
+(stage) tilt angle, the acquisition order (starting at 0), the dose received before the image (pre-exposure, in e/Å²),
+the dose and exposure time of the image, and its CTF fit. CTF fits are normalized to the CETS convention: `defocus_u ≥
+defocus_v` in Angstrom (underfocus positive), the astigmatism angle in degrees within [0, 180), and the phase shift in
+degrees. The metadata is read only when needed, so listing a run's tilt series does not open their stores.
+
+??? example "Example Code - Read a tilt series and its metadata"
+    ```python
+    --8<-- "tilt_series_read_image.py"
+    ```
+
+    Refer to the [API Reference](api_reference/base_classes/data_entity_models/CopickTiltSeries.md) for more
+    information on the CopickTiltSeries API.
+
+!!! note "Example tilt series file name"
+    Tilt series are named according to the following pattern:
+    ```
+    TiltSeries/raw.zarr
+    ```
+
+    The `raw` part of the filename is the type of the tilt series. Types must not contain `@`.
 
 ### Annotation data
 #### Point Annotations
@@ -511,6 +546,9 @@ The on-disk data model of copick is as follows:
       │  │  └─ [OME-NGFF spec at 100%, 50% and 25% scale]
       │  └─ 📁 [tomotype]_[feature_type]_features.zarr/
       │     └─ [OME-NGFF spec at 100% scale]
+      ├─ 📁 TiltSeries/
+      │  └─ 📁 [ts_type].zarr/
+      │     └─ [OME-NGFF spec, axes z/y/x, at 100%, 50% and 25% scale of y and x; CETS-shaped metadata]
       ├─ 📁 Picks/
       │  └─ 📄 [user_id | tool_name]_[session_id | 0]_[object_name].json
       ├─ 📁 Meshes/
