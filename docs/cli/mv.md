@@ -10,7 +10,7 @@
 ## Usage
 
 ```bash
-copick mv [OPTIONS] {picks|filaments|mesh|segmentation} URI URI
+copick mv [OPTIONS] {picks|filaments|mesh|segmentation|tiltseries|alignment} URI URI
 ```
 
 ## Description
@@ -32,11 +32,17 @@ for pattern-based moves it must contain at least one placeholder. Use
 `--overwrite` to replace existing target objects and `--run` to limit the
 operation to a single run.
 
+Tilt series are addressed as `ts_type` and alignments as `name@ts_type`; their
+templates may use `{ts_type}` (and `{name}` for alignments). Copying a tilt series
+copies its images and metadata; moving one moves its alignments along and relinks the
+tomograms reconstructed with them. Moving an alignment relinks its tomograms; one that a
+read-only tomogram or the CryoET Data Portal records cannot be moved.
+
 ## Arguments
 
 | Argument | Description |
 |----------|-------------|
-| `OBJECT_TYPE` | Type of object to move (picks, filaments, mesh, or segmentation). |
+| `OBJECT_TYPE` | Type of object to move (picks, filaments, mesh, segmentation, tiltseries, or alignment). |
 | `SOURCE_URI` | Source copick URI pattern (supports glob and regex). |
 | `TARGET_URI` | Target copick URI (use placeholders for pattern-based moves). |
 
