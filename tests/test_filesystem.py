@@ -1200,8 +1200,9 @@ def test_new_zarr_entities_reopen_and_delete_without_array_write(test_payload: D
     )
     tomogram = voxel_spacing.new_tomogram("materialization-test")
     features = tomogram.new_features("materialization-test")
+    tilt_series = run.new_tilt_series("materialization-test")
 
-    for entity in (segmentation, tomogram, features):
+    for entity in (segmentation, tomogram, features, tilt_series):
         _assert_v3_group(entity.zarr())
 
     reopened = copick.from_file(test_payload["cfg_file"])
@@ -1215,9 +1216,12 @@ def test_new_zarr_entities_reopen_and_delete_without_array_write(test_payload: D
     )[0]
     reopened_tomogram = reopened_run.get_voxel_spacing(10.0).get_tomograms("materialization-test")[0]
     assert reopened_tomogram.get_features("materialization-test") is not None
+    reopened_tilt_series = reopened_run.get_tilt_series("materialization-test")
+    assert reopened_tilt_series is not None and reopened_tilt_series.metadata is None
 
     reopened_segmentation.delete()
     reopened_tomogram.delete()
+    reopened_tilt_series.delete()
 
     reopened = copick.from_file(test_payload["cfg_file"])
     reopened_run = reopened.get_run("TS_001")
@@ -1229,6 +1233,7 @@ def test_new_zarr_entities_reopen_and_delete_without_array_write(test_payload: D
         is_multilabel=True,
     )
     assert not reopened_run.get_voxel_spacing(10.0).get_tomograms("materialization-test")
+    assert reopened_run.get_tilt_series("materialization-test") is None
 
 
 def test_run_refresh(test_payload: Dict[str, Any]):

@@ -222,6 +222,12 @@ by standalone Zstandard level 3. Padded uncompressed shards above 5 GB produce a
 rejected. A region update can therefore rewrite a volume-sized shard; choose explicit chunks carefully for write-heavy
 workloads.
 
+Tilt series ``(section, y, x)`` are the exception to the chunk and shard shapes: they keep the CryoET Data Portal's
+`(1, 1024, 1024)` inner chunks and use **one shard per image**, `(1, 1024 * ceil(y / 1024), 1024 * ceil(x / 1024))`, at
+every level. Tilt series are read and written one image at a time, so a shard per image keeps such an access to one
+object, and a stack of many large images (e.g. 61 images of 5760 x 4092 pixels, about 5.75 GB as float32) does not end
+up in one oversized shard. Their codecs follow the rules above.
+
 This is a **writer policy**, not a reader requirement. Copick continues to read supported legacy and noncanonical Zarr
 layouts from their metadata without requiring these chunks, shards, keys, or codecs.
 

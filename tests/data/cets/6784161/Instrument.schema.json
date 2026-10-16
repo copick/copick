@@ -1,0 +1,93 @@
+{
+ "$defs": {
+  "ElectronSource": {
+   "description": "Type of electron source (mirrors OSC-EM permissible values).",
+   "enum": [
+    "FEG",
+    "cold_FEG",
+    "LaB6",
+    "tungsten"
+   ],
+   "title": "ElectronSource",
+   "type": "string"
+  }
+ },
+ "additionalProperties": false,
+ "description": "A microscope/instrument used to acquire data. Physical, rarely-changing hardware.",
+ "properties": {
+  "detector_model": {
+   "anyOf": [
+    {
+     "type": "string"
+    },
+    {
+     "type": "null"
+    }
+   ],
+   "default": null,
+   "description": "Manufacturer/model of the detector/camera.",
+   "title": "Detector Model"
+  },
+  "electron_source": {
+   "anyOf": [
+    {
+     "$ref": "#/$defs/ElectronSource"
+    },
+    {
+     "type": "null"
+    }
+   ],
+   "default": null,
+   "description": "Type of electron source."
+  },
+  "id": {
+   "description": "Unique identifier for this entity",
+   "title": "Id",
+   "type": "string"
+  },
+  "microscope_model": {
+   "anyOf": [
+    {
+     "type": "string"
+    },
+    {
+     "type": "null"
+    }
+   ],
+   "default": null,
+   "description": "Manufacturer/model of the microscope, e.g. \"Titan Krios G4\".",
+   "title": "Microscope Model"
+  },
+  "name": {
+   "anyOf": [
+    {
+     "type": "string"
+    },
+    {
+     "type": "null"
+    }
+   ],
+   "default": null,
+   "description": "A human-readable name or title for this entity",
+   "title": "Name"
+  },
+  "voltage": {
+   "anyOf": [
+    {
+     "type": "number"
+    },
+    {
+     "type": "null"
+    }
+   ],
+   "default": null,
+   "description": "Acceleration voltage of the microscope in kV.",
+   "title": "Voltage"
+  }
+ },
+ "required": [
+  "id"
+ ],
+ "title": "Instrument",
+ "type": "object"
+}

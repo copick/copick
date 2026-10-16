@@ -250,6 +250,32 @@ def canonical_v3_compressors(dtype: np.dtype) -> Tuple[Any, ...]:
     raise TypeError(f"Canonical OME-Zarr output does not support dtype {dtype}")
 
 
+def _write_multiscales(
+    root_group: zarr.Group,
+    datasets: List[Dict[str, Any]],
+    axes: List[Dict[str, str]],
+    metadata: Union[Mapping[str, Any], None] = None,
+) -> None:
+    """Write the OME-Zarr 0.5 multiscales metadata of a group; the one place copick writes it."""
+    # These imports are intentionally lazy because importing ome-zarr is
+    # expensive and writes are already non-trivial operations.
+    from ome_zarr.format import FormatV05
+    from ome_zarr.writer import write_multiscales_metadata
+
+    writer_metadata = {} if metadata is None else copy.deepcopy(dict(metadata))
+    write_multiscales_metadata(
+        root_group,
+        datasets,
+        fmt=FormatV05(),
+        axes=axes,
+        metadata=writer_metadata,
+    )
+    if metadata is not None:
+        ome = copy.deepcopy(root_group.attrs["ome"])
+        ome["multiscales"][0]["metadata"] = copy.deepcopy(writer_metadata)
+        root_group.attrs["ome"] = ome
+
+
 def write_ome_zarr(
     store: Union[str, Store],
     pyramid: Dict[float, np.ndarray],
@@ -261,11 +287,6 @@ def write_ome_zarr(
     coordinate_transformations: Union[List[List[Dict[str, Any]]], None] = None,
 ) -> None:
     """Write an OME-Zarr 0.5 / Zarr v3 pyramid with the canonical layout."""
-    # These imports are intentionally lazy because importing ome-zarr is
-    # expensive and writes are already non-trivial operations.
-    from ome_zarr.format import FormatV05
-    from ome_zarr.writer import write_multiscales_metadata
-
     if not pyramid:
         raise ValueError("pyramid must contain at least one level")
     ndim = next(iter(pyramid.values())).ndim
@@ -276,7 +297,6 @@ def write_ome_zarr(
         raise ValueError("coordinate_transformations must contain one entry per pyramid level")
     if metadata is not None and not isinstance(metadata, Mapping):
         raise TypeError("metadata must be a mapping or None")
-    writer_metadata = {} if metadata is None else copy.deepcopy(dict(metadata))
 
     layouts = []
     for array in pyramid.values():
@@ -316,17 +336,7 @@ def write_ome_zarr(
         )
         datasets.append({"path": path, "coordinateTransformations": copy.deepcopy(transformations)})
 
-    write_multiscales_metadata(
-        root_group,
-        datasets,
-        fmt=FormatV05(),
-        axes=axes,
-        metadata=writer_metadata,
-    )
-    if metadata is not None:
-        ome = copy.deepcopy(root_group.attrs["ome"])
-        ome["multiscales"][0]["metadata"] = copy.deepcopy(writer_metadata)
-        root_group.attrs["ome"] = ome
+    _write_multiscales(root_group, datasets, axes, metadata)
 
 
 def write_ome_zarr_3d(
@@ -486,6 +496,150 @@ def get_level_path(zarr_group: zarr.Group, level: int) -> str:
         raise ValueError(f"Level {level} not found in Zarr store (max: {len(datasets) - 1})")
 
     return datasets[level]["path"]
+
+
+#: Inner chunks of every level of a tilt series ``(section, y, x)``: one image per chunk along the stack, as the CryoET
+#: Data Portal stores tilt series.
+TILT_SERIES_CHUNKS = (1, 1024, 1024)
+#: Number of levels of a tilt-series pyramid (full size and two binned levels), as on the CryoET Data Portal.
+TILT_SERIES_LEVELS = 3
+
+
+def tilt_series_transforms(pixel_size: float, levels: int) -> List[List[Dict[str, Any]]]:
+    """The OME-NGFF scale of each level of a tilt-series pyramid.
+
+    Images are binned by 2 along y and x per level; sections never are. The section axis keeps the pixel size as its
+    scale, as on the CryoET Data Portal, so readers that take the scale of the first spatial axis read the pixel size.
+
+    Args:
+        pixel_size: Pixel size of the full-size images in Angstrom.
+        levels: Number of levels.
+
+    Returns:
+        One list of coordinate transformations per level.
+    """
+    return [[{"type": "scale", "scale": [pixel_size, pixel_size * 2**i, pixel_size * 2**i]}] for i in range(levels)]
+
+
+def tilt_series_level_shapes(shape: Tuple[int, int, int], levels: int) -> List[Tuple[int, int, int]]:
+    """The shape of each level of a tilt-series pyramid, binning y and x by 2 per level (partial blocks kept)."""
+    shapes = [tuple(int(s) for s in shape)]
+    for _ in range(1, levels):
+        n, h, w = shapes[-1]
+        shapes.append((n, -(-h // 2), -(-w // 2)))
+    return shapes
+
+
+def tilt_series_shard_shape(shape: Tuple[int, int, int], chunks: Tuple[int, int, int]) -> Tuple[int, int, int]:
+    """The shard shape of a tilt-series level: one shard per section, padded to whole chunks in y and x.
+
+    Unlike volumes, which use one shard per level, a tilt series is read and written one image at a time; a shard
+    per image keeps such accesses to one object, and keeps shards small for stacks of many large images.
+    """
+    return (chunks[0], *padded_shard_shape(tuple(shape[1:]), tuple(chunks[1:])))
+
+
+def write_ome_zarr_tilt_series(
+    store: Union[str, Store],
+    stack: Any,
+    pixel_size: float,
+    levels: int = TILT_SERIES_LEVELS,
+    chunks: Tuple[int, int, int] = TILT_SERIES_CHUNKS,
+    dtype: Optional[np.dtype] = np.float32,
+    attrs: Union[Mapping[str, Any], None] = None,
+    overwrite: bool = True,
+) -> None:
+    """Write a tilt series ``(section, y, x)`` as a multiscale OME-Zarr 0.5 / Zarr v3 image.
+
+    The stack is written one section at a time, so any object indexable as ``stack[i]`` (a NumPy array, a memory-mapped
+    MRC file, a Zarr array) can be written with memory for one image. Each level is the local mean of 2x2 pixel blocks
+    of the level before it; sections are never binned. Each level has one shard per section
+    (``tilt_series_shard_shape``) and the canonical compressors for its data type.
+
+    Args:
+        store: A path string or Zarr store to write to.
+        stack: The images, shape ``(section, y, x)``.
+        pixel_size: Pixel size of the images in Angstrom.
+        levels: Number of levels in the pyramid.
+        chunks: Inner chunk shape of every level.
+        dtype: Data type of every level; ``None`` keeps the type of the stack.
+        attrs: Extra group attributes to write next to the OME metadata.
+        overwrite: Whether to replace existing content of the store.
+    """
+    # Heavy import, only needed when writing
+    from skimage.transform import downscale_local_mean
+
+    shape = tuple(int(s) for s in stack.shape)
+    if len(shape) != 3:
+        raise ValueError(f"A tilt series must have shape (section, y, x), got {shape}.")
+    if levels < 1:
+        raise ValueError("A tilt series needs at least one level.")
+    chunks = _shape_tuple(chunks, 3, "chunks")
+    dtype = np.dtype(stack.dtype if dtype is None else dtype)
+    compressors = canonical_v3_compressors(dtype)
+
+    level_shapes = tilt_series_level_shapes(shape, levels)
+    shards = [tilt_series_shard_shape(level_shape, chunks) for level_shape in level_shapes]
+    for level_shards in shards:
+        _preflight_shard_size(level_shards, dtype)
+
+    target_store = _writer_store(store)
+    prepare_zarr_store_for_write(target_store, overwrite)
+    root_group = zarr.group(store=target_store, overwrite=overwrite, zarr_format=3)
+    arrays = [
+        root_group.create_array(
+            str(level),
+            shape=level_shape,
+            dtype=dtype,
+            chunks=chunks,
+            shards=level_shards,
+            compressors=compressors,
+            chunk_key_encoding={"name": "v2", "separator": "/"},
+            dimension_names=("z", "y", "x"),
+            overwrite=overwrite,
+        )
+        for level, (level_shape, level_shards) in enumerate(zip(level_shapes, shards, strict=True))
+    ]
+
+    for section in range(shape[0]):
+        image = np.asarray(stack[section]).astype(dtype)
+        arrays[0][section] = image
+        for array in arrays[1:]:
+            image = downscale_local_mean(image, (2, 2)).astype(dtype)
+            array[section] = image
+
+    datasets = [
+        {"path": str(level), "coordinateTransformations": transforms}
+        for level, transforms in enumerate(tilt_series_transforms(pixel_size, levels))
+    ]
+    _write_multiscales(root_group, datasets, _ome_zarr_axes())
+    if attrs:
+        root_group.attrs.update(copy.deepcopy(dict(attrs)))
+
+
+def get_pixel_size_from_zarr(zarr_group: zarr.Group, level: int = 0) -> float:
+    """The pixel size of a level of an OME-Zarr image in Angstrom: the scale of its last (x) axis.
+
+    Unlike ``get_voxel_size_from_zarr``, this reads the in-plane pixel size of any level of a tilt series, whose
+    section axis is not binned. Reads OME-Zarr 0.4 and 0.5 metadata.
+
+    Args:
+        zarr_group: The zarr group containing OME-Zarr metadata.
+        level: Index of the multiscale level.
+
+    Returns:
+        The pixel size in Angstrom.
+    """
+    multiscales = get_multiscales(zarr_group)
+    axes = multiscales[0]["axes"]
+    unit = axes[-1].get("unit", "angstrom") if isinstance(axes[-1], dict) else "angstrom"
+    datasets = multiscales[0]["datasets"]
+    if level < 0 or level >= len(datasets):
+        raise ValueError(f"Level {level} not found in Zarr store (max: {len(datasets) - 1})")
+    for transform in datasets[level]["coordinateTransformations"]:
+        if transform["type"] == "scale":
+            return float(transform["scale"][-1]) * UNITFACTOR.get(unit, 1.0)
+    raise ValueError("No scale transformation found in coordinate transformations")
 
 
 def get_voxel_size_from_zarr(zarr_group: zarr.Group) -> float:

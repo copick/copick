@@ -20,8 +20,11 @@ from copick.util.filaments import (
 from copick.util.log import get_logger
 from copick.util.ome import (
     DEFAULT_SPATIAL_CHUNKS,
+    TILT_SERIES_CHUNKS,
+    TILT_SERIES_LEVELS,
     fits_in_memory,
     get_level_path,
+    get_multiscales,
     initialize_zarr_v3,
     ome_zarr_axes,
     padded_shard_shape,
@@ -29,6 +32,7 @@ from copick.util.ome import (
     volume_pyramid,
     write_ome_zarr,
     write_ome_zarr_3d,
+    write_ome_zarr_tilt_series,
 )
 from copick.util.relion import picks_to_df_relion, relion_df_to_picks
 from copick.util.segmentation import (
@@ -920,6 +924,8 @@ class CopickRun:
             CopickRun.meshes is accessed **for the first time**.
         segmentations (List[CopickSegmentation]): Segmentations for this run. Either populated from config or lazily
             loaded when CopickRun.segmentations is accessed **for the first time**.
+        tilt_series (List[CopickTiltSeries]): Tilt series for this run, lazily loaded when CopickRun.tilt_series is
+            accessed **for the first time**.
 
 
     """
@@ -951,6 +957,8 @@ class CopickRun:
         self._segmentations: Optional[List["CopickSegmentation"]] = None
         """Segmentations for this run. Either populated from config or lazily loaded when
         CopickRun.segmentations is accessed for the first time."""
+        self._tilt_series: Optional[List["CopickTiltSeries"]] = None
+        """Tilt series for this run, lazily loaded when CopickRun.tilt_series is accessed for the first time."""
 
         if config is not None:
             voxel_spacings_metas = [
@@ -1001,9 +1009,10 @@ class CopickRun:
         lpck = None if self._picks is None else len(self._picks)
         lmsh = None if self._meshes is None else len(self._meshes)
         lseg = None if self._segmentations is None else len(self._segmentations)
+        lts = None if self._tilt_series is None else len(self._tilt_series)
         ret = (
             f"CopickRun(name={self.name}, len(voxel_spacings)={lvs}, len(picks)={lpck}, len(meshes)={lmsh}, "
-            f"len(segmentations)={lseg}) at {hex(id(self))}"
+            f"len(segmentations)={lseg}, len(tilt_series)={lts}) at {hex(id(self))}"
         )
         return ret
 
@@ -1033,6 +1042,10 @@ class CopickRun:
 
     def query_filaments(self) -> List["CopickFilaments"]:
         """Override this method to query for filaments. Runs of backends without filaments have none."""
+        return []
+
+    def query_tilt_series(self) -> List["CopickTiltSeries"]:
+        """Override this method to query for tilt series. Runs of backends without tilt series have none."""
         return []
 
     def query_meshes(self) -> List["CopickMesh"]:
@@ -1185,6 +1198,47 @@ class CopickRun:
             ret = [f for f in ret if f.session_id in session_id]
 
         return ret
+
+    @property
+    def tilt_series(self) -> List["CopickTiltSeries"]:
+        if self._tilt_series is None:
+            self._tilt_series = self.query_tilt_series()
+
+        return self._tilt_series
+
+    def get_tilt_series_list(self, ts_type: Union[str, Iterable[str]] = None, **kwargs) -> List["CopickTiltSeries"]:
+        """Get tilt series by type.
+
+        Args:
+            ts_type: Type(s) of the tilt series to retrieve. Default: all.
+            **kwargs: Additional parameters for subclass implementations.
+
+        Returns:
+            List[CopickTiltSeries]: The tilt series of the given type(s).
+        """
+        ret = list(self.tilt_series)
+        if ts_type is not None:
+            ts_type = [ts_type] if isinstance(ts_type, str) else ts_type
+            ret = [ts for ts in ret if ts.ts_type in ts_type]
+        return ret
+
+    def get_tilt_series(self, ts_type: str, **kwargs) -> Optional["CopickTiltSeries"]:
+        """Get a tilt series by type.
+
+        Args:
+            ts_type: Type of the tilt series.
+            **kwargs: Additional parameters for subclass implementations.
+
+        Returns:
+            CopickTiltSeries: The first tilt series of the given type, or ``None`` if there is none.
+        """
+        found = self.get_tilt_series_list(ts_type, **kwargs)
+        if len(found) > 1:
+            logger.warning(
+                f"Run {self.name} has {len(found)} tilt series of type {ts_type}; returning the first. Use "
+                f"get_tilt_series_list to choose.",
+            )
+        return found[0] if found else None
 
     @property
     def meshes(self) -> List["CopickMesh"]:
@@ -1507,6 +1561,39 @@ class CopickRun:
         """Override this method to return the filaments class."""
         return CopickFilaments
 
+    def new_tilt_series(self, ts_type: str, exist_ok: bool = False, **kwargs) -> "CopickTiltSeries":
+        """Create a new tilt series. Its images are written with ``CopickTiltSeries.from_numpy``.
+
+        Args:
+            ts_type: Type of the tilt series.
+            exist_ok: Whether to return an existing tilt series of this type instead of raising an error.
+            **kwargs: Additional keyword arguments for the tilt series metadata class.
+
+        Returns:
+            CopickTiltSeries: The newly created (or existing) tilt series.
+
+        Raises:
+            ValueError: If a tilt series of this type exists and exist_ok is False, or the type contains '@'.
+        """
+        ts_type = _check_uri_safe_name(sanitize_name(ts_type), "Tilt series type")
+
+        if existing := self.get_tilt_series_list(ts_type):
+            if exist_ok:
+                return existing[0]
+            raise ValueError(f"Tilt series type {ts_type} already exists in run {self.name}.")
+
+        clz, meta_clz = self._tilt_series_factory()
+        tilt_series = clz(run=self, meta=meta_clz(ts_type=ts_type, **kwargs))
+        # Create the store before adding to the cache, so a backend that cannot write leaves no entry
+        initialize_zarr_v3(tilt_series.zarr())
+        self.tilt_series.append(tilt_series)
+
+        return tilt_series
+
+    def _tilt_series_factory(self) -> Tuple[Type["CopickTiltSeries"], Type["CopickTiltSeriesMeta"]]:
+        """Override this method to return the tilt series class and tilt series metadata class."""
+        return CopickTiltSeries, CopickTiltSeriesMeta
+
     def new_mesh(
         self,
         object_name: str,
@@ -1703,6 +1790,10 @@ class CopickRun:
         """Refresh the segmentations."""
         self._segmentations = self.query_segmentations()
 
+    def refresh_tilt_series(self) -> None:
+        """Refresh the tilt series."""
+        self._tilt_series = self.query_tilt_series()
+
     def refresh(self) -> None:
         """Refresh all child types."""
         self.refresh_voxel_spacings()
@@ -1710,6 +1801,7 @@ class CopickRun:
         self.refresh_meshes()
         self.refresh_segmentations()
         self.refresh_filaments()
+        self.refresh_tilt_series()
 
     def _invalidate_caches(self) -> None:
         """Invalidate all cached child data for this run."""
@@ -1721,6 +1813,7 @@ class CopickRun:
         self._meshes = None
         self._segmentations = None
         self._filaments = None
+        self._tilt_series = None
 
     def ensure(self, create: bool = False) -> bool:
         """Check if the run record exists, optionally create it if it does not.
@@ -1744,6 +1837,7 @@ class CopickRun:
         self.delete_meshes()
         self.delete_segmentations(is_instance=None, is_panoptic=None)
         self.delete_filaments()
+        self.delete_tilt_series()
         self._delete_data()
 
         # Remove the run from the root
@@ -1843,6 +1937,15 @@ class CopickRun:
         """
         for f in self.get_filaments(object_name=object_name, user_id=user_id, session_id=session_id):
             f.delete()
+
+    def delete_tilt_series(self, ts_type: str = None) -> None:
+        """Delete tilt series by type.
+
+        Args:
+            ts_type: Type of the tilt series to delete. Default: all.
+        """
+        for ts in self.get_tilt_series_list(ts_type):
+            ts.delete()
 
 
 class CopickVoxelSpacingMeta(BaseModel):
@@ -2415,6 +2518,449 @@ class CopickFeatures:
             array[slices] = data
             return
         _open_zarr_array(loc, zarr_group, mode="r+")[slices] = data
+
+
+def _check_uri_safe_name(name: str, what: str) -> str:
+    """Refuse a name that copick URIs could not address (``@`` separates a name from its qualifier)."""
+    if "@" in name:
+        raise ValueError(f"{what} {name!r} must not contain '@'.")
+    return name
+
+
+class CopickCTF(BaseModel):
+    """CTF fit of one tilt image, in the canonical CETS convention.
+
+    Values are normalized on construction: if ``defocus_v`` exceeds ``defocus_u`` the two are swapped and the angle
+    turned by 90 degrees, and the angle is wrapped into [0, 180).
+
+    Attributes:
+        defocus_u: Defocus along the major axis in Angstrom, underfocus positive; never smaller than ``defocus_v``.
+        defocus_v: Defocus along the minor axis in Angstrom, underfocus positive.
+        defocus_angle: Direction of the ``defocus_u`` axis in degrees, from +x towards +y, in [0, 180).
+        phase_shift: Phase shift in degrees.
+        fit_resolution: Resolution in Angstrom up to which the fit is reliable, if known.
+        fit_score: Score of the fit as reported by the fitting program, if known.
+    """
+
+    defocus_u: float
+    defocus_v: float
+    defocus_angle: float = 0.0
+    phase_shift: float = 0.0
+    fit_resolution: Optional[float] = None
+    fit_score: Optional[float] = None
+
+    @model_validator(mode="after")
+    def _canonical(self) -> "CopickCTF":
+        if self.defocus_v > self.defocus_u:
+            self.defocus_u, self.defocus_v = self.defocus_v, self.defocus_u
+            self.defocus_angle += 90.0
+        self.defocus_angle = self.defocus_angle % 180.0
+        return self
+
+
+class CopickTiltImage(BaseModel):
+    """Acquisition and CTF data of one image of a tilt series.
+
+    Attributes:
+        section: Index of the image in the stored stack (the first array axis), starting at 0.
+        nominal_tilt_angle: Stage tilt angle in degrees as recorded at acquisition. Refined angles belong to alignments.
+        acquisition_order: Position of the image in the acquisition sequence, starting at 0.
+        accumulated_dose: Electron dose in e/Å² the specimen received before this image (pre-exposure).
+        exposure_dose: Electron dose in e/Å² of this image.
+        exposure_time: Exposure time of this image in seconds.
+        frame_path: File name of the movie this image was made from.
+        ctf: CTF fit of this image.
+    """
+
+    section: int
+    nominal_tilt_angle: Optional[float] = None
+    acquisition_order: Optional[int] = None
+    accumulated_dose: Optional[float] = None
+    exposure_dose: Optional[float] = None
+    exposure_time: Optional[float] = None
+    frame_path: Optional[str] = None
+    ctf: Optional[CopickCTF] = None
+
+
+class CopickTiltSeriesMetadata(BaseModel):
+    """Metadata of a tilt series: the image geometry, the microscope and, per image, acquisition and CTF data.
+
+    Stored CETS-shaped in the ``copick`` attributes of the tilt series' Zarr group (see ``copick.util.cets``).
+
+    Attributes:
+        pixel_size: Pixel size of the full-size images in Angstrom, rounded to the third decimal.
+        width: Width of the full-size images in pixels.
+        height: Height of the full-size images in pixels.
+        images: Per-image data, one entry per section ordered by section, or empty if unknown.
+        tilt_axis_angle: Nominal in-plane angle of the tilt axis in degrees.
+        voltage: Acceleration voltage in kV.
+        spherical_aberration: Spherical aberration in mm.
+        amplitude_contrast: Amplitude contrast as a fraction.
+        amplitude_contrast_source: Where the amplitude contrast came from: the data source, the user, or a default.
+        handedness: Handedness of the acquisition geometry, if known.
+        microscope_model: Microscope model.
+        detector_model: Detector model.
+        is_aligned: Whether the stored images were already aligned (transformed), so per-image alignments do not apply.
+        ctf_corrected: Whether the stored images were CTF-corrected.
+        native: Source-specific values without a place in this model, kept for reference.
+        provenance: Where the metadata came from (program, files, portal identifiers).
+    """
+
+    pixel_size: float
+    width: int
+    height: int
+    images: List[CopickTiltImage] = Field(default_factory=list)
+    tilt_axis_angle: Optional[float] = None
+    voltage: Optional[float] = None
+    spherical_aberration: Optional[float] = None
+    amplitude_contrast: Optional[float] = None
+    amplitude_contrast_source: Optional[Literal["source", "user", "default"]] = None
+    handedness: Optional[Literal["right_handed", "left_handed"]] = None
+    microscope_model: Optional[str] = None
+    detector_model: Optional[str] = None
+    is_aligned: bool = False
+    ctf_corrected: bool = False
+    native: Dict[str, Any] = Field(default_factory=dict)
+    provenance: Dict[str, Any] = Field(default_factory=dict)
+
+    @field_validator("pixel_size")
+    @classmethod
+    def _round_pixel_size(cls, value: float) -> float:
+        if not value > 0:
+            raise ValueError(f"The pixel size must be positive, got {value}.")
+        return round(float(value), 3)
+
+    @field_validator("width", "height")
+    @classmethod
+    def _positive_size(cls, value: int) -> int:
+        if value <= 0:
+            raise ValueError(f"Image sizes must be positive, got {value}.")
+        return value
+
+    @model_validator(mode="after")
+    def _check_sections(self) -> "CopickTiltSeriesMetadata":
+        self.images = sorted(self.images, key=lambda image: image.section)
+        sections = [image.section for image in self.images]
+        if sections and sections != list(range(len(sections))):
+            raise ValueError(f"Images must cover sections 0..{len(sections) - 1} once each, got {sections}.")
+        return self
+
+    @property
+    def n_sections(self) -> int:
+        """Number of images with per-image data."""
+        return len(self.images)
+
+    @property
+    def nominal_tilt_angles(self) -> List[Optional[float]]:
+        """The nominal tilt angle of each section."""
+        return [image.nominal_tilt_angle for image in self.images]
+
+    @property
+    def ctf_status(self) -> Literal["absent", "suspicious", "partial", "fitted"]:
+        """Whether the images have CTF fits: none, some with a non-positive defocus, not all, or all."""
+        fits = [image.ctf for image in self.images if image.ctf is not None]
+        if not fits:
+            return "absent"
+        if any(ctf.defocus_u <= 0 or ctf.defocus_v <= 0 for ctf in fits):
+            return "suspicious"
+        if len(fits) < len(self.images):
+            return "partial"
+        return "fitted"
+
+    @property
+    def ctf_flags(self) -> Dict[str, bool]:
+        """Properties of the CTF fits: whether any image has astigmatism fitted and whether any reports a fit
+        resolution."""
+        fits = [image.ctf for image in self.images if image.ctf is not None]
+        return {
+            "astigmatism_fitted": any(ctf.defocus_u != ctf.defocus_v for ctf in fits),
+            "resolution_known": any(ctf.fit_resolution is not None for ctf in fits),
+        }
+
+
+class CopickTiltSeriesMeta(BaseModel):
+    """Data model identifying a tilt series.
+
+    Attributes:
+        ts_type: Type of the tilt series (e.g. ``raw``, ``aligned``, ``denoised``), unique within a run.
+    """
+
+    ts_type: str
+
+
+class CopickTiltSeries:
+    """Encapsulates a tilt series: a stack of 2D images ``(section, y, x)`` stored as a multiscale OME-Zarr image,
+    and its metadata (see ``CopickTiltSeriesMetadata``).
+
+    The images are stored like on the CryoET Data Portal: chunks of one image, levels binned by 2 along y and x only.
+    The metadata is read lazily from the Zarr group, so listing tilt series does not open their stores.
+
+    Attributes:
+        run (CopickRun): Reference to the run this tilt series belongs to.
+        meta (CopickTiltSeriesMeta): Identity of this tilt series.
+        ts_type (str): Type of the tilt series.
+    """
+
+    def __init__(self, run: "CopickRun", meta: CopickTiltSeriesMeta):
+        """
+        Args:
+            run: Reference to the run this tilt series belongs to.
+            meta: Identity of this tilt series.
+        """
+        self.run = run
+        self.meta = meta
+        self._metadata: Optional[CopickTiltSeriesMetadata] = None
+
+    def __repr__(self):
+        return f"CopickTiltSeries(ts_type={self.ts_type}) at {hex(id(self))}"
+
+    @property
+    def ts_type(self) -> str:
+        return self.meta.ts_type
+
+    @property
+    def cets_id(self) -> str:
+        """Identifier of this tilt series in stored CETS metadata, unique within its run."""
+        return self.ts_type
+
+    @property
+    def metadata(self) -> Optional[CopickTiltSeriesMetadata]:
+        """The metadata of this tilt series, or ``None`` if it holds no images yet."""
+        if self._metadata is None:
+            self._metadata = self._load_metadata()
+        return self._metadata
+
+    def _open_group(self, mode: Literal["r", "r+"] = "r") -> Optional[zarr.Group]:
+        """The Zarr group of this tilt series, or ``None`` if it holds no images yet."""
+        try:
+            group = zarr.open_group(self.zarr(), mode="r") if mode == "r" else zarr.open_group(self.zarr(), mode="r+")
+        except (zarr.errors.GroupNotFoundError, FileNotFoundError, KeyError):
+            return None
+        try:
+            get_multiscales(group)
+        except KeyError:
+            return None
+        return group
+
+    @staticmethod
+    def _level_shape(group: zarr.Group, level: int = 0) -> Tuple[int, int, int]:
+        return tuple(group[get_level_path(group, level)].shape)
+
+    def _load_metadata(self) -> Optional[CopickTiltSeriesMetadata]:
+        """Override to read the metadata from elsewhere. By default it is read from the Zarr group's ``copick``
+        attributes, or, if there are none, derived from the OME-Zarr metadata."""
+        from copick.util.cets import minimal_tilt_series_metadata, tilt_series_from_attrs
+        from copick.util.ome import get_pixel_size_from_zarr
+
+        group = self._open_group()
+        if group is None:
+            return None
+        shape = self._level_shape(group)
+        metadata = tilt_series_from_attrs(dict(group.attrs))
+        if metadata is None:
+            return minimal_tilt_series_metadata(shape, get_pixel_size_from_zarr(group))
+        _check_tilt_series_metadata(metadata, shape)
+        return metadata
+
+    def store_metadata(self, metadata: Optional[CopickTiltSeriesMetadata] = None) -> None:
+        """Store metadata in the Zarr group of this tilt series.
+
+        Args:
+            metadata: The metadata to store. Default: the current metadata (e.g. after editing it in place).
+
+        Raises:
+            ValueError: If the tilt series holds no images, or the metadata does not fit them.
+        """
+        from copick.util.cets import tilt_series_to_attrs
+        from copick.util.ome import get_pixel_size_from_zarr
+
+        metadata = self.metadata if metadata is None else metadata
+        group = self._open_group(mode="r+")
+        if group is None:
+            raise ValueError(f"Tilt series {self.ts_type} holds no images; write them with from_numpy first.")
+        if metadata is None:
+            raise ValueError("No metadata to store.")
+        _check_tilt_series_metadata(metadata, self._level_shape(group))
+        stored_pixel_size = round(get_pixel_size_from_zarr(group), 3)
+        if abs(stored_pixel_size - metadata.pixel_size) > 1e-3:
+            raise ValueError(
+                f"Metadata pixel size {metadata.pixel_size} differs from the stored images' {stored_pixel_size}.",
+            )
+        group.attrs.update(tilt_series_to_attrs(self.cets_id, metadata))
+        self._metadata = metadata
+
+    @property
+    def pixel_size(self) -> Optional[float]:
+        """Pixel size of the full-size images in Angstrom, or ``None`` if the tilt series holds no images."""
+        metadata = self.metadata
+        return None if metadata is None else metadata.pixel_size
+
+    @property
+    def shape(self) -> Optional[Tuple[int, int, int]]:
+        """Shape ``(section, y, x)`` of the full-size images, or ``None`` if the tilt series holds no images."""
+        group = self._open_group()
+        return None if group is None else self._level_shape(group)
+
+    @property
+    def n_sections(self) -> int:
+        """Number of images in the tilt series."""
+        shape = self.shape
+        return 0 if shape is None else shape[0]
+
+    def zarr(self) -> Store:
+        """Override to return the Zarr store for this tilt series. Also needs to handle creating the store if it
+        doesn't exist."""
+        raise NotImplementedError("zarr must be implemented for CopickTiltSeries.")
+
+    def numpy(
+        self,
+        zarr_group: Optional[str] = None,
+        sections: slice = slice(None, None),
+        y: slice = slice(None, None),
+        x: slice = slice(None, None),
+    ) -> np.ndarray:
+        """Return images of the tilt series as a numpy array ``(section, y, x)``.
+
+        Args:
+            zarr_group: Path of the multiscale level to read. Default: the first level.
+            sections: Slice of sections.
+            y: Slice along y.
+            x: Slice along x.
+
+        Returns:
+            np.ndarray: The images.
+        """
+        array = _open_zarr_array(self.zarr(), zarr_group, mode="r")
+        fits, req, avail = fits_in_memory(array, (sections, y, x))
+        if not fits:
+            raise ValueError(f"Requested region does not fit in memory. Requested: {req}, Available: {avail}.")
+        return np.array(array[sections, y, x])
+
+    def section(self, index: int, zarr_group: Optional[str] = None) -> np.ndarray:
+        """Return one image of the tilt series.
+
+        Args:
+            index: Section of the image.
+            zarr_group: Path of the multiscale level to read. Default: the first level.
+
+        Returns:
+            np.ndarray: The image ``(y, x)``.
+        """
+        return np.array(_open_zarr_array(self.zarr(), zarr_group, mode="r")[index])
+
+    def from_numpy(
+        self,
+        data: Any,
+        pixel_size: Optional[float] = None,
+        levels: int = TILT_SERIES_LEVELS,
+        dtype: Optional[np.dtype] = np.float32,
+        chunks: Tuple[int, int, int] = TILT_SERIES_CHUNKS,
+        metadata: Optional[CopickTiltSeriesMetadata] = None,
+    ) -> None:
+        """Write the images of the tilt series and their multiscale pyramid, replacing any stored images.
+
+        The images are written one section at a time, so ``data`` may be any array-like indexable per section, e.g. a
+        memory-mapped MRC file. The stored metadata is kept if it still fits the images; otherwise it is replaced by
+        metadata holding only the image geometry.
+
+        Args:
+            data: The images, shape ``(section, y, x)``.
+            pixel_size: Pixel size in Angstrom. Default: that of ``metadata`` or of the stored metadata.
+            levels: Number of levels in the pyramid.
+            dtype: Data type of the stored images; ``None`` keeps the type of ``data``.
+            chunks: Chunk shape of every level.
+            metadata: Metadata to store with the images.
+
+        Raises:
+            ValueError: If no pixel size is known, or the metadata does not fit the images.
+        """
+        from copick.util.cets import minimal_tilt_series_metadata, tilt_series_to_attrs
+
+        shape = tuple(int(s) for s in data.shape)
+        if len(shape) != 3:
+            raise ValueError(f"A tilt series must have shape (section, y, x), got {shape}.")
+
+        if metadata is None:
+            existing = self.metadata
+            if existing is not None and _tilt_series_metadata_fits(existing, shape):
+                metadata = existing
+                if pixel_size is not None and round(pixel_size, 3) != existing.pixel_size:
+                    metadata = existing.model_copy(update={"pixel_size": round(pixel_size, 3)})
+            else:
+                if existing is not None:
+                    logger.warning(
+                        f"The stored metadata of tilt series {self.ts_type} does not fit images of shape {shape}; it "
+                        f"is replaced by the image geometry.",
+                    )
+                pixel_size = pixel_size if pixel_size is not None else getattr(existing, "pixel_size", None)
+                if pixel_size is None:
+                    raise ValueError("The pixel size of the tilt series is unknown; pass pixel_size.")
+                metadata = minimal_tilt_series_metadata(shape, pixel_size)
+        elif pixel_size is not None and round(pixel_size, 3) != metadata.pixel_size:
+            raise ValueError(f"pixel_size {pixel_size} differs from the metadata's {metadata.pixel_size}.")
+        _check_tilt_series_metadata(metadata, shape)
+
+        write_ome_zarr_tilt_series(
+            self.zarr(),
+            data,
+            metadata.pixel_size,
+            levels=levels,
+            chunks=chunks,
+            dtype=dtype,
+            attrs=tilt_series_to_attrs(self.cets_id, metadata),
+        )
+        self._metadata = metadata
+
+    def set_region(
+        self,
+        data: np.ndarray,
+        zarr_group: Optional[str] = None,
+        sections: slice = slice(None, None),
+        y: slice = slice(None, None),
+        x: slice = slice(None, None),
+    ) -> None:
+        """Overwrite a region of one multiscale level. The other levels are not updated.
+
+        Args:
+            data: The region's new content, shape ``(section, y, x)``.
+            zarr_group: Path of the multiscale level to write. Default: the first level.
+            sections: Slice of sections.
+            y: Slice along y.
+            x: Slice along x.
+        """
+        _open_zarr_array(self.zarr(), zarr_group, mode="r+")[sections, y, x] = data
+
+    def refresh(self) -> None:
+        """Re-read the metadata on next access."""
+        self._metadata = None
+
+    def _delete_data(self) -> None:
+        """Override to delete the tilt series data."""
+        raise NotImplementedError("_delete_data must be implemented for CopickTiltSeries.")
+
+    def delete(self) -> None:
+        """Delete the tilt series."""
+        self._delete_data()
+        if self.run._tilt_series is not None and self in self.run._tilt_series:
+            self.run._tilt_series.remove(self)
+
+
+def _tilt_series_metadata_fits(metadata: CopickTiltSeriesMetadata, shape: Tuple[int, ...]) -> bool:
+    n_sections, height, width = shape
+    return (
+        metadata.width == width
+        and metadata.height == height
+        and (not metadata.images or len(metadata.images) == n_sections)
+    )
+
+
+def _check_tilt_series_metadata(metadata: CopickTiltSeriesMetadata, shape: Tuple[int, ...]) -> None:
+    """Raise ``ValueError`` if the metadata does not describe images of ``shape`` ``(section, y, x)``."""
+    if not _tilt_series_metadata_fits(metadata, shape):
+        raise ValueError(
+            f"Metadata for {len(metadata.images)} images of {metadata.width}x{metadata.height} pixels does not fit "
+            f"images of shape {tuple(shape)} (section, y, x).",
+        )
 
 
 class CopickPicksFile(BaseModel):
@@ -3807,4 +4353,5 @@ COPICK_TYPES = (
     CopickSegmentation,
     CopickObject,
     CopickFilaments,
+    CopickTiltSeries,
 )
