@@ -959,6 +959,8 @@ class CopickRun:
         CopickRun.segmentations is accessed for the first time."""
         self._tilt_series: Optional[List["CopickTiltSeries"]] = None
         """Tilt series for this run, lazily loaded when CopickRun.tilt_series is accessed for the first time."""
+        self._alignments: Optional[List["CopickAlignment"]] = None
+        """Alignments for this run, lazily loaded when CopickRun.alignments is accessed for the first time."""
 
         if config is not None:
             voxel_spacings_metas = [
@@ -1010,9 +1012,10 @@ class CopickRun:
         lmsh = None if self._meshes is None else len(self._meshes)
         lseg = None if self._segmentations is None else len(self._segmentations)
         lts = None if self._tilt_series is None else len(self._tilt_series)
+        laln = None if self._alignments is None else len(self._alignments)
         ret = (
             f"CopickRun(name={self.name}, len(voxel_spacings)={lvs}, len(picks)={lpck}, len(meshes)={lmsh}, "
-            f"len(segmentations)={lseg}, len(tilt_series)={lts}) at {hex(id(self))}"
+            f"len(segmentations)={lseg}, len(tilt_series)={lts}, len(alignments)={laln}) at {hex(id(self))}"
         )
         return ret
 
@@ -1046,6 +1049,10 @@ class CopickRun:
 
     def query_tilt_series(self) -> List["CopickTiltSeries"]:
         """Override this method to query for tilt series. Runs of backends without tilt series have none."""
+        return []
+
+    def query_alignments(self) -> List["CopickAlignment"]:
+        """Override this method to query for alignments. Runs of backends without alignments have none."""
         return []
 
     def query_meshes(self) -> List["CopickMesh"]:
@@ -1239,6 +1246,69 @@ class CopickRun:
                 f"get_tilt_series_list to choose.",
             )
         return found[0] if found else None
+
+    @property
+    def alignments(self) -> List["CopickAlignment"]:
+        if self._alignments is None:
+            self._alignments = self.query_alignments()
+
+        return self._alignments
+
+    def get_alignment(self, name: str, **kwargs) -> Optional["CopickAlignment"]:
+        """Get an alignment by name.
+
+        Args:
+            name: Name of the alignment.
+            **kwargs: Additional parameters for subclass implementations.
+
+        Returns:
+            CopickAlignment: The alignment, or ``None`` if there is none of this name.
+        """
+        return next((a for a in self.alignments if a.name == name), None)
+
+    def get_alignments(
+        self,
+        tilt_series: Union["CopickTiltSeries", str, None] = None,
+        valid_only: bool = False,
+        alignment_type: Optional[str] = None,
+        method: Optional[str] = None,
+    ) -> List["CopickAlignment"]:
+        """Get alignments, best first: preferred ones, then the CryoET Data Portal's standard ones, local before
+        global ones, then by portal identifier and name.
+
+        Args:
+            tilt_series: The tilt series (or its type) the alignments align. Default: any.
+            valid_only: Whether to leave out alignments that do not come from their author or have no per-section
+                parameters (e.g. CryoET Data Portal placeholders).
+            alignment_type: ``GLOBAL`` or ``LOCAL``. Default: any.
+            method: Alignment method. Default: any.
+
+        Returns:
+            List[CopickAlignment]: The matching alignments.
+        """
+        ret = list(self.alignments)
+        if tilt_series is not None:
+            if isinstance(tilt_series, str):
+                ret = [a for a in ret if a.tilt_series_name == tilt_series]
+            else:
+                portal_id = getattr(tilt_series.meta, "portal_tiltseries_id", None)
+                ret = [
+                    a
+                    for a in ret
+                    if a.tilt_series_name == tilt_series.ts_type
+                    and (
+                        portal_id is None
+                        or a.tilt_series_portal_id is None
+                        or str(a.tilt_series_portal_id) == str(portal_id)
+                    )
+                ]
+        if valid_only:
+            ret = [a for a in ret if a.is_valid]
+        if alignment_type is not None:
+            ret = [a for a in ret if a.alignment_type == alignment_type]
+        if method is not None:
+            ret = [a for a in ret if a.method == method]
+        return sorted(ret, key=_alignment_rank)
 
     @property
     def meshes(self) -> List["CopickMesh"]:
@@ -1594,6 +1664,74 @@ class CopickRun:
         """Override this method to return the tilt series class and tilt series metadata class."""
         return CopickTiltSeries, CopickTiltSeriesMeta
 
+    def new_alignment(
+        self,
+        name: str,
+        tilt_series: Union["CopickTiltSeries", str],
+        sections: Iterable["CopickSectionAlignment"] = (),
+        reference_volume: Optional["CopickReferenceVolume"] = None,
+        exist_ok: bool = False,
+        **kwargs,
+    ) -> "CopickAlignment":
+        """Create and store a new alignment of a tilt series of this run.
+
+        Args:
+            name: Name of the alignment.
+            tilt_series: The tilt series (or its type) the alignment aligns.
+            sections: Per-section parameters, in the CETS frame (see ``CopickSectionAlignment``).
+            reference_volume: The volume the parameters refer to.
+            exist_ok: Whether to return an existing alignment of this name instead of raising an error.
+            **kwargs: Further fields of ``CopickAlignmentFile``.
+
+        Returns:
+            CopickAlignment: The newly created (or existing) alignment.
+
+        Raises:
+            ValueError: If the alignment exists and exist_ok is False, the name contains '@', the tilt series is not in
+                the run or holds already aligned images, or a section is not in the tilt series.
+        """
+        name = _check_uri_safe_name(sanitize_name(name), "Alignment name")
+        if existing := self.get_alignment(name):
+            if exist_ok:
+                return existing
+            raise ValueError(f"Alignment {name} already exists in run {self.name}.")
+
+        if isinstance(tilt_series, str):
+            found = self.get_tilt_series_list(tilt_series)
+            if not found:
+                raise ValueError(f"Run {self.name} has no tilt series {tilt_series}.")
+            tilt_series = found[0]
+        metadata = tilt_series.metadata
+        if metadata is not None and metadata.is_aligned:
+            raise ValueError(
+                f"Tilt series {tilt_series.ts_type} holds aligned images; alignments do not apply to them.",
+            )
+        sections = list(sections)
+        n_sections = tilt_series.n_sections
+        if n_sections and any(not 0 <= s.section < n_sections for s in sections):
+            raise ValueError(f"Sections must lie in 0..{n_sections - 1} of tilt series {tilt_series.ts_type}.")
+
+        portal_id = getattr(tilt_series.meta, "portal_tiltseries_id", None)
+        file = CopickAlignmentFile(
+            name=name,
+            run_name=self.name,
+            tilt_series=tilt_series.ts_type,
+            tilt_series_portal_id=None if portal_id in (None, "") else int(portal_id),
+            sections=sections,
+            reference_volume=reference_volume,
+            **kwargs,
+        )
+        alignment = self._alignment_factory()(run=self, file=file)
+        # Store first, so a backend that cannot store leaves no entry in the cache
+        alignment.store()
+        self.alignments.append(alignment)
+
+        return alignment
+
+    def _alignment_factory(self) -> Type["CopickAlignment"]:
+        """Override this method to return the alignment class."""
+        return CopickAlignment
+
     def new_mesh(
         self,
         object_name: str,
@@ -1794,6 +1932,10 @@ class CopickRun:
         """Refresh the tilt series."""
         self._tilt_series = self.query_tilt_series()
 
+    def refresh_alignments(self) -> None:
+        """Refresh the alignments."""
+        self._alignments = self.query_alignments()
+
     def refresh(self) -> None:
         """Refresh all child types."""
         self.refresh_voxel_spacings()
@@ -1802,6 +1944,7 @@ class CopickRun:
         self.refresh_segmentations()
         self.refresh_filaments()
         self.refresh_tilt_series()
+        self.refresh_alignments()
 
     def _invalidate_caches(self) -> None:
         """Invalidate all cached child data for this run."""
@@ -1814,6 +1957,7 @@ class CopickRun:
         self._segmentations = None
         self._filaments = None
         self._tilt_series = None
+        self._alignments = None
 
     def ensure(self, create: bool = False) -> bool:
         """Check if the run record exists, optionally create it if it does not.
@@ -1837,6 +1981,7 @@ class CopickRun:
         self.delete_meshes()
         self.delete_segmentations(is_instance=None, is_panoptic=None)
         self.delete_filaments()
+        self.delete_alignments(unlink=False)
         self.delete_tilt_series()
         self._delete_data()
 
@@ -1946,6 +2091,16 @@ class CopickRun:
         """
         for ts in self.get_tilt_series_list(ts_type):
             ts.delete()
+
+    def delete_alignments(self, name: str = None, unlink: bool = True) -> None:
+        """Delete alignments by name.
+
+        Args:
+            name: Name of the alignment to delete. Default: all.
+            unlink: Whether to remove the link from writable tomograms that record a deleted alignment.
+        """
+        for alignment in [a for a in self.alignments if name is None or a.name == name]:
+            alignment.delete(unlink=unlink)
 
 
 class CopickVoxelSpacingMeta(BaseModel):
@@ -2167,6 +2322,8 @@ class CopickTomogram:
 
         self._features: Optional[List["CopickFeatures"]] = None
         """Features for this tomogram."""
+        self._alignment_link: Optional["CopickTomogramLink"] = None
+        self._alignment_link_loaded = False
 
         if config is not None and self.tomo_type in config.features[self.voxel_spacing.voxel_size]:
             feat_metas = [CopickFeaturesMeta(tomo_type=self.tomo_type, feature_type=ft) for ft in config.feature_types]
@@ -2288,6 +2445,190 @@ class CopickTomogram:
         """Override to return the Zarr store for this tomogram. Also needs to handle creating the store if it
         doesn't exist."""
         raise NotImplementedError("zarr must be implemented for CopickTomogram.")
+
+    @property
+    def link_id(self) -> str:
+        """Identifier of this tomogram within its run, as alignments name the tomograms they apply to."""
+        from copick.util.cets import tomogram_link_id
+
+        return tomogram_link_id(self.tomo_type, self.voxel_spacing.voxel_size)
+
+    @property
+    def shape(self) -> Optional[Tuple[int, int, int]]:
+        """Shape ``(z, y, x)`` of the full-size tomogram, or ``None`` if it holds no data."""
+        try:
+            group = zarr.open_group(self.zarr(), mode="r")
+            return tuple(group[get_level_path(group, 0)].shape)
+        except (zarr.errors.GroupNotFoundError, FileNotFoundError, KeyError):
+            return None
+
+    def _load_link(self) -> Optional["CopickTomogramLink"]:
+        """Override to read the link recorded with the tomogram. By default it is read from the ``copick``
+        attributes of the tomogram's Zarr group."""
+        from copick.util.cets import tomogram_link_from_attrs
+
+        try:
+            group = zarr.open_group(self.zarr(), mode="r")
+        except (zarr.errors.GroupNotFoundError, FileNotFoundError, KeyError):
+            return None
+        return tomogram_link_from_attrs(dict(group.attrs))
+
+    def _synthesized_link(self) -> Optional["CopickTomogramLink"]:
+        """Override to provide the link of a tomogram whose source records it elsewhere (e.g. the CryoET Data
+        Portal)."""
+        return None
+
+    def _store_link(self, link: Optional["CopickTomogramLink"]) -> None:
+        """Override to record the link with the tomogram. By default it is written to the ``copick`` attributes of
+        the tomogram's Zarr group; ``None`` removes it."""
+        from copick.util.cets import COPICK_ATTRS_KEY, tomogram_link_to_attrs
+
+        store = self.zarr()
+        try:
+            group = zarr.open_group(store, mode="r+")
+        except (zarr.errors.GroupNotFoundError, FileNotFoundError):
+            initialize_zarr_v3(store)
+            group = zarr.open_group(store, mode="r+")
+        if link is None:
+            if COPICK_ATTRS_KEY in group.attrs:
+                del group.attrs[COPICK_ATTRS_KEY]
+        else:
+            group.attrs.update(tomogram_link_to_attrs(self.link_id, link))
+
+    def _resolve_link(self) -> Optional["CopickTomogramLink"]:
+        # An alignment naming this tomogram records an explicit link of a read-only tomogram; it takes precedence over
+        # what the tomogram or its source record.
+        for alignment in self.voxel_spacing.run.alignments:
+            if self.link_id in alignment.linked_tomograms:
+                return CopickTomogramLink(
+                    alignment=alignment.name,
+                    tilt_series=alignment.tilt_series_name,
+                    tilt_series_portal_id=alignment.tilt_series_portal_id,
+                    source="alignment",
+                )
+        link = self._load_link()
+        return link if link is not None else self._synthesized_link()
+
+    @property
+    def alignment_link(self) -> Optional["CopickTomogramLink"]:
+        """What this tomogram was reconstructed from, or ``None`` if unknown.
+
+        Resolved from, in order: an alignment of the run naming this (read-only) tomogram, the link recorded with the
+        tomogram, and the link its source records (e.g. the CryoET Data Portal).
+        """
+        if not self._alignment_link_loaded:
+            self._alignment_link = self._resolve_link()
+            self._alignment_link_loaded = True
+        return self._alignment_link
+
+    @property
+    def alignment(self) -> Optional["CopickAlignment"]:
+        """The alignment this tomogram was reconstructed with, or ``None`` if unknown."""
+        link = self.alignment_link
+        if link is None or link.alignment is None:
+            return None
+        return self.voxel_spacing.run.get_alignment(link.alignment)
+
+    @property
+    def tilt_series(self) -> Optional["CopickTiltSeries"]:
+        """The tilt series this tomogram was reconstructed from, or ``None`` if unknown."""
+        alignment = self.alignment
+        if alignment is not None:
+            return alignment.tilt_series
+        link = self.alignment_link
+        if link is None or link.tilt_series is None:
+            return None
+        return self.voxel_spacing.run.get_tilt_series(link.tilt_series)
+
+    def _check_extent(self, alignment: "CopickAlignment", strict: bool) -> None:
+        reference = alignment.reference_volume
+        shape = self.shape
+        if reference is None or shape is None:
+            return
+        voxel_size = self.voxel_spacing.voxel_size
+        extent = np.array(tuple(reversed(shape)), dtype=float) * voxel_size
+        difference = np.abs(extent - np.asarray(reference.extent, dtype=float))
+        if np.any(difference > voxel_size):
+            message = (
+                f"Tomogram {self.tomo_type} ({extent.tolist()} Å) and the reference volume of alignment "
+                f"{alignment.name} ({list(reference.extent)} Å) differ by more than a voxel."
+            )
+            if strict:
+                raise ValueError(message)
+            logger.warning(message)
+
+    def set_alignment(
+        self,
+        alignment: Union["CopickAlignment", str, None],
+        reference_offset: Optional[Tuple[float, float, float]] = None,
+        strict: bool = False,
+    ) -> None:
+        """Record the alignment this tomogram was reconstructed with, or remove the record.
+
+        A writable tomogram records the link itself. A read-only tomogram is named by the (writable) alignment
+        instead.
+
+        Args:
+            alignment: The alignment or its name; ``None`` removes the link.
+            reference_offset: Offset in Angstrom from this tomogram's CETS frame to the alignment's reference volume
+                frame, if they do not share the alignment's rotation centre.
+            strict: Whether a tomogram whose extent differs from the alignment's reference volume by more than a voxel
+                is an error rather than a warning.
+
+        Raises:
+            ValueError: If the alignment is not in this tomogram's run.
+            PermissionError: If neither the tomogram nor the alignment can record the link.
+        """
+        run = self.voxel_spacing.run
+        target = None
+        if isinstance(alignment, str):
+            target = run.get_alignment(alignment)
+            if target is None:
+                raise ValueError(f"Run {run.name} has no alignment {alignment}.")
+        elif alignment is not None:
+            target = alignment
+            if target.run is not run and target.run.name != run.name:
+                raise ValueError(f"Alignment {target.name} belongs to run {target.run.name}, not {run.name}.")
+            target = run.get_alignment(target.name) or target
+        if target is not None:
+            self._check_extent(target, strict)
+
+        read_only = getattr(self, "read_only", False)
+        naming = [a for a in run.alignments if a is not target and self.link_id in a.linked_tomograms]
+
+        # Check everything before changing anything
+        for other in naming:
+            if getattr(other, "read_only", False):
+                raise PermissionError(f"Read-only alignment {other.name} names tomogram {self.link_id}.")
+        if read_only:
+            if reference_offset is not None:
+                raise ValueError("A reference offset can only be recorded with a writable tomogram.")
+            if target is None and (self._load_link() is not None or self._synthesized_link() is not None):
+                raise PermissionError(f"The link of read-only tomogram {self.link_id} cannot be removed.")
+            if target is not None and getattr(target, "read_only", False):
+                raise PermissionError(
+                    f"Neither tomogram {self.link_id} nor alignment {target.name} is writable; cannot link them.",
+                )
+
+        for other in naming:
+            other.meta.linked_tomograms.remove(self.link_id)
+            other.store()
+        if read_only:
+            if target is not None and self.link_id not in target.linked_tomograms:
+                target.meta.linked_tomograms.append(self.link_id)
+                target.store()
+        elif target is None:
+            self._store_link(None)
+        else:
+            self._store_link(
+                CopickTomogramLink(
+                    alignment=target.name,
+                    tilt_series=target.tilt_series_name,
+                    tilt_series_portal_id=target.tilt_series_portal_id,
+                    reference_offset=reference_offset,
+                ),
+            )
+        self._alignment_link_loaded = False
 
     def numpy(
         self,
@@ -2930,6 +3271,22 @@ class CopickTiltSeries:
         """
         _open_zarr_array(self.zarr(), zarr_group, mode="r+")[sections, y, x] = data
 
+    @property
+    def alignments(self) -> List["CopickAlignment"]:
+        """All alignments of this tilt series in its run, best first (see ``CopickRun.get_alignments``)."""
+        return self.run.get_alignments(tilt_series=self)
+
+    @property
+    def valid_alignments(self) -> List["CopickAlignment"]:
+        """The alignments of this tilt series from their authors, best first; placeholders are left out."""
+        return self.run.get_alignments(tilt_series=self, valid_only=True)
+
+    @property
+    def default_alignment(self) -> Optional["CopickAlignment"]:
+        """The best valid alignment of this tilt series, or ``None`` if there is none."""
+        valid = self.valid_alignments
+        return valid[0] if valid else None
+
     def refresh(self) -> None:
         """Re-read the metadata on next access."""
         self._metadata = None
@@ -2961,6 +3318,421 @@ def _check_tilt_series_metadata(metadata: CopickTiltSeriesMetadata, shape: Tuple
             f"Metadata for {len(metadata.images)} images of {metadata.width}x{metadata.height} pixels does not fit "
             f"images of shape {tuple(shape)} (section, y, x).",
         )
+
+
+#: Status of an alignment: from its author, a CryoET Data Portal placeholder without per-section parameters, without
+#: per-section parameters otherwise, or inconsistent with its tilt series.
+ALIGNMENT_STATUSES = ("author", "portal_default", "no_per_section", "inconsistent")
+
+
+class CopickSectionAlignment(BaseModel):
+    """Rigid alignment of one tilt image.
+
+    A point ``p`` of the alignment's reference volume projects to the point
+    ``q = drop_z(R @ p) + (shift_x, shift_y)`` of the image, with ``R = Rz(in_plane_rotation) @ Ry(tilt_angle) @
+    Rx(x_tilt)`` (active, right-handed). Positions are in Angstrom, relative to the CETS centres (``floor(N/2)``) of
+    the image and of the reference volume (see ``copick.util.alignment_geometry``).
+
+    Attributes:
+        section: Section of the image in the tilt series.
+        tilt_angle: Refined tilt angle in degrees.
+        x_tilt: Tilt about the x axis in degrees.
+        in_plane_rotation: In-plane rotation (tilt-axis angle) in degrees.
+        shift_x: Shift along x in Angstrom.
+        shift_y: Shift along y in Angstrom.
+    """
+
+    section: int
+    tilt_angle: float
+    x_tilt: float = 0.0
+    in_plane_rotation: float = 0.0
+    shift_x: float = 0.0
+    shift_y: float = 0.0
+
+    def matrix(self) -> np.ndarray:
+        """The rotation ``R`` of the projection."""
+        from copick.util.alignment_geometry import rotation
+
+        return rotation(self.tilt_angle, self.x_tilt, self.in_plane_rotation)
+
+
+class CopickReferenceVolume(BaseModel):
+    """The volume an alignment's positions refer to.
+
+    Attributes:
+        size: Size in voxels ``(x, y, z)``.
+        voxel_size: Voxel size in Angstrom.
+        native_extent: Extent in Angstrom of the volume in the tool that computed the alignment, if it differs from
+            ``size * voxel_size``; needed to convert the alignment back to that tool exactly.
+        offset: Offset of the volume reported by the source in Angstrom; kept for reference, not applied.
+        registration: Transformation of the volume reported by the source; kept for reference, not applied.
+    """
+
+    size: Tuple[int, int, int]
+    voxel_size: float
+    native_extent: Optional[Tuple[float, float, float]] = None
+    offset: Tuple[float, float, float] = (0.0, 0.0, 0.0)
+    registration: Optional[List[List[float]]] = None
+
+    @property
+    def extent(self) -> Tuple[float, float, float]:
+        """Extent of the volume in Angstrom."""
+        if self.native_extent is not None:
+            return self.native_extent
+        return tuple(n * self.voxel_size for n in self.size)
+
+
+class CopickExcludedSection(BaseModel):
+    """A section of a tilt series that an alignment does not align.
+
+    Attributes:
+        section: Section of the image.
+        reason: Why: a dark image, excluded by the user or tool, or not aligned by the source.
+    """
+
+    section: int
+    reason: Literal["dark", "excluded", "not_aligned"] = "excluded"
+
+
+class CopickAlignmentFile(BaseModel):
+    """An alignment of a tilt series: per-section rigid projection parameters and where they apply.
+
+    Stored as ``{run}/Alignments/{name}.json``, CETS-shaped (see ``copick.util.cets``).
+
+    Attributes:
+        name: Name of the alignment, unique within its run.
+        run_name: Name of the run.
+        tilt_series: Type of the tilt series the alignment aligns.
+        tilt_series_portal_id: CryoET Data Portal identifier of that tilt series, if it is one.
+        linked_tomograms: Read-only tomograms reconstructed with this alignment that do not record it themselves, as
+            ``"{tomo_type}@{voxel_size:.3f}"``.
+        alignment_type: ``GLOBAL`` or ``LOCAL``. Of a local alignment only the rigid (global) part is stored.
+        method: Method that computed the alignment (e.g. ``patch_tracking``).
+        source_format: Format the alignment was imported from (e.g. ``ARETOMO3``).
+        native_frame: Centre conventions of the source (``image_center``, ``volume_center``: ``half`` or ``floor``).
+        status: ``author`` for an alignment from its author; ``portal_default`` for a CryoET Data Portal placeholder
+            alignment, ``no_per_section`` for another alignment without per-section parameters, ``inconsistent`` for
+            one that does not fit its tilt series.
+        is_portal_standard: Whether the CryoET Data Portal marks the alignment as its standard.
+        preferred: Whether the alignment is preferred over others of its tilt series.
+        rigid_part_of_local: Whether this is the rigid part of a local alignment.
+        reference_volume: The volume the positions refer to.
+        sections: Per-section parameters, ordered by section.
+        excluded_sections: Sections not aligned.
+        tilt_offset: Tilt-angle offset reported by the source in degrees; included in ``tilt_angle``.
+        x_rotation_offset: Offset of the rotation about x reported by the source in degrees.
+        warnings: Losses or assumptions of the import.
+        provenance: Where the alignment came from (program, files, portal identifiers).
+    """
+
+    name: str
+    run_name: Optional[str] = None
+    tilt_series: Optional[str] = None
+    tilt_series_portal_id: Optional[int] = None
+    linked_tomograms: List[str] = Field(default_factory=list)
+    alignment_type: Literal["GLOBAL", "LOCAL"] = "GLOBAL"
+    method: Optional[str] = None
+    source_format: Optional[str] = None
+    native_frame: Dict[str, str] = Field(default_factory=lambda: {"image_center": "floor", "volume_center": "floor"})
+    status: Literal["author", "portal_default", "no_per_section", "inconsistent"] = "author"
+    is_portal_standard: Optional[bool] = None
+    preferred: bool = False
+    rigid_part_of_local: bool = False
+    reference_volume: Optional[CopickReferenceVolume] = None
+    sections: List[CopickSectionAlignment] = Field(default_factory=list)
+    excluded_sections: List[CopickExcludedSection] = Field(default_factory=list)
+    tilt_offset: Optional[float] = None
+    x_rotation_offset: Optional[float] = None
+    warnings: List[str] = Field(default_factory=list)
+    provenance: Dict[str, Any] = Field(default_factory=dict)
+
+    @model_validator(mode="after")
+    def _check_sections(self) -> "CopickAlignmentFile":
+        self.sections = sorted(self.sections, key=lambda s: s.section)
+        aligned = [s.section for s in self.sections]
+        excluded = [e.section for e in self.excluded_sections]
+        if len(set(aligned)) != len(aligned):
+            raise ValueError("Each section can be aligned once.")
+        if len(set(excluded)) != len(excluded):
+            raise ValueError("Each section can be excluded once.")
+        if both := set(aligned) & set(excluded):
+            raise ValueError(f"Sections {sorted(both)} are both aligned and excluded.")
+        return self
+
+    @property
+    def is_valid(self) -> bool:
+        """Whether the alignment comes from its author and has per-section parameters."""
+        return self.status == "author" and bool(self.sections)
+
+    @property
+    def portal_alignment_id(self) -> Optional[int]:
+        """CryoET Data Portal identifier of the alignment, if it is one."""
+        return self.provenance.get("portal_alignment_id")
+
+
+class CopickTomogramLink(BaseModel):
+    """What a tomogram was reconstructed from.
+
+    Attributes:
+        alignment: Name of the alignment.
+        tilt_series: Type of the tilt series.
+        tilt_series_portal_id: CryoET Data Portal identifier of the tilt series, if it is one.
+        reference_offset: Offset in Angstrom from the tomogram's CETS frame to the alignment's reference volume frame,
+            if they do not share the alignment's rotation centre.
+        source: Where the link is recorded: the tomogram's attributes, the CryoET Data Portal, a Croissant index, or
+            the alignment (for read-only tomograms).
+    """
+
+    alignment: Optional[str] = None
+    tilt_series: Optional[str] = None
+    tilt_series_portal_id: Optional[int] = None
+    reference_offset: Optional[Tuple[float, float, float]] = None
+    source: Literal["attrs", "portal", "croissant", "alignment"] = "attrs"
+
+
+class CopickAlignment:
+    """An alignment of a tilt series (see ``CopickAlignmentFile``). Its content is loaded on first access.
+
+    Attributes:
+        run (CopickRun): Reference to the run this alignment belongs to.
+        meta (CopickAlignmentFile): The alignment.
+    """
+
+    def __init__(self, run: "CopickRun", file: CopickAlignmentFile):
+        """
+        Args:
+            run: Reference to the run this alignment belongs to.
+            file: The alignment, or a stub holding only its name, to be loaded on first access.
+        """
+        self.run = run
+        self.meta = file
+        self._loaded = False
+
+    def __repr__(self):
+        tilt_series = self.meta.tilt_series if self._loaded else None
+        return f"CopickAlignment(name={self.name}, tilt_series={tilt_series}) at {hex(id(self))}"
+
+    def _load(self) -> CopickAlignmentFile:
+        """Override this method to load the alignment from storage."""
+        raise NotImplementedError("_load must be implemented for CopickAlignment.")
+
+    def _store(self) -> None:
+        """Override this method to store the alignment."""
+        raise NotImplementedError("_store must be implemented for CopickAlignment.")
+
+    def _delete_data(self) -> None:
+        """Override this method to delete the alignment from storage."""
+        raise NotImplementedError("_delete_data must be implemented for CopickAlignment.")
+
+    def load(self) -> CopickAlignmentFile:
+        """Load the alignment from storage."""
+        self.meta = self._load()
+        self._loaded = True
+        return self.meta
+
+    def _ensure_loaded(self) -> CopickAlignmentFile:
+        if not self._loaded:
+            self.load()
+        return self.meta
+
+    def store(self) -> None:
+        """Store the alignment."""
+        self._store()
+        self._loaded = True
+
+    def refresh(self) -> None:
+        """Reload the alignment from storage."""
+        self.load()
+
+    def delete(self, unlink: bool = True) -> None:
+        """Delete the alignment.
+
+        Args:
+            unlink: Whether to remove the link from writable tomograms that record this alignment.
+        """
+        if unlink:
+            for tomogram in self.tomograms:
+                if not getattr(tomogram, "read_only", False) and tomogram.alignment_link.source == "attrs":
+                    tomogram._store_link(None)
+                    tomogram._alignment_link_loaded = False
+        self._delete_data()
+        if self.run._alignments is not None and self in self.run._alignments:
+            self.run._alignments.remove(self)
+
+    @property
+    def name(self) -> str:
+        return self.meta.name
+
+    @property
+    def file(self) -> CopickAlignmentFile:
+        """The alignment, loaded from storage if needed."""
+        return self._ensure_loaded()
+
+    @property
+    def tilt_series_name(self) -> Optional[str]:
+        return self.file.tilt_series
+
+    @property
+    def tilt_series_portal_id(self) -> Optional[int]:
+        return self.file.tilt_series_portal_id
+
+    @property
+    def alignment_type(self) -> str:
+        return self.file.alignment_type
+
+    @property
+    def method(self) -> Optional[str]:
+        return self.file.method
+
+    @property
+    def status(self) -> str:
+        return self.file.status
+
+    @property
+    def is_valid(self) -> bool:
+        """Whether the alignment comes from its author and has per-section parameters."""
+        return self.file.is_valid
+
+    @property
+    def is_default(self) -> bool:
+        """Whether the alignment is a CryoET Data Portal placeholder."""
+        return self.file.status == "portal_default"
+
+    @property
+    def is_portal_standard(self) -> Optional[bool]:
+        return self.file.is_portal_standard
+
+    @property
+    def preferred(self) -> bool:
+        return self.file.preferred
+
+    @property
+    def portal_alignment_id(self) -> Optional[int]:
+        return self.file.portal_alignment_id
+
+    @property
+    def sections(self) -> List[CopickSectionAlignment]:
+        return self.file.sections
+
+    @property
+    def excluded_sections(self) -> List[CopickExcludedSection]:
+        return self.file.excluded_sections
+
+    @property
+    def reference_volume(self) -> Optional[CopickReferenceVolume]:
+        return self.file.reference_volume
+
+    @property
+    def linked_tomograms(self) -> List[str]:
+        return self.file.linked_tomograms
+
+    def section(self, section: int) -> Optional[CopickSectionAlignment]:
+        """The parameters of one section, or ``None`` if it is not aligned."""
+        return next((s for s in self.sections if s.section == section), None)
+
+    @property
+    def tilt_series(self) -> Optional["CopickTiltSeries"]:
+        """The tilt series this alignment aligns, or ``None`` if it is not in the run.
+
+        Raises:
+            ValueError: If several tilt series of the run match.
+        """
+        candidates = self.run.get_tilt_series_list(self.tilt_series_name)
+        portal_id = self.tilt_series_portal_id
+        if portal_id is not None:
+            candidates = [
+                ts for ts in candidates if str(getattr(ts.meta, "portal_tiltseries_id", None)) == str(portal_id)
+            ]
+        if len(candidates) > 1:
+            raise ValueError(f"Alignment {self.name} matches {len(candidates)} tilt series of run {self.run.name}.")
+        return candidates[0] if candidates else None
+
+    @property
+    def tomograms(self) -> List["CopickTomogram"]:
+        """The tomograms of the run reconstructed with this alignment."""
+        return [
+            tomogram
+            for voxel_spacing in self.run.voxel_spacings
+            for tomogram in voxel_spacing.tomograms
+            if tomogram.alignment_link is not None and tomogram.alignment_link.alignment == self.name
+        ]
+
+    def to_cets(self) -> Dict[str, Any]:
+        """The CETS ``Alignment`` of this alignment."""
+        from copick.util.cets import alignment_to_document
+
+        return alignment_to_document(self.file)["alignment"]
+
+    def project(
+        self,
+        points: np.ndarray,
+        tomogram: Optional["CopickTomogram"] = None,
+        sections: Optional[Iterable[int]] = None,
+    ) -> Dict[int, np.ndarray]:
+        """Project points onto the images of the tilt series.
+
+        Args:
+            points: Points ``(n, 3)`` in Angstrom from the corner of voxel 0 of ``tomogram`` (copick's pick
+                coordinates), or of the reference volume if no tomogram is given.
+            tomogram: A tomogram reconstructed with this alignment.
+            sections: Sections to project onto. Default: all aligned sections.
+
+        Returns:
+            Per section, the projected points ``(n, 2)`` in pixels of the full-size image (x, y), from the corner of
+            pixel 0.
+
+        Raises:
+            ValueError: If the tilt series or the reference volume are unknown.
+        """
+        from copick.util.alignment_geometry import center, project, tomogram_to_reference
+
+        reference = self.reference_volume
+        tilt_series = self.tilt_series
+        metadata = None if tilt_series is None else tilt_series.metadata
+        if reference is None or metadata is None:
+            raise ValueError(
+                f"Alignment {self.name} needs a reference volume and a tilt series with images to project.",
+            )
+
+        points = np.atleast_2d(np.asarray(points, dtype=float))
+        if tomogram is not None:
+            shape = tomogram.shape
+            if shape is None:
+                raise ValueError(f"Tomogram {tomogram.tomo_type} holds no data.")
+            link = tomogram.alignment_link
+            reference_points = tomogram_to_reference(
+                points,
+                tuple(reversed(shape)),
+                tomogram.voxel_spacing.voxel_size,
+                reference.size,
+                reference.voxel_size,
+                self.file.native_frame.get("volume_center", "floor"),
+                reference.native_extent,
+                None if link is None else link.reference_offset,
+            )
+        else:
+            reference_points = points - center(reference.size, reference.voxel_size, "floor")
+
+        image_center = center((metadata.width, metadata.height), metadata.pixel_size, "floor")
+        wanted = None if sections is None else set(sections)
+        return {
+            s.section: (project(reference_points, s.matrix(), (s.shift_x, s.shift_y)) + image_center)
+            / metadata.pixel_size
+            for s in self.sections
+            if wanted is None or s.section in wanted
+        }
+
+
+def _alignment_rank(alignment: CopickAlignment) -> Tuple:
+    """Sort key of alignments: preferred, portal standard, local (more refined) and older portal ones first."""
+    portal_id = alignment.portal_alignment_id
+    return (
+        not alignment.preferred,
+        not bool(alignment.is_portal_standard),
+        alignment.alignment_type != "LOCAL",
+        portal_id if portal_id is not None else float("inf"),
+        alignment.name,
+    )
 
 
 class CopickPicksFile(BaseModel):
@@ -4354,4 +5126,5 @@ COPICK_TYPES = (
     CopickObject,
     CopickFilaments,
     CopickTiltSeries,
+    CopickAlignment,
 )

@@ -6,6 +6,7 @@ from fsspec import AbstractFileSystem
 from zarr.abc.store import Store
 
 from copick.impl.overlay import (
+    CopickAlignmentOverlay,
     CopickFeaturesOverlay,
     CopickFilamentsOverlay,
     CopickMeshOverlay,
@@ -18,6 +19,7 @@ from copick.impl.overlay import (
     CopickVoxelSpacingOverlay,
 )
 from copick.models import (
+    CopickAlignmentFile,
     CopickConfig,
     CopickFeatures,
     CopickFeaturesMeta,
@@ -280,6 +282,80 @@ def query_tilt_series_stores(run, read_only: bool) -> List[CopickTiltSeriesFSSpe
     return [
         CopickTiltSeriesFSSpec(run=run, meta=CopickTiltSeriesMeta(ts_type=ts_type), read_only=read_only)
         for ts_type in list_tilt_series_types(fs, path)
+    ]
+
+
+#: Directory of a run that holds its alignments.
+ALIGNMENT_DIRECTORY = "Alignments"
+
+
+class CopickAlignmentFSSpec(CopickAlignmentOverlay):
+    """CopickAlignment class backed by fsspec storage, at ``{run}/Alignments/{name}.json``.
+
+    Works with any run that has ``static_path``/``fs_static`` and ``overlay_path``/``fs_overlay`` (the filesystem,
+    data-portal and Croissant backends).
+
+    Attributes:
+        path (str): The path to the alignment file.
+        directory (str): The directory containing the alignment file.
+        fs (AbstractFileSystem): The filesystem containing the alignment file.
+    """
+
+    @property
+    def directory(self) -> str:
+        base = self.run.static_path if self.read_only else self.run.overlay_path
+        return f"{base}/{ALIGNMENT_DIRECTORY}/"
+
+    @property
+    def path(self) -> str:
+        return f"{self.directory}{self.name}.json"
+
+    @property
+    def fs(self) -> AbstractFileSystem:
+        return self.run.fs_static if self.read_only else self.run.fs_overlay
+
+    def _load(self) -> CopickAlignmentFile:
+        from copick.util.cets import alignment_from_document
+
+        if not self.fs.exists(self.path):
+            raise FileNotFoundError(f"File not found: {self.path}")
+        with self.fs.open(self.path, "r") as f:
+            return alignment_from_document(json.load(f))
+
+    def _store(self) -> None:
+        from copick.util.cets import alignment_to_document
+
+        if not self.fs.exists(self.directory):
+            self.fs.makedirs(self.directory, exist_ok=True)
+        with self.fs.open(self.path, "w") as f:
+            json.dump(alignment_to_document(self.meta), f, indent=1)
+
+    def _delete_data(self) -> None:
+        if self.fs.exists(self.path):
+            self.fs.rm(self.path)
+        else:
+            raise FileNotFoundError(f"File not found: {self.path}")
+
+
+def list_alignment_names(fs: Optional[AbstractFileSystem], run_path: str) -> List[str]:
+    """The names of the alignments stored under ``{run_path}/Alignments/``, without reading them."""
+    if fs is None:
+        return []
+    try:
+        paths = fs.glob(f"{run_path}/{ALIGNMENT_DIRECTORY}/*.json")
+    except FileNotFoundError:
+        return []
+    names = {path.rsplit("/", 1)[-1][: -len(".json")] for path in paths}
+    return sorted(name for name in names if name and not name.startswith("."))
+
+
+def query_alignment_files(run, read_only: bool) -> List[CopickAlignmentFSSpec]:
+    """The alignments in a run's static (``read_only``) or overlay ``Alignments/`` directory."""
+    fs = run.fs_static if read_only else run.fs_overlay
+    path = run.static_path if read_only else run.overlay_path
+    return [
+        CopickAlignmentFSSpec(run=run, file=CopickAlignmentFile(name=name), read_only=read_only)
+        for name in list_alignment_names(fs, path)
     ]
 
 
@@ -712,6 +788,17 @@ class CopickRunFSSpec(CopickRunOverlay):
 
     def _query_overlay_tilt_series(self) -> List[CopickTiltSeriesFSSpec]:
         return query_tilt_series_stores(self, read_only=False)
+
+    def _alignment_factory(self) -> Type[CopickAlignmentFSSpec]:
+        return CopickAlignmentFSSpec
+
+    def _query_static_alignments(self) -> List[CopickAlignmentFSSpec]:
+        if self.static_is_overlay:
+            return []
+        return query_alignment_files(self, read_only=True)
+
+    def _query_overlay_alignments(self) -> List[CopickAlignmentFSSpec]:
+        return query_alignment_files(self, read_only=False)
 
     def _mesh_factory(self) -> Tuple[Type[CopickMeshFSSpec], Type[CopickMeshMeta]]:
         return CopickMeshFSSpec, CopickMeshMeta

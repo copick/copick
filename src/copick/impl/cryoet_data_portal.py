@@ -926,6 +926,16 @@ class CopickRunCDP(CopickRunOverlay):
 
         return query_tilt_series_stores(self, read_only=False)
 
+    def _alignment_factory(self):
+        from copick.impl.filesystem import CopickAlignmentFSSpec
+
+        return CopickAlignmentFSSpec
+
+    def _query_overlay_alignments(self):
+        from copick.impl.filesystem import query_alignment_files
+
+        return query_alignment_files(self, read_only=False)
+
     def _picks_factory(self) -> Type[CopickPicksCDP]:
         return CopickPicksCDP
 
