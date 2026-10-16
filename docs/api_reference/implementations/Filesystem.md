@@ -44,6 +44,11 @@ any storage supported by `fsspec`. The filesystem implementation is defined in t
 
 ****
 
+[](){#CopickTiltSeriesFSSpec}
+::: copick.impl.filesystem.CopickTiltSeriesFSSpec
+
+****
+
 [](){#CopickVoxelSpacingFSSpec}
 ::: copick.impl.filesystem.CopickVoxelSpacingFSSpec
 
