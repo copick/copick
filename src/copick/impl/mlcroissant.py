@@ -41,6 +41,7 @@ from fsspec.implementations.local import LocalFileSystem
 from zarr.abc.store import Store
 
 from copick.impl.overlay import (
+    CopickAlignmentOverlay,
     CopickFeaturesOverlay,
     CopickMeshOverlay,
     CopickObjectOverlay,
@@ -52,6 +53,7 @@ from copick.impl.overlay import (
     CopickVoxelSpacingOverlay,
 )
 from copick.models import (
+    CopickAlignmentFile,
     CopickConfig,
     CopickFeatures,
     CopickFeaturesMeta,
@@ -149,7 +151,9 @@ CSV_SCHEMA: Dict[str, Dict[str, Any]] = {
         "csv_name": "tomograms.csv",
         "file_object_id": "tomograms-csv",
         "recordset_name": "tomograms",
-        "columns": ["run", "voxel_size", "tomo_type", "url", "portal_tomo_type", "portal_tomogram_id"],
+        # ``alignment`` names the alignment a tomogram was reconstructed with, for tomograms that do not record it
+        # themselves (e.g. tomograms served by the CryoET Data Portal).
+        "columns": ["run", "voxel_size", "tomo_type", "url", "portal_tomo_type", "portal_tomogram_id", "alignment"],
         "key_fields": ("run", "voxel_size", "tomo_type"),
         "types": {
             "run": "sc:Text",
@@ -158,6 +162,7 @@ CSV_SCHEMA: Dict[str, Dict[str, Any]] = {
             "url": "sc:Text",
             "portal_tomo_type": "sc:Text",
             "portal_tomogram_id": "sc:Text",
+            "alignment": "sc:Text",
         },
     },
     "copick/features": {
@@ -332,6 +337,34 @@ CSV_SCHEMA: Dict[str, Dict[str, Any]] = {
             "portal_tiltseries_id": "sc:Text",
         },
     },
+    "copick/alignments": {
+        "csv_name": "alignments.csv",
+        "file_object_id": "alignments-csv",
+        "recordset_name": "alignments",
+        "columns": [
+            "run",
+            "name",
+            "tilt_series",
+            "url",
+            "sha256",
+            "status",
+            "alignment_type",
+            "portal_alignment_id",
+            "portal_tiltseries_id",
+        ],
+        "key_fields": ("run", "name"),
+        "types": {
+            "run": "sc:Text",
+            "name": "sc:Text",
+            "tilt_series": "sc:Text",
+            "url": "sc:Text",
+            "sha256": "sc:Text",
+            "status": "sc:Text",
+            "alignment_type": "sc:Text",
+            "portal_alignment_id": "sc:Text",
+            "portal_tiltseries_id": "sc:Text",
+        },
+    },
     "copick/objects": {
         "csv_name": "objects.csv",
         "file_object_id": "objects-csv",
@@ -354,6 +387,7 @@ RECORDSET_ORDER = [
     "copick/instance_segmentations",
     "copick/panoptic_segmentations",
     "copick/tilt_series",
+    "copick/alignments",
     "copick/objects",
 ]
 
@@ -578,6 +612,7 @@ class CroissantIndex:
     instance_segmentations: List[Dict[str, Any]] = field(default_factory=list)
     panoptic_segmentations: List[Dict[str, Any]] = field(default_factory=list)
     tilt_series: List[Dict[str, Any]] = field(default_factory=list)
+    alignments: List[Dict[str, Any]] = field(default_factory=list)
     objects: List[Dict[str, Any]] = field(default_factory=list)
 
     # Write-side state
@@ -760,6 +795,7 @@ class CroissantIndex:
             "copick/instance_segmentations": self.instance_segmentations,
             "copick/panoptic_segmentations": self.panoptic_segmentations,
             "copick/tilt_series": self.tilt_series,
+            "copick/alignments": self.alignments,
             "copick/objects": self.objects,
         }[recordset_id]
 
@@ -853,6 +889,7 @@ class CroissantIndex:
             self.instance_segmentations.clear()
             self.panoptic_segmentations.clear()
             self.tilt_series.clear()
+            self.alignments.clear()
             self.objects.clear()
             self._dirty.clear()
             self._load_records()
@@ -1713,6 +1750,21 @@ class CopickTomogramMLC(CopickTomogramOverlay):
         vs = self.voxel_spacing.voxel_size
         return f"ExperimentRuns/{run}/VoxelSpacing{vs:.3f}/{self.tomo_type}.zarr"
 
+    def _synthesized_link(self):
+        # A tomogram listed in the index may name its alignment there (e.g. a CryoET Data Portal tomogram).
+        from copick.models import CopickTomogramLink
+
+        row = self._find_row() if self.read_only else None
+        if row is None or not row.get("alignment"):
+            return None
+        alignment = self.voxel_spacing.run.get_alignment(row["alignment"])
+        return CopickTomogramLink(
+            alignment=row["alignment"],
+            tilt_series=None if alignment is None else alignment.tilt_series_name,
+            tilt_series_portal_id=None if alignment is None else alignment.tilt_series_portal_id,
+            source="croissant",
+        )
+
 
 # -----------------------------------------------------------------------------
 # Tilt series
@@ -1800,6 +1852,92 @@ class CopickTiltSeriesMLC(CopickTiltSeriesOverlay):
 
     def _relative_url(self) -> str:
         return f"ExperimentRuns/{self.run.name}/TiltSeries/{self.ts_type}.zarr"
+
+
+# -----------------------------------------------------------------------------
+# Alignments
+# -----------------------------------------------------------------------------
+
+
+class CopickAlignmentMLC(CopickAlignmentOverlay):
+    """Alignment listed in a Croissant (static), or stored in its overlay."""
+
+    @property
+    def _index(self) -> CroissantIndex:
+        return self.run.root.index
+
+    @property
+    def _row_key(self) -> Dict[str, Any]:
+        return {"run": self.run.name, "name": self.name}
+
+    def _find_row(self) -> Optional[Dict[str, Any]]:
+        key = self._row_key
+        return next((r for r in self._index.alignments if all(r.get(k) == v for k, v in key.items())), None)
+
+    @property
+    def path(self) -> str:
+        if self.read_only:
+            row = self._find_row()
+            if row is None:
+                raise FileNotFoundError(f"No Croissant row for alignment {self.name}")
+            return _join_url(self._index.base_url, row["url"])
+        return f"{self.run.overlay_path}/Alignments/{self.name}.json"
+
+    @property
+    def directory(self) -> str:
+        return f"{self.run.overlay_path}/Alignments/"
+
+    def _load(self) -> CopickAlignmentFile:
+        from copick.util.cets import alignment_from_document
+
+        row = self._find_row()
+        if row is not None and (self.read_only or self.run.root.mode == "A"):
+            fs, path = self._index.resolve_url(row["url"])
+        else:
+            fs, path = self.run.fs_overlay, self.path
+        if not fs.exists(path):
+            raise FileNotFoundError(f"Alignment file not found: {path}")
+        with fs.open(path, "r") as f:
+            return alignment_from_document(json.load(f))
+
+    def _store(self) -> None:
+        from copick.util.cets import alignment_to_document
+
+        self.run.root._assert_writable()
+        fs = self.run.fs_overlay
+        if not fs.exists(self.directory):
+            fs.makedirs(self.directory, exist_ok=True)
+        json_bytes = json.dumps(alignment_to_document(self.meta), indent=1).encode("utf-8")
+        with fs.open(self.path, "wb") as f:
+            f.write(json_bytes)
+        if self.run.root.mode == "A":
+            self._index.add_row(
+                "copick/alignments",
+                {
+                    **self._row_key,
+                    "tilt_series": self.meta.tilt_series,
+                    "url": f"ExperimentRuns/{self.run.name}/Alignments/{self.name}.json",
+                    "sha256": _sha256_bytes(json_bytes),
+                    "status": self.meta.status,
+                    "alignment_type": self.meta.alignment_type,
+                    "portal_alignment_id": _text_or_none(self.meta.portal_alignment_id),
+                    "portal_tiltseries_id": _text_or_none(self.meta.tilt_series_portal_id),
+                },
+            )
+
+    def _delete_data(self) -> None:
+        self.run.root._assert_writable()
+        fs = self.run.fs_overlay
+        if fs.exists(self.path):
+            fs.rm(self.path)
+        else:
+            raise FileNotFoundError(f"File not found: {self.path}")
+        if self.run.root.mode == "A":
+            self._index.remove_row("copick/alignments", self._row_key)
+
+
+def _text_or_none(value: Any) -> Optional[str]:
+    return None if value is None else str(value)
 
 
 # -----------------------------------------------------------------------------
@@ -1962,6 +2100,32 @@ class CopickRunMLC(CopickRunOverlay):
 
     def _tilt_series_factory(self) -> Tuple[Type[CopickTiltSeriesMLC], Type[CopickTiltSeriesMetaMLC]]:
         return CopickTiltSeriesMLC, CopickTiltSeriesMetaMLC
+
+    def _alignment_factory(self) -> Type[CopickAlignmentMLC]:
+        return CopickAlignmentMLC
+
+    def _alignments_from_rows(self, read_only: bool) -> List[CopickAlignmentMLC]:
+        return [
+            CopickAlignmentMLC(run=self, file=CopickAlignmentFile(name=row["name"]), read_only=read_only)
+            for row in self._index.alignments
+            if row.get("run") == self.name
+        ]
+
+    def _query_static_alignments(self) -> List[CopickAlignmentMLC]:
+        if self.static_is_overlay:
+            return []
+        return self._alignments_from_rows(read_only=True)
+
+    def _query_overlay_alignments(self) -> List[CopickAlignmentMLC]:
+        if self.root.mode == "A":
+            # Mode A: the Croissant index is the authoritative list of writable alignments.
+            return self._alignments_from_rows(read_only=False)
+        from copick.impl.filesystem import list_alignment_names
+
+        return [
+            CopickAlignmentMLC(run=self, file=CopickAlignmentFile(name=name), read_only=False)
+            for name in list_alignment_names(self.fs_overlay, self.overlay_path)
+        ]
 
     def _tilt_series_from_rows(self, read_only: bool) -> List[CopickTiltSeriesMLC]:
         return [
