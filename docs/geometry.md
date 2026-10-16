@@ -438,6 +438,7 @@ Tools put the centres elsewhere; imported alignments are converted, and exported
 | RELION 5 | `floor(N/2)` | `floor(N/2)` | Å |
 | AreTomo3 `.aln` | `N/2` | `V/2` | tilt-series pixels |
 | Warp | `N/2` | `V/2` | Å |
+| IMOD | `N/2` (even sizes only) | `V/2` (even sizes only) | tilt-series pixels |
 | CryoET Data Portal | `N/2` | `V/2` | tilt-series pixels |
 
 Here `N/2` is half the number of pixels (or voxels) times their size, and `V` the volume extent the tool used, in Å. A
@@ -451,6 +452,9 @@ d_vol = c_vol_native − floor(N_ref/2) · s_ref
 
 with `c_img_native` and `c_vol_native` the native centres in Å from the corners. On odd sizes, ignoring this conversion
 displaces projections by up to a pixel. The conventions are implemented in `copick.util.alignment_geometry`.
+
+For IMOD the two conventions agree on even sizes, which is all copick relies on. Odd image or volume sizes need an
+explicit `--assume-frame half|floor`.
 
 ### 7.4 Tomograms and the Reference Volume
 
@@ -466,3 +470,53 @@ To find picks of a tomogram on the tilt images:
 alignment = tomogram.alignment
 pixels = alignment.project(picks.numpy()[0], tomogram=tomogram)   # {section: (n, 2) array of (x, y) pixels}
 ```
+
+### 7.5 Importing and Exporting Alignments
+
+`copick add alignment` and `copick export alignment` convert alignments between the tools' files and copick
+(`copick.util.acquisition_formats`, parsing by [cryoet-alignment](https://github.com/uermel/cryoet-alignment)). Each
+file lists images in its own order, and its rows are mapped to tilt-series sections:
+
+| File | Rows | Default mapping |
+|---|---|---|
+| SerialEM `.mdoc` | `ZValue`: the stack as SerialEM wrote it | `index` |
+| `.rawtlt` / `.tlt`, AreTomo3 `_TLT.txt` | the stack they accompany | `index` |
+| AreTomo3 `.aln`, `_CTF.txt` | ascending tilt angle, dark images included | `sorted` |
+| CTFFIND4 | the stack | `index` |
+| Warp XML | the `.tomostar` | `angle` |
+| RELION 5 | the kept tilts | `angle` (`rlnTomoNominalStageTiltAngle`) |
+| IMOD `.xf` / `.tlt` | the stack | `index` |
+
+- `index` maps row `i` (or the row's `ZValue`) to section `i`.
+- `sorted` pairs the rows in ascending angle with the sections in ascending nominal tilt angle.
+- `angle` matches each row to the section with the nearest nominal tilt angle (`--angle-tolerance`, 1° by default).
+
+Whenever the nominal tilt angles are known, the mapping is checked against them.
+
+A mapping that fits only with the angles' signs flipped is refused, never flipped. A series symmetric in angle matches
+either way, so for Warp the rows' doses and movie names decide. Warp's `ts_import` stores the negated stage angles
+unless it was run with `--dont_invert`.
+
+Information a target cannot hold is dropped only on request:
+
+| Loss | Option |
+|---|---|
+| Local (patch) part of an AreTomo3 alignment | `--rigid-only` |
+| Spatially varying Warp deformation grids | `--allow-varying-grids` |
+| Tilt about x, on export to AreTomo3 | `--drop-x-tilt` |
+
+Warp holds one `LevelAngleX` per series, so the sections' tilts about x must agree within 10⁻³° to export to Warp.
+
+Partial CTF fits are not exported.
+
+A RELION export writes the tilt series' nominal angles as `rlnTomoNominalStageTiltAngle` and the refined ones as
+`rlnTomoYTilt`, the accumulated dose as `rlnMicrographPreExposure`, and with `--include-ctf` the per-tilt CTF columns.
+
+The volume a tool reconstructs with an alignment becomes its reference volume. It comes from:
+
+1. the files: the AreTomo3 `Thickness`, Warp `VolumeDimensionsAngstrom`, RELION `rlnTomoSizeX/Y/Z`, or IMOD
+   `tilt.com`;
+2. `--thickness` / `--volume-size`;
+3. `--reference-tomogram`, which also links that tomogram.
+
+On export, `--reference-tomogram` re-expresses the alignment for that tomogram's volume (§7.4).

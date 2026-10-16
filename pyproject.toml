@@ -18,6 +18,7 @@ classifiers = [
 dynamic = ["version"]
 dependencies = [
     "click>=8.1.8",
+    "cryoet-alignment>=0.2.0",
     "cryoet-data-portal>=4.4.1",
     "distinctipy>=1.3.4",
     "dynamotable>=0.2.0",
@@ -154,6 +155,10 @@ known-first-party =["common"]
 
 [tool.ruff.lint.flake8-quotes]
 docstring-quotes = "double"
+
+# Until cryoet-alignment 0.3.0 (RELION per-tilt CTF, SerialEM mdoc) is on PyPI
+[tool.uv.sources]
+cryoet-alignment = { git = "https://github.com/uermel/cryoet-alignment", branch = "uermel/relion-ctf-mdoc" }
 
 # https://docs.pytest.org/en/latest/reference/customize.html
 [tool.pytest.ini_options]
