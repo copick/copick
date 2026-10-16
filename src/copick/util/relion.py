@@ -1,5 +1,5 @@
 from dataclasses import dataclass
-from typing import TYPE_CHECKING, Dict, Optional, Sequence, Tuple, Union
+from typing import TYPE_CHECKING, Dict, Literal, Optional, Sequence, Tuple, Union
 
 import numpy as np
 import zarr
@@ -96,7 +96,9 @@ def filament_relion_angles(rotations: np.ndarray) -> Dict[str, np.ndarray]:
     RELION (``get_particle_poses/filaments.py``, ``relion_tomo_import_coordinates``) stores a filament particle's frame
     in ``rlnTomoSubtomogram{Rot,Tilt,Psi}``, pre-rotated by Ry(90), and sets ``rlnAngle{Rot,Tilt,Psi}`` to (0, 90, 0)
     with priors ``rlnAngleTiltPrior`` = 90 and ``rlnAnglePsiPrior`` = 0, so that ``A_subtomogram @ A_particle`` is the
-    frame and helical refinement searches around in-plane particles.
+    frame and helical refinement searches around in-plane particles. (For a pick whose rotation is a registered pose
+    rather than a filament frame, ``build_relion_particles_df(..., filament_angles="pose")`` writes the rotation as
+    plain particle angles instead.)
 
     Args:
         rotations: (N, 3, 3) object-to-tomogram rotations.
@@ -139,6 +141,51 @@ def filament_track_lengths(positions: np.ndarray, instance_ids: np.ndarray) -> n
         steps = np.linalg.norm(np.diff(positions[index], axis=0), axis=1)
         lengths[index[1:]] = np.cumsum(steps)
     return lengths
+
+
+def filament_half_sets(df: "pd.DataFrame") -> np.ndarray:
+    """``rlnRandomSubset`` (1 or 2) for each row of a RELION particle table, assigned by whole filament.
+
+    RELION splits a refinement's half sets per particle unless the particles already carry ``rlnRandomSubset``.
+    Neighboring particles of one filament overlap, so a per-particle split puts the same density in both halves and
+    inflates the FSC. Here every particle of a filament goes to the same half. A filament is a
+    (``rlnTomoName``, ``rlnHelicalTubeID``) pair, since tube IDs are unique only within one tomogram, so one table
+    may hold many runs.
+
+    The halves are balanced greedily by particle count: filaments are taken in order of descending particle count,
+    then by tomogram name and tube ID, and each goes to the half with fewer particles so far (half 1 on a tie). The
+    assignment depends only on the table's (tomogram, tube) pairs and their counts, not on row order.
+
+    Args:
+        df: RELION particle table with ``rlnHelicalTubeID`` (and ``rlnTomoName`` when it holds several tomograms).
+
+    Returns:
+        (N,) int array of 1 and 2.
+
+    Raises:
+        ValueError: If the table has rows but no ``rlnHelicalTubeID``.
+    """
+    n = len(df)
+    if n == 0:
+        return np.zeros(0, dtype=np.int64)
+    if "rlnHelicalTubeID" not in df.columns:
+        raise ValueError(
+            f"Half sets by filament are keyed by rlnHelicalTubeID, which these {n} particles do not have: they are "
+            "written without filament columns. Export them with filament columns (filament_columns='on'), or "
+            "without filament half sets.",
+        )
+    names = df["rlnTomoName"].astype(str).tolist() if "rlnTomoName" in df.columns else [""] * n
+    keys = list(zip(names, df["rlnHelicalTubeID"].astype(np.int64).tolist(), strict=True))
+    counts: Dict[Tuple[str, int], int] = {}
+    for key in keys:
+        counts[key] = counts.get(key, 0) + 1
+    load = {1: 0, 2: 0}
+    half: Dict[Tuple[str, int], int] = {}
+    for key, count in sorted(counts.items(), key=lambda item: (-item[1], item[0])):
+        subset = 1 if load[1] <= load[2] else 2
+        half[key] = subset
+        load[subset] += count
+    return np.array([half[key] for key in keys], dtype=np.int64)
 
 
 def order_filament_rows(df: "pd.DataFrame") -> "pd.DataFrame":
@@ -246,6 +293,8 @@ def picks_to_df_relion(
     polarity_known: Union[bool, Sequence[bool], np.ndarray] = False,
     tomo_type: Optional[str] = None,
     coordinates: str = "auto",
+    filament_angles: Literal["frame", "pose"] = "frame",
+    half_sets: Literal[None, "filament"] = None,
 ) -> "pd.DataFrame":
     """Returns the points as a pandas DataFrame with RELION columns.
 
@@ -265,6 +314,10 @@ def picks_to_df_relion(
             where it does and 0.5 elsewhere.
         tomo_type: Type of the copick tomogram whose shape defines the center (see ``copick_tomogram_center``).
         coordinates: ``"auto"``, or ``"centered"`` for centered coordinates only (the center is then required).
+        filament_angles: For filament columns: ``"frame"`` (RELION's filament convention) or ``"pose"`` (the picks'
+            own rotations as particle angles); see ``copick.util.formats.build_relion_particles_df``.
+        half_sets: ``"filament"`` adds ``rlnRandomSubset`` by whole filament (see ``filament_half_sets``); needs
+            filament columns.
     """
     from copick.util.formats import build_relion_particles_df
 
@@ -287,6 +340,8 @@ def picks_to_df_relion(
         filament=is_filament_export(picks, filament),
         polarity_known=polarity_known,
         coordinates=coordinates,
+        filament_angles=filament_angles,
+        half_sets=half_sets,
     )
 
 
