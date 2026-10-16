@@ -915,6 +915,17 @@ class CopickRunCDP(CopickRunOverlay):
 
         return query_filament_files(self, read_only=False)
 
+    def _tilt_series_factory(self):
+        from copick.impl.filesystem import CopickTiltSeriesFSSpec
+        from copick.models import CopickTiltSeriesMeta
+
+        return CopickTiltSeriesFSSpec, CopickTiltSeriesMeta
+
+    def _query_overlay_tilt_series(self):
+        from copick.impl.filesystem import query_tilt_series_stores
+
+        return query_tilt_series_stores(self, read_only=False)
+
     def _picks_factory(self) -> Type[CopickPicksCDP]:
         return CopickPicksCDP
 

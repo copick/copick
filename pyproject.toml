@@ -76,6 +76,7 @@ fledgeling = [
     "smbprotocol>=1.15.0",
 ]
 test = [
+    "jsonschema>=4.18.0",
     "moto[server,s3]>=5.1.0",
     "ome-zarr-models>=1.7,<2",
     "pooch>=1.8.2",

@@ -7,7 +7,14 @@ from types import SimpleNamespace
 import numpy as np
 import pytest
 import zarr
-from copick.models import CopickFeatures, CopickFeaturesMeta, CopickTomogram, CopickTomogramMeta
+from copick.models import (
+    CopickFeatures,
+    CopickFeaturesMeta,
+    CopickTiltSeries,
+    CopickTiltSeriesMeta,
+    CopickTomogram,
+    CopickTomogramMeta,
+)
 from copick.util.handlers.volume.zarr import ZarrVolumeHandler
 from copick.util.ome import get_level_path, write_single_level_ome_zarr
 from copick.util.zarr_copy import copy_zarr_store
@@ -52,6 +59,15 @@ class _StoredFeatures(CopickFeatures):
     def __init__(self, store):
         tomogram = SimpleNamespace(voxel_spacing=SimpleNamespace(voxel_size=10.0))
         super().__init__(tomogram, CopickFeaturesMeta(tomo_type="noncanonical", feature_type="multi"))
+        self._store = store
+
+    def zarr(self):
+        return self._store
+
+
+class _StoredTiltSeries(CopickTiltSeries):
+    def __init__(self, store):
+        super().__init__(SimpleNamespace(name="TS_001"), CopickTiltSeriesMeta(ts_type="portal"))
         self._store = store
 
     def zarr(self):
@@ -269,3 +285,33 @@ def test_metadata_migrated_portal_shaped_v3_fixture_reads_without_normalization(
     handled, voxel_size = ZarrVolumeHandler().read(str(path))
     np.testing.assert_array_equal(handled, values)
     assert voxel_size == 10.0
+
+
+def test_reads_portal_style_v2_tilt_series(tmp_path):
+    """A tilt series stored like the CryoET Data Portal's: Zarr v2, OME-NGFF 0.4, one image per chunk, sections
+    never binned."""
+    images = np.arange(3 * 40 * 50, dtype=np.float32).reshape(3, 40, 50)
+    binned = images.reshape(3, 20, 2, 25, 2).mean(axis=(2, 4))
+    path = tmp_path / "portal_tilt_series.zarr"
+    group = zarr.group(store=LocalStore(path), zarr_format=2)
+    for name, values in (("0", images), ("1", binned)):
+        group.create_array(name, data=values, chunks=(1, 1024, 1024), compressor=Blosc(cname="lz4"))
+    group.attrs["multiscales"] = [
+        {
+            "version": "0.4",
+            "axes": _ome_axes(),
+            "datasets": [
+                {"path": "0", "coordinateTransformations": [{"type": "scale", "scale": [1.54, 1.54, 1.54]}]},
+                {"path": "1", "coordinateTransformations": [{"type": "scale", "scale": [1.54, 3.08, 3.08]}]},
+            ],
+        },
+    ]
+
+    tilt_series = _StoredTiltSeries(LocalStore(path, read_only=True))
+    np.testing.assert_array_equal(tilt_series.numpy(), images)
+    np.testing.assert_array_equal(tilt_series.numpy(sections=slice(1, 3), y=slice(5, 9)), images[1:3, 5:9])
+    level1 = get_level_path(zarr.open_group(path, mode="r"), 1)
+    np.testing.assert_array_equal(tilt_series.section(2, zarr_group=level1), binned[2])
+    assert tilt_series.shape == (3, 40, 50)
+    metadata = tilt_series.metadata
+    assert (metadata.pixel_size, metadata.width, metadata.height, metadata.images) == (1.54, 50, 40, [])

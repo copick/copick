@@ -1,0 +1,387 @@
+{
+ "$defs": {
+  "Affine": {
+   "additionalProperties": false,
+   "description": "A homogeneous affine transformation in two or three dimensions",
+   "properties": {
+    "affine": {
+     "anyOf": [
+      {
+       "items": {
+        "items": {
+         "type": "number"
+        },
+        "maxItems": 3,
+        "minItems": 3,
+        "type": "array"
+       },
+       "maxItems": 3,
+       "minItems": 3,
+       "type": "array"
+      },
+      {
+       "items": {
+        "items": {
+         "type": "number"
+        },
+        "maxItems": 4,
+        "minItems": 4,
+        "type": "array"
+       },
+       "maxItems": 4,
+       "minItems": 4,
+       "type": "array"
+      },
+      {
+       "type": "null"
+      }
+     ],
+     "default": null,
+     "description": "A homogeneous affine matrix stored as a list of rows: 3x3 for a 2D transformation, 4x4 for a 3D transformation. It acts on column vectors: entry [i][j] of the upper-left block is the contribution of input axis j to output axis i, with axes in their declared order, and the last column is the translation. The bottom row is [0, 0, 1] or [0, 0, 0, 1], and all entries are finite. A 3x3 matrix is always a 2D transformation; a 3D rotation or linear block is embedded in a 4x4 matrix.",
+     "title": "Affine"
+    },
+    "input": {
+     "anyOf": [
+      {
+       "type": "string"
+      },
+      {
+       "type": "null"
+      }
+     ],
+     "default": null,
+     "description": "The source coordinate system name",
+     "title": "Input"
+    },
+    "name": {
+     "anyOf": [
+      {
+       "type": "string"
+      },
+      {
+       "type": "null"
+      }
+     ],
+     "default": null,
+     "description": "A human-readable name or title for this entity",
+     "title": "Name"
+    },
+    "output": {
+     "anyOf": [
+      {
+       "type": "string"
+      },
+      {
+       "type": "null"
+      }
+     ],
+     "default": null,
+     "description": "The target coordinate system name",
+     "title": "Output"
+    },
+    "transformation_type": {
+     "const": "affine",
+     "default": "affine",
+     "description": "The type of transformation.",
+     "title": "Transformation Type",
+     "type": "string"
+    }
+   },
+   "title": "Affine",
+   "type": "object"
+  },
+  "ProjectAxis": {
+   "additionalProperties": false,
+   "description": "A change in the number of axes, by dropping input axes and creating output axes at given positions",
+   "properties": {
+    "created_outputs": {
+     "anyOf": [
+      {
+       "items": {
+        "type": "integer"
+       },
+       "type": "array"
+      },
+      {
+       "type": "null"
+      }
+     ],
+     "default": [],
+     "description": "Positions of the output axes that are created, counted from 0, each listed once. Their coordinate is 0. The other output positions take the kept input axes in their order, so the output has as many axes as the input, minus the dropped and plus the created ones.",
+     "title": "Created Outputs"
+    },
+    "dropped_inputs": {
+     "anyOf": [
+      {
+       "items": {
+        "type": "integer"
+       },
+       "type": "array"
+      },
+      {
+       "type": "null"
+      }
+     ],
+     "default": [],
+     "description": "Positions of the input axes that are dropped, counted from 0, each listed once.",
+     "title": "Dropped Inputs"
+    },
+    "input": {
+     "anyOf": [
+      {
+       "type": "string"
+      },
+      {
+       "type": "null"
+      }
+     ],
+     "default": null,
+     "description": "The source coordinate system name",
+     "title": "Input"
+    },
+    "name": {
+     "anyOf": [
+      {
+       "type": "string"
+      },
+      {
+       "type": "null"
+      }
+     ],
+     "default": null,
+     "description": "A human-readable name or title for this entity",
+     "title": "Name"
+    },
+    "output": {
+     "anyOf": [
+      {
+       "type": "string"
+      },
+      {
+       "type": "null"
+      }
+     ],
+     "default": null,
+     "description": "The target coordinate system name",
+     "title": "Output"
+    },
+    "transformation_type": {
+     "const": "project_axis",
+     "default": "project_axis",
+     "description": "The type of transformation.",
+     "title": "Transformation Type",
+     "type": "string"
+    }
+   },
+   "title": "ProjectAxis",
+   "type": "object"
+  },
+  "ProjectionAlignment": {
+   "additionalProperties": false,
+   "description": "The tomographic alignment for a single projection.",
+   "properties": {
+    "id": {
+     "description": "Unique identifier for this entity",
+     "title": "Id",
+     "type": "string"
+    },
+    "input": {
+     "anyOf": [
+      {
+       "type": "string"
+      },
+      {
+       "type": "null"
+      }
+     ],
+     "default": null,
+     "description": "The source coordinate system name",
+     "title": "Input"
+    },
+    "name": {
+     "anyOf": [
+      {
+       "type": "string"
+      },
+      {
+       "type": "null"
+      }
+     ],
+     "default": null,
+     "description": "A human-readable name or title for this entity",
+     "title": "Name"
+    },
+    "output": {
+     "anyOf": [
+      {
+       "type": "string"
+      },
+      {
+       "type": "null"
+      }
+     ],
+     "default": null,
+     "description": "The target coordinate system name",
+     "title": "Output"
+    },
+    "sequence": {
+     "anyOf": [
+      {
+       "items": {
+        "anyOf": [
+         {
+          "$ref": "#/$defs/Affine"
+         },
+         {
+          "$ref": "#/$defs/ProjectAxis"
+         },
+         {
+          "$ref": "#/$defs/Translation"
+         }
+        ]
+       },
+       "maxItems": 4,
+       "type": "array"
+      },
+      {
+       "type": "null"
+      }
+     ],
+     "default": [],
+     "description": "The ordered steps from the tomogram to the projection: a tilt, a projection that drops the beam axis, an in-plane rotation and a shift. A 3D step before the projection is a 4x4 affine; the 2D steps after it are a 3x3 affine and a two-component translation.",
+     "title": "Sequence"
+    },
+    "tilt_image_id": {
+     "anyOf": [
+      {
+       "type": "string"
+      },
+      {
+       "type": "null"
+      }
+     ],
+     "default": null,
+     "description": "ID of the tilt-image this alignment applies to. Multiple alignments (e.g. produced  by different algorithms) may reference the same tilt-image.",
+     "title": "Tilt Image Id"
+    },
+    "transformation_type": {
+     "const": "projection_alignment",
+     "default": "projection_alignment",
+     "description": "The type of transformation.",
+     "title": "Transformation Type",
+     "type": "string"
+    }
+   },
+   "required": [
+    "id"
+   ],
+   "title": "ProjectionAlignment",
+   "type": "object"
+  },
+  "Translation": {
+   "additionalProperties": false,
+   "description": "A translation transformation",
+   "properties": {
+    "input": {
+     "anyOf": [
+      {
+       "type": "string"
+      },
+      {
+       "type": "null"
+      }
+     ],
+     "default": null,
+     "description": "The source coordinate system name",
+     "title": "Input"
+    },
+    "name": {
+     "anyOf": [
+      {
+       "type": "string"
+      },
+      {
+       "type": "null"
+      }
+     ],
+     "default": null,
+     "description": "A human-readable name or title for this entity",
+     "title": "Name"
+    },
+    "output": {
+     "anyOf": [
+      {
+       "type": "string"
+      },
+      {
+       "type": "null"
+      }
+     ],
+     "default": null,
+     "description": "The target coordinate system name",
+     "title": "Output"
+    },
+    "transformation_type": {
+     "const": "translation",
+     "default": "translation",
+     "description": "The type of transformation.",
+     "title": "Transformation Type",
+     "type": "string"
+    },
+    "translation": {
+     "anyOf": [
+      {
+       "items": {
+        "type": "number"
+       },
+       "type": "array"
+      },
+      {
+       "type": "null"
+      }
+     ],
+     "default": [],
+     "description": "The translation vector",
+     "title": "Translation"
+    }
+   },
+   "title": "Translation",
+   "type": "object"
+  }
+ },
+ "additionalProperties": false,
+ "description": "The tomographic alignment for a tilt series.",
+ "properties": {
+  "projection_alignments": {
+   "anyOf": [
+    {
+     "items": {
+      "$ref": "#/$defs/ProjectionAlignment"
+     },
+     "type": "array"
+    },
+    {
+     "type": "null"
+    }
+   ],
+   "default": [],
+   "description": "alignment for a specific projection",
+   "title": "Projection Alignments"
+  },
+  "tilt_series_id": {
+   "anyOf": [
+    {
+     "type": "string"
+    },
+    {
+     "type": "null"
+    }
+   ],
+   "default": null,
+   "description": "ID of the tilt-series this alignment set applies to. Multiple Alignments (e.g.  from different algorithms) may reference the same tilt-series.",
+   "title": "Tilt Series Id"
+  }
+ },
+ "title": "Alignment",
+ "type": "object"
+}
