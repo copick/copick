@@ -2523,7 +2523,7 @@ class CopickTomogram:
         """Record the alignment this tomogram was reconstructed with, or remove the record.
 
         A writable tomogram records the link itself. A read-only tomogram is named by the (writable) alignment
-        instead.
+        instead; removing such a link restores the link the tomogram or its source record, if any.
 
         Args:
             alignment: The alignment or its name; ``None`` removes the link.
@@ -2560,7 +2560,12 @@ class CopickTomogram:
         if read_only:
             if reference_offset is not None:
                 raise ValueError("A reference offset can only be recorded with a writable tomogram.")
-            if target is None and (self._load_link() is not None or self._synthesized_link() is not None):
+            if (
+                target is None
+                and not naming
+                and (self._load_link() is not None or self._synthesized_link() is not None)
+            ):
+                # Only links recorded by writable alignments can be removed; then the tomogram's own link applies again
                 raise PermissionError(f"The link of read-only tomogram {self.link_id} cannot be removed.")
             if target is not None and getattr(target, "read_only", False):
                 raise PermissionError(

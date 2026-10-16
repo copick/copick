@@ -55,7 +55,37 @@ DATA_KEYS = (
     "tomogram_authors",
 )
 
+# Keys of the acquisition payload: tilt series, alignments and their per-section records. Fetched lazily, on first
+# access to a run's tilt series or alignments, and cached in a document of its own.
+ACQUISITION_DATA_KEYS = (
+    "tiltseries",
+    "alignments",
+    "per_section_alignment_parameters",
+    "per_section_parameters",
+    "frames",
+)
+
+# Bump when the acquisition document layout changes.
+ACQUISITION_SCHEMA_VERSION = 1
+
 _CACHE_DIRNAME = ".copick_cache"
+
+
+@dataclass(frozen=True)
+class CacheKind:
+    """One kind of cached portal payload: its file-name prefix, schema version and data keys."""
+
+    name: str
+    prefix: str
+    schema_version: int
+    data_keys: tuple
+
+
+#: Annotations, voxel spacings and tomograms, fetched when a portal project is opened.
+ANNOTATIONS = CacheKind("annotations", "portal", SCHEMA_VERSION, DATA_KEYS)
+#: Tilt series, alignments and per-section data, fetched on first use.
+ACQUISITION = CacheKind("acquisition", "portal_acq", ACQUISITION_SCHEMA_VERSION, ACQUISITION_DATA_KEYS)
+CACHE_KINDS = (ANNOTATIONS, ACQUISITION)
 
 
 def _cdp_version() -> str:
@@ -164,6 +194,28 @@ def fingerprint_for_config(config: Any) -> str:
     return compute_fingerprint(list(getattr(config, "dataset_ids", [])), object_identifiers(config))
 
 
+def compute_acquisition_fingerprint(dataset_ids: List[int]) -> str:
+    """Stable hash of everything that changes the acquisition query results. They do not depend on the pickable
+    objects, so projects of different objects over the same datasets share the document."""
+    payload = {
+        "kind": ACQUISITION.name,
+        "dataset_ids": sorted(int(d) for d in dataset_ids),
+        "cdp_version": _cdp_version(),
+        "schema_version": ACQUISITION_SCHEMA_VERSION,
+    }
+    return sha256(json.dumps(payload, sort_keys=True).encode()).hexdigest()
+
+
+def acquisition_fingerprint_for_config(config: Any) -> str:
+    """Compute the acquisition cache fingerprint for a ``CopickConfigCDP``."""
+    return compute_acquisition_fingerprint(list(getattr(config, "dataset_ids", [])))
+
+
+def fingerprint_for_kind(config: Any, kind: CacheKind) -> str:
+    """The fingerprint of the ``kind`` document of a ``CopickConfigCDP``."""
+    return acquisition_fingerprint_for_config(config) if kind is ACQUISITION else fingerprint_for_config(config)
+
+
 # ---------------------------------------------------------------------------
 # Cache locations (overlay primary, local fallback)
 # ---------------------------------------------------------------------------
@@ -200,9 +252,9 @@ def _local_location(file_path: str) -> CacheLocation:
     return CacheLocation(fs=fs, directory=directory, path=file_path, local_path=file_path)
 
 
-def _xdg_cache_file(fingerprint: str) -> str:
+def _xdg_cache_file(fingerprint: str, prefix: str = ANNOTATIONS.prefix) -> str:
     base = os.environ.get("XDG_CACHE_HOME") or os.path.expanduser("~/.cache")
-    return os.path.join(base, "copick", "portal", f"portal_{fingerprint}.json")
+    return os.path.join(base, "copick", "portal", f"{prefix}_{fingerprint}.json")
 
 
 def build_overlay_fs(config: Any):
@@ -219,14 +271,15 @@ def resolve_locations(
     settings: CacheSettings,
     fs_overlay: Any = None,
     root_overlay: Optional[str] = None,
+    prefix: str = ANNOTATIONS.prefix,
 ) -> List[CacheLocation]:
     """Ordered candidate cache locations. Reads try each in order; writes use the first that succeeds.
 
     * A pinned ``cache_dir`` short-circuits to a single local location.
-    * Otherwise: the overlay (``{root_overlay}/.copick_cache/portal_{fp}.json``) first, then a
+    * Otherwise: the overlay (``{root_overlay}/.copick_cache/{prefix}_{fp}.json``) first, then a
       local ``~/.cache/copick/portal/`` fallback for read-only overlays.
     """
-    filename = f"portal_{fingerprint}.json"
+    filename = f"{prefix}_{fingerprint}.json"
 
     if settings.cache_dir:
         return [_local_location(os.path.join(settings.cache_dir, filename))]
@@ -238,7 +291,7 @@ def resolve_locations(
         local_path = path if _fs_is_local(fs_overlay) else None
         locations.append(CacheLocation(fs=fs_overlay, directory=directory, path=path, local_path=local_path))
 
-    locations.append(_local_location(_xdg_cache_file(fingerprint)))
+    locations.append(_local_location(_xdg_cache_file(fingerprint, prefix)))
     return locations
 
 
@@ -251,14 +304,19 @@ def _now_utc() -> datetime:
     return datetime.now(timezone.utc)
 
 
-def _load_location(loc: CacheLocation, fingerprint: str, ttl_seconds: int) -> Optional[Dict[str, Any]]:
+def _load_location(
+    loc: CacheLocation,
+    fingerprint: str,
+    ttl_seconds: int,
+    schema_version: int = SCHEMA_VERSION,
+) -> Optional[Dict[str, Any]]:
     """Return the ``data`` payload from ``loc`` if present, valid, and fresh; else ``None``."""
     try:
         if not loc.fs.exists(loc.path):
             return None
         with loc.fs.open(loc.path, "r") as f:
             doc = json.load(f)
-        if doc.get("schema_version") != SCHEMA_VERSION:
+        if doc.get("schema_version") != schema_version:
             logger.debug("Portal cache %s: schema mismatch, ignoring.", loc.path)
             return None
         if doc.get("fingerprint") != fingerprint:
@@ -318,11 +376,12 @@ def _store_location(
     fingerprint: str,
     dataset_ids: List[int],
     data: Dict[str, Any],
+    schema_version: int = SCHEMA_VERSION,
 ) -> bool:
     """Serialize and atomically write the cache document to ``loc``. Returns success."""
     try:
         doc = {
-            "schema_version": SCHEMA_VERSION,
+            "schema_version": schema_version,
             "created": _now_utc().isoformat(),
             "cdp_version": _cdp_version(),
             "dataset_ids": sorted(int(d) for d in dataset_ids),
@@ -361,23 +420,26 @@ def get_or_fetch(
     fs_overlay: Any = None,
     root_overlay: Optional[str] = None,
     force: bool = False,
+    kind: CacheKind = ANNOTATIONS,
 ) -> Dict[str, Any]:
     """Return the portal ``data`` payload from cache, or fetch it once and persist it.
 
     ``fetch_fn`` performs the portal queries and returns a JSON-serializable ``data`` dict; it
     is invoked **at most once**. When caching is disabled, ``fetch_fn`` is called directly.
+    ``kind`` selects the cached document (annotations or acquisition data).
     """
     if not settings.enabled:
         return fetch_fn()
 
-    locations = resolve_locations(fingerprint, settings, fs_overlay, root_overlay)
+    schema_version = kind.schema_version
+    locations = resolve_locations(fingerprint, settings, fs_overlay, root_overlay, kind.prefix)
     if not locations:
         return fetch_fn()
 
     # Fast read pass (lock-free): any fresh hit wins.
     if not force:
         for loc in locations:
-            data = _load_location(loc, fingerprint, settings.ttl_seconds)
+            data = _load_location(loc, fingerprint, settings.ttl_seconds, schema_version)
             if data is not None:
                 return data
 
@@ -394,17 +456,17 @@ def get_or_fetch(
             with _make_lock(loc, settings.lock_timeout_seconds):
                 if not force:
                     # Double-check: a sibling may have published while we waited on the lock.
-                    data = _load_location(loc, fingerprint, settings.ttl_seconds)
+                    data = _load_location(loc, fingerprint, settings.ttl_seconds, schema_version)
                     if data is not None:
                         return data
                 data = fetch_once()
-                if _store_location(loc, fingerprint, dataset_ids, data):
+                if _store_location(loc, fingerprint, dataset_ids, data, schema_version):
                     return data
                 # Store failed at this location; try the next candidate.
         except Exception as e:  # noqa: BLE001 - includes filelock Timeout
             logger.info("Portal cache lock/store at %s failed (%s); trying next location.", loc.path, e)
             if not force:
-                data = _load_location(loc, fingerprint, settings.ttl_seconds)
+                data = _load_location(loc, fingerprint, settings.ttl_seconds, schema_version)
                 if data is not None:
                     return data
 
@@ -427,6 +489,7 @@ class CacheStatus:
     created: Optional[str] = None
     age_seconds: Optional[float] = None
     lockable: bool = False
+    kind: str = ANNOTATIONS.name
 
 
 def status_for_config(
@@ -434,35 +497,42 @@ def status_for_config(
     fs_overlay: Any = None,
     root_overlay: Optional[str] = None,
 ) -> List[CacheStatus]:
-    """Report each candidate cache location's presence and freshness. Never queries the portal."""
+    """Report each candidate cache location's presence and freshness, for every kind of cached document (annotations
+    first). Never queries the portal."""
     settings = settings_from_config(config)
     if fs_overlay is None:
         fs_overlay, root_overlay = build_overlay_fs(config)
-    fingerprint = fingerprint_for_config(config)
-    locations = resolve_locations(fingerprint, settings, fs_overlay, root_overlay)
 
     out: List[CacheStatus] = []
-    for loc in locations:
-        status = CacheStatus(path=loc.path, exists=False, lockable=loc.lockable)
-        try:
-            if loc.fs.exists(loc.path):
-                status.exists = True
-                with loc.fs.open(loc.path, "r") as f:
-                    doc = json.load(f)
-                status.created = doc.get("created")
-                valid = doc.get("schema_version") == SCHEMA_VERSION and doc.get("fingerprint") == fingerprint
-                if status.created:
-                    with suppress(TypeError, ValueError):
-                        age = (_now_utc() - datetime.fromisoformat(status.created)).total_seconds()
-                        status.age_seconds = age
-                        ttl = settings.ttl_seconds
-                        status.fresh = valid and (ttl <= 0 or age <= ttl)
-                else:
-                    status.fresh = valid
-        except Exception as e:  # noqa: BLE001 - status is best-effort
-            logger.debug("Could not read cache status at %s (%s).", loc.path, e)
-        out.append(status)
+    for kind in CACHE_KINDS:
+        fingerprint = fingerprint_for_kind(config, kind)
+        for loc in resolve_locations(fingerprint, settings, fs_overlay, root_overlay, kind.prefix):
+            out.append(_location_status(loc, fingerprint, kind, settings))
     return out
+
+
+def _location_status(loc: CacheLocation, fingerprint: str, kind: CacheKind, settings: CacheSettings) -> CacheStatus:
+    """Presence and freshness of the ``kind`` document at one location."""
+    status = CacheStatus(path=loc.path, exists=False, lockable=loc.lockable, kind=kind.name)
+    try:
+        if not loc.fs.exists(loc.path):
+            return status
+        status.exists = True
+        with loc.fs.open(loc.path, "r") as f:
+            doc = json.load(f)
+        status.created = doc.get("created")
+        valid = doc.get("schema_version") == kind.schema_version and doc.get("fingerprint") == fingerprint
+        if status.created:
+            with suppress(TypeError, ValueError):
+                age = (_now_utc() - datetime.fromisoformat(status.created)).total_seconds()
+                status.age_seconds = age
+                ttl = settings.ttl_seconds
+                status.fresh = valid and (ttl <= 0 or age <= ttl)
+        else:
+            status.fresh = valid
+    except Exception as e:  # noqa: BLE001 - status is best-effort
+        logger.debug("Could not read cache status at %s (%s).", loc.path, e)
+    return status
 
 
 def clear(
@@ -474,20 +544,24 @@ def clear(
     """Remove the portal disk cache for ``config``. Returns the removed paths. No portal query.
 
     With ``remove_all`` every ``portal_*.json`` in each candidate directory is removed (use when
-    the pickable objects changed and the fingerprint no longer matches); otherwise only the file
-    matching the current fingerprint is removed.
+    the pickable objects changed and the fingerprint no longer matches); otherwise only the files
+    matching the current fingerprints (annotation and acquisition documents) are removed.
     """
     settings = settings_from_config(config)
     if fs_overlay is None:
         fs_overlay, root_overlay = build_overlay_fs(config)
-    fingerprint = fingerprint_for_config(config)
-    locations = resolve_locations(fingerprint, settings, fs_overlay, root_overlay)
+    locations = []
+    for kind in CACHE_KINDS:
+        fingerprint = fingerprint_for_kind(config, kind)
+        locations.extend(resolve_locations(fingerprint, settings, fs_overlay, root_overlay, kind.prefix))
 
     removed: List[str] = []
     for loc in locations:
         try:
             if remove_all:
                 for path in loc.fs.glob(f"{loc.directory}/portal_*.json"):
+                    if path in removed:
+                        continue
                     with suppress(Exception):
                         loc.fs.rm(path)
                         removed.append(path)
