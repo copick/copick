@@ -142,8 +142,9 @@ conventions:
   pointing in the direction of increasing point order. The rotation about the axis (roll) is arbitrary unless a tool
   documents otherwise.
 - The transform's translation is 0; the position along the axis is the `location`.
-- The point order follows the structure's polarity only where the producer states it. Otherwise the direction along
-  the filament is unknown.
+- The point order follows the structure's polarity only where the producer states it (a filament's
+  `polarity_known`, see [Filaments](datamodel.md#filaments)): minus to plus end for microtubules, pointed to barbed
+  end for actin. Otherwise the direction along the filament is unknown.
 
 ---
 
@@ -301,9 +302,11 @@ $$\mathbf{A}_\text{sub} = \mathbf{R} \cdot R_y(90°), \qquad \mathbf{A}_\text{pa
 
 where $\mathbf{R}$ is copick's rotation, whose +Z axis is the filament axis (see 2.4 Filament Frames). Copick writes
 this convention for picks of filament objects (`copick export picks --filament-columns`), together with
-`rlnHelicalTubeID` (the instance ID), `rlnHelicalTrackLengthAngst` (Angstrom along the filament in point order) and,
-unless the point order follows the filament's polarity, `rlnAnglePsiFlipRatio` = 0.5. On import,
-`rlnHelicalTubeID` becomes the instance ID and rows are ordered by tube and track length.
+`rlnHelicalTubeID` (the instance ID), `rlnHelicalTrackLengthAngst` (Angstrom along the filament in point order) and
+`rlnAnglePsiFlipRatio`: 0 (an ordinary psi prior) where the filament's `polarity_known` says the point order follows
+its polarity, 0.5 (a bimodal prior, so that refinement may flip the direction) elsewhere. The column is always
+written, because RELION reads a missing one as 0.5. On import, `rlnHelicalTubeID` becomes the instance ID and rows
+are ordered by tube and track length.
 
 #### Dynamo to Copick
 
@@ -346,8 +349,14 @@ does not enter it. On import copick uses, in order:
 
 On export copick writes `rlnTomoName`, centred coordinates whenever the tomogram centre is known and, when the
 tilt-series pixel size is known, `rlnCoordinateX/Y/Z` in tilt-series pixels together with the optics table
-(`rlnTomoTiltSeriesPixelSize`) that RELION requires. Without a tilt-series pixel size no optics table is written, and
-RELION builds one from `tomograms.star`.
+(`rlnTomoTiltSeriesPixelSize`) that RELION requires, one optics group per run. Without a tilt-series pixel size no
+optics table is written, and RELION builds one from `tomograms.star`. The center comes from `tomograms.star`, from the
+caller (`tomogram_centers`), or from the shape of the copick tomogram (of `--tomo-type`, if given), in that order.
+With `--coordinates centered`, only centered coordinates are written, and a run without a center is an error rather
+than a fallback to pixel coordinates. `--star-layout import` (`copick.ops.export.export_relion_particles(layout="import")`) writes
+the input of RELION's tomography Import Coordinates job instead of one particle file: an index
+(`data_coordinate_files` with `rlnTomoName` and `rlnTomoImportParticleFile`) naming one coordinate file per run,
+each with the same columns and no optics table.
 
 #### Shifts in EM and Dynamo files
 
