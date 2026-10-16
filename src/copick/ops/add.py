@@ -1627,6 +1627,7 @@ def add_tomogram_from_file(
     exist_ok: bool = False,
     overwrite: bool = False,
     log: bool = False,
+    alignment: Optional[str] = None,
 ) -> CopickTomogram:
     """Add a tomogram from any supported file format using the handler registry.
 
@@ -1650,6 +1651,8 @@ def add_tomogram_from_file(
         exist_ok: Don't raise error if tomogram exists.
         overwrite: Overwrite if exists.
         log: Log the operation.
+        alignment: Name of the run's alignment the tomogram was reconstructed with. Default: keep the link of an
+            existing tomogram.
 
     Returns:
         The created CopickTomogram object.
@@ -1699,6 +1702,7 @@ def add_tomogram_from_file(
         exist_ok=exist_ok,
         overwrite=overwrite,
         log=log,
+        alignment=alignment,
     )
 
 

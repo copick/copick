@@ -833,6 +833,7 @@ source = { editable = "." }
 dependencies = [
     { name = "aiohttp" },
     { name = "click" },
+    { name = "cryoet-alignment" },
     { name = "cryoet-data-portal" },
     { name = "distinctipy" },
     { name = "dynamotable" },
@@ -908,6 +909,7 @@ requires-dist = [
     { name = "aiohttp", specifier = ">=3.9.0" },
     { name = "black", marker = "extra == 'dev'", specifier = ">=25.1.0" },
     { name = "click", specifier = ">=8.1.8" },
+    { name = "cryoet-alignment", specifier = ">=0.3.0,<0.4" },
     { name = "cryoet-data-portal", specifier = ">=4.4.1" },
     { name = "distinctipy", specifier = ">=1.3.4" },
     { name = "dynamotable", specifier = ">=0.2.0" },
@@ -1071,6 +1073,28 @@ wheels = [
 [package.optional-dependencies]
 toml = [
     { name = "tomli", marker = "python_full_version <= '3.11'" },
+]
+
+[[package]]
+name = "cryoet-alignment"
+version = "0.3.0"
+source = { registry = "https://pypi.org/simple" }
+dependencies = [
+    { name = "click" },
+    { name = "cryoet-data-portal" },
+    { name = "fsspec" },
+    { name = "mrcfile" },
+    { name = "numpy", version = "2.2.6", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version < '3.11'" },
+    { name = "numpy", version = "2.4.2", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version >= '3.11'" },
+    { name = "pandas" },
+    { name = "pydantic" },
+    { name = "pyyaml" },
+    { name = "s3fs" },
+    { name = "starfile" },
+]
+sdist = { url = "https://files.pythonhosted.org/packages/1c/28/827a5e5ebb8269cf7f9da89c42301f226050326be21e31bc93e58a67a04e/cryoet_alignment-0.3.0.tar.gz", hash = "sha256:61c26e0f984312021b317b23546e320e92696bc79e8a24b3607e04329b5b2d46", size = 337392, upload-time = "2026-11-03T21:37:04.711Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/b8/77/be149bcd2a48ff238c3c3d5e457684e6a4ce9ee002643e732000b3d2e197/cryoet_alignment-0.3.0-py3-none-any.whl", hash = "sha256:e4ee7898763ec942366e08d1dc976003581a7d6088076b69cb81080ef9f37f2b", size = 100287, upload-time = "2026-11-03T21:37:03.113Z" },
 ]
 
 [[package]]
