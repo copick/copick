@@ -15,6 +15,7 @@ copick new [OPTIONS] COMMAND [ARGS]...
 
 | Command | Description |
 |---------|-------------|
+| [`link`](link.md) | Link a tomogram to the alignment it was reconstructed with. |
 | [`picks`](picks.md) | Create empty picks for a given particle name. |
 | [`run`](run.md) | Create an empty run with the given name. |
 | [`voxelspacing`](voxelspacing.md) | Create an empty voxelspacing with the given name. |

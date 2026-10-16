@@ -8,12 +8,14 @@ from copick.impl.cryoet_data_portal import (
 from copick.impl.filesystem import CopickRootFSSpec, CopickRunFSSpec
 from copick.impl.mlcroissant import CopickRootMLC, CopickRunMLC
 from copick.models import (
+    CopickAlignment,
     CopickFeatures,
     CopickMesh,
     CopickPicks,
     CopickRoot,
     CopickRun,
     CopickSegmentation,
+    CopickTiltSeries,
     CopickTomogram,
     CopickVoxelSpacing,
     PickableObject,
@@ -205,6 +207,52 @@ def mesh_to_md(mesh: CopickMesh) -> str:
     return md
 
 
+def tilt_series_to_md(tilt_series: CopickTiltSeries) -> str:
+    """Convert the tilt series object to a markdown string."""
+    md = "# Tilt Series Metadata\n"
+    md += f"## Tilt Series: {tilt_series.ts_type}\n"
+    portal_id = getattr(tilt_series.meta, "portal_tiltseries_id", None)
+    if portal_id is not None:
+        md += f"* cryoET Data portal: Tilt series {portal_id}\n"
+    metadata = tilt_series.metadata
+    if metadata is None:
+        md += "* No images\n"
+        return md
+    md += f"* Pixel size: {metadata.pixel_size} Å, {metadata.width} x {metadata.height} pixels\n"
+    angles = [a for a in metadata.nominal_tilt_angles if a is not None]
+    if angles:
+        md += f"* Images: {metadata.n_sections}, tilt {min(angles):.1f}° to {max(angles):.1f}°\n"
+    doses = [i.accumulated_dose for i in metadata.images if i.accumulated_dose is not None]
+    if doses:
+        md += f"* Pre-exposure up to {max(doses):.1f} e/Å²\n"
+    md += f"* CTF: {metadata.ctf_status}\n"
+    if metadata.voltage is not None:
+        md += f"* Voltage: {metadata.voltage:g} kV\n"
+    if metadata.amplitude_contrast is not None:
+        source = f" ({metadata.amplitude_contrast_source})" if metadata.amplitude_contrast_source else ""
+        md += f"* Amplitude contrast: {metadata.amplitude_contrast}{source}\n"
+    return md
+
+
+def alignment_to_md(alignment: CopickAlignment) -> str:
+    """Convert the alignment object to a markdown string."""
+    md = "# Alignment Metadata\n"
+    md += f"## Alignment: {alignment.name}\n"
+    md += f"* Tilt series: {alignment.tilt_series_name}\n"
+    md += f"* Status: {alignment.status}{' (valid)' if alignment.is_valid else ''}\n"
+    md += f"* Type: {alignment.alignment_type}"
+    md += f", method: {alignment.method}\n" if alignment.method else "\n"
+    md += f"* Aligned sections: {len(alignment.sections)}, excluded: {len(alignment.excluded_sections)}\n"
+    if alignment.is_portal_standard:
+        md += "* CryoET Data Portal standard\n"
+    tomograms = [t.link_id for t in alignment.tomograms]
+    if tomograms:
+        md += f"* Tomograms: {', '.join(tomograms)}\n"
+    for warning in alignment.file.warnings:
+        md += f"* Note: {warning}\n"
+    return md
+
+
 ENTITY_TO_MD = {
     "root": root_to_md,
     "object": object_to_md,
@@ -215,4 +263,6 @@ ENTITY_TO_MD = {
     "segmentation": segmentation_to_md,
     "picks": picks_to_md,
     "mesh": mesh_to_md,
+    "tilt_series": tilt_series_to_md,
+    "alignment": alignment_to_md,
 }

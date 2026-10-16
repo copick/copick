@@ -37,7 +37,10 @@ from copick.util.log import get_logger
 @add_debug_option
 @click.argument(
     "object_type",
-    type=click.Choice(["picks", "filaments", "mesh", "segmentation"], case_sensitive=False),
+    type=click.Choice(
+        ["picks", "filaments", "mesh", "segmentation", "tiltseries", "alignment"],
+        case_sensitive=False,
+    ),
 )
 @click.argument("source_uri", type=CopickURI("any", "input"))
 @click.argument("target_uri", type=CopickURI("any", "output"))
@@ -69,10 +72,17 @@ def cp(
     `{user_id}`, `{session_id}`, and `{voxel_spacing}` (segmentations only), each filled
     from the corresponding field of the matched source object.
 
+    Tilt series are addressed as `ts_type` and alignments as `name@ts_type`; their
+    templates may use `{ts_type}` (and `{name}` for alignments). Copying a tilt series
+    copies its images and metadata; moving one moves its alignments along and relinks the
+    tomograms reconstructed with them. Moving an alignment relinks its tomograms; one that a
+    read-only tomogram or the CryoET Data Portal records cannot be moved.
+
     Arguments:
 
         \b
-        OBJECT_TYPE: Type of object to copy (picks, filaments, mesh, or segmentation).
+        OBJECT_TYPE: Type of object to copy (picks, filaments, mesh, segmentation, tiltseries, or
+            alignment).
         SOURCE_URI: Source copick URI pattern (supports glob and regex).
         TARGET_URI: Target copick URI (use template placeholders for pattern-based copies).
 

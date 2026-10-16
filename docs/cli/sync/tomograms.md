@@ -36,6 +36,7 @@ Use `--exist-ok` to overwrite tomograms that already exist in the target.
 | `--source-tomo-types` | text | `""` | Comma-separated list of source tomogram types to synchronize. If not specified, all tomogram types will be synced. |
 | `--target-tomo-types` | text | `""` | Comma-separated mapping of source tomogram types to target types (e.g. 'wbp:filtered,raw:original'). If not specified, source tomogram types will be used. |
 | `--exist-ok / --no-exist-ok` | boolean flag | `False` | Allow overwriting existing tomograms in the target project. |
+| `--with-links / --no-with-links` | boolean flag | `False` | Link target tomograms to the target run's alignments of the names their sources are linked to (e.g. links the CryoET Data Portal reports). Sync the alignments first. |
 | `--max-workers` | integer | `4` | Maximum number of worker threads to use for synchronization. |
 | `--log / --no-log` | boolean flag | `False` | Enable verbose logging of the synchronization process. |
 | `--debug / --no-debug` | boolean flag | `False` | Enable debug logging. |

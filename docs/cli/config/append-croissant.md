@@ -46,6 +46,8 @@ proteasome picks from a different author with a different template.
 | `--picks` | text · multiple | — | Copick URI to filter picks (e.g. 'ribosome:*/*'). Repeatable. |
 | `--meshes` | text · multiple | — | Copick URI to filter meshes (e.g. 'ribosome:*/*'). Repeatable. |
 | `--segmentations` | text · multiple | — | Copick URI to filter segmentations (e.g. 'membrane:*/*@10.0'). Repeatable. |
+| `--tiltseries` | text · multiple | — | Copick URI to filter tilt series (e.g. 'raw'). Repeatable. Omit to include all tilt series. |
+| `--alignments` | text · multiple | — | Copick URI to filter alignments (e.g. '*@raw?valid=true'). Repeatable. Omit to include all alignments. |
 | `--objects` | text | — | Comma-separated pickable object names to emit density maps for. |
 | `--tomo-type-map` | text | — | Rename tomo_type values at emission time, e.g. 'wbp-raw:wbp'. |
 | `--object-name-map` | text | — | Rename object names at emission time (also updates copick:config.pickable_objects and records portal_original_name in metadata). |
