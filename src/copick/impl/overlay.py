@@ -14,6 +14,8 @@ from copick.models import (
     CopickRun,
     CopickSegmentation,
     CopickSegmentationMeta,
+    CopickTiltSeries,
+    CopickTiltSeriesMeta,
     CopickTomogram,
     CopickTomogramMeta,
     CopickVoxelSpacing,
@@ -162,6 +164,42 @@ class CopickFeaturesOverlay(CopickFeatures):
         if self.read_only:
             raise PermissionError("Cannot delete features in a read-only source.")
 
+        super().delete()
+
+
+class CopickTiltSeriesOverlay(CopickTiltSeries):
+    """CopickTiltSeries class that keeps track of whether the tilt series is read-only.
+
+    Attributes:
+        read_only (bool): Whether the tilt series is read-only.
+    """
+
+    def __init__(self, run: CopickRun, meta: CopickTiltSeriesMeta, read_only: bool = False):
+        super().__init__(run, meta)
+        self.read_only = read_only
+
+    def _assert_writable(self, action: str) -> None:
+        if self.read_only:
+            raise PermissionError(f"Cannot {action} tilt series {self.ts_type} in a read-only source.")
+
+    def from_numpy(self, *args, **kwargs) -> None:
+        """Write the images, making sure the source is writable."""
+        self._assert_writable("write")
+        super().from_numpy(*args, **kwargs)
+
+    def set_region(self, *args, **kwargs) -> None:
+        """Write a region of the images, making sure the source is writable."""
+        self._assert_writable("write")
+        super().set_region(*args, **kwargs)
+
+    def store_metadata(self, *args, **kwargs) -> None:
+        """Store the metadata, making sure the source is writable."""
+        self._assert_writable("store metadata of")
+        super().store_metadata(*args, **kwargs)
+
+    def delete(self) -> None:
+        """Delete the tilt series, making sure the source is writable."""
+        self._assert_writable("delete")
         super().delete()
 
 
@@ -337,6 +375,29 @@ class CopickRunOverlay(CopickRun):
 
         for f in static:
             assert f.read_only, "Filaments from static source must be read-only."
+
+        return static + overlay
+
+    def _query_static_tilt_series(self) -> List[CopickTiltSeriesOverlay]:
+        """Override to query the static source for tilt series; all returned tilt series must be read-only. Sources
+        without tilt series return none."""
+        return []
+
+    def _query_overlay_tilt_series(self) -> List[CopickTiltSeriesOverlay]:
+        """Override to query the overlay source for tilt series. Sources without tilt series return none."""
+        return []
+
+    def query_tilt_series(self) -> List[CopickTiltSeriesOverlay]:
+        """Query all tilt series.
+
+        Returns:
+            List[CopickTiltSeriesOverlay]: List of tilt series from both sources.
+        """
+        static = self._query_static_tilt_series()
+        overlay = self._query_overlay_tilt_series()
+
+        for ts in static:
+            assert ts.read_only, "Tilt series from static source must be read-only."
 
         return static + overlay
 

@@ -190,6 +190,117 @@ def write_ome_zarr_3d(
     )
 
 
+#: Chunks of every level of a tilt series ``(section, y, x)``: one image per chunk along the stack, as the CryoET Data
+#: Portal stores tilt series.
+TILT_SERIES_CHUNKS = (1, 1024, 1024)
+#: Number of levels of a tilt-series pyramid (full size and two binned levels), as on the CryoET Data Portal.
+TILT_SERIES_LEVELS = 3
+
+
+def tilt_series_transforms(pixel_size: float, levels: int) -> List[List[Dict[str, Any]]]:
+    """The OME-NGFF scale of each level of a tilt-series pyramid.
+
+    Images are binned by 2 along y and x per level; sections never are. The section axis keeps the pixel size as its
+    scale, as on the CryoET Data Portal, so readers that take the scale of the first spatial axis read the pixel size.
+
+    Args:
+        pixel_size: Pixel size of the full-size images in Angstrom.
+        levels: Number of levels.
+
+    Returns:
+        One list of coordinate transformations per level.
+    """
+    return [[{"type": "scale", "scale": [pixel_size, pixel_size * 2**i, pixel_size * 2**i]}] for i in range(levels)]
+
+
+def tilt_series_level_shapes(shape: Tuple[int, int, int], levels: int) -> List[Tuple[int, int, int]]:
+    """The shape of each level of a tilt-series pyramid, binning y and x by 2 per level (partial blocks kept)."""
+    shapes = [tuple(int(s) for s in shape)]
+    for _ in range(1, levels):
+        n, h, w = shapes[-1]
+        shapes.append((n, -(-h // 2), -(-w // 2)))
+    return shapes
+
+
+def write_ome_zarr_tilt_series(
+    store: MutableMapping,
+    stack: Any,
+    pixel_size: float,
+    levels: int = TILT_SERIES_LEVELS,
+    chunks: Tuple[int, int, int] = TILT_SERIES_CHUNKS,
+    dtype: Optional[np.dtype] = np.float32,
+    attrs: Optional[Dict[str, Any]] = None,
+) -> None:
+    """Write a tilt series ``(section, y, x)`` as a multiscale OME-Zarr image.
+
+    The stack is written one section at a time, so any object indexable as ``stack[i]`` (a NumPy array, a memory-mapped
+    MRC file, a Zarr array) can be written with memory for one image. Each level is the local mean of 2x2 pixel blocks
+    of the level before it; sections are never binned.
+
+    Args:
+        store: The store to write to. Existing content is replaced.
+        stack: The images, shape ``(section, y, x)``.
+        pixel_size: Pixel size of the images in Angstrom.
+        levels: Number of levels in the pyramid.
+        chunks: Chunk shape of every level.
+        dtype: Data type of every level; ``None`` keeps the type of the stack.
+        attrs: Extra group attributes to write next to the multiscales metadata.
+    """
+    # Heavy imports, only needed when writing
+    from ome_zarr.writer import write_multiscales_metadata
+    from skimage.transform import downscale_local_mean
+
+    shape = tuple(int(s) for s in stack.shape)
+    if len(shape) != 3:
+        raise ValueError(f"A tilt series must have shape (section, y, x), got {shape}.")
+    if levels < 1:
+        raise ValueError("A tilt series needs at least one level.")
+    dtype = np.dtype(stack.dtype if dtype is None else dtype)
+
+    root_group = zarr.group(store=store, overwrite=True)
+    arrays = [
+        root_group.create_dataset(str(level), shape=level_shape, chunks=chunks, dtype=dtype, overwrite=True)
+        for level, level_shape in enumerate(tilt_series_level_shapes(shape, levels))
+    ]
+
+    for section in range(shape[0]):
+        image = np.asarray(stack[section]).astype(dtype)
+        arrays[0][section] = image
+        for array in arrays[1:]:
+            image = downscale_local_mean(image, (2, 2)).astype(dtype)
+            array[section] = image
+
+    datasets = [
+        {"path": str(level), "coordinateTransformations": transforms}
+        for level, transforms in enumerate(tilt_series_transforms(pixel_size, levels))
+    ]
+    write_multiscales_metadata(root_group, datasets=datasets, axes=_ome_zarr_axes(), name="/")
+    if attrs:
+        root_group.attrs.update(attrs)
+
+
+def get_pixel_size_from_zarr(zarr_group: zarr.Group, level: int = 0) -> float:
+    """The pixel size of a level of an OME-Zarr image in Angstrom: the scale of its last (x) axis.
+
+    Unlike ``get_voxel_size_from_zarr``, this reads the in-plane pixel size of any level of a tilt series, whose
+    section axis is not binned.
+
+    Args:
+        zarr_group: The zarr group containing OME-Zarr metadata.
+        level: Index of the multiscale level.
+
+    Returns:
+        The pixel size in Angstrom.
+    """
+    multiscales = zarr_group.attrs["multiscales"]
+    axes = multiscales[0]["axes"]
+    unit = axes[-1].get("unit", "angstrom") if isinstance(axes[-1], dict) else "angstrom"
+    for transform in multiscales[0]["datasets"][level]["coordinateTransformations"]:
+        if transform["type"] == "scale":
+            return float(transform["scale"][-1]) * UNITFACTOR.get(unit, 1.0)
+    raise ValueError("No scale transformation found in coordinate transformations")
+
+
 def get_voxel_size_from_zarr(zarr_group: zarr.Group) -> float:
     """Extract voxel size from OME-Zarr coordinate transformations.
 
