@@ -44,7 +44,11 @@ ID, and `rlnHelicalTrackLengthAngst`. Their `rlnAnglePsiFlipRatio` is 0
 for picks of filaments whose polarity is known and 0.5 for the rest; the
 polarity comes from the Filaments under the picks' own URI, or from those
 named by `--filaments-uri` (e.g. when the picks were sampled from Filaments
-into another session).
+into another session). With `--filament-angles pose`, the picks' own
+rotations go into `rlnAngleRot/Tilt/Psi` instead, with no subtomogram
+angles and no priors, for poses already registered (e.g. to a lattice).
+`--half-sets filament` assigns `rlnRandomSubset` by whole filament, so that
+neighboring particles of one filament never land in both half sets.
 
 ## Options
 
@@ -67,6 +71,8 @@ into another session).
 | `--filament-columns` | choice (auto \| on \| off) | `auto` | STAR only: RELION's filament columns (rlnHelicalTubeID, track length, subtomogram frame, priors) for objects declared a filament ('auto'), always ('on'), or never ('off'). |
 | `--polarity-from-filaments / --no-polarity-from-filaments` | boolean flag | `True` | STAR only, with filament columns: set rlnAnglePsiFlipRatio from each filament's polarity_known in a Filaments source (0 where the polarity is known, 0.5 elsewhere). Off: 0.5 for every pick. |
 | `--filaments-uri` | text | — | STAR only: the Filaments (e.g. 'microtubule:tracer/1') that state the polarity, matched to the picks by instance ID in each run; every pick's filament must be in them. Default: the Filaments under the picks' own URI, when they exist. |
+| `--filament-angles` | choice (frame \| pose) | `frame` | STAR only, with filament columns: 'frame' writes RELION's filament convention (the frame in rlnTomoSubtomogramRot/Tilt/Psi, rlnAngleRot/Tilt/Psi = (0, 90, 0), tilt and psi priors); 'pose' writes each pick's own rotation in rlnAngleRot/Tilt/Psi, with no subtomogram angles and no priors, for registered poses. Without filament columns the angles are always the picks' rotations. |
+| `--half-sets` | choice (none \| filament) | `none` | STAR only: 'filament' adds rlnRandomSubset (1/2) by whole filament (rlnTomoName, rlnHelicalTubeID), greedily balanced by particle count, so that no filament is in both halves of a refinement; needs filament columns. Per-run export balances each file on its own. |
 | `--max-workers` | integer | `4` | Maximum number of worker threads. |
 | `--debug / --no-debug` | boolean flag | `False` | Enable debug logging. |
 
@@ -91,6 +97,12 @@ copick export picks -c config.json --picks-uri "ribosome:user1/1" \
 copick export picks -c config.json --picks-uri "microtubule:sampler/1" \
     --filaments-uri "microtubule:tracer/1" \
     --output-file ./filaments.star --output-format star --voxel-size 10.0
+
+# Lattice-registered filament subunits: their poses as particle angles,
+# and half sets by whole filament
+copick export picks -c config.json --picks-uri "microtubule:helix/1" \
+    --filament-columns on --filament-angles pose --half-sets filament \
+    --output-file ./registered.star --output-format star --voxel-size 10.0
 
 # Combined export to a Dynamo table using an index map
 copick export picks -c config.json --picks-uri "ribosome:*/*" \

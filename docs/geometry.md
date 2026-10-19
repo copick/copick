@@ -290,6 +290,20 @@ its polarity, 0.5 (a bimodal prior, so that refinement may flip the direction) e
 written, because RELION reads a missing one as 0.5. On import, `rlnHelicalTubeID` becomes the instance ID and rows
 are ordered by tube and track length.
 
+Picks whose rotation is a registered pose rather than a filament frame (e.g. subunits registered to a lattice) can be
+written with `--filament-angles pose` (`filament_angles="pose"`): each pick's rotation goes into
+`rlnAngleRot/Tilt/Psi` exactly as for a particle without filament columns, and no subtomogram orientation and no angle
+priors are written. `rlnHelicalTubeID`, `rlnHelicalTrackLengthAngst` and `rlnAnglePsiFlipRatio` are written as above.
+Without filament columns, `pose` changes nothing.
+
+Neighboring particles of one filament overlap, so a refinement that splits its half sets per particle puts the same
+density in both halves and overestimates the resolution. RELION keeps the half sets particles already carry in
+`rlnRandomSubset`, and `--half-sets filament` (`half_sets="filament"`) writes them by whole filament. A filament is a
+(`rlnTomoName`, `rlnHelicalTubeID`) pair, so one file may hold many tomograms. The halves are balanced greedily:
+filaments are taken by descending particle count (then by tomogram name and tube ID), and each goes to the half with
+fewer particles so far, half 1 on a tie. A combined export balances over all its runs; a per-run export balances each
+file on its own. Half sets by filament need filament columns.
+
 #### Dynamo to Copick
 
 Given Dynamo Euler angles $(t_\text{drot}, t_\text{ilt}, n_\text{arot})$ in ZXZ convention:

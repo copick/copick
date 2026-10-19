@@ -1,6 +1,6 @@
 """STAR (RELION) picks format handler."""
 
-from typing import TYPE_CHECKING, Dict, Optional, Tuple, Union
+from typing import TYPE_CHECKING, Dict, Literal, Optional, Tuple, Union
 
 import numpy as np
 
@@ -149,6 +149,8 @@ class STARPicksHandler:
         filament: bool = False,
         polarity_known: Union[bool, np.ndarray] = False,
         coordinates: str = "auto",
+        filament_angles: Literal["frame", "pose"] = "frame",
+        half_sets: Literal[None, "filament"] = None,
         **kwargs,
     ) -> str:
         """Write picks to a STAR file.
@@ -173,6 +175,9 @@ class STARPicksHandler:
             polarity_known: For filament columns: whether the point order follows the filament's polarity, for all
                 picks (a bool) or per pick (an (N,) array); ``rlnAnglePsiFlipRatio`` is 0 where it does, else 0.5
             coordinates: ``"auto"``, or ``"centered"`` for centered coordinates only (the center is then required)
+            filament_angles: For filament columns: ``"frame"`` (RELION's filament convention) or ``"pose"`` (the
+                picks' own rotations as particle angles, no subtomogram orientation or priors)
+            half_sets: ``"filament"`` adds ``rlnRandomSubset`` by whole filament (needs filament columns)
 
         Returns:
             Path to the written file
@@ -190,6 +195,8 @@ class STARPicksHandler:
             filament=filament,
             polarity_known=polarity_known,
             coordinates=coordinates,
+            filament_angles=filament_angles,
+            half_sets=half_sets,
         )
         write_star_particles(path, particles, optics)
         return path
@@ -260,6 +267,8 @@ class STARPicksHandler:
         filament: bool = False,
         polarity_known: Union[bool, Dict[str, Union[bool, np.ndarray]]] = False,
         coordinates: str = "auto",
+        filament_angles: Literal["frame", "pose"] = "frame",
+        half_sets: Literal[None, "filament"] = None,
         **kwargs,
     ) -> str:
         """Write picks from multiple runs to a single STAR file.
@@ -282,6 +291,10 @@ class STARPicksHandler:
                 picks (a bool) or per run (a dict of run name to a bool or an (N,) array)
             coordinates: ``"auto"``, or ``"centered"`` for centered coordinates only (every run's center is then
                 required)
+            filament_angles: For filament columns: ``"frame"`` or ``"pose"``
+                (``copick.util.formats.build_relion_particles_df``)
+            half_sets: ``"filament"`` adds ``rlnRandomSubset`` by whole filament over all runs (needs filament
+                columns)
 
         Returns:
             Path to the written file
@@ -300,6 +313,8 @@ class STARPicksHandler:
             filament=filament,
             polarity_known=polarity_known,
             coordinates=coordinates,
+            filament_angles=filament_angles,
+            half_sets=half_sets,
         )
         return path
 
