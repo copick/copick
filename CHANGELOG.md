@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.31.0](https://github.com/copick/copick/compare/copick-v1.30.0...copick-v1.31.0) (2026-10-19)
+
+
+### ✨ Features
+
+* whole-filament half sets and registered poses in RELION export ([#537](https://github.com/copick/copick/issues/537)) ([339c6cd](https://github.com/copick/copick/commit/339c6cd6a45918afbb28e11a9375d1eec5d63c88))
+
 ## [1.30.0](https://github.com/copick/copick/compare/copick-v1.29.0...copick-v1.30.0) (2026-10-16)
 
 
