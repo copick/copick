@@ -1960,3 +1960,225 @@ class TestFilamentPolarity:
         assert imported.instance_ids().tolist() == [1] * 3 + [2] * 3 + [3] * 3
         assert imported.full_positions() == pytest.approx(points)
         assert imported.numpy()[1][:, :3, :3] == pytest.approx(transforms[:, :3, :3], abs=1e-6)
+
+
+# =============================================================================
+# Registered poses and whole-filament half sets
+# =============================================================================
+
+
+def _registered_filaments(test_payload, run_name="TS_001", lengths=(4, 3, 5), user_id="helix", polarity_known=None):
+    """Picks of a polar filament object in one run with arbitrary rotations (registered poses, not filament frames),
+    sorted by filament ID and in point order along each filament. With ``polarity_known``, also the Filaments under the
+    same URI (as copick-helix writes them), stating each filament's polarity."""
+    from scipy.spatial.transform import Rotation
+
+    root = test_payload["root"]
+    if polarity_known is not None:
+        skip_without_filaments(root)
+    if root.get_object("microtubule") is None:
+        root.new_object(name="microtubule", is_particle=True, radius=120, filament={"polar": True})
+        root.save_config(test_payload["cfg_file"])
+    lines = [
+        np.array([50.0, 100.0 + 80.0 * i, 300.0]) + np.arange(n)[:, None] * np.array([82.0, 0.0, 0.0])
+        for i, n in enumerate(lengths)
+    ]
+    points = np.vstack(lines)
+    transforms = np.tile(np.eye(4), (len(points), 1, 1))
+    transforms[:, :3, :3] = Rotation.random(len(points), random_state=len(points)).as_matrix()
+    ids = np.repeat(np.arange(1, len(lengths) + 1), lengths)
+    run = root.get_run(run_name)
+    picks = run.new_picks(object_name="microtubule", user_id=user_id, session_id="1")
+    picks.from_numpy(points, transforms, instance_ids=ids)
+    if polarity_known is not None:
+        filaments = run.new_filaments("microtubule", "1", user_id=user_id)
+        filaments.from_numpy(lines, instance_ids=list(range(1, len(lengths) + 1)), polarity_known=list(polarity_known))
+    return root, picks, points, transforms, ids
+
+
+#: Columns RELION's filament frame convention adds, which registered poses must not carry.
+_FRAME_ONLY_COLUMNS = (
+    "rlnTomoSubtomogramRot",
+    "rlnTomoSubtomogramTilt",
+    "rlnTomoSubtomogramPsi",
+    "rlnAngleTiltPrior",
+    "rlnAnglePsiPrior",
+)
+
+
+class TestRegisteredPosesAndHalfSets:
+    """filament_angles="pose" and half_sets="filament"."""
+
+    def test_builder_pose_columns(self):
+        import pandas as pd
+        from copick.util.formats import build_relion_particles_df
+        from scipy.spatial.transform import Rotation
+
+        positions = np.array([[0.0, 0.0, 0.0], [82.0, 0.0, 0.0], [0.0, 50.0, 0.0], [0.0, 50.0, 82.0]])
+        transforms = np.tile(np.eye(4), (4, 1, 1))
+        transforms[:, :3, :3] = Rotation.random(4, random_state=2).as_matrix()
+        kwargs = {"tomo_name": "TS_A", "tomogram_center": (0.0, 0.0, 0.0), "instance_ids": np.array([1, 1, 2, 2])}
+        known = [True, True, False, False]
+
+        pose = build_relion_particles_df(
+            positions,
+            transforms,
+            filament=True,
+            filament_angles="pose",
+            polarity_known=known,
+            **kwargs,
+        )
+        frame = build_relion_particles_df(positions, transforms, filament=True, polarity_known=known, **kwargs)
+        plain = build_relion_particles_df(positions, transforms, **kwargs)
+
+        filament_columns = ["rlnHelicalTubeID", "rlnHelicalTrackLengthAngst", "rlnAnglePsiFlipRatio"]
+        assert set(_FRAME_ONLY_COLUMNS) <= set(frame.columns)
+        assert not set(_FRAME_ONLY_COLUMNS) & set(pose.columns)
+        assert set(pose.columns) == set(plain.columns) | set(filament_columns)
+        # The particle angles are the picks' own rotations, as without filament columns
+        for column in ("rlnAngleRot", "rlnAngleTilt", "rlnAnglePsi"):
+            assert pose[column].tolist() == pytest.approx(plain[column].tolist())
+        pd.testing.assert_frame_equal(pose[filament_columns], frame[filament_columns])
+        assert pose["rlnAnglePsiFlipRatio"].tolist() == [0.0, 0.0, 0.5, 0.5]
+        # Without filament columns, "pose" is the plain export
+        pd.testing.assert_frame_equal(
+            build_relion_particles_df(positions, transforms, filament_angles="pose", **kwargs),
+            plain,
+        )
+        with pytest.raises(ValueError, match="filament_angles must be one of"):
+            build_relion_particles_df(positions, transforms, filament=True, filament_angles="subtomogram", **kwargs)
+
+    def test_pose_round_trip(self, test_payload, tmp_path):
+        """Export with registered poses, then copick's RELION import: orientations, IDs and order come back."""
+        from copick.ops.add import add_picks_from_file
+        from copick.ops.export import export_picks
+
+        root, picks, points, transforms, ids = _registered_filaments(test_payload, polarity_known=[True, False, True])
+        path = str(tmp_path / "pose.star")
+        export_picks(
+            picks,
+            path,
+            "star",
+            voxel_spacing=10.0,
+            filament_columns="on",
+            filament_angles="pose",
+            coordinates="centered",
+        )
+
+        particles = _star_particles(path)
+        assert set(particles.columns) == {
+            "rlnTomoName",
+            "rlnCenteredCoordinateXAngst",
+            "rlnCenteredCoordinateYAngst",
+            "rlnCenteredCoordinateZAngst",
+            "rlnAngleRot",
+            "rlnAngleTilt",
+            "rlnAnglePsi",
+            "rlnHelicalTubeID",
+            "rlnHelicalTrackLengthAngst",
+            "rlnAnglePsiFlipRatio",
+        }
+        assert particles["rlnHelicalTubeID"].tolist() == ids.tolist()
+        assert particles["rlnHelicalTrackLengthAngst"].tolist() == pytest.approx(
+            [0, 82, 164, 246, 0, 82, 164] + [0, 82, 164, 246, 328],
+        )
+        assert particles["rlnAnglePsiFlipRatio"].tolist() == [0.0] * 4 + [0.5] * 3 + [0.0] * 5
+
+        imported = add_picks_from_file(root, "TS_001", path, "microtubule", "helix", "2", 10.0)
+        assert imported.instance_ids().tolist() == ids.tolist()
+        assert imported.full_positions() == pytest.approx(points)
+        assert imported.numpy()[1][:, :3, :3] == pytest.approx(transforms[:, :3, :3], abs=1e-6)
+
+    def test_half_sets_are_whole_filaments_balanced_and_deterministic(self):
+        import pandas as pd
+        from copick.util.relion import filament_half_sets
+
+        counts = {("TS_001", 1): 5, ("TS_001", 2): 3, ("TS_001", 3): 2, ("TS_002", 1): 4, ("TS_002", 2): 3}
+        rows = pd.DataFrame(
+            [{"rlnTomoName": tomo, "rlnHelicalTubeID": tube} for (tomo, tube), n in counts.items() for _ in range(n)],
+        )
+
+        subsets = filament_half_sets(rows)
+        halves = rows.assign(subset=subsets).groupby(["rlnTomoName", "rlnHelicalTubeID"])["subset"]
+        assert (halves.nunique() == 1).all()  # whole filaments
+        # Largest first, each onto the lighter half (half 1 on a tie), ties in count by (tomogram, tube):
+        # TS_001/1 (5) -> 1; TS_002/1 (4) -> 2; TS_001/2 (3) -> 2; TS_002/2 (3) -> 1; TS_001/3 (2) -> 2.
+        # Tube 1 of the two tomograms are two filaments, in different halves.
+        assert halves.first().to_dict() == {
+            ("TS_001", 1): 1,
+            ("TS_001", 2): 2,
+            ("TS_001", 3): 2,
+            ("TS_002", 1): 2,
+            ("TS_002", 2): 1,
+        }
+        assert np.bincount(subsets, minlength=3)[1:].tolist() == [8, 9]
+
+        # The assignment does not depend on the row order
+        shuffled = rows.sample(frac=1.0, random_state=5)
+        assert filament_half_sets(shuffled).tolist() == pd.Series(subsets, index=rows.index)[shuffled.index].tolist()
+        assert filament_half_sets(rows.iloc[:0]).tolist() == []
+        with pytest.raises(ValueError, match="keyed by rlnHelicalTubeID"):
+            filament_half_sets(rows.drop(columns="rlnHelicalTubeID"))
+
+    def test_per_run_half_sets(self, test_payload, tmp_path):
+        from copick.ops.export import export_picks
+
+        _, picks, _, _, ids = _registered_filaments(test_payload)
+        path = str(tmp_path / "halves.star")
+        export_picks(picks, path, "star", voxel_spacing=10.0, filament_angles="pose", half_sets="filament")
+
+        particles = _star_particles(path)
+        assert particles["rlnHelicalTubeID"].tolist() == ids.tolist()
+        # Filaments of 4, 3 and 5 picks: 5 -> half 1, 4 -> half 2, 3 -> half 2
+        assert particles["rlnRandomSubset"].tolist() == [2] * 4 + [2] * 3 + [1] * 5
+
+    def test_half_sets_need_filament_ids(self, test_payload, runner, tmp_path):
+        from copick.ops.export import export_picks
+
+        root = test_payload["root"]
+        picks = root.get_run("TS_001").new_picks(object_name="ribosome", user_id="no-tubes", session_id="1")
+        picks.from_numpy(np.array([[100.0, 100.0, 100.0], [200.0, 100.0, 100.0]]), instance_ids=[1, 0])
+        path = str(tmp_path / "f.star")
+
+        # A non-filament object gets no filament columns by default, so no tube IDs
+        with pytest.raises(ValueError, match="keyed by rlnHelicalTubeID, which these 2 particles do not have"):
+            export_picks(picks, path, "star", voxel_spacing=10.0, half_sets="filament")
+        with pytest.raises(ValueError, match="cannot be combined with filament_columns='off'"):
+            export_picks(picks, path, "star", voxel_spacing=10.0, filament_columns="off", half_sets="filament")
+        with pytest.raises(ValueError, match="1 of 2 picks in TS_001 have no filament ID"):
+            export_picks(picks, path, "star", voxel_spacing=10.0, filament_columns="on", half_sets="filament")
+        with pytest.raises(ValueError, match="half_sets must be one of"):
+            export_picks(picks, path, "star", voxel_spacing=10.0, half_sets="random")
+
+        base = ["picks", "-c", str(test_payload["cfg_file"]), "--picks-uri", "ribosome:no-tubes/1"]
+        base += ["--output-format", "star", "--voxel-size", "10.0", "--output-file", path, "--half-sets", "filament"]
+        result = runner.invoke(export, [*base, "--filament-columns", "off"])
+        assert result.exit_code != 0
+        assert "--half-sets filament assigns half sets by rlnHelicalTubeID" in result.output
+        result = runner.invoke(export, base)
+        assert result.exit_code != 0
+        assert "rlnHelicalTubeID" in result.output
+
+    def test_cli_pose_and_half_sets(self, test_payload, runner, tmp_path):
+        root, _, _, _, ids = _registered_filaments(test_payload, run_name="TS_001", lengths=(5, 3, 2))
+        _, _, _, _, ids_2 = _registered_filaments(test_payload, run_name="TS_002", lengths=(4, 3))
+        config = str(test_payload["cfg_file"])
+        base = ["picks", "-c", config, "--picks-uri", "microtubule:helix/1", "--output-format", "star"]
+        base += ["--voxel-size", "10.0", "--tilt-series-pixel-size", "2.0"]
+        base += ["--filament-columns", "on", "--filament-angles", "pose", "--half-sets", "filament"]
+
+        path = str(tmp_path / "combined.star")
+        result = runner.invoke(export, [*base, "--output-file", path, "--run-names", "TS_001", "--run-names", "TS_002"])
+        assert result.exit_code == 0, result.output
+        particles = _star_particles(path)
+        assert not set(_FRAME_ONLY_COLUMNS) & set(particles.columns)
+        assert particles["rlnHelicalTubeID"].tolist() == ids.tolist() + ids_2.tolist()
+        # Balanced over both runs (see test_half_sets_are_whole_filaments_balanced_and_deterministic)
+        assert particles["rlnRandomSubset"].tolist() == [1] * 5 + [2] * 3 + [2] * 2 + [2] * 4 + [1] * 3
+
+        # Per run, each file is balanced on its own
+        out_dir = str(tmp_path / "per-run")
+        result = runner.invoke(export, [*base, "--output-dir", out_dir, "--run-names", "TS_001"])
+        assert result.exit_code == 0, result.output
+        per_run = _star_particles(os.path.join(out_dir, "TS_001_microtubule_helix_1.star"))
+        assert per_run["rlnRandomSubset"].tolist() == [1] * 5 + [2] * 3 + [2] * 2

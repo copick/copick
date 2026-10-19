@@ -14,7 +14,7 @@ Supported formats:
 
 import os
 from dataclasses import dataclass
-from typing import TYPE_CHECKING, Dict, List, Optional, Sequence, Tuple, Union
+from typing import TYPE_CHECKING, Dict, List, Literal, Optional, Sequence, Tuple, Union
 
 import numpy as np
 
@@ -1634,6 +1634,24 @@ def _check_coordinates(coordinates: str) -> None:
         raise ValueError(f"coordinates must be one of {RELION_COORDINATE_MODES}, not {coordinates!r}")
 
 
+#: Angles of RELION filament particles: ``"frame"`` (RELION's filament convention: the frame in the subtomogram
+#: orientation, particle angles (0, 90, 0) and priors) or ``"pose"`` (each pick's own rotation as its particle angles,
+#: with no subtomogram orientation and no priors).
+RELION_FILAMENT_ANGLE_MODES = ("frame", "pose")
+
+#: Half sets written into RELION particles: None (none; RELION splits per particle) or ``"filament"`` (by whole
+#: filament, ``copick.util.relion.filament_half_sets``).
+RELION_HALF_SET_MODES = (None, "filament")
+
+
+def check_relion_filament_options(filament_angles: str, half_sets: Optional[str]) -> None:
+    """Raise a ValueError for a ``filament_angles`` or ``half_sets`` value that is not one of the modes."""
+    if filament_angles not in RELION_FILAMENT_ANGLE_MODES:
+        raise ValueError(f"filament_angles must be one of {RELION_FILAMENT_ANGLE_MODES}, not {filament_angles!r}")
+    if half_sets not in RELION_HALF_SET_MODES:
+        raise ValueError(f"half_sets must be one of {RELION_HALF_SET_MODES}, not {half_sets!r}")
+
+
 def build_relion_particles_df(
     positions: np.ndarray,
     transforms: np.ndarray,
@@ -1646,6 +1664,8 @@ def build_relion_particles_df(
     filament: bool = False,
     polarity_known: Union[bool, Sequence[bool], np.ndarray] = False,
     coordinates: str = "auto",
+    filament_angles: Literal["frame", "pose"] = "frame",
+    half_sets: Literal[None, "filament"] = None,
 ) -> "pd.DataFrame":
     """RELION particle rows for copick picks.
 
@@ -1678,15 +1698,29 @@ def build_relion_particles_df(
             and 0.5 elsewhere (a bimodal prior, so that refinement can flip the direction). The column is always
             written, because RELION reads a missing one as 0.5. Ignored without ``filament``.
         coordinates: ``"auto"`` (as above) or ``"centered"`` (centered coordinates only).
+        filament_angles: With ``filament``, the angles: ``"frame"`` (default) writes RELION's filament convention
+            as described above; ``"pose"`` writes each pick's own rotation as ``rlnAngle{Rot,Tilt,Psi}``, in the
+            same convention as picks without filament columns, and no ``rlnTomoSubtomogram{Rot,Tilt,Psi}`` and no
+            ``rlnAngle{Tilt,Psi}Prior``, for picks whose rotation is a registered pose (e.g. a lattice fit) rather
+            than a filament frame. ``rlnHelicalTubeID``, ``rlnHelicalTrackLengthAngst`` and
+            ``rlnAnglePsiFlipRatio`` are written either way. Without ``filament`` the angles are always the picks'
+            own rotations, so ``"pose"`` changes nothing.
+        half_sets: ``"filament"`` adds ``rlnRandomSubset`` (1 or 2) by whole filament, balanced by particle count
+            (``copick.util.relion.filament_half_sets``), so that no filament is in both halves of a refinement.
+            Requires ``filament`` (the half sets are keyed by ``rlnHelicalTubeID``). Default None: no
+            ``rlnRandomSubset``. Over several runs, assign them over the whole table instead
+            (``build_relion_star_tables`` does).
 
     Raises:
         ValueError: If no coordinates can be written (or, with ``coordinates="centered"``, no center is given),
-            filament columns are requested for picks without filament IDs, or ``polarity_known`` is an array of the
-            wrong length.
+            filament columns are requested for picks without filament IDs, ``polarity_known`` is an array of the
+            wrong length, ``filament_angles`` or ``half_sets`` is not a known mode, or filament half sets are
+            requested without filament columns.
     """
     import pandas as pd
 
     _check_coordinates(coordinates)
+    check_relion_filament_options(filament_angles, half_sets)
     if coordinates == "centered":
         if tomogram_center is None:
             raise ValueError(
@@ -1701,14 +1735,14 @@ def build_relion_particles_df(
     known = np.asarray(polarity_known, dtype=bool)
     if known.ndim > 1 or (known.ndim == 1 and known.shape[0] != n):
         raise ValueError(f"polarity_known has shape {known.shape}; expected a bool or one value per pick ({n}).")
-    if filament:
-        if instance_ids is None or (n and np.min(instance_ids) < 1):
-            unassigned = n if instance_ids is None else int(np.sum(np.asarray(instance_ids) < 1))
-            raise ValueError(
-                f"{unassigned} of {n} picks{f' in {tomo_name}' if tomo_name else ''} have no filament ID "
-                "(instance_id < 1); rlnHelicalTubeID starts at 1. Assign filament IDs, or export without filament "
-                "columns.",
-            )
+    if filament and (instance_ids is None or (n and np.min(instance_ids) < 1)):
+        unassigned = n if instance_ids is None else int(np.sum(np.asarray(instance_ids) < 1))
+        raise ValueError(
+            f"{unassigned} of {n} picks{f' in {tomo_name}' if tomo_name else ''} have no filament ID "
+            "(instance_id < 1); rlnHelicalTubeID starts at 1. Assign filament IDs, or export without filament "
+            "columns.",
+        )
+    if filament and filament_angles == "frame":
         from copick.util.relion import filament_relion_angles
 
         angle_columns = filament_relion_angles(transforms[:, :3, :3])
@@ -1752,7 +1786,12 @@ def build_relion_particles_df(
         data["rlnCenteredCoordinateXAngst"] = centered[:, 0]
         data["rlnCenteredCoordinateYAngst"] = centered[:, 1]
         data["rlnCenteredCoordinateZAngst"] = centered[:, 2]
-    return pd.DataFrame(data)
+    df = pd.DataFrame(data)
+    if half_sets == "filament":
+        from copick.util.relion import filament_half_sets
+
+        df["rlnRandomSubset"] = filament_half_sets(df)
+    return df
 
 
 def _relion_optics_row(
@@ -1790,6 +1829,8 @@ def build_relion_star_tables(
     filament: bool = False,
     polarity_known: Union[bool, Dict[Optional[str], Union[bool, np.ndarray]]] = False,
     coordinates: str = "auto",
+    filament_angles: Literal["frame", "pose"] = "frame",
+    half_sets: Literal[None, "filament"] = None,
 ) -> Tuple["pd.DataFrame", Optional["pd.DataFrame"]]:
     """Particle and optics tables of a RELION STAR file for picks from one or more runs.
 
@@ -1815,16 +1856,22 @@ def build_relion_star_tables(
         polarity_known: For filament columns: whether the point order follows the filaments' polarity, for every
             row (a bool) or per run (a dict of run name to a bool or an (N,) array; runs not in it count as unknown).
         coordinates: ``"auto"`` or ``"centered"`` (see above).
+        filament_angles: For filament columns: ``"frame"`` or ``"pose"`` (see ``build_relion_particles_df``).
+        half_sets: ``"filament"`` adds ``rlnRandomSubset`` by whole filament over the whole table, keyed by
+            (``rlnTomoName``, ``rlnHelicalTubeID``) and balanced over all runs together
+            (``copick.util.relion.filament_half_sets``). Requires filament columns.
 
     Returns:
         Tuple of (particles DataFrame, optics DataFrame or None).
 
     Raises:
-        ValueError: With ``coordinates="centered"``, if a run has no tomogram center.
+        ValueError: With ``coordinates="centered"``, if a run has no tomogram center; or with
+            ``half_sets="filament"``, if there are particles but no filament columns.
     """
     import pandas as pd
 
     _check_coordinates(coordinates)
+    check_relion_filament_options(filament_angles, half_sets)
     tomograms = tomograms or {}
     tomogram_centers = tomogram_centers or {}
     centers, sizes = {}, {}
@@ -1863,6 +1910,7 @@ def build_relion_star_tables(
             filament=filament,
             polarity_known=polarity_known.get(name, False) if isinstance(polarity_known, dict) else polarity_known,
             coordinates=coordinates,
+            filament_angles=filament_angles,
         )
         if include_optics and use_sizes:
             df["rlnOpticsGroup"] = group
@@ -1870,6 +1918,10 @@ def build_relion_star_tables(
         particle_tables.append(df)
 
     particles = pd.concat(particle_tables, ignore_index=True) if particle_tables else pd.DataFrame()
+    if half_sets == "filament" and len(particles):
+        from copick.util.relion import filament_half_sets
+
+        particles["rlnRandomSubset"] = filament_half_sets(particles)
     optics = pd.DataFrame(optics_rows) if optics_rows else None
     return particles, optics
 
@@ -1888,6 +1940,8 @@ def write_star_particles_grouped(
     filament: bool = False,
     polarity_known: Union[bool, Dict[str, Union[bool, np.ndarray]]] = False,
     coordinates: str = "auto",
+    filament_angles: Literal["frame", "pose"] = "frame",
+    half_sets: Literal[None, "filament"] = None,
 ) -> None:
     """Write a combined RELION STAR file from multiple runs.
 
@@ -1909,6 +1963,8 @@ def write_star_particles_grouped(
         polarity_known: For filament columns: whether the point order follows the filaments' polarity, for every
             row (a bool) or per run (a dict of run name to a bool or an (N,) array).
         coordinates: ``"auto"`` or ``"centered"`` (see ``build_relion_star_tables``).
+        filament_angles: For filament columns: ``"frame"`` or ``"pose"`` (see ``build_relion_particles_df``).
+        half_sets: ``"filament"`` adds ``rlnRandomSubset`` by whole filament (see ``build_relion_star_tables``).
     """
     import warnings
 
@@ -1930,6 +1986,8 @@ def write_star_particles_grouped(
         filament=filament,
         polarity_known=polarity_known,
         coordinates=coordinates,
+        filament_angles=filament_angles,
+        half_sets=half_sets,
     )
     write_star_particles(path, particles, optics)
 
