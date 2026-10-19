@@ -6878,7 +6878,8 @@ regenerates from it. Filaments are numbered 1, 2, ... by length, longest first.<
 Holes up to <code>--fill-lumen</code> are filled first, so a tube labelled by its wall alone traces as one
 filament. Side branches shorter than <code>--prune-length</code> are pruned, and at each junction the branches
 that continue most nearly straight (within <code>--max-bend</code>) are joined, so two crossing
-filaments stay two filaments. Free ends are extended to the edge of the segmentation, and
+filaments stay two filaments; a path that bends more sharply than <code>--max-bend</code> (two filaments
+touching end to end) is split there. Free ends are extended to the edge of the segmentation, and
 filaments shorter than <code>--min-length</code>, shorter than <code>--min-aspect</code> label diameters (blobs),
 or thinner than <code>--min-radius</code> (slivers of segmentation noise) are rejected. Options left
 unset are derived from the segmentation's own thickness or the object's radius.</p>
@@ -6998,7 +6999,7 @@ one instance at a time and keeps its IDs. Sample picks from the filaments with
 <td><code>--max-bend</code></td>
 <td>float</td>
 <td><code>45.0</code></td>
-<td>Largest deviation from a straight line, in degrees, for a filament to continue through a junction.</td>
+<td>Largest deviation from a straight line, in degrees, for a filament to continue through a junction or around a bend; a sharper bend (two filaments touching end to end) splits it.</td>
 </tr>
 <tr>
 <td><code>--smoothing</code></td>

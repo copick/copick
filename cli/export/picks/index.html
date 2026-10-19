@@ -6730,7 +6730,11 @@ ID, and <code>rlnHelicalTrackLengthAngst</code>. Their <code>rlnAnglePsiFlipRati
 for picks of filaments whose polarity is known and 0.5 for the rest; the
 polarity comes from the Filaments under the picks' own URI, or from those
 named by <code>--filaments-uri</code> (e.g. when the picks were sampled from Filaments
-into another session).</p>
+into another session). With <code>--filament-angles pose</code>, the picks' own
+rotations go into <code>rlnAngleRot/Tilt/Psi</code> instead, with no subtomogram
+angles and no priors, for poses already registered (e.g. to a lattice).
+<code>--half-sets filament</code> assigns <code>rlnRandomSubset</code> by whole filament, so that
+neighboring particles of one filament never land in both half sets.</p>
 <h2 id="options">Options</h2>
 <table>
 <thead>
@@ -6845,6 +6849,18 @@ into another session).</p>
 <td>STAR only: the Filaments (e.g. 'microtubule:tracer/1') that state the polarity, matched to the picks by instance ID in each run; every pick's filament must be in them. Default: the Filaments under the picks' own URI, when they exist.</td>
 </tr>
 <tr>
+<td><code>--filament-angles</code></td>
+<td>choice (frame | pose)</td>
+<td><code>frame</code></td>
+<td>STAR only, with filament columns: 'frame' writes RELION's filament convention (the frame in rlnTomoSubtomogramRot/Tilt/Psi, rlnAngleRot/Tilt/Psi = (0, 90, 0), tilt and psi priors); 'pose' writes each pick's own rotation in rlnAngleRot/Tilt/Psi, with no subtomogram angles and no priors, for registered poses. Without filament columns the angles are always the picks' rotations.</td>
+</tr>
+<tr>
+<td><code>--half-sets</code></td>
+<td>choice (none | filament)</td>
+<td><code>none</code></td>
+<td>STAR only: 'filament' adds rlnRandomSubset (1/2) by whole filament (rlnTomoName, rlnHelicalTubeID), greedily balanced by particle count, so that no filament is in both halves of a refinement; needs filament columns. Per-run export balances each file on its own.</td>
+</tr>
+<tr>
 <td><code>--max-workers</code></td>
 <td>integer</td>
 <td><code>4</code></td>
@@ -6878,10 +6894,16 @@ into another session).</p>
 </span><span id="__span-1-17"><a id="__codelineno-1-17" name="__codelineno-1-17" href="#__codelineno-1-17"></a><span class="w">    </span>--filaments-uri<span class="w"> </span><span class="s2">"microtubule:tracer/1"</span><span class="w"> </span><span class="se">\</span>
 </span><span id="__span-1-18"><a id="__codelineno-1-18" name="__codelineno-1-18" href="#__codelineno-1-18"></a><span class="w">    </span>--output-file<span class="w"> </span>./filaments.star<span class="w"> </span>--output-format<span class="w"> </span>star<span class="w"> </span>--voxel-size<span class="w"> </span><span class="m">10</span>.0
 </span><span id="__span-1-19"><a id="__codelineno-1-19" name="__codelineno-1-19" href="#__codelineno-1-19"></a>
-</span><span id="__span-1-20"><a id="__codelineno-1-20" name="__codelineno-1-20" href="#__codelineno-1-20"></a><span class="c1"># Combined export to a Dynamo table using an index map</span>
-</span><span id="__span-1-21"><a id="__codelineno-1-21" name="__codelineno-1-21" href="#__codelineno-1-21"></a>copick<span class="w"> </span><span class="nb">export</span><span class="w"> </span>picks<span class="w"> </span>-c<span class="w"> </span>config.json<span class="w"> </span>--picks-uri<span class="w"> </span><span class="s2">"ribosome:*/*"</span><span class="w"> </span><span class="se">\</span>
-</span><span id="__span-1-22"><a id="__codelineno-1-22" name="__codelineno-1-22" href="#__codelineno-1-22"></a><span class="w">    </span>--output-file<span class="w"> </span>./particles.tbl<span class="w"> </span>--output-format<span class="w"> </span>dynamo<span class="w"> </span><span class="se">\</span>
-</span><span id="__span-1-23"><a id="__codelineno-1-23" name="__codelineno-1-23" href="#__codelineno-1-23"></a><span class="w">    </span>--voxel-size<span class="w"> </span><span class="m">10</span>.0<span class="w"> </span>--index-map<span class="w"> </span>./index_map.csv
+</span><span id="__span-1-20"><a id="__codelineno-1-20" name="__codelineno-1-20" href="#__codelineno-1-20"></a><span class="c1"># Lattice-registered filament subunits: their poses as particle angles,</span>
+</span><span id="__span-1-21"><a id="__codelineno-1-21" name="__codelineno-1-21" href="#__codelineno-1-21"></a><span class="c1"># and half sets by whole filament</span>
+</span><span id="__span-1-22"><a id="__codelineno-1-22" name="__codelineno-1-22" href="#__codelineno-1-22"></a>copick<span class="w"> </span><span class="nb">export</span><span class="w"> </span>picks<span class="w"> </span>-c<span class="w"> </span>config.json<span class="w"> </span>--picks-uri<span class="w"> </span><span class="s2">"microtubule:helix/1"</span><span class="w"> </span><span class="se">\</span>
+</span><span id="__span-1-23"><a id="__codelineno-1-23" name="__codelineno-1-23" href="#__codelineno-1-23"></a><span class="w">    </span>--filament-columns<span class="w"> </span>on<span class="w"> </span>--filament-angles<span class="w"> </span>pose<span class="w"> </span>--half-sets<span class="w"> </span>filament<span class="w"> </span><span class="se">\</span>
+</span><span id="__span-1-24"><a id="__codelineno-1-24" name="__codelineno-1-24" href="#__codelineno-1-24"></a><span class="w">    </span>--output-file<span class="w"> </span>./registered.star<span class="w"> </span>--output-format<span class="w"> </span>star<span class="w"> </span>--voxel-size<span class="w"> </span><span class="m">10</span>.0
+</span><span id="__span-1-25"><a id="__codelineno-1-25" name="__codelineno-1-25" href="#__codelineno-1-25"></a>
+</span><span id="__span-1-26"><a id="__codelineno-1-26" name="__codelineno-1-26" href="#__codelineno-1-26"></a><span class="c1"># Combined export to a Dynamo table using an index map</span>
+</span><span id="__span-1-27"><a id="__codelineno-1-27" name="__codelineno-1-27" href="#__codelineno-1-27"></a>copick<span class="w"> </span><span class="nb">export</span><span class="w"> </span>picks<span class="w"> </span>-c<span class="w"> </span>config.json<span class="w"> </span>--picks-uri<span class="w"> </span><span class="s2">"ribosome:*/*"</span><span class="w"> </span><span class="se">\</span>
+</span><span id="__span-1-28"><a id="__codelineno-1-28" name="__codelineno-1-28" href="#__codelineno-1-28"></a><span class="w">    </span>--output-file<span class="w"> </span>./particles.tbl<span class="w"> </span>--output-format<span class="w"> </span>dynamo<span class="w"> </span><span class="se">\</span>
+</span><span id="__span-1-29"><a id="__codelineno-1-29" name="__codelineno-1-29" href="#__codelineno-1-29"></a><span class="w">    </span>--voxel-size<span class="w"> </span><span class="m">10</span>.0<span class="w"> </span>--index-map<span class="w"> </span>./index_map.csv
 </span></code></pre></div>
 <h2 id="see-also">See also</h2>
 <ul>
