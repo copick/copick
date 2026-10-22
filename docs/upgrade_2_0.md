@@ -17,7 +17,7 @@ python -m pip install "copick[all]>=2,<3"
 
 ## Public API changes
 
-The `.zarr()` methods on objects, tomograms, features, and segmentations now
+The `.zarr()` methods on objects, tomograms, features, segmentations, and tilt series now
 return a `zarr.abc.store.Store`. They no longer return a `MutableMapping` or
 Zarr 2 `FSStore`. Pass the returned store directly to Zarr 3:
 
@@ -67,6 +67,11 @@ use explicit `chunks` and `shards` for write-heavy workloads.
 These rules constrain copick writes only. Readers accept supported legacy and
 noncanonical chunk shapes, shard grids, key encodings, and codec layouts from
 their metadata.
+
+Tilt series `(section, y, x)` keep the CryoET Data Portal's `(1, 1024, 1024)`
+inner chunks at every level and use one shard per image instead of one per
+level, so reading or rewriting an image touches one object. Zarr v2 tilt
+series, such as those served by the CryoET Data Portal, remain readable.
 
 Feature arrays preserve the 1.x 3D `(z, y, x)` API and additionally support
 feature-major 4D `(feature, z, y, x)` data. The 4D default uses one feature per
