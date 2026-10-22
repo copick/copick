@@ -39,7 +39,7 @@ Convert one copick type to another.
 
     **[nnunet](cli/convert/nnunet.md)**
 
-    Convert a CoPick project to nnUNet raw...
+    Convert a copick project to nnUNet raw dataset format.
 
     [:octicons-arrow-right-24: Details](cli/convert/nnunet.md)
 
@@ -135,7 +135,7 @@ Apply processing methods to copick data.
 
     **[bandpass](cli/process/bandpass.md)**
 
-    3D bandpass filter tomograms.
+    Band-pass filter tomograms in 3D.
 
     [:octicons-arrow-right-24: Details](cli/process/bandpass.md)
 
@@ -151,7 +151,7 @@ Apply processing methods to copick data.
 
     **[downsample](cli/process/downsample.md)**
 
-    Downsample tomograms with Fourier Re-Scaling.
+    Downsample tomograms via Fourier rescaling.
 
     [:octicons-arrow-right-24: Details](cli/process/downsample.md)
 

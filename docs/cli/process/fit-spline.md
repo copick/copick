@@ -62,15 +62,14 @@ Picks: object_name:user_id/session_id
 | Option | Type | Default | Description |
 |--------|------|---------|-------------|
 | `-c, --config` | path | — | Path to the configuration file. |
+| `--run-names, -r` | text · multiple | — | Specific run names to process (default: all runs). Repeatable; pass -r once per run. |
 | `--debug / --no-debug` | boolean flag | `False` | Enable debug logging. |
 
 ### Input Options
 
 | Option | Type | Default | Description |
 |--------|------|---------|-------------|
-| `--run-names` | text · multiple | — | Specific run names to process (default: all runs). |
 | `--input, -i` | COPICK_URI | **required** | Input segmentation URI (format: name:user_id/session_id@voxel_spacing). Supports glob patterns. |
-| `--voxel-spacing, -vs` | float | **required** | Voxel spacing for coordinate scaling. |
 
 ### Tool Options
 
@@ -94,13 +93,13 @@ Picks: object_name:user_id/session_id
 ## Examples
 
 ```bash
-# Fit splines to skeletonized components
+# Fit splines to skeletonized components (voxel spacing from the @10.0 in -i)
 copick process fit_spline -i "skeleton:skel/inst-.*@10.0" \
-    -o "skeleton:spline/spline-{input_session_id}" --spacing-distance 4.4 --voxel-spacing 10.0
+    -o "skeleton:spline/spline-{input_session_id}" --spacing-distance 4.4
 
 # Process a single skeleton component
 copick process fit_spline -i "skeleton:skel/skel-0@10.0" \
-    -o "skeleton:spline/spline-0" --spacing-distance 2.0 --voxel-spacing 10.0
+    -o "skeleton:spline/spline-0" --spacing-distance 2.0
 ```
 
 ## See also
