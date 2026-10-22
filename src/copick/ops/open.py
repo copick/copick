@@ -10,19 +10,20 @@ logger = get_logger(__name__)
 
 if TYPE_CHECKING:
     from copick.impl.cryoet_data_portal import CopickRootCDP
+    from copick.impl.embrella import CopickRootEmbrella, EmbrellaSessionSpec
     from copick.impl.filesystem import CopickRootFSSpec
     from copick.impl.mlcroissant import CopickRootMLC
     from copick.models import PickableObject
 
 
-def from_string(data: str) -> Union["CopickRootFSSpec", "CopickRootCDP", "CopickRootMLC"]:
+def from_string(data: str) -> Union["CopickRootFSSpec", "CopickRootCDP", "CopickRootMLC", "CopickRootEmbrella"]:
     """Create a Copick project from a JSON string.
 
     Args:
         data (str): JSON string containing the project configuration.
 
     Returns:
-        CopickRootFSSpec, CopickRootCDP, or CopickRootMLC: The initialized Copick project.
+        CopickRootFSSpec, CopickRootCDP, CopickRootMLC, or CopickRootEmbrella: The initialized Copick project.
     """
 
     from copick.impl.cryoet_data_portal import CopickConfigCDP, CopickRootCDP
@@ -46,20 +47,24 @@ def from_string(data: str) -> Union["CopickRootFSSpec", "CopickRootCDP", "Copick
         from copick.impl.mlcroissant import CopickConfigMLCroissant, CopickRootMLC
 
         return CopickRootMLC(CopickConfigMLCroissant(**data))
+    elif data["config_type"] == "embrella":
+        from copick.impl.embrella import CopickConfigEmbrella, CopickRootEmbrella
+
+        return CopickRootEmbrella(CopickConfigEmbrella(**data))
     else:
         raise ValueError(
             f"Unknown config_type: {data['config_type']}. Supported types are 'filesystem', "
-            f"'cryoet_data_portal', and 'mlcroissant'.",
+            f"'cryoet_data_portal', 'mlcroissant', and 'embrella'.",
         )
 
 
-def from_file(path: str) -> Union["CopickRootFSSpec", "CopickRootCDP", "CopickRootMLC"]:
+def from_file(path: str) -> Union["CopickRootFSSpec", "CopickRootCDP", "CopickRootMLC", "CopickRootEmbrella"]:
     """Create a Copick project from a JSON file.
     Args:
         path (str): Path to the JSON file containing the project configuration.
 
     Returns:
-        CopickRootFSSpec, CopickRootCDP, or CopickRootMLC: The initialized Copick project.
+        CopickRootFSSpec, CopickRootCDP, CopickRootMLC, or CopickRootEmbrella: The initialized Copick project.
     """
 
     with open(path, "r") as f:
@@ -111,6 +116,99 @@ def from_czcdp_datasets(
             f.write(json.dumps(config.model_dump(exclude_unset=True), indent=4))
 
     return CopickRootCDP(config)
+
+
+def from_embrella(
+    embrella_base_url: str,
+    sessions: List[Union[Dict[str, Any], "EmbrellaSessionSpec"]],
+    overlay_mode: str = "local",
+    overlay_fs_args: Optional[Dict[str, Any]] = None,
+    static_mode: str = "http",
+    static_fs_args: Optional[Dict[str, Any]] = None,
+    overlay_root: Optional[str] = None,
+    overlay_root_fs_args: Optional[Dict[str, Any]] = None,
+    clusters: Optional[Dict[str, Any]] = None,
+    default_data_cluster: Optional[str] = None,
+    scope: Optional[str] = None,
+    pickable_objects: Optional[List["PickableObject"]] = None,
+    objects_from_overlay: bool = True,
+    proj_name: str = "Embrella project",
+    proj_description: Optional[str] = None,
+    user_id: Optional[str] = None,
+    session_id: Optional[str] = None,
+    output_path: Optional[str] = None,
+) -> "CopickRootEmbrella":
+    """Create a Copick project combining tomograms from Embrella sessions.
+
+    Args:
+        embrella_base_url: Base URL of the Embrella server.
+        sessions: Session specs (dicts or EmbrellaSessionSpec): each names an Embrella
+            session, the tomogram versions (proc_run + recon_type) to expose and
+            optionally the overlay project to use.
+        overlay_mode: Overlay access mode: "local", "ssh" or "http" (read-only).
+        overlay_fs_args: Filesystem arguments for overlay access (e.g. sshfs host).
+        static_mode: Static tomogram access mode: "http" or "local".
+        static_fs_args: Filesystem arguments for static access.
+        overlay_root: Optional project-level overlay URL for object templates.
+        overlay_root_fs_args: Filesystem arguments for the project-level overlay.
+        clusters: Optional override of the cluster file server locations.
+        default_data_cluster: Cluster holding the tomogram zarrs (default "czii").
+        scope: The "{scope}.processing" path segment (default "krios1").
+        pickable_objects: Pickable objects for the project. When omitted and
+            objects_from_overlay is True, objects are collected from the sessions'
+            overlay project configs.
+        objects_from_overlay: Whether to seed pickable objects from the overlay
+            projects when none are given.
+        proj_name: Name of the project.
+        proj_description: Description of the project.
+        user_id: The user ID to use for the project.
+        session_id: The session ID to use for the project.
+        output_path: The path to write the project configuration to.
+
+    Returns:
+        CopickRootEmbrella: The initialized Copick project.
+    """
+    from copick.impl.embrella import CopickConfigEmbrella, CopickRootEmbrella
+
+    config_kwargs: Dict[str, Any] = {
+        "name": proj_name,
+        "description": proj_description
+        or f"This copick project combines tomograms from Embrella sessions "
+        f"{[s['name'] if isinstance(s, dict) else s.name for s in sessions]}.",
+        "config_type": "embrella",
+        "version": __version__,
+        "pickable_objects": pickable_objects or [],
+        "embrella_base_url": embrella_base_url,
+        "sessions": sessions,
+        "overlay_mode": overlay_mode,
+        "overlay_fs_args": overlay_fs_args or {},
+        "static_mode": static_mode,
+        "static_fs_args": static_fs_args or {},
+        "overlay_root": overlay_root,
+        "overlay_root_fs_args": overlay_root_fs_args or {},
+        "user_id": user_id,
+        "session_id": session_id,
+    }
+    if clusters is not None:
+        config_kwargs["clusters"] = clusters
+    if default_data_cluster is not None:
+        config_kwargs["default_data_cluster"] = default_data_cluster
+    if scope is not None:
+        config_kwargs["scope"] = scope
+
+    config = CopickConfigEmbrella(**config_kwargs)
+    root = CopickRootEmbrella(config)
+
+    if not config.pickable_objects and objects_from_overlay:
+        config.pickable_objects = root.overlay_pickable_objects()
+        root._objects = None
+
+    if output_path:
+        dump = config.model_dump(exclude_unset=False, exclude={"runs", "voxel_spacings", "tomograms"})
+        with open(output_path, "w") as f:
+            f.write(json.dumps(dump, indent=4))
+
+    return root
 
 
 def from_croissant(

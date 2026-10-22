@@ -5,6 +5,7 @@ from copick.impl.cryoet_data_portal import (
     CopickSegmentationCDP,
     CopickTomogramCDP,
 )
+from copick.impl.embrella import CopickRootEmbrella, CopickRunEmbrella, CopickTomogramEmbrella
 from copick.impl.filesystem import CopickRootFSSpec, CopickRunFSSpec
 from copick.impl.mlcroissant import CopickRootMLC, CopickRunMLC
 from copick.models import (
@@ -77,6 +78,8 @@ def root_to_md(root: CopickRoot) -> str:
         md += "* Project Type: CryoET Data Portal\n"
     elif root.config.config_type == "mlcroissant":
         md += "* Project Type: mlcroissant\n"
+    elif root.config.config_type == "embrella":
+        md += "* Project Type: Embrella\n"
 
     if isinstance(root, CopickRootFSSpec):
         if root.static_is_overlay:
@@ -95,6 +98,12 @@ def root_to_md(root: CopickRoot) -> str:
         md += f"* Mode: {'self-contained (A)' if root.mode == 'A' else 'overlay (B)'}\n"
         if root.config.overlay_root:
             md += f"* Overlay Location: {root.config.overlay_root}\n"
+    elif isinstance(root, CopickRootEmbrella):
+        md += f"* Embrella: {root.config.embrella_base_url}\n"
+        md += f"* Sessions: {', '.join(s.name for s in root.config.sessions)}\n"
+        md += f"* Overlay Mode: {root.config.overlay_mode}\n"
+        if root.config.overlay_root:
+            md += f"* Objects Location: {root.config.overlay_root}\n"
 
     return md
 
@@ -115,6 +124,13 @@ def run_to_md(run: CopickRun) -> str:
         md += f"* Overlay Location: {run.overlay_path}\n"
     elif isinstance(run, CopickRunMLC):
         md += f"* Location: {run.overlay_path}\n"
+    elif isinstance(run, CopickRunEmbrella):
+        if run.embrella_session:
+            md += f"* Embrella Session: {run.embrella_session}\n"
+        if run.embrella_position:
+            md += f"* Position: {run.embrella_position}\n"
+        if run.overlay_path:
+            md += f"* Overlay Location: {run.overlay_path}\n"
 
     return md
 
@@ -134,6 +150,12 @@ def tomogram_to_md(tomogram: CopickTomogram) -> str:
 
     if isinstance(tomogram.voxel_spacing.run, CopickRunCDP) and isinstance(tomogram, CopickTomogramCDP):
         md += f"* cryoET Data portal: [Tomogram {tomogram.meta.portal_tomo_id}](https://cryoetdataportal.czscience.com/runs/{tomogram.voxel_spacing.run.portal_run_id}?table-tab=Tomograms)\n"
+
+    if isinstance(tomogram, CopickTomogramEmbrella) and tomogram.embrella_tomo:
+        md += f"* Embrella Session: {tomogram.meta.embrella_session}\n"
+        md += f"* Processing Run: {tomogram.meta.embrella_proc_run} ({tomogram.meta.embrella_recon_type})\n"
+        md += f"* Position: {tomogram.meta.embrella_position}\n"
+        md += f"* Source: {tomogram.meta.embrella_static_url}\n"
 
     return md
 
