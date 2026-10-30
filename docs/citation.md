@@ -79,6 +79,22 @@ Pretrained, general-purpose 3D U-Nets for segmenting common cellular features, r
 
 DOI: [10.64898/2026.05.19.726344](https://www.biorxiv.org/content/10.64898/2026.05.19.726344v1)
 
+### pytom-match-pick
+
+GPU template matching, run through copick as `copick match pytom` (the
+[copick-pytom-match](https://github.com/copick/copick-pytom) plugin).
+
+> Chaillet, M. L., Roet, S., Veltkamp, R. C., & Förster, F. (2025). pytom-match-pick: A tophat-transform
+> constraint for automated classification in template matching. *Journal of Structural Biology: X*, 11, 100125.
+
+DOI: [10.1016/j.yjsbx.2025.100125](https://doi.org/10.1016/j.yjsbx.2025.100125)
+
+> Chaillet, M. L., van der Schot, G., Gubins, I., Roet, S., Veltkamp, R. C., & Förster, F. (2023). Extensive
+> angular sampling enables the sensitive localization of macromolecules in electron tomograms. *International
+> Journal of Molecular Sciences*, 24(17), 13375.
+
+DOI: [10.3390/ijms241713375](https://doi.org/10.3390/ijms241713375)
+
 ### CZ cryoET Data Portal
 
 copick can read datasets directly from the [CZ cryoET Data Portal](https://cryoetdataportal.czscience.com/)

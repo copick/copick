@@ -118,6 +118,23 @@ dataset API.
 
 ---
 
+### copick-pytom-match
+
+GPU template matching with [pytom-match-pick](https://github.com/SBC-Utrecht/pytom-match-pick) on copick projects.
+`copick match pytom` matches a template against each run's tomogram, using tilt angles, CTF and dose from files,
+RELION5, Warp or copick's own tilt series, and writes the peaks as oriented, scored picks. Score maps can be kept in
+the project and extracted again with other settings by `copick match pytom-extract`.
+
+<div class="grid cards" markdown>
+
+- :fontawesome-solid-code: [__Repository__](https://github.com/copick/copick-pytom)
+- :fontawesome-solid-code: [__pytom-match-pick__](https://github.com/SBC-Utrecht/pytom-match-pick)
+- :fontawesome-solid-book: [__Paper__](https://doi.org/10.1016/j.yjsbx.2025.100125)
+
+</div>
+
+---
+
 ### copick-catalog
 
 An [album](https://album.solutions)-catalog for manipulating copick data entities. Includes solutions to fit planes to
