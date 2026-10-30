@@ -315,12 +315,21 @@ _PLUGIN_INSTALL_OVERRIDES: Dict[str, str] = {
         "pip install git+https://github.com/copick/copick-easymode.git\n"
         "    pip install --no-deps git+https://github.com/mgflast/easymode.git"
     ),
+    # Not on PyPI; pytom-match-pick runs from its own environment (cupy, CUDA) and is found through
+    # COPICK_PYTOM_BIN_DIR, so it is not installed next to copick.
+    "copick-pytom-match": (
+        "pip install git+https://github.com/copick/copick-pytom.git\n"
+        "    # pytom-match-pick in its own environment, e.g.:\n"
+        "    conda create -n pytom -c conda-forge python=3.12 cupy cuda-version=12.6\n"
+        '    conda run -n pytom pip install "pytom-match-pick==0.14.*"'
+    ),
 }
 
 # Per-distribution project-URL overrides for plugins that are not on PyPI (the badge/admonition
 # otherwise links to a non-existent ``pypi.org/project/<dist>/`` page).
 _PLUGIN_URL_OVERRIDES: Dict[str, str] = {
     "copick-easymode": "https://github.com/copick/copick-easymode",
+    "copick-pytom-match": "https://github.com/copick/copick-pytom",
 }
 
 

@@ -25,7 +25,7 @@ jobs:
         run: uv sync --locked --extra docs
 
       # The unified CLI reference documents plugin commands (convert/process/logical/
-      # training/inference/download) contributed by these packages, so they must be
+      # training/inference/match/download) contributed by these packages, so they must be
       # importable for `make_cli_docs` to introspect them. Installed separately from the
       # locked sync to keep the (heavy, torch-pulling) plugins out of the docs lockfile.
       # Uses the CPU torch wheel to keep the CI install light. These must be released with
@@ -42,6 +42,11 @@ jobs:
       # `copick inference easymode` without pulling TensorFlow or the git-easymode/old-numpy chain.
       - name: Install copick-easymode for CLI introspection
         run: uv pip install --no-deps "copick-easymode @ git+https://github.com/copick/copick-easymode.git"
+
+      # copick-pytom-match is git-only and runs pytom-match-pick as a separate program; its own
+      # dependencies are copick's, so a --no-deps install is enough to introspect `copick match`.
+      - name: Install copick-pytom-match for CLI introspection
+        run: uv pip install --no-deps "copick-pytom-match @ git+https://github.com/copick/copick-pytom.git"
 
       # Regenerate the per-command CLI reference pages and the CLI-Reference nav node
       # from the live --help/docstrings before building.

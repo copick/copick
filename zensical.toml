@@ -111,6 +111,11 @@ nav = [
                 {"picksout" = "cli/logical/picksout.md"},
                 {"segop" = "cli/logical/segop.md"},
             ]},
+            {"match" = [
+                {"Overview" = "cli/match/index.md"},
+                {"pytom" = "cli/match/pytom.md"},
+                {"pytom-extract" = "cli/match/pytom-extract.md"},
+            ]},
             {"process" = [
                 {"Overview" = "cli/process/index.md"},
                 {"bandpass" = "cli/process/bandpass.md"},
