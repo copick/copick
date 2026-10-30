@@ -16,8 +16,8 @@ copick info [OPTIONS]
 ## Description
 
 Lists the plugin commands currently registered with the Copick CLI, grouped by
-command group (main, inference, training, evaluation, process, convert, and
-logical). For each command the registered short help text and the providing
+command group (main, inference, match, training, evaluation, process, convert,
+logical, setup, and download). For each command the registered short help text and the providing
 package are shown, which is useful for discovering which plugins are installed
 and where each command comes from.
 
