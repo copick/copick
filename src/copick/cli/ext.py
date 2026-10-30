@@ -13,6 +13,7 @@ logger = get_logger(__name__)
 PLUGIN_GROUPS = [
     "main",
     "inference",
+    "match",
     "training",
     "evaluation",
     "process",

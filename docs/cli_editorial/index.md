@@ -12,12 +12,13 @@
 ## Plugin System
 
 !!! info "Extensibility"
-    The Copick CLI supports extensibility through plugins. External packages can register additional commands by defining entry points in multiple supported groups. The `convert`, `process`, `logical`, `training`, `inference`, and `download` command groups are all populated this way (e.g. by `copick-utils` and `copick-torch`).
+    The Copick CLI supports extensibility through plugins. External packages can register additional commands by defining entry points in multiple supported groups. The `convert`, `process`, `logical`, `training`, `inference`, `match`, and `download` command groups are all populated this way (e.g. by `copick-utils` and `copick-torch`).
 
 ### Supported Entry Point Groups
 
 - **`copick.commands`**: Commands added directly to the main CLI (e.g., `copick mycommand`)
 - **`copick.inference.commands`**: Commands under the inference group (e.g., `copick inference mymodel`)
+- **`copick.match.commands`**: Commands under the match group (e.g., `copick match mymatcher`)
 - **`copick.training.commands`**: Commands under the training group (e.g., `copick training mytrain`)
 - **`copick.evaluation.commands`**: Commands under the evaluation group (e.g., `copick evaluation myscore`)
 - **`copick.process.commands`**: Commands under the process group (e.g., `copick process mymethod`)
