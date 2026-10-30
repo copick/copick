@@ -37,8 +37,8 @@ def info(ctx):
     Display information about the Copick CLI.
 
     Lists the plugin commands currently registered with the Copick CLI, grouped by
-    command group (main, inference, training, evaluation, process, convert, and
-    logical). For each command the registered short help text and the providing
+    command group (main, inference, match, training, evaluation, process, convert,
+    logical, setup, and download). For each command the registered short help text and the providing
     package are shown, which is useful for discovering which plugins are installed
     and where each command comes from.
 
@@ -53,11 +53,14 @@ def info(ctx):
     command_groups = {
         "main": "Main commands (copick COMMAND)",
         "inference": "Inference commands (copick inference COMMAND)",
+        "match": "Matching commands (copick match COMMAND)",
         "training": "Training commands (copick training COMMAND)",
         "evaluation": "Evaluation commands (copick evaluation COMMAND)",
         "process": "Processing commands (copick process COMMAND)",
         "convert": "Conversion commands (copick convert COMMAND)",
         "logical": "Logical/Set operations (copick logical COMMAND)",
+        "setup": "Setup commands (copick setup COMMAND)",
+        "download": "Download commands (copick download COMMAND)",
     }
 
     logged_any_command = False

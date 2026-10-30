@@ -23,7 +23,7 @@ logger = get_logger(__name__)
 # Define command categories for organized help output
 COMMAND_CATEGORIES = {
     "Data Management": ["add", "cp", "export", "mv", "new", "rm", "sync"],
-    "Data Processing": ["convert", "inference", "logical", "process", "training", "evaluation"],
+    "Data Processing": ["convert", "inference", "logical", "match", "process", "training", "evaluation"],
     "Utilities": ["browse", "cache", "config", "deposit", "info", "setup", "stats", "download"],
 }
 
@@ -57,6 +57,23 @@ def inference(ctx):
     Commands in this group apply trained models to copick tomograms to produce
     predictions such as segmentations or particle picks. Subcommands are
     contributed by installed plugins.
+    """
+    pass
+
+
+@click.group(
+    name="match",
+    short_help="Match references against copick tomograms.",
+    no_args_is_help=True,
+)
+@click.pass_context
+def match_group(ctx):
+    """
+    Match references against copick tomograms.
+
+    Commands in this group locate particles in copick tomograms by matching a
+    reference, such as a template, against them and write the resulting picks
+    back to copick. Subcommands are contributed by installed plugins.
     """
     pass
 
@@ -218,6 +235,11 @@ def add_plugin_commands(cmd: click.group) -> click.group:
         cmd.add_command(inference)
         for command in inference_commands:
             inference.add_command(command[0])
+
+    if match_commands := load_plugin_commands("match"):
+        cmd.add_command(match_group)
+        for command in match_commands:
+            match_group.add_command(command[0])
 
     if training_commands := load_plugin_commands("training"):
         cmd.add_command(training)
