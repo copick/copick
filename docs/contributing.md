@@ -122,7 +122,7 @@ perf: optimize zarr array reading for large volumes
 
 ## Plugin Development
 
-Copick supports a plugin system that allows external Python packages to register CLI commands. Commands can be added to the main CLI or organized into groups like `inference`, `training`, `evaluation`, `process`, and `convert`.
+Copick supports a plugin system that allows external Python packages to register CLI commands. Commands can be added to the main CLI or organized into groups like `inference`, `match`, `training`, `evaluation`, `process`, and `convert`.
 
 ### Supported Entry Point Groups
 
@@ -130,6 +130,7 @@ The plugin system supports the following entry point groups:
 
 - **`copick.commands`**: Commands added directly to the main CLI (e.g., `copick mycommand`)
 - **`copick.inference.commands`**: Commands under the inference group (e.g., `copick inference mymodel`)
+- **`copick.match.commands`**: Commands under the match group (e.g., `copick match mymatcher`)
 - **`copick.training.commands`**: Commands under the training group (e.g., `copick training mytrain`)
 - **`copick.evaluation.commands`**: Commands under the evaluation group (e.g., `copick evaluation myscore`)
 - **`copick.process.commands`**: Commands under the process group (e.g., `copick process mymethod`)
@@ -159,6 +160,10 @@ The plugin system supports the following entry point groups:
    # Commands added to inference group
    [project.entry-points."copick.inference.commands"]
    mymodel-infer = "my_copick_plugin.cli.cli:mymodel_infer"
+
+   # Commands added to match group
+   [project.entry-points."copick.match.commands"]
+   mymatcher = "my_copick_plugin.cli.cli:mymatcher"
 
    # Commands added to training group
    [project.entry-points."copick.training.commands"]
@@ -211,6 +216,7 @@ The plugin system supports the following entry point groups:
    ```bash
    copick mycommand --config path/to/config.json --option value
    copick inference mymodel-infer --config path/to/config.json --model-path ./model.pt
+   copick match mymatcher --config path/to/config.json
    copick training mymodel-train --config path/to/config.json
    copick evaluation myscore --config path/to/config.json
    copick process mymethod --config path/to/config.json
