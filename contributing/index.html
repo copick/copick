@@ -7623,12 +7623,13 @@
 </span><span id="__span-9-6"><a id="__codelineno-9-6" name="__codelineno-9-6" href="#__codelineno-9-6"></a>perf:<span class="w"> </span>optimize<span class="w"> </span>zarr<span class="w"> </span>array<span class="w"> </span>reading<span class="w"> </span><span class="k">for</span><span class="w"> </span>large<span class="w"> </span>volumes
 </span></code></pre></div>
 <h2 id="plugin-development">Plugin Development</h2>
-<p>Copick supports a plugin system that allows external Python packages to register CLI commands. Commands can be added to the main CLI or organized into groups like <code>inference</code>, <code>training</code>, <code>evaluation</code>, <code>process</code>, and <code>convert</code>.</p>
+<p>Copick supports a plugin system that allows external Python packages to register CLI commands. Commands can be added to the main CLI or organized into groups like <code>inference</code>, <code>match</code>, <code>training</code>, <code>evaluation</code>, <code>process</code>, and <code>convert</code>.</p>
 <h3 id="supported-entry-point-groups">Supported Entry Point Groups</h3>
 <p>The plugin system supports the following entry point groups:</p>
 <ul>
 <li><strong><code>copick.commands</code></strong>: Commands added directly to the main CLI (e.g., <code>copick mycommand</code>)</li>
 <li><strong><code>copick.inference.commands</code></strong>: Commands under the inference group (e.g., <code>copick inference mymodel</code>)</li>
+<li><strong><code>copick.match.commands</code></strong>: Commands under the match group (e.g., <code>copick match mymatcher</code>)</li>
 <li><strong><code>copick.training.commands</code></strong>: Commands under the training group (e.g., <code>copick training mytrain</code>)</li>
 <li><strong><code>copick.evaluation.commands</code></strong>: Commands under the evaluation group (e.g., <code>copick evaluation myscore</code>)</li>
 <li><strong><code>copick.process.commands</code></strong>: Commands under the process group (e.g., <code>copick process mymethod</code>)</li>
@@ -7659,21 +7660,25 @@
 </span><span id="__span-11-6"><a id="__codelineno-11-6" name="__codelineno-11-6" href="#__codelineno-11-6"></a><span class="k">[project.entry-points.</span><span class="s2">"copick.inference.commands"</span><span class="k">]</span>
 </span><span id="__span-11-7"><a id="__codelineno-11-7" name="__codelineno-11-7" href="#__codelineno-11-7"></a><span class="n">mymodel-infer</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s2">"my_copick_plugin.cli.cli:mymodel_infer"</span>
 </span><span id="__span-11-8"><a id="__codelineno-11-8" name="__codelineno-11-8" href="#__codelineno-11-8"></a>
-</span><span id="__span-11-9"><a id="__codelineno-11-9" name="__codelineno-11-9" href="#__codelineno-11-9"></a><span class="c1"># Commands added to training group</span>
-</span><span id="__span-11-10"><a id="__codelineno-11-10" name="__codelineno-11-10" href="#__codelineno-11-10"></a><span class="k">[project.entry-points.</span><span class="s2">"copick.training.commands"</span><span class="k">]</span>
-</span><span id="__span-11-11"><a id="__codelineno-11-11" name="__codelineno-11-11" href="#__codelineno-11-11"></a><span class="n">mymodel-train</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s2">"my_copick_plugin.cli.cli:mymodel_train"</span>
+</span><span id="__span-11-9"><a id="__codelineno-11-9" name="__codelineno-11-9" href="#__codelineno-11-9"></a><span class="c1"># Commands added to match group</span>
+</span><span id="__span-11-10"><a id="__codelineno-11-10" name="__codelineno-11-10" href="#__codelineno-11-10"></a><span class="k">[project.entry-points.</span><span class="s2">"copick.match.commands"</span><span class="k">]</span>
+</span><span id="__span-11-11"><a id="__codelineno-11-11" name="__codelineno-11-11" href="#__codelineno-11-11"></a><span class="n">mymatcher</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s2">"my_copick_plugin.cli.cli:mymatcher"</span>
 </span><span id="__span-11-12"><a id="__codelineno-11-12" name="__codelineno-11-12" href="#__codelineno-11-12"></a>
-</span><span id="__span-11-13"><a id="__codelineno-11-13" name="__codelineno-11-13" href="#__codelineno-11-13"></a><span class="c1"># Commands added to evaluation group</span>
-</span><span id="__span-11-14"><a id="__codelineno-11-14" name="__codelineno-11-14" href="#__codelineno-11-14"></a><span class="k">[project.entry-points.</span><span class="s2">"copick.evaluation.commands"</span><span class="k">]</span>
-</span><span id="__span-11-15"><a id="__codelineno-11-15" name="__codelineno-11-15" href="#__codelineno-11-15"></a><span class="n">myscore</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s2">"my_copick_plugin.cli.cli:myscore"</span>
+</span><span id="__span-11-13"><a id="__codelineno-11-13" name="__codelineno-11-13" href="#__codelineno-11-13"></a><span class="c1"># Commands added to training group</span>
+</span><span id="__span-11-14"><a id="__codelineno-11-14" name="__codelineno-11-14" href="#__codelineno-11-14"></a><span class="k">[project.entry-points.</span><span class="s2">"copick.training.commands"</span><span class="k">]</span>
+</span><span id="__span-11-15"><a id="__codelineno-11-15" name="__codelineno-11-15" href="#__codelineno-11-15"></a><span class="n">mymodel-train</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s2">"my_copick_plugin.cli.cli:mymodel_train"</span>
 </span><span id="__span-11-16"><a id="__codelineno-11-16" name="__codelineno-11-16" href="#__codelineno-11-16"></a>
-</span><span id="__span-11-17"><a id="__codelineno-11-17" name="__codelineno-11-17" href="#__codelineno-11-17"></a><span class="c1"># Commands added to process group</span>
-</span><span id="__span-11-18"><a id="__codelineno-11-18" name="__codelineno-11-18" href="#__codelineno-11-18"></a><span class="k">[project.entry-points.</span><span class="s2">"copick.process.commands"</span><span class="k">]</span>
-</span><span id="__span-11-19"><a id="__codelineno-11-19" name="__codelineno-11-19" href="#__codelineno-11-19"></a><span class="n">mymethod</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s2">"my_copick_plugin.cli.cli:mymethod"</span>
+</span><span id="__span-11-17"><a id="__codelineno-11-17" name="__codelineno-11-17" href="#__codelineno-11-17"></a><span class="c1"># Commands added to evaluation group</span>
+</span><span id="__span-11-18"><a id="__codelineno-11-18" name="__codelineno-11-18" href="#__codelineno-11-18"></a><span class="k">[project.entry-points.</span><span class="s2">"copick.evaluation.commands"</span><span class="k">]</span>
+</span><span id="__span-11-19"><a id="__codelineno-11-19" name="__codelineno-11-19" href="#__codelineno-11-19"></a><span class="n">myscore</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s2">"my_copick_plugin.cli.cli:myscore"</span>
 </span><span id="__span-11-20"><a id="__codelineno-11-20" name="__codelineno-11-20" href="#__codelineno-11-20"></a>
-</span><span id="__span-11-21"><a id="__codelineno-11-21" name="__codelineno-11-21" href="#__codelineno-11-21"></a><span class="c1"># Commands added to convert group</span>
-</span><span id="__span-11-22"><a id="__codelineno-11-22" name="__codelineno-11-22" href="#__codelineno-11-22"></a><span class="k">[project.entry-points.</span><span class="s2">"copick.convert.commands"</span><span class="k">]</span>
-</span><span id="__span-11-23"><a id="__codelineno-11-23" name="__codelineno-11-23" href="#__codelineno-11-23"></a><span class="n">myconverter</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s2">"my_copick_plugin.cli.cli:myconverter"</span>
+</span><span id="__span-11-21"><a id="__codelineno-11-21" name="__codelineno-11-21" href="#__codelineno-11-21"></a><span class="c1"># Commands added to process group</span>
+</span><span id="__span-11-22"><a id="__codelineno-11-22" name="__codelineno-11-22" href="#__codelineno-11-22"></a><span class="k">[project.entry-points.</span><span class="s2">"copick.process.commands"</span><span class="k">]</span>
+</span><span id="__span-11-23"><a id="__codelineno-11-23" name="__codelineno-11-23" href="#__codelineno-11-23"></a><span class="n">mymethod</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s2">"my_copick_plugin.cli.cli:mymethod"</span>
+</span><span id="__span-11-24"><a id="__codelineno-11-24" name="__codelineno-11-24" href="#__codelineno-11-24"></a>
+</span><span id="__span-11-25"><a id="__codelineno-11-25" name="__codelineno-11-25" href="#__codelineno-11-25"></a><span class="c1"># Commands added to convert group</span>
+</span><span id="__span-11-26"><a id="__codelineno-11-26" name="__codelineno-11-26" href="#__codelineno-11-26"></a><span class="k">[project.entry-points.</span><span class="s2">"copick.convert.commands"</span><span class="k">]</span>
+</span><span id="__span-11-27"><a id="__codelineno-11-27" name="__codelineno-11-27" href="#__codelineno-11-27"></a><span class="n">myconverter</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s2">"my_copick_plugin.cli.cli:myconverter"</span>
 </span></code></pre></div></p>
 </li>
 <li>
@@ -7710,10 +7715,11 @@
 <p><strong>After installing your package</strong>, the commands will be available via:
    <div class="language-bash highlight"><pre><span></span><code><span id="__span-13-1"><a id="__codelineno-13-1" name="__codelineno-13-1" href="#__codelineno-13-1"></a>copick<span class="w"> </span>mycommand<span class="w"> </span>--config<span class="w"> </span>path/to/config.json<span class="w"> </span>--option<span class="w"> </span>value
 </span><span id="__span-13-2"><a id="__codelineno-13-2" name="__codelineno-13-2" href="#__codelineno-13-2"></a>copick<span class="w"> </span>inference<span class="w"> </span>mymodel-infer<span class="w"> </span>--config<span class="w"> </span>path/to/config.json<span class="w"> </span>--model-path<span class="w"> </span>./model.pt
-</span><span id="__span-13-3"><a id="__codelineno-13-3" name="__codelineno-13-3" href="#__codelineno-13-3"></a>copick<span class="w"> </span>training<span class="w"> </span>mymodel-train<span class="w"> </span>--config<span class="w"> </span>path/to/config.json
-</span><span id="__span-13-4"><a id="__codelineno-13-4" name="__codelineno-13-4" href="#__codelineno-13-4"></a>copick<span class="w"> </span>evaluation<span class="w"> </span>myscore<span class="w"> </span>--config<span class="w"> </span>path/to/config.json
-</span><span id="__span-13-5"><a id="__codelineno-13-5" name="__codelineno-13-5" href="#__codelineno-13-5"></a>copick<span class="w"> </span>process<span class="w"> </span>mymethod<span class="w"> </span>--config<span class="w"> </span>path/to/config.json
-</span><span id="__span-13-6"><a id="__codelineno-13-6" name="__codelineno-13-6" href="#__codelineno-13-6"></a>copick<span class="w"> </span>convert<span class="w"> </span>myconverter<span class="w"> </span>--config<span class="w"> </span>path/to/config.json
+</span><span id="__span-13-3"><a id="__codelineno-13-3" name="__codelineno-13-3" href="#__codelineno-13-3"></a>copick<span class="w"> </span>match<span class="w"> </span>mymatcher<span class="w"> </span>--config<span class="w"> </span>path/to/config.json
+</span><span id="__span-13-4"><a id="__codelineno-13-4" name="__codelineno-13-4" href="#__codelineno-13-4"></a>copick<span class="w"> </span>training<span class="w"> </span>mymodel-train<span class="w"> </span>--config<span class="w"> </span>path/to/config.json
+</span><span id="__span-13-5"><a id="__codelineno-13-5" name="__codelineno-13-5" href="#__codelineno-13-5"></a>copick<span class="w"> </span>evaluation<span class="w"> </span>myscore<span class="w"> </span>--config<span class="w"> </span>path/to/config.json
+</span><span id="__span-13-6"><a id="__codelineno-13-6" name="__codelineno-13-6" href="#__codelineno-13-6"></a>copick<span class="w"> </span>process<span class="w"> </span>mymethod<span class="w"> </span>--config<span class="w"> </span>path/to/config.json
+</span><span id="__span-13-7"><a id="__codelineno-13-7" name="__codelineno-13-7" href="#__codelineno-13-7"></a>copick<span class="w"> </span>convert<span class="w"> </span>myconverter<span class="w"> </span>--config<span class="w"> </span>path/to/config.json
 </span></code></pre></div></p>
 </li>
 </ol>

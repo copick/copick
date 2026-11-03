@@ -7637,12 +7637,13 @@
 <h2 id="plugin-system">Plugin System</h2>
 <div class="admonition info">
 <p class="admonition-title">Extensibility</p>
-<p>The Copick CLI supports extensibility through plugins. External packages can register additional commands by defining entry points in multiple supported groups. The <code>convert</code>, <code>process</code>, <code>logical</code>, <code>training</code>, <code>inference</code>, and <code>download</code> command groups are all populated this way (e.g. by <code>copick-utils</code> and <code>copick-torch</code>).</p>
+<p>The Copick CLI supports extensibility through plugins. External packages can register additional commands by defining entry points in multiple supported groups. The <code>convert</code>, <code>process</code>, <code>logical</code>, <code>training</code>, <code>inference</code>, <code>match</code>, and <code>download</code> command groups are all populated this way (e.g. by <code>copick-utils</code> and <code>copick-torch</code>).</p>
 </div>
 <h3 id="supported-entry-point-groups">Supported Entry Point Groups</h3>
 <ul>
 <li><strong><code>copick.commands</code></strong>: Commands added directly to the main CLI (e.g., <code>copick mycommand</code>)</li>
 <li><strong><code>copick.inference.commands</code></strong>: Commands under the inference group (e.g., <code>copick inference mymodel</code>)</li>
+<li><strong><code>copick.match.commands</code></strong>: Commands under the match group (e.g., <code>copick match mymatcher</code>)</li>
 <li><strong><code>copick.training.commands</code></strong>: Commands under the training group (e.g., <code>copick training mytrain</code>)</li>
 <li><strong><code>copick.evaluation.commands</code></strong>: Commands under the evaluation group (e.g., <code>copick evaluation myscore</code>)</li>
 <li><strong><code>copick.process.commands</code></strong>: Commands under the process group (e.g., <code>copick process mymethod</code>)</li>
