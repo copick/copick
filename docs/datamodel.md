@@ -258,6 +258,25 @@ the method, the source format and a status:
 standard ones, local before global ones); `tilt_series.valid_alignments` only those from their authors with
 per-section parameters, and `tilt_series.default_alignment` the first of these.
 
+Tilt series, alignments and CTF fits are imported from, and exported to, the files of other tools:
+
+```bash
+# A SerialEM stack and its mdoc; an AreTomo3 alignment with its CTF fits, linked to the AreTomo3 tomogram
+copick add tiltseries TS_01.mrc --run TS_01 --voltage 300 --cs 2.7 --amplitude-contrast 0.07 -c config.json
+copick add tomogram TS_01_Vol.mrc --run TS_01 --tomo-type aretomo3 -c config.json
+copick add alignment TS_01.aln --format aretomo3 --run TS_01 --ctf TS_01_CTF.txt \
+    --reference-tomogram aretomo3@7.7 -c config.json
+
+# The default alignment of every run, for RELION 5 (or --output-format warp, aretomo3, imod, cdp)
+copick export alignment --alignment-uri "*@raw?default=true" --output-format relion --include-ctf \
+    --output-dir relion -c config.json
+copick export tiltseries --tiltseries-uri raw --output-format mrc --angles aretomo3-tlt --output-dir out -c config.json
+```
+
+The formats are AreTomo3 (`.aln`, `_TLT.txt`, `_CTF.txt`), Warp tilt-series XML, RELION 5 `tomograms.star`, IMOD
+(`.xf`, `.tlt`, `.xtilt`, `tilt.com`), CTFFIND4 and SerialEM `.mdoc`. How their rows map to sections and what each can
+hold is described in [Geometry](geometry.md#75-importing-and-exporting-alignments).
+
 `copick export cets` (or `copick.ops.cets_export.export_cets`) assembles these per-entity CETS blocks into one CETS
 `Dataset` document, a `Region` per run, with identifiers prefixed by the run name; what CETS has no field for (copick's
 extensions, alignment names and reference volumes, tomogram links) goes to a companion file next to it.

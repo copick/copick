@@ -439,3 +439,34 @@ def test_cets_export_of_a_portal_project(portal):
     assert sizes == [(630, 184), (630, 184), (1260, 368), (1260, 368)]
     companion = json.loads((portal["tmp_path"] / "portal.cets.json.copick-companion.json").read_text())
     assert companion["alignments"][f"{RUN_ID}/projectionMatching-local-18924"]["extensions"]["status"] == "author"
+
+
+def test_aretomo3_alignment_of_a_portal_tilt_series(portal, monkeypatch):
+    """The AreTomo3 file the portal ingested, imported for the portal tilt series, agrees with the portal's alignment."""
+    from copick.impl.cryoet_data_portal import CopickTiltSeriesCDP
+    from copick.ops.acquisition import add_alignment_from_file
+    from copick.util.acquisition_formats import rebase_sections
+
+    def no_images(self):
+        raise AssertionError("the portal tilt series' images were opened")
+
+    monkeypatch.setattr(CopickTiltSeriesCDP, "zarr", no_images)
+    root = portal["open"]()
+    aln = Path(__file__).parent / "data" / "acquisition" / "10445_TS_105_5.aln"
+    imported = add_alignment_from_file(
+        root,
+        str(RUN_ID),
+        aln,
+        "aretomo3",
+        "raw",
+        volume_size=(4083, 4083, 1192),
+        rigid_only=True,
+    )
+    assert imported.file.tilt_series_portal_id == TS_ID and imported.file.rigid_part_of_local
+    run = portal["open"]().get_run(str(RUN_ID))
+    (portal_alignment,) = [a for a in run.alignments if a.read_only]
+    expected = rebase_sections(portal_alignment.file, imported.file.reference_volume)
+    for ours, theirs in zip(imported.file.sections, expected, strict=True):
+        assert ours.section == theirs.section
+        assert (ours.shift_x, ours.shift_y) == pytest.approx((theirs.shift_x, theirs.shift_y), abs=1e-9)
+        assert ours.tilt_angle == pytest.approx(theirs.tilt_angle, abs=1e-12)
