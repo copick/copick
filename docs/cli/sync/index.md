@@ -15,7 +15,9 @@ copick sync [OPTIONS] COMMAND [ARGS]...
 
 | Command | Description |
 |---------|-------------|
+| [`alignments`](alignments.md) | Synchronize alignments between two Copick projects. |
 | [`meshes`](meshes.md) | Synchronize meshes between two Copick projects. |
 | [`picks`](picks.md) | Synchronize picks between two Copick projects. |
 | [`segmentations`](segmentations.md) | Synchronize segmentations between two Copick projects. |
+| [`tiltseries`](tiltseries.md) | Synchronize tilt series between two Copick projects. |
 | [`tomograms`](tomograms.md) | Synchronize tomograms between two Copick projects. |

@@ -1790,11 +1790,18 @@ class CopickTomogramMLC(CopickTomogramOverlay):
         vs = self.voxel_spacing.voxel_size
         return f"ExperimentRuns/{run}/VoxelSpacing{vs:.3f}/{self.tomo_type}.zarr"
 
+    def _load_link(self):
+        # A tomogram whose row names its alignment (e.g. a CryoET Data Portal tomogram) has no link in its store
+        row = self._find_row()
+        if row is not None and row.get("alignment"):
+            return None
+        return super()._load_link()
+
     def _synthesized_link(self):
         # A tomogram listed in the index may name its alignment there (e.g. a CryoET Data Portal tomogram).
         from copick.models import CopickTomogramLink
 
-        row = self._find_row() if self.read_only else None
+        row = self._find_row()
         if row is None or not row.get("alignment"):
             return None
         alignment = self.voxel_spacing.run.get_alignment(row["alignment"])
@@ -1863,7 +1870,8 @@ class CopickTiltSeriesMLC(CopickTiltSeriesOverlay):
     def _load_metadata(self):
         from copick.util.cets import COPICK_ATTRS_KEY, tilt_series_from_attrs
 
-        row = self._find_row() if self.read_only else None
+        # A tilt series listed with a metadata file (e.g. one of the CryoET Data Portal) reads its metadata from there
+        row = self._find_row()
         if row is not None and row.get("metadata_url"):
             fs, path = self._index.resolve_url(row["metadata_url"])
             with fs.open(path, "r") as f:
@@ -1940,6 +1948,13 @@ class CopickAlignmentMLC(CopickAlignmentOverlay):
     @property
     def directory(self) -> str:
         return f"{self.run.overlay_path}/Alignments/"
+
+    @property
+    def fs(self) -> AbstractFileSystem:
+        if self.read_only:
+            fs, _ = self._index.resolve_url(self._find_row()["url"])
+            return fs
+        return self.run.fs_overlay
 
     def _load(self) -> CopickAlignmentFile:
         from copick.util.cets import alignment_from_document
