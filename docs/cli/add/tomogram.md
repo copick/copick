@@ -36,6 +36,7 @@ given, and a multiscale pyramid is computed by default.
 | `--tomo-type` | text | `wbp` | The name of the tomogram (e.g. wbp). |
 | `--file-type` | choice (mrc \| zarr \| tiff \| em) | — | The file type of the tomogram ('mrc', 'zarr', 'tiff', or 'em'). Will guess type based on extension if omitted. |
 | `--voxel-size` | float | — | Voxel size in Angstrom. Overrides voxel size in the tomogram header. |
+| `--alignment` | text | — | Name of the run's alignment the tomogram was reconstructed with; the tomogram is linked to it. |
 | `--chunk-size` | text | `128,128,128` | Chunk size for the output Zarr file. |
 | `--pyramid-levels` | integer | `3` | Number of pyramid levels (each level corresponds to downscaling by factor two). |
 | `--create-pyramid / --no-create-pyramid` | boolean flag | `True` | Compute the multiscale pyramid. |
@@ -60,6 +61,9 @@ copick add tomogram tomo.mrc -c config.json --run TS_001
 
 # Extract the run name from the filename with a regex
 copick add tomogram "TS*.mrc" -c config.json --run-regex "^(TS_\d+)"
+
+# Link the tomogram to the alignment it was reconstructed with
+copick add tomogram TS_001.mrc -c config.json --run TS_001 --alignment aretomo3
 ```
 
 ## See also

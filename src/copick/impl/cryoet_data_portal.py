@@ -981,6 +981,16 @@ class CopickTiltSeriesCDP(CopickTiltSeriesOverlay):
             cache.frames,
         )
 
+    @property
+    def shape(self) -> Optional[Tuple[int, int, int]]:
+        """Shape ``(section, y, x)`` of the full-size images; of a portal tilt series from its record, without
+        opening the images."""
+        if self.read_only and self.portal_tilt_series:
+            metadata = self.metadata
+            if metadata is not None and metadata.images:
+                return (metadata.n_sections, metadata.height, metadata.width)
+        return super().shape
+
     def zarr(self) -> Store:
         if self.read_only:
             return copick_store(s3fs.S3FileSystem(anon=True), self.meta.portal_tiltseries_path, read_only=True)
