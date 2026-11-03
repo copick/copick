@@ -50,6 +50,11 @@ One source is considered read-only ('static'), while the other source is conside
 
 ****
 
+[](){#CopickTiltSeriesOverlay}
+::: copick.impl.overlay.CopickTiltSeriesOverlay
+
+****
+
 [](){#CopickTomogramOverlay}
 ::: copick.impl.overlay.CopickTomogramOverlay
     options:

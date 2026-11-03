@@ -13,6 +13,7 @@ from copick.impl.overlay import (
     CopickPicksOverlay,
     CopickRunOverlay,
     CopickSegmentationOverlay,
+    CopickTiltSeriesOverlay,
     CopickTomogramOverlay,
     CopickVoxelSpacingOverlay,
 )
@@ -26,6 +27,7 @@ from copick.models import (
     CopickRoot,
     CopickRunMeta,
     CopickSegmentationMeta,
+    CopickTiltSeriesMeta,
     CopickTomogramMeta,
     CopickVoxelSpacingMeta,
     PickableObject,
@@ -193,6 +195,92 @@ def query_filament_files(run, read_only: bool) -> List[CopickFilamentsFSSpec]:
             ),
         )
     return result
+
+
+#: Directory of a run that holds its tilt series.
+TILT_SERIES_DIRECTORY = "TiltSeries"
+
+
+def list_tilt_series_types(fs: Optional[AbstractFileSystem], run_path: str) -> List[str]:
+    """The types of the tilt series stored under ``{run_path}/TiltSeries/``, without opening their stores."""
+    if fs is None:
+        return []
+    location = f"{run_path}/{TILT_SERIES_DIRECTORY}/"
+    try:
+        paths = fs.glob(location + "*.zarr") + fs.glob(location + "*.zarr/")
+    except FileNotFoundError:
+        return []
+    types = set()
+    for path in paths:
+        name = path.rstrip("/").rsplit("/", 1)[-1][: -len(".zarr")]
+        if name and not name.startswith(".") and fs.isdir(path):
+            types.add(name)
+    return sorted(types)
+
+
+class CopickTiltSeriesFSSpec(CopickTiltSeriesOverlay):
+    """CopickTiltSeries class backed by fsspec storage, at ``{run}/TiltSeries/{ts_type}.zarr``.
+
+    Works with any run that has ``static_path``/``fs_static`` and ``overlay_path``/``fs_overlay`` (the filesystem,
+    data-portal and Croissant backends).
+
+    Attributes:
+        static_path (str): The path to the tilt series on the static source.
+        overlay_path (str): The path to the tilt series on the overlay source.
+        fs_static (AbstractFileSystem): The filesystem of the static source.
+        fs_overlay (AbstractFileSystem): The filesystem of the overlay source.
+    """
+
+    @property
+    def static_path(self) -> str:
+        return f"{self.run.static_path}/{TILT_SERIES_DIRECTORY}/{self.ts_type}.zarr"
+
+    @property
+    def overlay_path(self) -> str:
+        return f"{self.run.overlay_path}/{TILT_SERIES_DIRECTORY}/{self.ts_type}.zarr"
+
+    @property
+    def fs_static(self) -> AbstractFileSystem:
+        return self.run.fs_static
+
+    @property
+    def fs_overlay(self) -> AbstractFileSystem:
+        return self.run.fs_overlay
+
+    def zarr(self) -> Store:
+        """Get the zarr store for the tilt series.
+
+        Returns:
+            Store: The zarr store for the tilt series.
+        """
+        if self.read_only:
+            fs = self.fs_static
+            path = self.static_path
+            mode = "r"
+            create = False
+        else:
+            fs = self.fs_overlay
+            path = self.overlay_path
+            mode = "w"
+            create = not fs.exists(path)
+
+        return copick_store(fs, path, read_only=mode == "r", create=create)
+
+    def _delete_data(self) -> None:
+        if self.fs_overlay.exists(self.overlay_path):
+            self.fs_overlay.rm(self.overlay_path, recursive=True)
+        else:
+            raise FileNotFoundError(f"File not found: {self.overlay_path}")
+
+
+def query_tilt_series_stores(run, read_only: bool) -> List[CopickTiltSeriesFSSpec]:
+    """The tilt series in a run's static (``read_only``) or overlay ``TiltSeries/`` directory."""
+    fs = run.fs_static if read_only else run.fs_overlay
+    path = run.static_path if read_only else run.overlay_path
+    return [
+        CopickTiltSeriesFSSpec(run=run, meta=CopickTiltSeriesMeta(ts_type=ts_type), read_only=read_only)
+        for ts_type in list_tilt_series_types(fs, path)
+    ]
 
 
 class CopickMeshFSSpec(CopickMeshOverlay):
@@ -613,6 +701,17 @@ class CopickRunFSSpec(CopickRunOverlay):
 
     def _query_overlay_filaments(self) -> List["CopickFilamentsFSSpec"]:
         return query_filament_files(self, read_only=False)
+
+    def _tilt_series_factory(self) -> Tuple[Type[CopickTiltSeriesFSSpec], Type[CopickTiltSeriesMeta]]:
+        return CopickTiltSeriesFSSpec, CopickTiltSeriesMeta
+
+    def _query_static_tilt_series(self) -> List[CopickTiltSeriesFSSpec]:
+        if self.static_is_overlay:
+            return []
+        return query_tilt_series_stores(self, read_only=True)
+
+    def _query_overlay_tilt_series(self) -> List[CopickTiltSeriesFSSpec]:
+        return query_tilt_series_stores(self, read_only=False)
 
     def _mesh_factory(self) -> Tuple[Type[CopickMeshFSSpec], Type[CopickMeshMeta]]:
         return CopickMeshFSSpec, CopickMeshMeta
