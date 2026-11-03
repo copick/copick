@@ -235,6 +235,10 @@ degrees. The metadata is read only when needed, so listing a run's tilt series d
 
     The `raw` part of the filename is the type of the tilt series. Types must not contain `@`.
 
+A CryoET Data Portal project serves the portal's tilt series (type `raw`, or `aligned` for stacks of aligned images)
+read-only, with metadata built from the portal's per-image records; see
+[Data Portal](api_reference/implementations/Dataportal.md#tilt-series-alignments-and-ctf).
+
 #### Alignments
 
 An alignment holds, for one tilt series, the rigid projection of each aligned image: its refined tilt angle, tilt
