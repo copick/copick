@@ -63,6 +63,8 @@ portal-derived rows on the way out.
 | `--picks` | text · multiple | — | Copick URI to filter picks (e.g. 'ribosome:*/*'). Repeatable. Omit to include all picks. |
 | `--meshes` | text · multiple | — | Copick URI to filter meshes (e.g. 'ribosome:*/*'). Repeatable. Omit to include all meshes. |
 | `--segmentations` | text · multiple | — | Copick URI to filter segmentations (e.g. 'membrane:*/*@10.0'). Repeatable. Omit to include all segmentations. |
+| `--tiltseries` | text · multiple | — | Copick URI to filter tilt series (e.g. 'raw'). Repeatable. Omit to include all tilt series. |
+| `--alignments` | text · multiple | — | Copick URI to filter alignments (e.g. '*@raw?valid=true'). Repeatable. Omit to include all alignments. |
 | `--objects` | text | — | Comma-separated pickable object names to emit density maps for. Omit to include all objects. |
 | `--tomo-type-map` | text | — | Rename tomo_type values at CSV emission time, e.g. 'wbp-raw:wbp,denoised-cryocare:denoised'. |
 | `--object-name-map` | text | — | Rename object names at CSV emission time (applies to picks/meshes/segmentations/objects and copick:config.pickable_objects), e.g. 'cytosolic-ribosome:ribosome'. |

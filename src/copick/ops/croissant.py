@@ -18,7 +18,7 @@ import io
 import json
 import os
 from dataclasses import dataclass
-from typing import Any, Dict, Iterable, List, Optional, Set, Tuple
+from typing import Any, Callable, Dict, Iterable, List, Optional, Set, Tuple
 
 from fsspec import AbstractFileSystem
 
@@ -100,6 +100,8 @@ class _ExportFilters:
     meshes: Optional[List[str]] = None
     segmentations: Optional[List[str]] = None
     objects: Optional[List[str]] = None
+    tilt_series: Optional[List[str]] = None
+    alignments: Optional[List[str]] = None
 
     # Reshape transforms (applied at CSV emission time)
     tomo_type_map: Optional[Dict[str, str]] = None
@@ -309,6 +311,8 @@ def export_croissant(
     tomograms_portal_meta: Optional[Dict[str, Any]] = None,
     tomograms_author: Optional[Iterable[str]] = None,
     splits: Optional[Dict[str, Any]] = None,
+    tilt_series: Optional[Iterable[str]] = None,
+    alignments: Optional[Iterable[str]] = None,
 ) -> str:
     """Export ``root`` to ``<project_root>/Croissant/``.
 
@@ -365,6 +369,12 @@ def export_croissant(
         segmentations_author: ditto for segmentations; CDP-only.
         tomograms_portal_meta: ditto for tomograms; CDP-only.
         tomograms_author: ditto for tomograms; CDP-only.
+        tilt_series: Optional iterable of copick URIs (e.g. ``"raw"``) to filter tilt series.
+        alignments: Optional iterable of copick URIs (e.g. ``"*@raw"``) to filter alignments.
+
+    Tilt series and alignments whose metadata only the source holds (e.g. those of the CryoET Data Portal) are
+    written as JSON next to the Croissant (``Croissant/tilt_series/``, ``Croissant/alignments/``) and referenced by
+    absolute URL.
 
     Returns:
         The path to the written metadata.json.
@@ -386,6 +396,8 @@ def export_croissant(
         segmentations_author=list(segmentations_author) if segmentations_author else None,
         tomograms_portal_meta=dict(tomograms_portal_meta) if tomograms_portal_meta else None,
         tomograms_author=list(tomograms_author) if tomograms_author else None,
+        tilt_series=list(tilt_series) if tilt_series is not None else None,
+        alignments=list(alignments) if alignments is not None else None,
     )
 
     source_type = getattr(root.config, "config_type", "filesystem")
@@ -423,6 +435,7 @@ def export_croissant(
         source_type=source_type,
         compute_file_sha256=compute_file_sha256,
         filters=filters,
+        sidecar_writer=_sidecar_writer(croissant_fs, croissant_dir, _absolute_dir_url(project_root, "Croissant")),
     )
 
     # Apply split assignments to the runs rows.
@@ -569,9 +582,12 @@ def _walk_project(
     source_type: str,
     compute_file_sha256: bool,
     filters: _ExportFilters,
+    sidecar_writer: Optional[Callable[[str, bytes], str]] = None,
 ) -> Dict[str, List[Dict[str, Any]]]:
     rows: Dict[str, List[Dict[str, Any]]] = {rs_id: [] for rs_id in RECORDSET_ORDER}
     is_cdp = source_type == "cryoet_data_portal"
+    # Sources that record tomogram links elsewhere than in the tomograms' own attributes
+    links_from_source = is_cdp or source_type == "mlcroissant"
 
     # Top-level run filter: restrict which runs we walk at all.
     all_runs = list(root.runs)
@@ -680,6 +696,8 @@ def _walk_project(
                 }
                 if is_cdp:
                     tomo_row.update(_portal_tomogram_fields(tomo))
+                link = tomo._synthesized_link() if links_from_source else None
+                tomo_row["alignment"] = link.alignment if link is not None and link.alignment else ""
                 rows["copick/tomograms"].append(tomo_row)
 
                 for feat in tomo.features:
@@ -701,6 +719,28 @@ def _walk_project(
                             "url": feat_url,
                         },
                     )
+
+        # --- Tilt series and alignments ---
+        allowed_tilt_series = _resolve_allowed_keys(
+            filters.tilt_series,
+            root,
+            "tiltseries",
+            run.name,
+            lambda t: (t.ts_type, str(getattr(t.meta, "portal_tiltseries_id", None) or "")),
+        )
+        for ts in run.tilt_series:
+            key = (ts.ts_type, str(getattr(ts.meta, "portal_tiltseries_id", None) or ""))
+            if allowed_tilt_series is not None and key not in allowed_tilt_series:
+                continue
+            rows["copick/tilt_series"].append(_tilt_series_row(run, ts, copick_base_url, is_cdp, sidecar_writer))
+
+        allowed_alignments = _resolve_allowed_keys(filters.alignments, root, "alignment", run.name, lambda a: a.name)
+        for alignment in run.alignments:
+            if allowed_alignments is not None and alignment.name not in allowed_alignments:
+                continue
+            rows["copick/alignments"].append(
+                _alignment_row(run, alignment, is_cdp, compute_file_sha256, sidecar_writer),
+            )
 
         # --- Picks (honouring CDP portal-meta filters + remap + session template) ---
         for pick in _iter_picks_filtered(
@@ -843,6 +883,104 @@ def _get_artifact_url(artifact) -> Optional[str]:
         if url:
             return url
     return None
+
+
+def _absolute_url(fs: AbstractFileSystem, path: str) -> str:
+    """``path`` on ``fs`` as an absolute URL, so it resolves whatever the Croissant's base URL."""
+    from copick.impl.mlcroissant import _has_protocol
+
+    if _has_protocol(path):
+        return path
+    protocol = getattr(getattr(fs, "_fs", fs), "protocol", "file")
+    protocol = protocol[0] if isinstance(protocol, (list, tuple)) else protocol
+    if protocol in ("file", "local"):
+        return "file://" + os.path.abspath(path)
+    return f"{protocol}://{path.lstrip('/')}"
+
+
+def _absolute_dir_url(location: str, child: Optional[str]) -> str:
+    """The absolute URL of ``child`` of directory ``location`` (or of the directory of the file ``location``)."""
+    from copick.impl.mlcroissant import _has_protocol
+
+    directory = location.rstrip("/") if child is not None else os.path.dirname(location.rstrip("/"))
+    if child is not None:
+        directory = f"{directory}/{child}"
+    if _has_protocol(directory):
+        return directory
+    return "file://" + os.path.abspath(directory)
+
+
+def _sidecar_writer(fs: AbstractFileSystem, directory: str, url: str) -> Callable[[str, bytes], str]:
+    """A function writing a file at ``relative`` below ``directory`` and returning its absolute URL below ``url``."""
+
+    def write(relative: str, data: bytes) -> str:
+        path = f"{directory.rstrip('/')}/{relative}"
+        fs.makedirs(os.path.dirname(path), exist_ok=True)
+        with fs.open(path, "wb") as f:
+            f.write(data)
+        return f"{url.rstrip('/')}/{relative}"
+
+    return write
+
+
+def _tilt_series_row(run, ts, base_url: str, is_cdp: bool, sidecar_writer) -> Dict[str, Any]:
+    """The ``copick/tilt_series`` row of a tilt series. Tilt series whose metadata only the source holds (portal tilt
+    series) point to a JSON file with it."""
+    from copick.util.cets import COPICK_ATTRS_KEY, tilt_series_to_attrs
+
+    portal_id = getattr(ts.meta, "portal_tiltseries_id", None)
+    row = {
+        "run": run.name,
+        "ts_type": ts.ts_type,
+        "metadata_url": "",
+        "portal_tiltseries_id": "" if portal_id in (None, "") else str(portal_id),
+    }
+    if portal_id not in (None, "") and getattr(ts, "read_only", False):
+        path = getattr(ts.meta, "portal_tiltseries_path", None) or ts.static_path
+        row["url"] = _relpath(base_url, path) or path
+        metadata = ts.metadata
+        if metadata is not None and sidecar_writer is not None:
+            block = tilt_series_to_attrs(ts.cets_id, metadata)[COPICK_ATTRS_KEY]
+            row["metadata_url"] = sidecar_writer(
+                f"tilt_series/{run.name}/{ts.cets_id}.json",
+                json.dumps(block, indent=1).encode("utf-8"),
+            )
+    elif is_cdp:
+        row["url"] = _absolute_url(ts.fs_overlay, ts.overlay_path)
+    else:
+        row["url"] = f"ExperimentRuns/{run.name}/TiltSeries/{ts.ts_type}.zarr"
+    return row
+
+
+def _alignment_row(run, alignment, is_cdp: bool, compute_sha: bool, sidecar_writer) -> Dict[str, Any]:
+    """The ``copick/alignments`` row of an alignment. Alignments without a file (portal alignments) are written as
+    JSON next to the Croissant."""
+    from copick.util.cets import alignment_to_document
+
+    file = alignment.file
+    row = {
+        "run": run.name,
+        "name": alignment.name,
+        "tilt_series": file.tilt_series,
+        "status": file.status,
+        "alignment_type": file.alignment_type,
+        "portal_alignment_id": "" if file.portal_alignment_id is None else str(file.portal_alignment_id),
+        "portal_tiltseries_id": "" if file.tilt_series_portal_id is None else str(file.tilt_series_portal_id),
+        "sha256": "",
+    }
+    path = getattr(alignment, "path", None)
+    if path is None:
+        data = json.dumps(alignment_to_document(file), indent=1).encode("utf-8")
+        row["sha256"] = _sha256_bytes(data)
+        row["url"] = sidecar_writer(f"alignments/{run.name}/{alignment.name}.json", data) if sidecar_writer else ""
+        return row
+    if compute_sha:
+        row["sha256"] = _sha256_file(alignment.fs, path)
+    if is_cdp:
+        row["url"] = _absolute_url(alignment.fs, path)
+    else:
+        row["url"] = f"ExperimentRuns/{run.name}/Alignments/{alignment.name}.json"
+    return row
 
 
 def _tomo_url(run, vs, tomo, base_url: str, is_cdp: bool) -> str:
@@ -1260,6 +1398,8 @@ def append_croissant(
     tomograms_author: Optional[Iterable[str]] = None,
     splits: Optional[Dict[str, Any]] = None,
     compute_file_sha256: bool = True,
+    tilt_series: Optional[Iterable[str]] = None,
+    alignments: Optional[Iterable[str]] = None,
 ) -> str:
     """Union filtered rows from ``source_root`` into an existing Croissant.
 
@@ -1279,7 +1419,7 @@ def append_croissant(
         dest_metadata_path: Absolute path / URL of the destination
             ``Croissant/metadata.json``. Must exist and be writable.
         source_root: A loaded copick project (filesystem, CDP, or mlcroissant).
-        runs, tomograms, features, picks, meshes, segmentations, objects:
+        runs, tomograms, features, picks, meshes, segmentations, objects, tilt_series, alignments:
             Subset filters, same semantics as :func:`export_croissant`.
         tomo_type_map, object_name_map, session_id_template: Reshape transforms.
         picks_portal_meta, picks_author, segmentations_portal_meta,
@@ -1309,6 +1449,8 @@ def append_croissant(
         segmentations_author=list(segmentations_author) if segmentations_author else None,
         tomograms_portal_meta=dict(tomograms_portal_meta) if tomograms_portal_meta else None,
         tomograms_author=list(tomograms_author) if tomograms_author else None,
+        tilt_series=list(tilt_series) if tilt_series is not None else None,
+        alignments=list(alignments) if alignments is not None else None,
     )
 
     source_type = getattr(source_root.config, "config_type", "filesystem")
@@ -1333,6 +1475,11 @@ def append_croissant(
         source_type=source_type,
         compute_file_sha256=compute_file_sha256,
         filters=filters,
+        sidecar_writer=_sidecar_writer(
+            dest.index.croissant_fs,
+            dest.index.croissant_dir,
+            _absolute_dir_url(dest_metadata_path, None),
+        ),
     )
     _absolutize_row_urls(rows, source_base_url)
 
