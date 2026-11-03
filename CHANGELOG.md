@@ -1,5 +1,23 @@
 # Changelog
 
+## [1.32.0](https://github.com/copick/copick/compare/copick-v1.31.0...copick-v1.32.0) (2026-11-03)
+
+
+### ✨ Features
+
+* a match command group for plugins ([#561](https://github.com/copick/copick/issues/561)) ([6292cf4](https://github.com/copick/copick/commit/6292cf499b2b4fc8eb67882c62de0c15fdb78146))
+* alignments and tomogram links ([#526](https://github.com/copick/copick/issues/526)) ([21f04ca](https://github.com/copick/copick/commit/21f04cafaa392e8b0529b6cb1ddf31c05ee2678f))
+* CryoET Data Portal tilt series, alignments and CTF ([#528](https://github.com/copick/copick/issues/528)) ([6e90af7](https://github.com/copick/copick/commit/6e90af7d8395725d7ce94fff2825b61e10678462))
+* import and export tilt series, alignments and CTF (AreTomo3, Warp, RELION, IMOD) ([#534](https://github.com/copick/copick/issues/534)) ([a467a05](https://github.com/copick/copick/commit/a467a0553b30990dfe933e1ab956eee3024099c7))
+* URIs, CLI and Croissant export for tilt series and alignments ([#530](https://github.com/copick/copick/issues/530)) ([04e4d89](https://github.com/copick/copick/commit/04e4d899d5ebc4d333703d4e4a1a34bd2345c329))
+
+
+### 🐞 Bug Fixes
+
+* bump dependencies ([#567](https://github.com/copick/copick/issues/567)) ([93ad53a](https://github.com/copick/copick/commit/93ad53affb886f240188167cec677e06bce237c7))
+* bump dependencies ([#575](https://github.com/copick/copick/issues/575)) ([831f829](https://github.com/copick/copick/commit/831f829c54cc604d2075a8a1b0faffe3b1a729a3))
+* Bump virtualenv from 21.14.9 to 21.14.13 ([#571](https://github.com/copick/copick/issues/571)) ([4ebdb42](https://github.com/copick/copick/commit/4ebdb42bad50181ee4f60963fcc34d5892b9fc74))
+
 ## [1.31.0](https://github.com/copick/copick/compare/copick-v1.30.0...copick-v1.31.0) (2026-10-19)
 
 
