@@ -1,5 +1,24 @@
 # Changelog
 
+## [2.0.0-alpha.7](https://github.com/copick/copick/compare/copick-v2.0.0-alpha.6...copick-v2.0.0-alpha.7) (2026-11-03)
+
+
+### ✨ Features
+
+* a match command group for plugins ([#562](https://github.com/copick/copick/issues/562)) ([deaca0d](https://github.com/copick/copick/commit/deaca0d1acce846e1c238172e2008649b25816a8))
+* alignments and tomogram links (v2.0) ([#527](https://github.com/copick/copick/issues/527)) ([c9713da](https://github.com/copick/copick/commit/c9713da685f0591fbd1e9865eb85f3c1a08bac28))
+* copick export cets (v2.0) ([#533](https://github.com/copick/copick/issues/533)) ([4946229](https://github.com/copick/copick/commit/494622947cd872be95325dfe2410a25a8d6dcf17))
+* import and export tilt series, alignments and CTF (AreTomo3, Warp, RELION, IMOD) (v2.0) ([#535](https://github.com/copick/copick/issues/535)) ([022bdd5](https://github.com/copick/copick/commit/022bdd58d75ddf039b4eefbbb5f110557b2cf415))
+* tilt series entity with CETS-shaped metadata (v2.0) ([#525](https://github.com/copick/copick/issues/525)) ([96ceb9a](https://github.com/copick/copick/commit/96ceb9a57c5f088254bfa17936d7309e594a1ac6))
+* URIs, CLI and Croissant export for tilt series and alignments (v2.0) ([#531](https://github.com/copick/copick/issues/531)) ([ffa1dca](https://github.com/copick/copick/commit/ffa1dca12b51fa5b218f2e63190215890e3eb652))
+
+
+### 🐞 Bug Fixes
+
+* bump dependencies (v2.0) ([#568](https://github.com/copick/copick/issues/568)) ([b1556b9](https://github.com/copick/copick/commit/b1556b939ce48eddb27507c25b72200bc986513a))
+* bump trimesh to 5.2.0 (v2.0) ([#576](https://github.com/copick/copick/issues/576)) ([2d7d324](https://github.com/copick/copick/commit/2d7d324a7bbb662eb26345b09909bf7872b08b0a))
+* release written arrays when reading preserved attributes fails (v2.0) ([#574](https://github.com/copick/copick/issues/574)) ([a82c5e7](https://github.com/copick/copick/commit/a82c5e75a0d56cad0bf504ee5feaaf7bce7a5fb3))
+
 ## [2.0.0-alpha.6](https://github.com/copick/copick/compare/copick-v2.0.0-alpha.5...copick-v2.0.0-alpha.6) (2026-10-19)
 
 
