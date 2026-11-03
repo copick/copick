@@ -250,6 +250,24 @@ def canonical_v3_compressors(dtype: np.dtype) -> Tuple[Any, ...]:
     raise TypeError(f"Canonical OME-Zarr output does not support dtype {dtype}")
 
 
+#: Group attributes that rewriting an image's data keeps (copick's own metadata, e.g. a tomogram's alignment link).
+PRESERVED_ATTRS = ("copick",)
+
+
+def read_preserved_attrs(store: Union[str, Store], keys: Tuple[str, ...] = PRESERVED_ATTRS) -> Dict[str, Any]:
+    """The attributes ``keys`` of the group in ``store`` (Zarr v2 or v3), to restore after its data is rewritten.
+
+    The store is about to be written, so it is opened as given (``r+``) rather than through a read-only copy.
+    """
+    if not keys:
+        return {}
+    try:
+        attrs = dict(zarr.open_group(store=_writer_store(store), mode="r+").attrs)
+    except (zarr.errors.GroupNotFoundError, FileNotFoundError, KeyError):
+        return {}
+    return {key: copy.deepcopy(attrs[key]) for key in keys if key in attrs}
+
+
 def _write_multiscales(
     root_group: zarr.Group,
     datasets: List[Dict[str, Any]],
@@ -285,8 +303,12 @@ def write_ome_zarr(
     metadata: Union[Mapping[str, Any], None] = None,
     shard_size: Union[Tuple[int, ...], None] = None,
     coordinate_transformations: Union[List[List[Dict[str, Any]]], None] = None,
+    preserve_attrs: Tuple[str, ...] = PRESERVED_ATTRS,
 ) -> None:
-    """Write an OME-Zarr 0.5 / Zarr v3 pyramid with the canonical layout."""
+    """Write an OME-Zarr 0.5 / Zarr v3 pyramid with the canonical layout.
+
+    Group attributes ``preserve_attrs`` of an image being rewritten (copick's own metadata) are kept.
+    """
     if not pyramid:
         raise ValueError("pyramid must contain at least one level")
     ndim = next(iter(pyramid.values())).ndim
@@ -307,6 +329,7 @@ def write_ome_zarr(
         layouts.append((shards, canonical_v3_compressors(array.dtype)))
 
     target_store = _writer_store(store)
+    preserved = read_preserved_attrs(target_store, preserve_attrs) if overwrite else {}
     prepare_zarr_store_for_write(target_store, overwrite)
     root_group = zarr.group(store=target_store, overwrite=overwrite, zarr_format=3)
 
@@ -337,6 +360,8 @@ def write_ome_zarr(
         datasets.append({"path": path, "coordinateTransformations": copy.deepcopy(transformations)})
 
     _write_multiscales(root_group, datasets, axes, metadata)
+    if preserved:
+        root_group.attrs.update(preserved)
 
 
 def write_ome_zarr_3d(
