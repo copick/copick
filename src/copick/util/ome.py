@@ -258,12 +258,23 @@ def read_preserved_attrs(store: Union[str, Store], keys: Tuple[str, ...] = PRESE
     """The attributes ``keys`` of the group in ``store`` (Zarr v2 or v3), to restore after its data is rewritten.
 
     The store is about to be written, so it is opened as given (``r+``) rather than through a read-only copy.
+    An empty store has nothing to keep and is not opened.
     """
     if not keys:
         return {}
+    target = _writer_store(store)
+    if zarr_store_is_empty(target):
+        return {}
     try:
-        attrs = dict(zarr.open_group(store=_writer_store(store), mode="r+").attrs)
-    except (zarr.errors.GroupNotFoundError, FileNotFoundError, KeyError):
+        attrs = dict(zarr.open_group(store=target, mode="r+").attrs)
+    except (zarr.errors.GroupNotFoundError, FileNotFoundError, KeyError) as exc:
+        # Zarr's sync() keeps the raised exception in a reference cycle. Its traceback would keep the caller's
+        # frames alive, with the arrays being written (e.g. a memory-mapped staging file, which Windows cannot
+        # delete while it is mapped), until the cycle collector runs.
+        error: Optional[BaseException] = exc
+        while error is not None:
+            error.__traceback__ = None
+            error = error.__cause__ or error.__context__
         return {}
     return {key: copy.deepcopy(attrs[key]) for key in keys if key in attrs}
 
