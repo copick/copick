@@ -53,6 +53,7 @@ nav = [
             {"cp" = "cli/cp.md"},
             {"export" = [
                 {"Overview" = "cli/export/index.md"},
+                {"cets" = "cli/export/cets.md"},
                 {"picks" = "cli/export/picks.md"},
                 {"segmentation" = "cli/export/segmentation.md"},
                 {"tomogram" = "cli/export/tomogram.md"},

@@ -1,0 +1,19 @@
+{
+ "repository": "TomoBabel/cets-data-models",
+ "commit": "6784161",
+ "base": "e8a6102",
+ "package_version": "0.1.0",
+ "models": [
+  "TiltSeries",
+  "TiltImage",
+  "AcquisitionSession",
+  "Instrument",
+  "Alignment",
+  "ProjectionAlignment",
+  "Tomogram",
+  "Region",
+  "Dataset"
+ ],
+ "generator": "tests/scripts/generate_cets_schemas.py",
+ "generated": "2026-10-15"
+}

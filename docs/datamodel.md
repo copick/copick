@@ -258,6 +258,10 @@ the method, the source format and a status:
 standard ones, local before global ones); `tilt_series.valid_alignments` only those from their authors with
 per-section parameters, and `tilt_series.default_alignment` the first of these.
 
+`copick export cets` (or `copick.ops.cets_export.export_cets`) assembles these per-entity CETS blocks into one CETS
+`Dataset` document, a `Region` per run, with identifiers prefixed by the run name; what CETS has no field for (copick's
+extensions, alignment names and reference volumes, tomogram links) goes to a companion file next to it.
+
 A tomogram records the alignment it was reconstructed with in the `copick` attributes of its zarr group (a CETS
 `Tomogram` with its `tilt_series_id`, and the alignment's name), set with `tomogram.set_alignment(...)` and read as
 `tomogram.alignment` and `tomogram.tilt_series`. A read-only tomogram (e.g. in a static project) cannot record it; the
