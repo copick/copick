@@ -212,3 +212,37 @@ def test_handler_rejects_invalid_named_levels(tmp_path, level):
 
     with pytest.raises(ValueError, match=rf"Level {level} .*max: 1"):
         ZarrVolumeHandler().read(path, level=level)
+
+
+class _TrackedArray(np.ndarray):
+    """An ndarray that can be weakly referenced, to observe when the writer releases it."""
+
+
+@pytest.mark.parametrize("stray_file", [False, True], ids=["empty-target", "non-group-target"])
+def test_write_ome_zarr_releases_pyramid_without_gc(tmp_path, stray_file):
+    """Rewriting must not keep the written arrays alive in a reference cycle.
+
+    A memory-mapped staging array kept alive this way cannot be deleted on Windows. Cyclic garbage collection is
+    disabled, so the array has to be freed by reference counting alone. ``non-group-target`` makes reading the
+    preserved attributes fail, which is the path through the exception zarr raises.
+    """
+    import gc
+    import weakref
+
+    from copick.util.ome import write_ome_zarr_3d
+
+    target = tmp_path / "target.zarr"
+    if stray_file:
+        target.mkdir()
+        (target / "stray.txt").write_text("not zarr")
+    data = np.arange(8 * 16 * 16, dtype=np.float32).reshape(8, 16, 16).view(_TrackedArray)
+    released = weakref.ref(data)
+
+    gc.collect()
+    gc.disable()
+    try:
+        write_ome_zarr_3d(LocalStore(target), {10.0: data}, chunk_size=(8, 16, 16), overwrite=True)
+        del data
+        assert released() is None
+    finally:
+        gc.enable()
