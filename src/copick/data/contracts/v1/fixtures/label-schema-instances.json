@@ -1,0 +1,10 @@
+{
+  "classes": [],
+  "encoding": "instance",
+  "instance_class": {
+    "name": "mitochondrion",
+    "pickable_object": "mitochondrion",
+    "structure": "compartment"
+  },
+  "zero": "background"
+}

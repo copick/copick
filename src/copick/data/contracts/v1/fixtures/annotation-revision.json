@@ -1,0 +1,75 @@
+{
+  "accepted_results": [],
+  "author": "annotator",
+  "contract_version": "1",
+  "created_at": "2026-11-06T12:00:00Z",
+  "digest": "sha256:d81cc9606d54697c6d2ae4394f35a1d8d0271ee090f268c4502ff4ab8616d274",
+  "labels": {
+    "classes": [
+      {
+        "color": [
+          90,
+          90,
+          90
+        ],
+        "name": "background",
+        "pickable_object": null,
+        "role": "background",
+        "structure": null,
+        "value": 1
+      },
+      {
+        "color": null,
+        "name": "membrane",
+        "pickable_object": "membrane",
+        "role": "object",
+        "structure": "membrane",
+        "value": 2
+      },
+      {
+        "color": null,
+        "name": "mitochondrial-matrix",
+        "pickable_object": "mitochondrion",
+        "role": "object",
+        "structure": "compartment",
+        "value": 3
+      }
+    ],
+    "encoding": "semantic",
+    "instance_class": null,
+    "zero": "unknown"
+  },
+  "parent_revision": null,
+  "reconstruction": {
+    "geometry": {
+      "scale_angstrom": [
+        40.048,
+        40.048,
+        40.048
+      ],
+      "shape": [
+        62,
+        158,
+        158
+      ],
+      "translation_angstrom": [
+        0.0,
+        0.0,
+        0.0
+      ]
+    },
+    "portal_tomogram_id": 22273,
+    "project": "organelle-demo",
+    "run": "24apr29a_Position_4",
+    "tomo_type": "denoised",
+    "voxel_size": 40.048
+  },
+  "revision": "5b9a0e7c4f1d4c0b9d6e2a1f3c8b7a60",
+  "segmentation": {
+    "kind": "multilabel",
+    "name": "cellcanvas-painting",
+    "session_id": "1",
+    "user_id": "annotator",
+    "voxel_size": 40.048
+  }
+}

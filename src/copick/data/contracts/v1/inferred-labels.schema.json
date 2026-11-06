@@ -1,0 +1,77 @@
+{
+  "$id": "copick-contracts/v1/inferred-labels.schema.json",
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "additionalProperties": false,
+  "description": "Training rows a policy derived from unknown voxels, recorded separately from the annotation.\n\nEnough is recorded to reproduce the selection (policy, implementation pin, parameters including any random\nseed) and to check it (count and digest of the selected flat voxel indices). Inferred rows never change the\nannotation and never count as human labels.",
+  "properties": {
+    "count": {
+      "minimum": 0,
+      "title": "Count",
+      "type": "integer"
+    },
+    "implementation": {
+      "description": "Exact pin of the implementation, e.g. a package version.",
+      "minLength": 1,
+      "title": "Implementation",
+      "type": "string"
+    },
+    "indices_digest": {
+      "anyOf": [
+        {
+          "description": "'sha256:' and 64 hex digits.",
+          "pattern": "^sha256:[0-9a-f]{64}$",
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "description": "copick.contracts.indices_digest of the voxels.",
+      "title": "Indices Digest"
+    },
+    "parameters": {
+      "additionalProperties": {
+        "anyOf": [
+          {
+            "type": "boolean"
+          },
+          {
+            "type": "integer"
+          },
+          {
+            "type": "number"
+          },
+          {
+            "type": "string"
+          },
+          {
+            "type": "null"
+          }
+        ]
+      },
+      "title": "Parameters",
+      "type": "object"
+    },
+    "policy": {
+      "description": "Qualified name, e.g. cellcanvas_core.data.seeding.SeededDataManager",
+      "minLength": 1,
+      "title": "Policy",
+      "type": "string"
+    },
+    "target_value": {
+      "description": "Class value the rows are trained as; must be a background class.",
+      "minimum": 1,
+      "title": "Target Value",
+      "type": "integer"
+    }
+  },
+  "required": [
+    "policy",
+    "implementation",
+    "target_value",
+    "count"
+  ],
+  "title": "InferredLabels",
+  "type": "object"
+}

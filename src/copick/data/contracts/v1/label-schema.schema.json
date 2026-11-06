@@ -1,0 +1,172 @@
+{
+  "$defs": {
+    "InstanceClass": {
+      "additionalProperties": false,
+      "description": "The object whose instances an instance-encoded volume numbers 1, 2, ...",
+      "properties": {
+        "name": {
+          "minLength": 1,
+          "title": "Name",
+          "type": "string"
+        },
+        "pickable_object": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Pickable Object"
+        },
+        "structure": {
+          "enum": [
+            "membrane",
+            "compartment",
+            "particle",
+            "filament",
+            "other"
+          ],
+          "title": "Structure",
+          "type": "string"
+        }
+      },
+      "required": [
+        "name",
+        "structure"
+      ],
+      "title": "InstanceClass",
+      "type": "object"
+    },
+    "LabelClass": {
+      "additionalProperties": false,
+      "description": "One semantic class: the label value it is stored as, and what it means.",
+      "properties": {
+        "color": {
+          "anyOf": [
+            {
+              "items": {
+                "type": "integer"
+              },
+              "maxItems": 4,
+              "minItems": 3,
+              "type": "array"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Color"
+        },
+        "name": {
+          "minLength": 1,
+          "title": "Name",
+          "type": "string"
+        },
+        "pickable_object": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Name of the copick pickable object, if any.",
+          "title": "Pickable Object"
+        },
+        "role": {
+          "enum": [
+            "background",
+            "object"
+          ],
+          "title": "Role",
+          "type": "string"
+        },
+        "structure": {
+          "anyOf": [
+            {
+              "enum": [
+                "membrane",
+                "compartment",
+                "particle",
+                "filament",
+                "other"
+              ],
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Required for objects; absent for background.",
+          "title": "Structure"
+        },
+        "value": {
+          "description": "Stored label value; 0 is reserved.",
+          "minimum": 1,
+          "title": "Value",
+          "type": "integer"
+        }
+      },
+      "required": [
+        "value",
+        "name",
+        "role"
+      ],
+      "title": "LabelClass",
+      "type": "object"
+    }
+  },
+  "$id": "copick-contracts/v1/label-schema.schema.json",
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "additionalProperties": false,
+  "description": "Meaning of every value of a label volume.\n\n``semantic``: each nonzero value is one of ``classes``. ``instance``: each nonzero value is one instance of\n``instance_class``. ``zero`` says what 0 means: ``unknown`` (always, for annotations) or ``background`` (a model\noutput that assigns every voxel). If 0 means background, no class may also have the background role.",
+  "properties": {
+    "classes": {
+      "items": {
+        "$ref": "#/$defs/LabelClass"
+      },
+      "title": "Classes",
+      "type": "array"
+    },
+    "encoding": {
+      "enum": [
+        "semantic",
+        "instance"
+      ],
+      "title": "Encoding",
+      "type": "string"
+    },
+    "instance_class": {
+      "anyOf": [
+        {
+          "$ref": "#/$defs/InstanceClass"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null
+    },
+    "zero": {
+      "default": "unknown",
+      "enum": [
+        "unknown",
+        "background"
+      ],
+      "title": "Zero",
+      "type": "string"
+    }
+  },
+  "required": [
+    "encoding"
+  ],
+  "title": "LabelSchema",
+  "type": "object"
+}

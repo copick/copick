@@ -1,0 +1,168 @@
+{
+  "annotation": {
+    "digest": "sha256:d81cc9606d54697c6d2ae4394f35a1d8d0271ee090f268c4502ff4ab8616d274",
+    "revision": "5b9a0e7c4f1d4c0b9d6e2a1f3c8b7a60",
+    "segmentation": {
+      "kind": "multilabel",
+      "name": "cellcanvas-painting",
+      "session_id": "1",
+      "user_id": "annotator",
+      "voxel_size": 40.048
+    }
+  },
+  "backend": "cellcanvas",
+  "backend_version": "0.1.0",
+  "contract_version": "1",
+  "created_at": "2026-11-06T12:00:00Z",
+  "digest": "sha256:b3ae5413416d64095803417d4d4a9c424950866c234df0afdad7dcb9d5b81ba2",
+  "features": {
+    "checkpoint_sha256": "0b8b82f85de91b424aded121c7e1dcc2b7bc6d0adeea651bf73a13307fad8c73",
+    "grid": {
+      "axes": [
+        "d",
+        "z",
+        "y",
+        "x"
+      ],
+      "resampling": "Each XY slice resized to 448x448; 32x32 patch grid bilinearly resampled to original XY grid, align_corners=False; Z unchanged",
+      "shape": [
+        62,
+        158,
+        158
+      ]
+    },
+    "license": "Apache-2.0",
+    "model": "DINOv2 ViT-B/14 (facebookresearch/dinov2, dinov2_vitb14)",
+    "preprocessing": {
+      "clip_values": [
+        -1.2148822656854463e-06,
+        4.82732607451908e-07
+      ],
+      "gray_to_rgb": "repeat",
+      "mean": [
+        0.485,
+        0.456,
+        0.406
+      ],
+      "percentiles": [
+        1,
+        99
+      ],
+      "std": [
+        0.229,
+        0.224,
+        0.225
+      ]
+    },
+    "public": true
+  },
+  "geometry": {
+    "scale_angstrom": [
+      40.048,
+      40.048,
+      40.048
+    ],
+    "shape": [
+      62,
+      158,
+      158
+    ],
+    "translation_angstrom": [
+      0.0,
+      0.0,
+      0.0
+    ]
+  },
+  "inferred": [
+    {
+      "count": 3,
+      "implementation": "cellcanvas-core@2e7440d50d00e6120a440de1f97931c3bbf6faf6",
+      "indices_digest": "sha256:c17922583e3782ec2d673d4907c0bbdc22ecdeb1075941e86a9591e9d4326a63",
+      "parameters": {
+        "background_label": 1,
+        "max_seeds": 20000,
+        "n_candidates": 200000,
+        "percentile": 10.0,
+        "random_state": 0
+      },
+      "policy": "cellcanvas_core.data.seeding.SeededDataManager",
+      "target_value": 1
+    }
+  ],
+  "labels": {
+    "classes": [
+      {
+        "color": [
+          90,
+          90,
+          90
+        ],
+        "name": "background",
+        "pickable_object": null,
+        "role": "background",
+        "structure": null,
+        "value": 1
+      },
+      {
+        "color": null,
+        "name": "membrane",
+        "pickable_object": "membrane",
+        "role": "object",
+        "structure": "membrane",
+        "value": 2
+      },
+      {
+        "color": null,
+        "name": "mitochondrial-matrix",
+        "pickable_object": "mitochondrion",
+        "role": "object",
+        "structure": "compartment",
+        "value": 3
+      }
+    ],
+    "encoding": "semantic",
+    "instance_class": null,
+    "zero": "unknown"
+  },
+  "model": {
+    "license": "Apache-2.0",
+    "name": "random-forest on DINOv2 ViT-B/14 features",
+    "public": true
+  },
+  "operation": "feature_learning.predict",
+  "operation_id": "op-predict-0001",
+  "output": {
+    "kind": "multilabel",
+    "name": "cellcanvas-painting",
+    "session_id": "1",
+    "user_id": "annotator",
+    "voxel_size": 40.048
+  },
+  "reconstruction": {
+    "geometry": {
+      "scale_angstrom": [
+        40.048,
+        40.048,
+        40.048
+      ],
+      "shape": [
+        62,
+        158,
+        158
+      ],
+      "translation_angstrom": [
+        0.0,
+        0.0,
+        0.0
+      ]
+    },
+    "portal_tomogram_id": 22273,
+    "project": "organelle-demo",
+    "run": "24apr29a_Position_4",
+    "tomo_type": "denoised",
+    "voxel_size": 40.048
+  },
+  "review": "proposal",
+  "status": "complete",
+  "version": 3
+}

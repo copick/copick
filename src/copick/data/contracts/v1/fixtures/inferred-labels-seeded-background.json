@@ -1,0 +1,14 @@
+{
+  "count": 3,
+  "implementation": "cellcanvas-core@2e7440d50d00e6120a440de1f97931c3bbf6faf6",
+  "indices_digest": "sha256:c17922583e3782ec2d673d4907c0bbdc22ecdeb1075941e86a9591e9d4326a63",
+  "parameters": {
+    "background_label": 1,
+    "max_seeds": 20000,
+    "n_candidates": 200000,
+    "percentile": 10.0,
+    "random_state": 0
+  },
+  "policy": "cellcanvas_core.data.seeding.SeededDataManager",
+  "target_value": 1
+}

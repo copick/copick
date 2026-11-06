@@ -1,0 +1,24 @@
+{
+  "geometry": {
+    "scale_angstrom": [
+      40.048,
+      40.048,
+      40.048
+    ],
+    "shape": [
+      62,
+      158,
+      158
+    ],
+    "translation_angstrom": [
+      0.0,
+      0.0,
+      0.0
+    ]
+  },
+  "portal_tomogram_id": 22273,
+  "project": "organelle-demo",
+  "run": "24apr29a_Position_4",
+  "tomo_type": "denoised",
+  "voxel_size": 40.048
+}

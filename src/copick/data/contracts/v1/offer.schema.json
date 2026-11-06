@@ -1,0 +1,35 @@
+{
+  "$id": "copick-contracts/v1/offer.schema.json",
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "additionalProperties": false,
+  "description": "Whether a required operation is available, and if not, why.",
+  "properties": {
+    "available": {
+      "title": "Available",
+      "type": "boolean"
+    },
+    "operation": {
+      "enum": [
+        "features.extract",
+        "feature_learning.train",
+        "feature_learning.predict",
+        "prompt_segmentation"
+      ],
+      "title": "Operation",
+      "type": "string"
+    },
+    "reasons": {
+      "items": {
+        "type": "string"
+      },
+      "title": "Reasons",
+      "type": "array"
+    }
+  },
+  "required": [
+    "operation",
+    "available"
+  ],
+  "title": "Offer",
+  "type": "object"
+}

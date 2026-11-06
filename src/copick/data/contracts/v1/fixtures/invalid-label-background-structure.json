@@ -1,0 +1,35 @@
+{
+  "classes": [
+    {
+      "color": [
+        90,
+        90,
+        90
+      ],
+      "name": "background",
+      "pickable_object": null,
+      "role": "background",
+      "structure": "membrane",
+      "value": 1
+    },
+    {
+      "color": null,
+      "name": "membrane",
+      "pickable_object": "membrane",
+      "role": "object",
+      "structure": "membrane",
+      "value": 2
+    },
+    {
+      "color": null,
+      "name": "mitochondrial-matrix",
+      "pickable_object": "mitochondrion",
+      "role": "object",
+      "structure": "compartment",
+      "value": 3
+    }
+  ],
+  "encoding": "semantic",
+  "instance_class": null,
+  "zero": "unknown"
+}

@@ -1,0 +1,153 @@
+{
+  "$defs": {
+    "ModelInfo": {
+      "additionalProperties": false,
+      "description": "The model behind a backend. ``public`` models can be used without private code, weights or configuration.",
+      "properties": {
+        "license": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "License"
+        },
+        "name": {
+          "minLength": 1,
+          "title": "Name",
+          "type": "string"
+        },
+        "public": {
+          "title": "Public",
+          "type": "boolean"
+        }
+      },
+      "required": [
+        "name",
+        "public"
+      ],
+      "title": "ModelInfo",
+      "type": "object"
+    },
+    "OperationCapability": {
+      "additionalProperties": false,
+      "description": "One operation a backend supports, and how.",
+      "properties": {
+        "label_policies": {
+          "description": "InferredLabels policies the operation can apply (feature_learning.train only).",
+          "items": {
+            "type": "string"
+          },
+          "title": "Label Policies",
+          "type": "array"
+        },
+        "negative_prompts": {
+          "default": false,
+          "description": "Prompts can mark voxels as not the object.",
+          "title": "Negative Prompts",
+          "type": "boolean"
+        },
+        "operation": {
+          "enum": [
+            "features.extract",
+            "feature_learning.train",
+            "feature_learning.predict",
+            "prompt_segmentation"
+          ],
+          "title": "Operation",
+          "type": "string"
+        },
+        "outputs": {
+          "description": "Label encodings the operation can produce.",
+          "items": {
+            "enum": [
+              "semantic",
+              "instance"
+            ],
+            "type": "string"
+          },
+          "title": "Outputs",
+          "type": "array"
+        },
+        "prompts": {
+          "description": "Prompt kinds (prompt_segmentation only).",
+          "items": {
+            "enum": [
+              "point",
+              "bbox",
+              "scribble",
+              "lasso",
+              "initial_mask"
+            ],
+            "type": "string"
+          },
+          "title": "Prompts",
+          "type": "array"
+        },
+        "region_updates": {
+          "default": false,
+          "description": "Results can cover a region rather than the volume.",
+          "title": "Region Updates",
+          "type": "boolean"
+        },
+        "undo": {
+          "default": false,
+          "description": "The last interaction can be undone in the backend session.",
+          "title": "Undo",
+          "type": "boolean"
+        }
+      },
+      "required": [
+        "operation"
+      ],
+      "title": "OperationCapability",
+      "type": "object"
+    }
+  },
+  "$id": "copick-contracts/v1/capabilities.schema.json",
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "additionalProperties": false,
+  "description": "What one backend instance offers, as it reports it to clients.",
+  "properties": {
+    "backend": {
+      "description": "Backend name, e.g. cellcanvas or nninteractive.",
+      "minLength": 1,
+      "title": "Backend",
+      "type": "string"
+    },
+    "contract_version": {
+      "const": "1",
+      "default": "1",
+      "title": "Contract Version",
+      "type": "string"
+    },
+    "model": {
+      "$ref": "#/$defs/ModelInfo"
+    },
+    "operations": {
+      "items": {
+        "$ref": "#/$defs/OperationCapability"
+      },
+      "title": "Operations",
+      "type": "array"
+    },
+    "version": {
+      "description": "Exact version or source pin of the backend.",
+      "minLength": 1,
+      "title": "Version",
+      "type": "string"
+    }
+  },
+  "required": [
+    "backend",
+    "version",
+    "model",
+    "operations"
+  ],
+  "title": "BackendCapabilities",
+  "type": "object"
+}

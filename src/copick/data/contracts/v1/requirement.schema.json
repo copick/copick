@@ -1,0 +1,72 @@
+{
+  "$id": "copick-contracts/v1/requirement.schema.json",
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "additionalProperties": false,
+  "description": "What a client needs from one operation in order to offer a control.",
+  "properties": {
+    "label_policy": {
+      "anyOf": [
+        {
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Label Policy"
+    },
+    "negative_prompts": {
+      "default": false,
+      "title": "Negative Prompts",
+      "type": "boolean"
+    },
+    "operation": {
+      "enum": [
+        "features.extract",
+        "feature_learning.train",
+        "feature_learning.predict",
+        "prompt_segmentation"
+      ],
+      "title": "Operation",
+      "type": "string"
+    },
+    "outputs": {
+      "description": "Encodings the client can display.",
+      "items": {
+        "enum": [
+          "semantic",
+          "instance"
+        ],
+        "type": "string"
+      },
+      "title": "Outputs",
+      "type": "array"
+    },
+    "prompts": {
+      "items": {
+        "enum": [
+          "point",
+          "bbox",
+          "scribble",
+          "lasso",
+          "initial_mask"
+        ],
+        "type": "string"
+      },
+      "title": "Prompts",
+      "type": "array"
+    },
+    "public_model": {
+      "default": false,
+      "description": "Only a public model is acceptable.",
+      "title": "Public Model",
+      "type": "boolean"
+    }
+  },
+  "required": [
+    "operation"
+  ],
+  "title": "Requirement",
+  "type": "object"
+}

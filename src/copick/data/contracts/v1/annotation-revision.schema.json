@@ -1,0 +1,392 @@
+{
+  "$defs": {
+    "Geometry": {
+      "additionalProperties": false,
+      "description": "The level-0 voxel grid of a reconstruction: axes (z, y, x), physical coordinates in angstrom.\n\nA voxel's physical position is ``index * scale_angstrom + translation_angstrom``. Data on a different grid (a\nfeature map, a label volume, a model output) must be resampled by its producer before it can be compared or\ncombined, and the resampling recorded.",
+      "properties": {
+        "scale_angstrom": {
+          "description": "(z, y, x)",
+          "items": {
+            "type": "number"
+          },
+          "maxItems": 3,
+          "minItems": 3,
+          "title": "Scale Angstrom",
+          "type": "array"
+        },
+        "shape": {
+          "description": "(z, y, x)",
+          "items": {
+            "minimum": 1,
+            "type": "integer"
+          },
+          "maxItems": 3,
+          "minItems": 3,
+          "title": "Shape",
+          "type": "array"
+        },
+        "translation_angstrom": {
+          "description": "(z, y, x)",
+          "items": {
+            "type": "number"
+          },
+          "maxItems": 3,
+          "minItems": 3,
+          "title": "Translation Angstrom",
+          "type": "array"
+        }
+      },
+      "required": [
+        "shape",
+        "scale_angstrom"
+      ],
+      "title": "Geometry",
+      "type": "object"
+    },
+    "InstanceClass": {
+      "additionalProperties": false,
+      "description": "The object whose instances an instance-encoded volume numbers 1, 2, ...",
+      "properties": {
+        "name": {
+          "minLength": 1,
+          "title": "Name",
+          "type": "string"
+        },
+        "pickable_object": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Pickable Object"
+        },
+        "structure": {
+          "enum": [
+            "membrane",
+            "compartment",
+            "particle",
+            "filament",
+            "other"
+          ],
+          "title": "Structure",
+          "type": "string"
+        }
+      },
+      "required": [
+        "name",
+        "structure"
+      ],
+      "title": "InstanceClass",
+      "type": "object"
+    },
+    "LabelClass": {
+      "additionalProperties": false,
+      "description": "One semantic class: the label value it is stored as, and what it means.",
+      "properties": {
+        "color": {
+          "anyOf": [
+            {
+              "items": {
+                "type": "integer"
+              },
+              "maxItems": 4,
+              "minItems": 3,
+              "type": "array"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Color"
+        },
+        "name": {
+          "minLength": 1,
+          "title": "Name",
+          "type": "string"
+        },
+        "pickable_object": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Name of the copick pickable object, if any.",
+          "title": "Pickable Object"
+        },
+        "role": {
+          "enum": [
+            "background",
+            "object"
+          ],
+          "title": "Role",
+          "type": "string"
+        },
+        "structure": {
+          "anyOf": [
+            {
+              "enum": [
+                "membrane",
+                "compartment",
+                "particle",
+                "filament",
+                "other"
+              ],
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Required for objects; absent for background.",
+          "title": "Structure"
+        },
+        "value": {
+          "description": "Stored label value; 0 is reserved.",
+          "minimum": 1,
+          "title": "Value",
+          "type": "integer"
+        }
+      },
+      "required": [
+        "value",
+        "name",
+        "role"
+      ],
+      "title": "LabelClass",
+      "type": "object"
+    },
+    "LabelSchema": {
+      "additionalProperties": false,
+      "description": "Meaning of every value of a label volume.\n\n``semantic``: each nonzero value is one of ``classes``. ``instance``: each nonzero value is one instance of\n``instance_class``. ``zero`` says what 0 means: ``unknown`` (always, for annotations) or ``background`` (a model\noutput that assigns every voxel). If 0 means background, no class may also have the background role.",
+      "properties": {
+        "classes": {
+          "items": {
+            "$ref": "#/$defs/LabelClass"
+          },
+          "title": "Classes",
+          "type": "array"
+        },
+        "encoding": {
+          "enum": [
+            "semantic",
+            "instance"
+          ],
+          "title": "Encoding",
+          "type": "string"
+        },
+        "instance_class": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/InstanceClass"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "zero": {
+          "default": "unknown",
+          "enum": [
+            "unknown",
+            "background"
+          ],
+          "title": "Zero",
+          "type": "string"
+        }
+      },
+      "required": [
+        "encoding"
+      ],
+      "title": "LabelSchema",
+      "type": "object"
+    },
+    "ReconstructionRef": {
+      "additionalProperties": false,
+      "description": "A copick tomogram, by its place in a project, together with its voxel grid.\n\nTwo clients show the same reconstruction only if both the key (project, run, voxel size, reconstruction type)\nand the geometry agree; matching names alone are not enough.",
+      "properties": {
+        "geometry": {
+          "$ref": "#/$defs/Geometry"
+        },
+        "portal_tomogram_id": {
+          "anyOf": [
+            {
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "CryoET Data Portal tomogram ID, when the reconstruction comes from the portal.",
+          "title": "Portal Tomogram Id"
+        },
+        "project": {
+          "description": "Project identifier chosen by the host (for example a registry ID). Not a path or URL.",
+          "pattern": "^[^/\\\\:]+$",
+          "title": "Project",
+          "type": "string"
+        },
+        "run": {
+          "minLength": 1,
+          "title": "Run",
+          "type": "string"
+        },
+        "tomo_type": {
+          "minLength": 1,
+          "title": "Tomo Type",
+          "type": "string"
+        },
+        "voxel_size": {
+          "description": "Copick voxel spacing in angstrom.",
+          "exclusiveMinimum": 0,
+          "title": "Voxel Size",
+          "type": "number"
+        }
+      },
+      "required": [
+        "project",
+        "run",
+        "voxel_size",
+        "tomo_type",
+        "geometry"
+      ],
+      "title": "ReconstructionRef",
+      "type": "object"
+    },
+    "SegmentationRef": {
+      "additionalProperties": false,
+      "description": "A copick segmentation of a run, as copick stores it.\n\n``kind`` uses copick's segmentation types: ``multilabel`` (one value per class) and ``binary`` hold semantic\nlabels; ``instance`` holds instance IDs of one object; ``panoptic`` holds both in two channels.",
+      "properties": {
+        "kind": {
+          "enum": [
+            "binary",
+            "multilabel",
+            "instance",
+            "panoptic"
+          ],
+          "title": "Kind",
+          "type": "string"
+        },
+        "name": {
+          "minLength": 1,
+          "title": "Name",
+          "type": "string"
+        },
+        "session_id": {
+          "minLength": 1,
+          "title": "Session Id",
+          "type": "string"
+        },
+        "user_id": {
+          "minLength": 1,
+          "title": "User Id",
+          "type": "string"
+        },
+        "voxel_size": {
+          "exclusiveMinimum": 0,
+          "title": "Voxel Size",
+          "type": "number"
+        }
+      },
+      "required": [
+        "name",
+        "user_id",
+        "session_id",
+        "voxel_size",
+        "kind"
+      ],
+      "title": "SegmentationRef",
+      "type": "object"
+    }
+  },
+  "$id": "copick-contracts/v1/annotation-revision.schema.json",
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "additionalProperties": false,
+  "description": "One saved state of a human annotation.\n\n``revision`` is opaque and chosen by the writer; ``digest`` identifies the exact voxels, so a reader can tell\nwhether the stored labels are still this revision. Value 0 is always unknown. ``accepted_results`` lists the\noperation IDs of model results a person accepted into this revision: a model proposal becomes supervision only\nthrough such a revision.",
+  "properties": {
+    "accepted_results": {
+      "items": {
+        "type": "string"
+      },
+      "title": "Accepted Results",
+      "type": "array"
+    },
+    "author": {
+      "anyOf": [
+        {
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "description": "copick user_id of the person who saved it.",
+      "title": "Author"
+    },
+    "contract_version": {
+      "const": "1",
+      "default": "1",
+      "title": "Contract Version",
+      "type": "string"
+    },
+    "created_at": {
+      "format": "date-time",
+      "title": "Created At",
+      "type": "string"
+    },
+    "digest": {
+      "description": "'sha256:' and 64 hex digits.",
+      "pattern": "^sha256:[0-9a-f]{64}$",
+      "title": "Digest",
+      "type": "string"
+    },
+    "labels": {
+      "$ref": "#/$defs/LabelSchema"
+    },
+    "parent_revision": {
+      "anyOf": [
+        {
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Parent Revision"
+    },
+    "reconstruction": {
+      "$ref": "#/$defs/ReconstructionRef"
+    },
+    "revision": {
+      "minLength": 1,
+      "title": "Revision",
+      "type": "string"
+    },
+    "segmentation": {
+      "$ref": "#/$defs/SegmentationRef"
+    }
+  },
+  "required": [
+    "reconstruction",
+    "segmentation",
+    "labels",
+    "revision",
+    "digest",
+    "created_at"
+  ],
+  "title": "AnnotationRevision",
+  "type": "object"
+}
