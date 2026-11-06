@@ -1,0 +1,668 @@
+{
+  "$defs": {
+    "AnnotationInput": {
+      "additionalProperties": false,
+      "description": "The exact annotation revision a result was computed from.",
+      "properties": {
+        "digest": {
+          "description": "'sha256:' and 64 hex digits.",
+          "pattern": "^sha256:[0-9a-f]{64}$",
+          "title": "Digest",
+          "type": "string"
+        },
+        "revision": {
+          "minLength": 1,
+          "title": "Revision",
+          "type": "string"
+        },
+        "segmentation": {
+          "$ref": "#/$defs/SegmentationRef"
+        }
+      },
+      "required": [
+        "segmentation",
+        "revision",
+        "digest"
+      ],
+      "title": "AnnotationInput",
+      "type": "object"
+    },
+    "FeatureGrid": {
+      "additionalProperties": false,
+      "description": "The grid of a feature volume. ``shape`` is spatial (z, y, x) and must equal the reconstruction grid.",
+      "properties": {
+        "axes": {
+          "description": "Axis order including the channel axis.",
+          "items": {
+            "type": "string"
+          },
+          "maxItems": 4,
+          "minItems": 4,
+          "title": "Axes",
+          "type": "array"
+        },
+        "resampling": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "How the model's native grid was resampled.",
+          "title": "Resampling"
+        },
+        "shape": {
+          "description": "(z, y, x)",
+          "items": {
+            "minimum": 1,
+            "type": "integer"
+          },
+          "maxItems": 3,
+          "minItems": 3,
+          "title": "Shape",
+          "type": "array"
+        }
+      },
+      "required": [
+        "shape",
+        "axes"
+      ],
+      "title": "FeatureGrid",
+      "type": "object"
+    },
+    "FeatureProvenance": {
+      "additionalProperties": false,
+      "description": "Which model computed the features a result was learned from, and how. No local paths.",
+      "properties": {
+        "checkpoint_sha256": {
+          "anyOf": [
+            {
+              "pattern": "^[0-9a-f]{64}$",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Checkpoint Sha256"
+        },
+        "grid": {
+          "$ref": "#/$defs/FeatureGrid"
+        },
+        "license": {
+          "minLength": 1,
+          "title": "License",
+          "type": "string"
+        },
+        "model": {
+          "minLength": 1,
+          "title": "Model",
+          "type": "string"
+        },
+        "preprocessing": {
+          "additionalProperties": true,
+          "title": "Preprocessing",
+          "type": "object"
+        },
+        "public": {
+          "title": "Public",
+          "type": "boolean"
+        }
+      },
+      "required": [
+        "model",
+        "license",
+        "public",
+        "grid"
+      ],
+      "title": "FeatureProvenance",
+      "type": "object"
+    },
+    "Geometry": {
+      "additionalProperties": false,
+      "description": "The level-0 voxel grid of a reconstruction: axes (z, y, x), physical coordinates in angstrom.\n\nA voxel's physical position is ``index * scale_angstrom + translation_angstrom``. Data on a different grid (a\nfeature map, a label volume, a model output) must be resampled by its producer before it can be compared or\ncombined, and the resampling recorded.",
+      "properties": {
+        "scale_angstrom": {
+          "description": "(z, y, x)",
+          "items": {
+            "type": "number"
+          },
+          "maxItems": 3,
+          "minItems": 3,
+          "title": "Scale Angstrom",
+          "type": "array"
+        },
+        "shape": {
+          "description": "(z, y, x)",
+          "items": {
+            "minimum": 1,
+            "type": "integer"
+          },
+          "maxItems": 3,
+          "minItems": 3,
+          "title": "Shape",
+          "type": "array"
+        },
+        "translation_angstrom": {
+          "description": "(z, y, x)",
+          "items": {
+            "type": "number"
+          },
+          "maxItems": 3,
+          "minItems": 3,
+          "title": "Translation Angstrom",
+          "type": "array"
+        }
+      },
+      "required": [
+        "shape",
+        "scale_angstrom"
+      ],
+      "title": "Geometry",
+      "type": "object"
+    },
+    "InferredLabels": {
+      "additionalProperties": false,
+      "description": "Training rows a policy derived from unknown voxels, recorded separately from the annotation.\n\nEnough is recorded to reproduce the selection (policy, implementation pin, parameters including any random\nseed) and to check it (count and digest of the selected flat voxel indices). Inferred rows never change the\nannotation and never count as human labels.",
+      "properties": {
+        "count": {
+          "minimum": 0,
+          "title": "Count",
+          "type": "integer"
+        },
+        "implementation": {
+          "description": "Exact pin of the implementation, e.g. a package version.",
+          "minLength": 1,
+          "title": "Implementation",
+          "type": "string"
+        },
+        "indices_digest": {
+          "anyOf": [
+            {
+              "description": "'sha256:' and 64 hex digits.",
+              "pattern": "^sha256:[0-9a-f]{64}$",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "copick.contracts.indices_digest of the voxels.",
+          "title": "Indices Digest"
+        },
+        "parameters": {
+          "additionalProperties": {
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "integer"
+              },
+              {
+                "type": "number"
+              },
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "title": "Parameters",
+          "type": "object"
+        },
+        "policy": {
+          "description": "Qualified name, e.g. cellcanvas_core.data.seeding.SeededDataManager",
+          "minLength": 1,
+          "title": "Policy",
+          "type": "string"
+        },
+        "target_value": {
+          "description": "Class value the rows are trained as; must be a background class.",
+          "minimum": 1,
+          "title": "Target Value",
+          "type": "integer"
+        }
+      },
+      "required": [
+        "policy",
+        "implementation",
+        "target_value",
+        "count"
+      ],
+      "title": "InferredLabels",
+      "type": "object"
+    },
+    "InstanceClass": {
+      "additionalProperties": false,
+      "description": "The object whose instances an instance-encoded volume numbers 1, 2, ...",
+      "properties": {
+        "name": {
+          "minLength": 1,
+          "title": "Name",
+          "type": "string"
+        },
+        "pickable_object": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Pickable Object"
+        },
+        "structure": {
+          "enum": [
+            "membrane",
+            "compartment",
+            "particle",
+            "filament",
+            "other"
+          ],
+          "title": "Structure",
+          "type": "string"
+        }
+      },
+      "required": [
+        "name",
+        "structure"
+      ],
+      "title": "InstanceClass",
+      "type": "object"
+    },
+    "LabelClass": {
+      "additionalProperties": false,
+      "description": "One semantic class: the label value it is stored as, and what it means.",
+      "properties": {
+        "color": {
+          "anyOf": [
+            {
+              "items": {
+                "type": "integer"
+              },
+              "maxItems": 4,
+              "minItems": 3,
+              "type": "array"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Color"
+        },
+        "name": {
+          "minLength": 1,
+          "title": "Name",
+          "type": "string"
+        },
+        "pickable_object": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Name of the copick pickable object, if any.",
+          "title": "Pickable Object"
+        },
+        "role": {
+          "enum": [
+            "background",
+            "object"
+          ],
+          "title": "Role",
+          "type": "string"
+        },
+        "structure": {
+          "anyOf": [
+            {
+              "enum": [
+                "membrane",
+                "compartment",
+                "particle",
+                "filament",
+                "other"
+              ],
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Required for objects; absent for background.",
+          "title": "Structure"
+        },
+        "value": {
+          "description": "Stored label value; 0 is reserved.",
+          "minimum": 1,
+          "title": "Value",
+          "type": "integer"
+        }
+      },
+      "required": [
+        "value",
+        "name",
+        "role"
+      ],
+      "title": "LabelClass",
+      "type": "object"
+    },
+    "LabelSchema": {
+      "additionalProperties": false,
+      "description": "Meaning of every value of a label volume.\n\n``semantic``: each nonzero value is one of ``classes``. ``instance``: each nonzero value is one instance of\n``instance_class``. ``zero`` says what 0 means: ``unknown`` (always, for annotations) or ``background`` (a model\noutput that assigns every voxel). If 0 means background, no class may also have the background role.",
+      "properties": {
+        "classes": {
+          "items": {
+            "$ref": "#/$defs/LabelClass"
+          },
+          "title": "Classes",
+          "type": "array"
+        },
+        "encoding": {
+          "enum": [
+            "semantic",
+            "instance"
+          ],
+          "title": "Encoding",
+          "type": "string"
+        },
+        "instance_class": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/InstanceClass"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "zero": {
+          "default": "unknown",
+          "enum": [
+            "unknown",
+            "background"
+          ],
+          "title": "Zero",
+          "type": "string"
+        }
+      },
+      "required": [
+        "encoding"
+      ],
+      "title": "LabelSchema",
+      "type": "object"
+    },
+    "ModelInfo": {
+      "additionalProperties": false,
+      "description": "The model behind a backend. ``public`` models can be used without private code, weights or configuration.",
+      "properties": {
+        "license": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "License"
+        },
+        "name": {
+          "minLength": 1,
+          "title": "Name",
+          "type": "string"
+        },
+        "public": {
+          "title": "Public",
+          "type": "boolean"
+        }
+      },
+      "required": [
+        "name",
+        "public"
+      ],
+      "title": "ModelInfo",
+      "type": "object"
+    },
+    "ReconstructionRef": {
+      "additionalProperties": false,
+      "description": "A copick tomogram, by its place in a project, together with its voxel grid.\n\nTwo clients show the same reconstruction only if both the key (project, run, voxel size, reconstruction type)\nand the geometry agree; matching names alone are not enough.",
+      "properties": {
+        "geometry": {
+          "$ref": "#/$defs/Geometry"
+        },
+        "portal_tomogram_id": {
+          "anyOf": [
+            {
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "CryoET Data Portal tomogram ID, when the reconstruction comes from the portal.",
+          "title": "Portal Tomogram Id"
+        },
+        "project": {
+          "description": "Project identifier chosen by the host (for example a registry ID). Not a path or URL.",
+          "pattern": "^[^/\\\\:]+$",
+          "title": "Project",
+          "type": "string"
+        },
+        "run": {
+          "minLength": 1,
+          "title": "Run",
+          "type": "string"
+        },
+        "tomo_type": {
+          "minLength": 1,
+          "title": "Tomo Type",
+          "type": "string"
+        },
+        "voxel_size": {
+          "description": "Copick voxel spacing in angstrom.",
+          "exclusiveMinimum": 0,
+          "title": "Voxel Size",
+          "type": "number"
+        }
+      },
+      "required": [
+        "project",
+        "run",
+        "voxel_size",
+        "tomo_type",
+        "geometry"
+      ],
+      "title": "ReconstructionRef",
+      "type": "object"
+    },
+    "SegmentationRef": {
+      "additionalProperties": false,
+      "description": "A copick segmentation of a run, as copick stores it.\n\n``kind`` uses copick's segmentation types: ``multilabel`` (one value per class) and ``binary`` hold semantic\nlabels; ``instance`` holds instance IDs of one object; ``panoptic`` holds both in two channels.",
+      "properties": {
+        "kind": {
+          "enum": [
+            "binary",
+            "multilabel",
+            "instance",
+            "panoptic"
+          ],
+          "title": "Kind",
+          "type": "string"
+        },
+        "name": {
+          "minLength": 1,
+          "title": "Name",
+          "type": "string"
+        },
+        "session_id": {
+          "minLength": 1,
+          "title": "Session Id",
+          "type": "string"
+        },
+        "user_id": {
+          "minLength": 1,
+          "title": "User Id",
+          "type": "string"
+        },
+        "voxel_size": {
+          "exclusiveMinimum": 0,
+          "title": "Voxel Size",
+          "type": "number"
+        }
+      },
+      "required": [
+        "name",
+        "user_id",
+        "session_id",
+        "voxel_size",
+        "kind"
+      ],
+      "title": "SegmentationRef",
+      "type": "object"
+    }
+  },
+  "$id": "copick-contracts/v1/result-manifest.schema.json",
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "additionalProperties": false,
+  "description": "A complete, published model output and everything it was computed from.\n\nA writer stages the output, verifies it against this manifest, and only then makes it visible together with the\nmanifest; a failed or interrupted operation publishes nothing and leaves the previous result in place. The output\nnever replaces the annotation it was learned from, and it stays a proposal until a person accepts it.",
+  "properties": {
+    "annotation": {
+      "anyOf": [
+        {
+          "$ref": "#/$defs/AnnotationInput"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null
+    },
+    "backend": {
+      "minLength": 1,
+      "title": "Backend",
+      "type": "string"
+    },
+    "backend_version": {
+      "minLength": 1,
+      "title": "Backend Version",
+      "type": "string"
+    },
+    "contract_version": {
+      "const": "1",
+      "default": "1",
+      "title": "Contract Version",
+      "type": "string"
+    },
+    "created_at": {
+      "format": "date-time",
+      "title": "Created At",
+      "type": "string"
+    },
+    "digest": {
+      "description": "'sha256:' and 64 hex digits.",
+      "pattern": "^sha256:[0-9a-f]{64}$",
+      "title": "Digest",
+      "type": "string"
+    },
+    "features": {
+      "anyOf": [
+        {
+          "$ref": "#/$defs/FeatureProvenance"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null
+    },
+    "geometry": {
+      "$ref": "#/$defs/Geometry"
+    },
+    "inferred": {
+      "items": {
+        "$ref": "#/$defs/InferredLabels"
+      },
+      "title": "Inferred",
+      "type": "array"
+    },
+    "labels": {
+      "$ref": "#/$defs/LabelSchema"
+    },
+    "model": {
+      "$ref": "#/$defs/ModelInfo"
+    },
+    "operation": {
+      "enum": [
+        "feature_learning.predict",
+        "prompt_segmentation"
+      ],
+      "title": "Operation",
+      "type": "string"
+    },
+    "operation_id": {
+      "description": "Client-chosen ID of the operation that produced it.",
+      "minLength": 1,
+      "title": "Operation Id",
+      "type": "string"
+    },
+    "output": {
+      "$ref": "#/$defs/SegmentationRef"
+    },
+    "reconstruction": {
+      "$ref": "#/$defs/ReconstructionRef"
+    },
+    "review": {
+      "const": "proposal",
+      "default": "proposal",
+      "title": "Review",
+      "type": "string"
+    },
+    "status": {
+      "const": "complete",
+      "default": "complete",
+      "title": "Status",
+      "type": "string"
+    },
+    "version": {
+      "description": "Increases with every publication to the same output.",
+      "minimum": 0,
+      "title": "Version",
+      "type": "integer"
+    }
+  },
+  "required": [
+    "operation_id",
+    "operation",
+    "backend",
+    "backend_version",
+    "model",
+    "reconstruction",
+    "output",
+    "labels",
+    "geometry",
+    "version",
+    "digest",
+    "created_at"
+  ],
+  "title": "ResultManifest",
+  "type": "object"
+}

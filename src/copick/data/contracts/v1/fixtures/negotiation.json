@@ -1,0 +1,83 @@
+{
+  "cases": [
+    {
+      "capabilities": "capabilities-cellcanvas.json",
+      "offers": [
+        {
+          "available": false,
+          "operation": "prompt_segmentation",
+          "reasons": [
+            "cellcanvas does not offer prompt_segmentation"
+          ]
+        },
+        {
+          "available": true,
+          "operation": "feature_learning.train",
+          "reasons": []
+        },
+        {
+          "available": true,
+          "operation": "feature_learning.predict",
+          "reasons": []
+        }
+      ]
+    },
+    {
+      "capabilities": "capabilities-nninteractive.json",
+      "offers": [
+        {
+          "available": true,
+          "operation": "prompt_segmentation",
+          "reasons": []
+        },
+        {
+          "available": false,
+          "operation": "feature_learning.train",
+          "reasons": [
+            "nninteractive does not offer feature_learning.train"
+          ]
+        },
+        {
+          "available": false,
+          "operation": "feature_learning.predict",
+          "reasons": [
+            "nninteractive does not offer feature_learning.predict"
+          ]
+        }
+      ]
+    }
+  ],
+  "requirements": [
+    {
+      "label_policy": null,
+      "negative_prompts": true,
+      "operation": "prompt_segmentation",
+      "outputs": [
+        "semantic"
+      ],
+      "prompts": [
+        "point",
+        "bbox"
+      ],
+      "public_model": false
+    },
+    {
+      "label_policy": "cellcanvas_core.data.seeding.SeededDataManager",
+      "negative_prompts": false,
+      "operation": "feature_learning.train",
+      "outputs": [],
+      "prompts": [],
+      "public_model": false
+    },
+    {
+      "label_policy": null,
+      "negative_prompts": false,
+      "operation": "feature_learning.predict",
+      "outputs": [
+        "semantic"
+      ],
+      "prompts": [],
+      "public_model": true
+    }
+  ]
+}

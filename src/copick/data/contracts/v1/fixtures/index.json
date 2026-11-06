@@ -1,0 +1,149 @@
+{
+  "contract_version": "1",
+  "fixtures": [
+    {
+      "file": "reconstruction.json",
+      "document": "reconstruction",
+      "valid": true
+    },
+    {
+      "file": "label-schema-membrane-compartment.json",
+      "document": "label-schema",
+      "valid": true
+    },
+    {
+      "file": "label-schema-instances.json",
+      "document": "label-schema",
+      "valid": true
+    },
+    {
+      "file": "inferred-labels-seeded-background.json",
+      "document": "inferred-labels",
+      "valid": true
+    },
+    {
+      "file": "annotation-revision.json",
+      "document": "annotation-revision",
+      "valid": true
+    },
+    {
+      "file": "capabilities-cellcanvas.json",
+      "document": "capabilities",
+      "valid": true
+    },
+    {
+      "file": "capabilities-nninteractive.json",
+      "document": "capabilities",
+      "valid": true
+    },
+    {
+      "file": "result-manifest-feature-learning.json",
+      "document": "result-manifest",
+      "valid": true
+    },
+    {
+      "file": "result-manifest-prompt-proposal.json",
+      "document": "result-manifest",
+      "valid": true
+    },
+    {
+      "file": "invalid-label-zero-as-class.json",
+      "document": "label-schema",
+      "valid": false,
+      "detected_by": "json-schema",
+      "rule": "0 is reserved for unknown"
+    },
+    {
+      "file": "invalid-label-two-backgrounds.json",
+      "document": "label-schema",
+      "valid": false,
+      "detected_by": "model",
+      "rule": "at most one background class"
+    },
+    {
+      "file": "invalid-label-background-structure.json",
+      "document": "label-schema",
+      "valid": false,
+      "detected_by": "model",
+      "rule": "background classes have no structure; object classes state one"
+    },
+    {
+      "file": "invalid-label-zero-background-and-class.json",
+      "document": "label-schema",
+      "valid": false,
+      "detected_by": "model",
+      "rule": "if 0 means background no class may have the background role"
+    },
+    {
+      "file": "invalid-reconstruction-path-project.json",
+      "document": "reconstruction",
+      "valid": false,
+      "detected_by": "json-schema",
+      "rule": "project is an identifier, not a path or URL"
+    },
+    {
+      "file": "invalid-annotation-zero-background.json",
+      "document": "annotation-revision",
+      "valid": false,
+      "detected_by": "model",
+      "rule": "in an annotation 0 means unknown"
+    },
+    {
+      "file": "invalid-annotation-extra-field.json",
+      "document": "annotation-revision",
+      "valid": false,
+      "detected_by": "json-schema",
+      "rule": "unknown fields are refused"
+    },
+    {
+      "file": "invalid-result-partial.json",
+      "document": "result-manifest",
+      "valid": false,
+      "detected_by": "json-schema",
+      "rule": "only complete results have a manifest"
+    },
+    {
+      "file": "invalid-result-accepted.json",
+      "document": "result-manifest",
+      "valid": false,
+      "detected_by": "json-schema",
+      "rule": "a result is a proposal; acceptance is a new annotation revision"
+    },
+    {
+      "file": "invalid-result-geometry.json",
+      "document": "result-manifest",
+      "valid": false,
+      "detected_by": "model",
+      "rule": "output grid equals the reconstruction grid"
+    },
+    {
+      "file": "invalid-result-overwrites-annotation.json",
+      "document": "result-manifest",
+      "valid": false,
+      "detected_by": "model",
+      "rule": "a result never replaces its training annotation"
+    },
+    {
+      "file": "invalid-result-seed-target.json",
+      "document": "result-manifest",
+      "valid": false,
+      "detected_by": "model",
+      "rule": "inferred labels target the background class"
+    },
+    {
+      "file": "invalid-capabilities-prompts-on-train.json",
+      "document": "capabilities",
+      "valid": false,
+      "detected_by": "model",
+      "rule": "prompts are listed only for prompt_segmentation"
+    },
+    {
+      "file": "invalid-capabilities-version.json",
+      "document": "capabilities",
+      "valid": false,
+      "detected_by": "json-schema",
+      "rule": "contract version"
+    }
+  ],
+  "negotiation": "negotiation.json"
+}

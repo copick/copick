@@ -1,0 +1,45 @@
+{
+  "$id": "copick-contracts/v1/geometry.schema.json",
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "additionalProperties": false,
+  "description": "The level-0 voxel grid of a reconstruction: axes (z, y, x), physical coordinates in angstrom.\n\nA voxel's physical position is ``index * scale_angstrom + translation_angstrom``. Data on a different grid (a\nfeature map, a label volume, a model output) must be resampled by its producer before it can be compared or\ncombined, and the resampling recorded.",
+  "properties": {
+    "scale_angstrom": {
+      "description": "(z, y, x)",
+      "items": {
+        "type": "number"
+      },
+      "maxItems": 3,
+      "minItems": 3,
+      "title": "Scale Angstrom",
+      "type": "array"
+    },
+    "shape": {
+      "description": "(z, y, x)",
+      "items": {
+        "minimum": 1,
+        "type": "integer"
+      },
+      "maxItems": 3,
+      "minItems": 3,
+      "title": "Shape",
+      "type": "array"
+    },
+    "translation_angstrom": {
+      "description": "(z, y, x)",
+      "items": {
+        "type": "number"
+      },
+      "maxItems": 3,
+      "minItems": 3,
+      "title": "Translation Angstrom",
+      "type": "array"
+    }
+  },
+  "required": [
+    "shape",
+    "scale_angstrom"
+  ],
+  "title": "Geometry",
+  "type": "object"
+}

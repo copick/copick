@@ -1,0 +1,47 @@
+{
+  "$id": "copick-contracts/v1/segmentation.schema.json",
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "additionalProperties": false,
+  "description": "A copick segmentation of a run, as copick stores it.\n\n``kind`` uses copick's segmentation types: ``multilabel`` (one value per class) and ``binary`` hold semantic\nlabels; ``instance`` holds instance IDs of one object; ``panoptic`` holds both in two channels.",
+  "properties": {
+    "kind": {
+      "enum": [
+        "binary",
+        "multilabel",
+        "instance",
+        "panoptic"
+      ],
+      "title": "Kind",
+      "type": "string"
+    },
+    "name": {
+      "minLength": 1,
+      "title": "Name",
+      "type": "string"
+    },
+    "session_id": {
+      "minLength": 1,
+      "title": "Session Id",
+      "type": "string"
+    },
+    "user_id": {
+      "minLength": 1,
+      "title": "User Id",
+      "type": "string"
+    },
+    "voxel_size": {
+      "exclusiveMinimum": 0,
+      "title": "Voxel Size",
+      "type": "number"
+    }
+  },
+  "required": [
+    "name",
+    "user_id",
+    "session_id",
+    "voxel_size",
+    "kind"
+  ],
+  "title": "SegmentationRef",
+  "type": "object"
+}

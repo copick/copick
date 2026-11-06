@@ -1,0 +1,100 @@
+{
+  "$defs": {
+    "Geometry": {
+      "additionalProperties": false,
+      "description": "The level-0 voxel grid of a reconstruction: axes (z, y, x), physical coordinates in angstrom.\n\nA voxel's physical position is ``index * scale_angstrom + translation_angstrom``. Data on a different grid (a\nfeature map, a label volume, a model output) must be resampled by its producer before it can be compared or\ncombined, and the resampling recorded.",
+      "properties": {
+        "scale_angstrom": {
+          "description": "(z, y, x)",
+          "items": {
+            "type": "number"
+          },
+          "maxItems": 3,
+          "minItems": 3,
+          "title": "Scale Angstrom",
+          "type": "array"
+        },
+        "shape": {
+          "description": "(z, y, x)",
+          "items": {
+            "minimum": 1,
+            "type": "integer"
+          },
+          "maxItems": 3,
+          "minItems": 3,
+          "title": "Shape",
+          "type": "array"
+        },
+        "translation_angstrom": {
+          "description": "(z, y, x)",
+          "items": {
+            "type": "number"
+          },
+          "maxItems": 3,
+          "minItems": 3,
+          "title": "Translation Angstrom",
+          "type": "array"
+        }
+      },
+      "required": [
+        "shape",
+        "scale_angstrom"
+      ],
+      "title": "Geometry",
+      "type": "object"
+    }
+  },
+  "$id": "copick-contracts/v1/reconstruction.schema.json",
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "additionalProperties": false,
+  "description": "A copick tomogram, by its place in a project, together with its voxel grid.\n\nTwo clients show the same reconstruction only if both the key (project, run, voxel size, reconstruction type)\nand the geometry agree; matching names alone are not enough.",
+  "properties": {
+    "geometry": {
+      "$ref": "#/$defs/Geometry"
+    },
+    "portal_tomogram_id": {
+      "anyOf": [
+        {
+          "type": "integer"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "description": "CryoET Data Portal tomogram ID, when the reconstruction comes from the portal.",
+      "title": "Portal Tomogram Id"
+    },
+    "project": {
+      "description": "Project identifier chosen by the host (for example a registry ID). Not a path or URL.",
+      "pattern": "^[^/\\\\:]+$",
+      "title": "Project",
+      "type": "string"
+    },
+    "run": {
+      "minLength": 1,
+      "title": "Run",
+      "type": "string"
+    },
+    "tomo_type": {
+      "minLength": 1,
+      "title": "Tomo Type",
+      "type": "string"
+    },
+    "voxel_size": {
+      "description": "Copick voxel spacing in angstrom.",
+      "exclusiveMinimum": 0,
+      "title": "Voxel Size",
+      "type": "number"
+    }
+  },
+  "required": [
+    "project",
+    "run",
+    "voxel_size",
+    "tomo_type",
+    "geometry"
+  ],
+  "title": "ReconstructionRef",
+  "type": "object"
+}

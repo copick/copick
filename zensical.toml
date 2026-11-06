@@ -31,6 +31,7 @@ nav = [
         {"Data Model" = "datamodel.md"},
         {"Geometry Conventions" = "geometry.md"},
         {"Processing Tools" = "processing_tools.md"},
+        {"Integration Contracts" = "integration_contracts.md"},
     ]},
     {"Tutorials" = "examples/overview.md"},
     {"Tools" = "gallery.md"},

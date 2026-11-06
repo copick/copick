@@ -1,0 +1,34 @@
+{
+  "backend": "cellcanvas",
+  "contract_version": "1",
+  "model": {
+    "license": "Apache-2.0",
+    "name": "random-forest on DINOv2 ViT-B/14 features",
+    "public": true
+  },
+  "operations": [
+    {
+      "label_policies": [
+        "cellcanvas_core.data.seeding.SeededDataManager"
+      ],
+      "negative_prompts": false,
+      "operation": "feature_learning.train",
+      "outputs": [],
+      "prompts": [],
+      "region_updates": false,
+      "undo": false
+    },
+    {
+      "label_policies": [],
+      "negative_prompts": false,
+      "operation": "feature_learning.predict",
+      "outputs": [
+        "semantic"
+      ],
+      "prompts": [],
+      "region_updates": false,
+      "undo": false
+    }
+  ],
+  "version": "0.1.0"
+}

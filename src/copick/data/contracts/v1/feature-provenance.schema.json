@@ -1,0 +1,99 @@
+{
+  "$defs": {
+    "FeatureGrid": {
+      "additionalProperties": false,
+      "description": "The grid of a feature volume. ``shape`` is spatial (z, y, x) and must equal the reconstruction grid.",
+      "properties": {
+        "axes": {
+          "description": "Axis order including the channel axis.",
+          "items": {
+            "type": "string"
+          },
+          "maxItems": 4,
+          "minItems": 4,
+          "title": "Axes",
+          "type": "array"
+        },
+        "resampling": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "How the model's native grid was resampled.",
+          "title": "Resampling"
+        },
+        "shape": {
+          "description": "(z, y, x)",
+          "items": {
+            "minimum": 1,
+            "type": "integer"
+          },
+          "maxItems": 3,
+          "minItems": 3,
+          "title": "Shape",
+          "type": "array"
+        }
+      },
+      "required": [
+        "shape",
+        "axes"
+      ],
+      "title": "FeatureGrid",
+      "type": "object"
+    }
+  },
+  "$id": "copick-contracts/v1/feature-provenance.schema.json",
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "additionalProperties": false,
+  "description": "Which model computed the features a result was learned from, and how. No local paths.",
+  "properties": {
+    "checkpoint_sha256": {
+      "anyOf": [
+        {
+          "pattern": "^[0-9a-f]{64}$",
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Checkpoint Sha256"
+    },
+    "grid": {
+      "$ref": "#/$defs/FeatureGrid"
+    },
+    "license": {
+      "minLength": 1,
+      "title": "License",
+      "type": "string"
+    },
+    "model": {
+      "minLength": 1,
+      "title": "Model",
+      "type": "string"
+    },
+    "preprocessing": {
+      "additionalProperties": true,
+      "title": "Preprocessing",
+      "type": "object"
+    },
+    "public": {
+      "title": "Public",
+      "type": "boolean"
+    }
+  },
+  "required": [
+    "model",
+    "license",
+    "public",
+    "grid"
+  ],
+  "title": "FeatureProvenance",
+  "type": "object"
+}
