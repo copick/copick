@@ -129,13 +129,13 @@ Meshes: object_name:user_id/session_id
 | Option | Type | Default | Description |
 |--------|------|---------|-------------|
 | `-c, --config` | path | — | Path to the configuration file. |
+| `--run-names, -r` | text · multiple | — | Specific run names to process (default: all runs). Repeatable; pass -r once per run. |
 | `--debug / --no-debug` | boolean flag | `False` | Enable debug logging. |
 
 ### Input Options
 
 | Option | Type | Default | Description |
 |--------|------|---------|-------------|
-| `--run-names, -r` | text · multiple | — | Specific run names to process (default: all runs). |
 | `--input, -i` | COPICK_URI | **required** | Input segmentation URI (format: name:user_id/session_id@voxel_spacing). Supports glob patterns. |
 
 ### Tool Options
@@ -174,3 +174,7 @@ copick convert seg2slab -c config.json \
     --label 1 --method iou --fit-resolution 100 100 \
     -o "sample:seg2slab/fitted"
 ```
+
+## See also
+
+- [`copick convert picks2slab`](picks2slab.md) — fit the same slab surfaces to picked points instead of a segmentation

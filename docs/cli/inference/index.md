@@ -22,5 +22,5 @@ contributed by installed plugins.
 | Command | Description |
 |---------|-------------|
 | [`easymode`](easymode.md) | Segment tomograms using easymode pretrained models. |
-| [`membrain-seg`](membrain-seg.md) | Runs the membrane segmentation command. |
-| [`nnunet`](nnunet.md) | Run nnUNet inference on CoPick tomograms... |
+| [`membrain-seg`](membrain-seg.md) | Segment membranes in tomograms with MemBrain-seg. |
+| [`nnunet`](nnunet.md) | Run nnUNet inference on CoPick tomograms. |

@@ -121,13 +121,13 @@ Tomograms: tomo_type@voxel_spacing
 | Option | Type | Default | Description |
 |--------|------|---------|-------------|
 | `-c, --config` | path | — | Path to the configuration file. |
+| `--run-names, -r` | text · multiple | — | Specific run names to process (default: all runs). Repeatable; pass -r once per run. |
 | `--debug / --no-debug` | boolean flag | `False` | Enable debug logging. |
 
 ### Input Options
 
 | Option | Type | Default | Description |
 |--------|------|---------|-------------|
-| `--run-names, -r` | text · multiple | — | Specific run names to process (default: all runs). |
 | `--input1, -i1` | COPICK_URI | **required** | First input picks URI (format: object_name:user_id/session_id). Supports glob patterns. |
 | `--input2, -i2` | COPICK_URI | **required** | Second input picks URI (format: object_name:user_id/session_id). Supports glob patterns. |
 
@@ -178,3 +178,8 @@ copick convert picks2slab -c config.json \
     --grid-resolution 7 7 --fit-resolution 100 100 \
     -o "sample:picks2slab/fitted"
 ```
+
+## See also
+
+- [`copick convert seg2slab`](seg2slab.md) — fit a slab mesh to a boundary segmentation instead of picks
+- [`copick convert mesh2caps`](mesh2caps.md) — extract the top/bottom cap surfaces of the resulting slab mesh

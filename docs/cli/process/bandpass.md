@@ -5,7 +5,7 @@
 
 <span class="source-badge source-badge--torch" title="Provided by the copick-torch plugin">torch</span>
 
-*3D bandpass filter tomograms.*
+*Band-pass filter tomograms in 3D.*
 
 ??? info "Plugin command — copick-torch"
     This command is provided by the **[copick-torch](https://pypi.org/project/copick-torch/)** plugin, not copick core. Install it to make this command available:
@@ -22,16 +22,72 @@
 copick process bandpass [OPTIONS]
 ```
 
+## Description
+
+For every run in the project (or only the runs given by --run-names/-r), queries the
+input tomogram, applies a Gaussian band-pass filter on the GPU, and writes the
+filtered tomogram back into the project. The output is named by -o/--output, or (when
+omitted) the source name with -lp<freq>A and/or -hp<freq>A suffixes. Band-pass does
+not resample, so the output voxel spacing matches the input. Runs are processed in
+parallel on a GPU pool.
+
+Low-pass and high-pass cutoffs are given as resolutions in angstroms; a value of 0
+disables that side of the filter, but both cannot be 0. Cutoffs finer than Nyquist
+(2 * voxel_size) are rejected, and for a true band-pass the high-pass resolution must
+be coarser than the low-pass resolution. Optionally writes a PNG preview of the filter
+profile (filter3d.png).
+
+## URI Format
+
+```text
+Tomograms: tomo_type@voxel_spacing
+```
+
 ## Options
 
 | Option | Type | Default | Description |
 |--------|------|---------|-------------|
-| `--config` | text | **required** | Path to Copick Config for Processing Data |
-| `--run-ids` | text | — | Run ID to process (No Input would process the entire dataset.) |
-| `--tomo-alg` | text | **required** | Tomogram Algorithm to use |
-| `--voxel-size` | float | `10` | Voxel Size to Query the Data |
+| `-c, --config` | path | — | Path to the configuration file. |
+| `--run-names, -r` | text · multiple | — | Specific run names to process (default: all runs). Repeatable; pass -r once per run. |
+| `--debug / --no-debug` | boolean flag | `False` | Enable debug logging. |
+
+### Input Options
+
+| Option | Type | Default | Description |
+|--------|------|---------|-------------|
+| `--input, -i` | COPICK_URI | — | Input tomogram URI (format: tomo_type@voxel_spacing). Supports glob patterns. |
+
+### Output Options
+
+| Option | Type | Default | Description |
+|--------|------|---------|-------------|
+| `--output, -o` | COPICK_URI | — | Output tomogram URI (format: tomo_type@voxel_spacing). Example: 'wbp@20.0'. |
+
+### Tool Options
+
+| Option | Type | Default | Description |
+|--------|------|---------|-------------|
 | `--lp-freq` | float | `0` | Low-pass cutoff frequency (in Angstroms) |
 | `--lp-decay` | float | `50` | Low-pass decay width (in pixels) |
 | `--hp-freq` | float | `0` | High-pass cutoff frequency (in Angstroms) |
 | `--hp-decay` | float | `50` | High-pass decay width (in pixels) |
 | `--show-filter` | boolean | `True` | Save the filter as a PNG (filter3d.png) |
+
+## Examples
+
+```bash
+# Low-pass filter wbp tomograms at 10 A voxel spacing to 30 A resolution
+copick process bandpass -c config.json -i wbp@10.0 --lp-freq 30.0
+
+# Band-pass a single run between 100 A (high-pass) and 30 A (low-pass)
+copick process bandpass -c config.json -i wbp@10.0 -r TS_001 \
+    --lp-freq 30.0 --hp-freq 100.0
+
+# High-pass the whole dataset into a named output, skipping the preview PNG
+copick process bandpass -c config.json -i wbp@10.0 -o wbp-hp150A@10.0 \
+    --hp-freq 150.0 --show-filter false
+```
+
+## See also
+
+- [`copick process downsample`](downsample.md) — downsample tomograms via Fourier rescaling

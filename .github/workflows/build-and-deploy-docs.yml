@@ -1,14 +1,25 @@
 name: docs
 
 on:
+  pull_request:
+    paths:
+      - ".github/workflows/build-and-deploy-docs.yml"
+      - "docs/**"
+      - "README.md"
+      - "pyproject.toml"
+      - "src/**"
+      - "uv.lock"
+      - "zensical.toml"
   push:
     branches:
       - main
+      - v2.0
 
-# This job installs dependencies, builds the book, and pushes it to
-# the `gh-pages` branch of the same repository.
+permissions:
+  contents: read
+
 jobs:
-  deploy-book:
+  build-book:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout repository
@@ -44,15 +55,20 @@ jobs:
       - name: Install plugin packages for CLI introspection
         env:
           UV_TORCH_BACKEND: cpu
-        # Pin minimum versions to the releases that ship the normalized command docstrings, so the
-        # rendered CLI reference can't regress to an older (pre-normalization) plugin.
-        run: uv pip install "copick>=1.24.1" "copick-utils>=1.7.1" "copick-torch>=1.1.1" "copick-mcp>=0.6.0"
+        # Use the exact migrated plugin releases so generated docs exercise the same
+        # OME-Zarr 0.5 / Zarr v3 package set as copick 2.0 alpha users.
+        run: uv pip install "copick-utils==2.0.0a1" "copick-torch==2.0.0a1" "copick-mcp>=0.6.0"
 
       # copick-easymode is git-only (not on PyPI) and its CLI module defers all heavy imports
       # (easymode/TensorFlow), so a --no-deps install is enough for make_cli_docs to introspect
       # `copick inference easymode` without pulling TensorFlow or the git-easymode/old-numpy chain.
       - name: Install copick-easymode for CLI introspection
         run: uv pip install --no-deps "copick-easymode @ git+https://github.com/copick/copick-easymode.git"
+
+      # Plugin dependency resolution may replace the checkout with a released copick
+      # wheel. Restore the branch under test while retaining the installed plugins.
+      - name: Restore the locked checkout runtime
+        run: uv sync --locked --extra docs --inexact
 
       # Regenerate the per-command CLI reference pages and the CLI-Reference nav node
       # from the live --help/docstrings before building.
@@ -64,7 +80,27 @@ jobs:
         run: |
           zensical build
 
-      # Push the site to github-pages
+      - name: Upload rendered site
+        uses: actions/upload-artifact@v7
+        with:
+          name: docs-site-${{ github.sha }}
+          path: site/
+          if-no-files-found: error
+          retention-days: 1
+
+  deploy-book:
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    needs: build-book
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - name: Download rendered site
+        uses: actions/download-artifact@v7
+        with:
+          name: docs-site-${{ github.sha }}
+          path: site/
+
       - name: GitHub Pages action
         uses: peaceiris/actions-gh-pages@v4
         with:

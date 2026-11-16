@@ -5,7 +5,7 @@
 
 <span class="source-badge source-badge--torch" title="Provided by the copick-torch plugin">torch</span>
 
-*Run nnUNet inference on CoPick tomograms...*
+*Run nnUNet inference on CoPick tomograms.*
 
 ??? info "Plugin command — copick-torch"
     This command is provided by the **[copick-torch](https://pypi.org/project/copick-torch/)** plugin, not copick core. Install it to make this command available:
@@ -24,7 +24,14 @@ copick inference nnunet [OPTIONS]
 
 ## Description
 
-Run nnUNet inference on CoPick tomograms and write predictions back.
+For every run in the project (or only the runs given by --run-names/-r), queries the requested tomogram, runs sliding-window
+nnUNet prediction, and writes the resulting segmentation back into the CoPick
+project. All available GPUs are used automatically, with run IDs sharded across
+devices for batch inference.
+
+Repeat `-w/--weights` to ensemble multiple folds (logits are averaged before
+argmax). Both standard nnUNet and MedNeXt trainers are supported; the trainer
+class is resolved from the checkpoint metadata.
 
 ## Options
 
@@ -36,5 +43,27 @@ Run nnUNet inference on CoPick tomograms and write predictions back.
 | `-w, --weights` | path · multiple | **required** | Path to checkpoint .pth (repeat for fold ensembling, e.g. -w fold_0/checkpoint_best.pth -w fold_1/checkpoint_best.pth) |
 | `-turi, --tomo-uri` | text | `wbp@10.0` | Tomogram URI to predict |
 | `--tta` | boolean | `True` | Enable mirroring TTA. |
-| `--run-ids, -runs` | text | — | CoPick run IDs to predict (comma-separated). |
+| `--run-names, -r` | text · multiple | — | Specific run names to process (default: all runs). Repeatable; pass -r once per run. |
 | `-suri, --seg-uri` | text | `predict:nnunet/1` | Segmentation URI to write (name:user_id/session_id) |
+
+## Examples
+
+```bash
+# Segment all runs with a single-fold model, writing to predict:nnunet/1
+copick inference nnunet -c config.json -p plans.json -d dataset.json \
+    -w fold_0/checkpoint_best.pth -turi wbp@10.0
+
+# Ensemble multiple folds and write to a custom segmentation URI
+copick inference nnunet -c config.json -p plans.json -d dataset.json \
+    -w fold_0/checkpoint_best.pth -w fold_1/checkpoint_best.pth \
+    -suri membrane:nnunet/1
+
+# Predict only specific runs with mirroring TTA disabled
+copick inference nnunet -c config.json -p plans.json -d dataset.json \
+    -w fold_0/checkpoint_best.pth -r TS_01 -r TS_02 --tta False
+```
+
+## See also
+
+- [`copick convert nnunet`](../convert/nnunet.md) — build the nnUNet training dataset from a CoPick project
+- [`copick training nnunet`](../training/nnunet.md) — train the nnUNet model used for inference
